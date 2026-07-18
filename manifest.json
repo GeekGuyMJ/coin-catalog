@@ -2,20 +2,20 @@
   "name": "Coin & Collectable Catalog",
   "short_name": "Coin Catalog",
   "description": "Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#0b0f14",
   "theme_color": "#60a5fa",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/icons/icon-192.png",
+      "src": "icons/logo-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-512.png",
+      "src": "icons/logo-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -34,14 +34,14 @@
   ],
   "screenshots": [
     {
-      "src": "/assets/screenshot-catalog.jpg",
+      "src": "assets/screenshot-catalog.jpg",
       "sizes": "1280x720",
       "type": "image/jpeg",
       "form_factor": "wide",
       "label": "Main catalog view"
     },
     {
-      "src": "/assets/screenshot-portfolio.jpg",
+      "src": "assets/screenshot-portfolio.jpg",
       "sizes": "1280x720",
       "type": "image/jpeg",
       "form_factor": "wide",
