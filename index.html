@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Track your coin collection with live metal prices, 6,800+ US coins, bullion, paper currency, and cloud backup. No accounts. No subscriptions.">
+  <meta name="theme-color" content="#60a5fa">
+  <title>Coin & Collectable Catalog — Track, Value, Manage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+</head>
+<body>
+  <header class="header" role="banner">
+    <nav class="nav container" aria-label="Main navigation">
+      <a href="/" class="logo" aria-label="Coin & Collectable Catalog Home">
+        <svg class="logo-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="2"/>
+          <path d="M16 8V24M8 16H24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="16" cy="16" r="6" fill="currentColor"/>
+        </svg>
+        <span class="logo-text">Coin Catalog</span>
+      </a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
+        <span class="hamburger"></span>
+      </button>
+      <ul id="nav-menu" class="nav-menu" role="menubar">
+        <li role="none"><a href="#features" class="nav-link" role="menuitem">Features</a></li>
+        <li role="none"><a href="#screenshots" class="nav-link" role="menuitem">Screenshots</a></li>
+        <li role="none"><a href="#download" class="nav-link" role="menuitem">Download</a></li>
+        <li role="none"><a href="/privacy.html" class="nav-link" role="menuitem">Privacy</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container">
+        <div class="hero-content">
+          <span class="hero-badge">Version 1.0 • July 2026</span>
+          <h1 id="hero-title">Track. Value. Manage.<br>Your Collection, Your Data.</h1>
+          <p class="hero-subtitle">The complete coin & collectable catalog with live metal prices, 6,800+ US coins, bullion tracking, paper currency, and offline-first cloud backup — all without accounts or subscriptions.</p>
+          <div class="hero-actions">
+            <a href="https://play.google.com/store/apps/details?id=com.geekguymj.coincatalog" class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.54 5.44c-.34-.07-.68-.1-1.02-.1H6.59C4.71 5.34 3.2 6.79 3.01 8.69L2.4 18.35c-.18 1.08.66 2.02 1.69 2.16l.46.06 6.57.96v6.18c-.6.4-1.45.65-2.46.51l-.4-.04c-1.2-.12-2.2-.81-2.48-1.89L.95 15.13C.67 13.73 1.39 12.5 2.7 12.5h7.99l.3-.25c.07-.07.14-.14.2-.22.03-.04.07-.07.1-.1.25-.25.4-.53.4-.85v-1.84l-3.76-2.48c-.03-.02-.06-.04-.09-.07-.09-.1-.16-.21-.21-.32-.05-.12-.08-.24-.1-.37-.02-.13.01-.27.07-.39l.05-.09c.06-.11.15-.2.25-.28.05-.03.1-.05.15-.08.24-.1.48-.19.71-.26.06-.02.12-.03.19-.04C8.28 5.51 10.38 5.49 12.54 5.44zM14.96 4.48c1.12 0 1.82.8 1.96 1.87.05.35.15.69.32 1.01.07.12.14.24.21.37.02.04.04.08.07.11.1.09.2.18.3.27.08.04.17.07.25.11.14.06.29.12.43.18l.02.01.03.02c.3.2.74.52 1.08.61.26.06.5.09.75.09h4.31c.25 0 .5-.02.75-.09.34-.09.77-.41 1.08-.61l.03-.02.02-.01c.14-.06.28-.12.43-.18.08-.04.17-.07.25-.11.1-.09.2-.18.3-.27.03-.03.05-.07.07-.11.07-.13.14-.25.21-.37.17-.32.27-.66.32-1.01.14-1.07-.56-1.87-1.96-1.87h-3.15V.14c0-.44-.36-.8-.8-.8s-.8.36-.8.8v4.34H14.96z"/></svg>
+              <span>Get on Google Play</span>
+            </a>
+            <a href="https://geekguymj.github.io/coin-catalog/" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+              <span>Open Web App</span>
+            </a>
+          </div>
+          <p class="hero-trust">No accounts • No subscriptions • Your data stays yours</p>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="phone-mockup">
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="mockup-header">
+                  <div class="mockup-dots"><span></span><span></span><span></span></div>
+                </div>
+                <div class="mockup-content">
+                  <div class="mockup-card">
+                    <div class="mockup-card-header">
+                      <span class="mockup-icon">💰</span>
+                      <span class="mockup-title">Portfolio</span>
+                    </div>
+                    <div class="mockup-value">$12,450.00</div>
+                    <div class="mockup-detail">247 coins · 12.3 oz Au</div>
+                  </div>
+                  <div class="mockup-card">
+                    <div class="mockup-card-header">
+                      <span class="mockup-icon">🥈</span>
+                      <span class="mockup-title">Silver</span>
+                    </div>
+                    <div class="mockup-value">$3,210.50</div>
+                    <div class="mockup-detail">892 oz @ $28.45</div>
+                  </div>
+                  <div class="mockup-card">
+                    <div class="mockup-card-header">
+                      <span class="mockup-icon">📊</span>
+                      <span class="mockup-title">Completion</span>
+                    </div>
+                    <div class="mockup-value">67%</div>
+                    <div class="mockup-progress"><div class="mockup-progress-bar" style="width: 67%"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="phone-glare"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features" aria-labelledby="features-title">
+      <div class="container">
+        <header class="section-header">
+          <h2 id="features-title">Everything You Need</h2>
+          <p>Built by a collector, for collectors.</p>
+        </header>
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            </div>
+            <h3>6,800+ US Coins</h3>
+            <p>Complete database from Half Cents to Modern Dollars. Key dates, proofs, errors, varieties — all pre-loaded.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <h3>Live Metal Prices</h3>
+            <p>Gold, silver, platinum, palladium, copper, nickel — auto-updated every minute. Portfolio values recalculated instantly.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5v5"/><path d="M16 19h6"/><path d="M16 19v-4"/><path d="M21 19v-8"/><path d="M21 19H7"/><path d="M3 19v-8"/><path d="M3 19h6"/><path d="M3 19v-4"/></svg>
+            </div>
+            <h3>Bullion & More</h3>
+            <p>Track raw bullion, scrap metal, paper currency, bulk coins by weight, and custom collectable categories — all in one portfolio.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+            </div>
+            <h3>Your Cloud, Your Data</h3>
+            <p>Backup/restore to Google Drive, OneDrive, Dropbox, iCloud, or local folder. No accounts. No servers. You hold the keys.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <h3>Offline-First</h3>
+            <p>Works without internet. Service Worker caches everything. Add coins on a plane — syncs when you're back online.</p>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <h3>Wishlist & Goals</h3>
+            <p>Heart any coin to add to wishlist. Set target grades and max prices. Mark acquired with one tap. Track completion by series.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="screenshots" class="screenshots" aria-labelledby="screenshots-title">
+      <div class="container">
+        <header class="section-header">
+          <h2 id="screenshots-title">See It In Action</h2>
+          <p>Clean, dense, fast — designed for collectors who want data at their fingertips.</p>
+        </header>
+        <div class="screenshots-grid">
+          <figure class="screenshot">
+            <img src="/assets/screenshot-catalog.jpg" alt="Main catalog view showing US coin series with completion percentages" loading="lazy">
+            <figcaption>Catalog — 6,800+ coins organized by series</figcaption>
+          </figure>
+          <figure class="screenshot">
+            <img src="/assets/screenshot-portfolio.jpg" alt="Portfolio dashboard showing total value, metal breakdown, and bullion holdings" loading="lazy">
+            <figcaption>Portfolio — Live melt values & bullion tracking</figcaption>
+          </figure>
+          <figure class="screenshot">
+            <img src="/assets/screenshot-settings.jpg" alt="Settings modal with cloud backup, theme selection, and visibility toggles" loading="lazy">
+            <figcaption>Settings — Cloud backup, themes, card visibility</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="download" class="download" aria-labelledby="download-title">
+      <div class="container">
+        <header class="section-header">
+          <h2 id="download-title">Get Started</h2>
+          <p>Choose your platform. Same app, same data, same freedom.</p>
+        </header>
+        <div class="platform-cards">
+          <article class="platform-card">
+            <div class="platform-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.54 5.44c-.34-.07-.68-.1-1.02-.1H6.59C4.71 5.34 3.2 6.79 3.01 8.69L2.4 18.35c-.18 1.08.66 2.02 1.69 2.16l.46.06 6.57.96v6.18c-.6.4-1.45.65-2.46.51l-.4-.04c-1.2-.12-2.2-.81-2.48-1.89L.95 15.13C.67 13.73 1.39 12.5 2.7 12.5h7.99l.3-.25c.07-.07.14-.14.2-.22.03-.04.07-.07.1-.1.25-.25.4-.53.4-.85v-1.84l-3.76-2.48c-.03-.02-.06-.04-.09-.07-.09-.1-.16-.21-.21-.32-.05-.12-.08-.24-.1-.37-.02-.13.01-.27.07-.39l.05-.09c.06-.11.15-.2.25-.28.05-.03.1-.05.15-.08.24-.1.48-.19.71-.26.06-.02.12-.03.19-.04C8.28 5.51 10.38 5.49 12.54 5.44zM14.96 4.48c1.12 0 1.82.8 1.96 1.87.05.35.15.69.32 1.01.07.12.14.24.21.37.02.04.04.08.07.11.1.09.2.18.3.27.08.04.17.07.25.11.14.06.29.12.43.18l.02.01.03.02c.3.2.74.52 1.08.61.26.06.5.09.75.09h4.31c.25 0 .5-.02.75-.09.34-.09.77-.41 1.08-.61l.03-.02.02-.01c.14-.06.28-.12.43-.18.08-.04.17-.07.25-.11.1-.09.2-.18.3-.27.03-.03.05-.07.07-.11.07-.13.14-.25.21-.37.17-.32.27-.66.32-1.01.14-1.07-.56-1.87-1.96-1.87h-3.15V.14c0-.44-.36-.8-.8-.8s-.8.36-.8.8v4.34H14.96z"/></svg>
+            </div>
+            <h3>Android</h3>
+            <p class="platform-badge">Google Play</p>
+            <p>Full native experience. Install from Play Store, works offline, backs up to your Google Drive.</p>
+            <a href="https://play.google.com/store/apps/details?id=com.geekguymj.coincatalog" class="platform-link" target="_blank" rel="noopener noreferrer">
+              <span>Download from Play Store</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </article>
+          <article class="platform-card">
+            <div class="platform-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            </div>
+            <h3>Web App (PWA)</h3>
+            <p class="platform-badge">Install from Browser</p>
+            <p>Runs in Chrome, Edge, Firefox, Safari. Click "Install" in address bar → native app experience.</p>
+            <a href="https://geekguymj.github.io/coin-catalog/" class="platform-link" target="_blank" rel="noopener noreferrer">
+              <span>Open Web App</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </article>
+          <article class="platform-card">
+            <div class="platform-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+            </div>
+            <h3>Windows / Mac / Linux</h3>
+            <p class="platform-badge">GitHub Releases</p>
+            <p>Native desktop wrapper (Tauri). Same PWA, native window, file system access for backups.</p>
+            <a href="https://github.com/geekguymj/coin-catalog/releases" class="platform-link" target="_blank" rel="noopener noreferrer">
+              <span>Download Latest Release</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </a>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <a href="/" class="logo">
+            <svg class="logo-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <circle cx="16" cy="16" r="14" stroke="currentColor" stroke-width="2"/>
+              <path d="M16 8V24M8 16H24" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="16" cy="16" r="6" fill="currentColor"/>
+            </svg>
+            <span class="logo-text">Coin Catalog</span>
+          </a>
+          <p>Your collection. Your data. Your rules.</p>
+        </div>
+        <nav class="footer-nav" aria-label="Footer navigation">
+          <div class="footer-col">
+            <h4>App</h4>
+            <ul>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#screenshots">Screenshots</a></li>
+              <li><a href="#download">Download</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Legal</h4>
+            <ul>
+              <li><a href="/privacy.html">Privacy Policy</a></li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h4>Support</h4>
+            <ul>
+              <li><a href="mailto:matthew@example.com">Contact</a></li>
+              <li><a href="https://github.com/geekguymj/coin-catalog/issues">Report Issue</a></li>
+            </ul>
+          </div>
+        </nav>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Coin & Collectable Catalog. No tracking. No accounts. No subscriptions.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script type="module" src="/assets/app.js"></script>
+</body>
+</html>
