@@ -421,7 +421,7 @@ export function openSettingsModal() {
         ]));
 
         panel.appendChild(el('div', { className: 'settings-section' }, [
-            el('h3', { className: 'settings-section-title' }, '⚠ Danger Zone'),
+            el('h3', { className: 'settings-section-title' }, 'Danger Zone'),
             el('p', { className: 'settings-section-desc' }, 'Irreversible actions. Use with caution.'),
             buildActionRow([
                 { label: ' Purge All Inventory', onclick: purgeInventory, className: 'btn-danger' }

@@ -491,7 +491,7 @@ export function openSettingsModal() {
                     provider.requiresAuth ? el('div', { style: 'margin-bottom: 12px; padding: 12px; background: var(--color-bg); border-radius: 8px;' }, [
                         isAuthenticated 
                             ? el('div', { className: 'success-message', style: 'color: var(--color-success); font-weight: 600;' }, '✓ Authenticated')
-                            : el('div', { className: 'warning-message', style: 'color: var(--color-warning); font-weight: 600;' }, '⚠ Not authenticated'),
+                            : el('div', { className: 'warning-message', style: 'color: var(--color-warning); font-weight: 600;' }, 'Not authenticated'),
                         el('button', {
                             className: isAuthenticated ? 'btn-secondary' : 'btn-primary',
                             style: 'width: 100%; margin-top: 8px;',
@@ -966,8 +966,8 @@ export function openImageManager() {
     // View toggle
     const viewToggle = el('div', { style: 'display:flex;gap:4px;background:var(--color-accord-bg);border-radius:6px;padding:2px;' });
     let currentView = 'gallery';
-    const galleryBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-main);', onclick: () => { currentView = 'gallery'; galleryBtn.classList.add('active'); listBtn.classList.remove('active'); renderGallery(); } }, '📷 Gallery');
-    const listBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-muted);', onclick: () => { currentView = 'list'; listBtn.classList.add('active'); galleryBtn.classList.remove('active'); renderList(); } }, '📋 List');
+    const galleryBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-main);', onclick: () => { currentView = 'gallery'; galleryBtn.classList.add('active'); listBtn.classList.remove('active'); renderGallery(); } }, 'Gallery');
+    const listBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-muted);', onclick: () => { currentView = 'list'; listBtn.classList.add('active'); galleryBtn.classList.remove('active'); renderList(); } }, 'List');
     galleryBtn.classList.add('active');
     viewToggle.appendChild(galleryBtn);
     viewToggle.appendChild(listBtn);
@@ -1040,7 +1040,7 @@ export function openImageManager() {
                         var revImg = el('img', { src: coin._revSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
                         imgArea.appendChild(revImg);
                     } else {
-                        imgArea.appendChild(el('span', { style: 'font-size:2.5em;color:var(--color-text-muted);opacity:0.3;' }, '⊘'));
+                        imgArea.appendChild(el('span', { style: 'font-size:2.5em;color:var(--color-text-muted);opacity:0.3;' }, ' '));
                     }
                     
                     card.appendChild(imgArea);
@@ -1049,28 +1049,24 @@ export function openImageManager() {
                     var info = el('div', { style: 'padding:8px;display:flex;flex-direction:column;gap:2px;' });
                     info.appendChild(el('div', { style: 'font-weight:600;font-size:0.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, coin.name || 'Unnamed'));
                     info.appendChild(el('div', { style: 'font-size:0.7em;color:var(--color-text-muted);' }, (coin.country || '') + ' ' + (coin.year || '') + ' ' + (coin.denomination || '')));
-                    info.appendChild(el('div', { style: 'font-size:0.65em;color:var(--color-text-muted);display:flex;gap:8px;', innerHTML: (coin._hasObv ? '<span style="color:var(--color-success)">●</span> Obv' : '<span style="color:var(--color-danger)">○</span> Obv') + ' | ' + (coin._hasRev ? '<span style="color:var(--color-success)">●</span> Rev' : '<span style="color:var(--color-danger)">○</span> Rev') }));
+                    info.appendChild(el('div', { style: 'font-size:0.65em;color:var(--color-text-muted);display:flex;gap:8px;', innerHTML: (coin._hasObv ? '<span style="color:var(--color-success)">Y</span> Obv' : '<span style="color:var(--color-danger)">N</span> Obv') + ' | ' + (coin._hasRev ? '<span style="color:var(--color-success)">Y</span> Rev' : '<span style="color:var(--color-danger)">N</span> Rev') }));
                     
                     card.appendChild(info);
                     
                     // Actions row
                     var actions = el('div', { style: 'display:flex;gap:4px;padding:0 8px 8px;border-top:1px solid var(--color-border-light);' });
                     
-                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Upload image', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, '📤');
+                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Upload image', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, 'Upload');
                     actions.appendChild(uploadBtn);
                     
                     if (coin.hasObv || coin.hasRev) {
-                        var removeBtn = el('button', { className: 'btn-danger', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Remove image', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, '🗑');
+                        var removeBtn = el('button', { className: 'btn-danger', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Remove image', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, 'Remove');
                         actions.appendChild(removeBtn);
                     }
                     
                     card.appendChild(actions);
                     
-                    // Click to navigate
-                    card.onclick = function() {
-                        window.dispatchEvent(new CustomEvent('cc-navigate-coin', { detail: { id: coin.id } }));
-                        closeModal('modal-image-manager');
-                    };
+                    // No click-to-navigate — Coin Image Bank is for browsing/managing images only
                     
                     grid.appendChild(card);
                 });
@@ -1108,7 +1104,7 @@ export function openImageManager() {
                     } else if (coin._hasRev) {
                         thumb.appendChild(el('img', { src: coin._revSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
                     } else {
-                        thumb.appendChild(el('span', { style: 'font-size:0.8em;color:var(--color-text-muted);' }, '⚠'));
+                        thumb.appendChild(el('span', { style: 'font-size:0.8em;color:var(--color-text-muted);' }, ' '));
                     }
                     row.appendChild(thumb);
                     
@@ -1129,10 +1125,10 @@ export function openImageManager() {
                     
                     // Actions
                     var actions = el('div', { style: 'display:flex;gap:4px;' });
-                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, '📤');
+                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, 'Upload');
                     actions.appendChild(uploadBtn);
                     if (coin.hasObv || coin.hasRev) {
-                        var removeBtn = el('button', { className: 'btn-danger', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, '🗑');
+                        var removeBtn = el('button', { className: 'btn-danger', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, 'Remove');
                         actions.appendChild(removeBtn);
                     }
                     row.appendChild(actions);
@@ -1577,7 +1573,7 @@ export function filterMissingImages() {
                                 closeModal('modal-image-coverage');
                             };
                             
-                            var thumb = el('div', { style: 'width:40px;height:40px;border-radius:4px;background:var(--color-accord-bg);display:flex;align-items:center;justify-content:center;color:var(--color-text-muted);font-size:0.7em;text-align:center;', title: 'No image' }, '⚠');
+                            var thumb = el('div', { style: 'width:40px;height:40px;border-radius:4px;background:var(--color-accord-bg);display:flex;align-items:center;justify-content:center;color:var(--color-text-muted);font-size:0.7em;text-align:center;', title: 'No image' }, ' ');
                             item.appendChild(thumb);
                             
                             var info = el('div', { style: 'flex:1;min-width:0;' });

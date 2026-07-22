@@ -253,7 +253,7 @@ export function openCropTool(imgSrc) {
     const shapeLabel = document.getElementById('crop-shape-label');
     if (shapeLabel) {
         if (cropShape === 'original')     shapeLabel.textContent = '■ Original';
-        else if (cropShape === 'circle') shapeLabel.textContent = '● Circle';
+        else if (cropShape === 'circle') shapeLabel.textContent = 'Circle';
         else if (cropShape === 'rect')   shapeLabel.textContent = '▭ Dollar Bill';
         else if (cropShape === 'square') shapeLabel.textContent = '■ Square';
     }
@@ -382,7 +382,7 @@ export function removeCurrentImage() {
     if (removeBtn.dataset.confirming !== 'true') {
         removeBtn.dataset.confirming = 'true';
         const originalText = removeBtn.textContent;
-        removeBtn.textContent = '⚠ Confirm Remove';
+        removeBtn.textContent = 'Confirm Remove';
         removeBtn.style.background = '#7f1d1d';
         showToast('Click "Confirm Remove" again to permanently delete this image.', 'warning', 4000);
         // Auto-reset after 4 seconds
@@ -427,12 +427,12 @@ export async function resetToMaster() {
     const resetBtn = document.getElementById('ii-btn-reset-master');
     if (resetBtn && resetBtn.dataset.confirming !== 'true') {
         resetBtn.dataset.confirming = 'true';
-        resetBtn.textContent = '⚠ Confirm Reset';
+        resetBtn.textContent = 'Confirm Reset';
         resetBtn.style.background = '#92400e';
         showToast('Click "Confirm Reset" again to restore the master image.', 'warning', 4000);
         setTimeout(() => {
             resetBtn.dataset.confirming = '';
-            resetBtn.textContent = '↩ Reset to Master';
+            resetBtn.textContent = 'Reset to Master';
             resetBtn.style.background = '';
         }, 4000);
         return;
@@ -441,7 +441,7 @@ export async function resetToMaster() {
     // Reset the button state
     if (resetBtn) {
         resetBtn.dataset.confirming = '';
-        resetBtn.textContent = '↩ Reset to Master';
+        resetBtn.textContent = 'Reset to Master';
         resetBtn.style.background = '';
     }
     
@@ -569,12 +569,12 @@ export async function promoteToDefaultHandler() {
     const promoteBtn = document.getElementById('ii-btn-promote-default');
     if (promoteBtn && promoteBtn.dataset.confirming !== 'true') {
         promoteBtn.dataset.confirming = 'true';
-        promoteBtn.textContent = '⚠ Confirm Promote';
+        promoteBtn.textContent = 'Confirm Promote';
         promoteBtn.style.background = '#065f46';
         showToast('Click Confirm Promote again to make this the default image.', 'warning', 4000);
         setTimeout(() => {
             promoteBtn.dataset.confirming = '';
-            promoteBtn.textContent = '⭐ Promote to Default';
+            promoteBtn.textContent = 'Promote to Default';
             promoteBtn.style.background = '';
         }, 4000);
         return;
@@ -583,7 +583,7 @@ export async function promoteToDefaultHandler() {
     // Reset button state
     if (promoteBtn) {
         promoteBtn.dataset.confirming = '';
-        promoteBtn.textContent = '⭐ Promote to Default';
+        promoteBtn.textContent = 'Promote to Default';
         promoteBtn.style.background = '';
     }
     
@@ -637,7 +637,7 @@ export async function promoteToDefaultHandler() {
             if (resetBtn) {
                 resetBtn.style.display = 'inline-block';
                 resetBtn.dataset.confirming = '';
-                resetBtn.textContent = '↩ Reset to Master';
+                resetBtn.textContent = 'Reset to Master';
                 resetBtn.style.background = '';
             }
         } else if (result.status === 'skipped') {

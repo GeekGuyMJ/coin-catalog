@@ -324,7 +324,7 @@ export function openSettingsModal() {
     albumOptionsSection.appendChild(el('h4', { style: 'font-size:0.85rem; margin:var(--space-3) 0 var(--space-1) 0; color:var(--color-accent); font-weight:600;' }, 'Badges & Indicators to Show:'));
     const badgeOptions = [
         { id: 'settings-album-show-multiplier', label: 'Show quantity multiplier (e.g. ×2)', key: 'cc-album-show-multiplier', checked: localStorage.getItem('cc-album-show-multiplier') !== 'false' },
-        { id: 'settings-album-show-errors', label: 'Show error/variety badge (⚠)', key: 'cc-album-show-errors', checked: localStorage.getItem('cc-album-show-errors') !== 'false' },
+        { id: 'settings-album-show-errors', label: 'Show error/variety badge', key: 'cc-album-show-errors', checked: localStorage.getItem('cc-album-show-errors') !== 'false' },
         { id: 'settings-album-show-proofs', label: 'Show proof coins badge ()', key: 'cc-album-show-proofs', checked: localStorage.getItem('cc-album-show-proofs') !== 'false' },
         { id: 'settings-album-show-rare', label: 'Show super rare coins badge ()', key: 'cc-album-show-rare', checked: localStorage.getItem('cc-album-show-rare') !== 'false' },
     ];
@@ -485,7 +485,7 @@ export function openSettingsModal() {
 
     // --- Data Management section ---
     const wipeSection = el('div', { className: 'settings-section' });
-    wipeSection.appendChild(el('h3', { className: 'settings-section-title' }, '⚠ Data Management'));
+    wipeSection.appendChild(el('h3', { className: 'settings-section-title' }, 'Data Management'));
     // === Reset Data (keep images) ===
     const resetDataBtn = el('button', {
         className: 'btn-danger',

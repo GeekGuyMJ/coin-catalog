@@ -536,7 +536,7 @@ async function showCloudSyncModal() {
                         })
                     ]),
                 ]) : el('div', { style: 'padding: 12px; background: var(--color-bg); border-radius: 8px; color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center;' },
-                    '⚠ This provider requires a backend server with OAuth support. Not available from this app. Use WebDAV instead — it works right now.'
+                    'This provider requires a backend server with OAuth support. Not available from this app. Use WebDAV instead — it works right now.'
                 ),
             ]));
 
