@@ -13,7 +13,7 @@
 
 import { el, escHtml } from './utils.js?v=4';
 import { showToast } from './notifications.js?v=4';
-import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables } from './state.js?v=4';
+import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js?v=4';
 import { saveCustomTheme } from './themes.js?v=4';
 
 // ============================================================
@@ -990,9 +990,18 @@ export function openImageManager() {
             var coins = data.coins || data || [];
             statsEl.textContent = coins.length + ' total coins';
             
-            // Master image system removed — no default images. Show all as placeholders.
-            coins.forEach(function(c) { c.hasObv = false; c.hasRev = false; c.hasAny = false; });
-            statsEl.textContent = coins.length + ' total coins — upload your own images';
+            // Check against loaded type configs for user-uploaded images
+            coins.forEach(function(c) {
+                // Check type config for user-uploaded images (stored in IndexedDB)
+                var cfg = getTypeConfig ? getTypeConfig(c.coin_type) : null;
+                c.hasObv = !!(cfg && cfg.obv_image);
+                c.hasRev = !!(cfg && cfg.rev_image);
+                c.hasAny = c.hasObv || c.hasRev;
+                c._obvSrc = c.hasObv ? cfg.obv_image : null;
+                c._revSrc = c.hasRev ? cfg.rev_image : null;
+            });
+            var withImages = coins.filter(function(c){return c.hasAny;}).length;
+            statsEl.textContent = coins.length + ' total coins — ' + withImages + ' with uploaded images';
             renderGallery();
             
             function renderGallery() {
@@ -1019,11 +1028,11 @@ export function openImageManager() {
                     // Image area
                     var imgArea = el('div', { style: 'aspect-ratio:1/1;background:var(--color-accord-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;' });
                     
-                    if (coin.hasObv) {
-                        var obvImg = el('img', { src: '/api/coins/' + coin.id + '/image/obv', style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;' });
+                    if (coin.hasObv && coin._obvSrc) {
+                        var obvImg = el('img', { src: coin._obvSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
                         imgArea.appendChild(obvImg);
-                    } else if (coin.hasRev) {
-                        var revImg = el('img', { src: '/api/coins/' + coin.id + '/image/rev', style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;' });
+                    } else if (coin.hasRev && coin._revSrc) {
+                        var revImg = el('img', { src: coin._revSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
                         imgArea.appendChild(revImg);
                     } else {
                         imgArea.appendChild(el('span', { style: 'font-size:2.5em;color:var(--color-text-muted);opacity:0.3;' }, '⊘'));
@@ -1090,9 +1099,9 @@ export function openImageManager() {
                     // Thumbnail
                     var thumb = el('div', { style: 'width:36px;height:36px;border-radius:4px;background:var(--color-accord-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;' });
                     if (coin.hasObv) {
-                        thumb.appendChild(el('img', { src: '/api/coins/' + coin.id + '/image/obv', style: 'width:100%;height:100%;object-fit:cover;' }));
+                        thumb.appendChild(el('img', { src: coin._obvSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
                     } else if (coin.hasRev) {
-                        thumb.appendChild(el('img', { src: '/api/coins/' + coin.id + '/image/rev', style: 'width:100%;height:100%;object-fit:cover;' }));
+                        thumb.appendChild(el('img', { src: coin._revSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
                     } else {
                         thumb.appendChild(el('span', { style: 'font-size:0.8em;color:var(--color-text-muted);' }, '⚠'));
                     }
