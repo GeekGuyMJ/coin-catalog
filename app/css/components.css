@@ -582,8 +582,8 @@
 }
 
 .coin-thumb {
-    width:         34px;
-    height:        34px;
+    width:         42px;
+    height:        42px;
     border-radius: var(--radius-md);
     object-fit:    cover;
     clip-path:     circle(50%);
@@ -602,8 +602,8 @@
     align-items: center;
 }
 .type-header .coin-thumb {
-    width:         28px;
-    height:        28px;
+    width:         34px;
+    height:        34px;
     border-radius: var(--radius-sm);
     clip-path:     circle(50%);
     border:        none;
@@ -680,8 +680,8 @@
 .coin-row:hover      { background: color-mix(in srgb, var(--color-accent) 5%, transparent); }
 
 .coin-row-thumb-wrap {
-    width:       44px;
-    height:      44px;
+    width:       56px;
+    height:      56px;
     flex-shrink: 0;
     display:     flex;
     align-items: center;
@@ -694,8 +694,8 @@
 }
 
 .coin-row-thumb {
-    width:         44px;
-    height:        44px;
+    width:         56px;
+    height:        56px;
     border-radius: var(--radius-md);
     object-fit:    cover;
     clip-path:     circle(50%);
@@ -1361,7 +1361,7 @@ select optgroup {
     .finance-grid { grid-template-columns: 1fr; }
     .finance-item.grand-total { grid-column: span 1; }
 
-    .coin-thumb { width: 28px; height: 28px; }
+    .coin-thumb { width: 34px; height: 34px; }
     .coin-thumb.obv { margin-right: -8px; }
 
     #toast-container {
@@ -1568,8 +1568,8 @@ select optgroup {
 }
 
 .album-type-thumb {
-    width: 40px;
-    height: 40px;
+    width: 52px;
+    height: 52px;
     flex-shrink: 0;
     border-radius: var(--radius-md);
     overflow: hidden;
@@ -1822,8 +1822,8 @@ select optgroup {
         height: 42px;
     }
     .album-type-thumb {
-        width: 32px;
-        height: 32px;
+        width: 40px;
+        height: 40px;
     }
     .album-section-pills {
         padding: var(--space-1) var(--space-2);
@@ -1899,8 +1899,8 @@ select optgroup {
         color: var(--color-text-main);
     }
     .coin-row-thumb {
-        width:  32px;
-        height: 32px;
+        width:  40px;
+        height: 40px;
     }
 
     /* Info: tighter spacing */
