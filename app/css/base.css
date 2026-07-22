@@ -1,0 +1,480 @@
+/*
+ * base.css — Coin Catalog v2
+ *
+ * Core design tokens, global resets, and utility classes.
+ * This file is loaded first to provide the foundation for components.
+ */
+
+:root {
+    /* Spacing System */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2.25rem;
+    --space-10: 2.75rem;
+    --space-12: 3.5rem;
+
+    /* Typography */
+    --font-size-xs:   0.75rem;
+    --font-size-sm:   0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg:   1.125rem;
+    --font-size-xl:   1.25rem;
+    --font-size-2xl:  1.5rem;
+    --font-size-3xl:  1.875rem;
+
+    /* Border Radius */
+    --radius-sm:   4px;
+    --radius-md:   8px;
+    --radius-lg:   12px;
+    --radius-xl:   16px;
+    --radius-full: 9999px;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2 -4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Z-Index */
+    --z-sticky: 100;
+    --z-modal:  1000;
+    --z-toast:  2000;
+
+    /* Sticky Layout Heights — country at top:0, section at 56px, type at 96px */
+    --header-height:       0px;
+    --country-bar-height:  56px;
+    --section-bar-top:     56px;
+    --type-bar-top:        112px;
+}
+
+/* =========================================================================
+   Reset & Base Styles
+   ========================================================================= */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-bg-body);
+    color:            var(--color-text-main);
+    line-height:      1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+a {
+    color:           var(--color-accent);
+    text-decoration: none;
+}
+
+img {
+    max-width: 100%;
+    display:   block;
+}
+
+button, input, select, textarea {
+    font: inherit;
+}
+
+button {
+    cursor:     pointer;
+    border:     none;
+    background: none;
+}
+
+/* =========================================================================
+   Layout Containers
+   ========================================================================= */
+
+.container {
+    width:         100%;
+    max-width:     1400px;
+    margin-left:   auto;
+    margin-right:  auto;
+    padding-left:  var(--space-4);
+    padding-right: var(--space-4);
+}
+
+/* =========================================================================
+   Global Utilities
+   ========================================================================= */
+
+.hidden {
+    display: none !important;
+}
+
+.sr-only {
+    position: absolute;
+    width:    1px;
+    height:   1px;
+    padding:  0;
+    margin:   -1px;
+    overflow: hidden;
+    clip:     rect(0, 0, 0, 0);
+    border:   0;
+}
+
+.text-center { text-align: center; }
+.text-muted  { color: var(--color-text-muted); }
+
+/* =========================================================================
+   Splash Screen Styles
+   ========================================================================= */
+
+#app-splash {
+    position:        fixed;
+    inset:           0;
+    background:      var(--color-bg-body);
+    z-index:         9999;
+    display:         flex;
+    flex-direction:  column;
+    align-items:     center;
+    justify-content: center;
+    transition:      opacity 0.6s ease, visibility 0.6s;
+}
+
+#app-splash.hidden {
+    opacity:    0;
+    visibility: hidden;
+}
+
+.splash-coin {
+    width:         120px;
+    height:        120px;
+    border-radius: 50%;
+    margin-bottom: var(--space-6);
+    background:    transparent;
+    border:        none;
+    box-shadow:    0 4px 6px rgba(0,0,0,0.2);
+    animation:     pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1);   opacity: 1; }
+    50%      { transform: scale(1.1); opacity: 0.7; }
+}
+
+.splash-label {
+    font-size:   var(--font-size-lg);
+    font-weight: 600;
+    color:       var(--color-text-main);
+}
+
+/* =========================================================================
+   App Header
+   ========================================================================= */
+
+#app-header {
+    background:      var(--color-header-bg);
+    color:           var(--color-header-text);
+    padding:         var(--space-2) var(--space-6);
+    display:         flex;
+    align-items:     center;
+    flex-wrap:       wrap;            /* let nav buttons drop to a second row when the window narrows */
+    gap:             var(--space-2);
+    z-index:         200;
+    border-bottom:   1px solid var(--color-border-light);
+}
+
+
+.header-left {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-2);
+}
+
+.app-title {
+    margin:      0;
+    font-size:   var(--font-size-xl);
+    font-weight: 700;
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-2);
+    white-space: nowrap;
+}
+
+#app-header .header-logo {
+    width: 105px !important;
+    height: 105px !important;
+    min-width: 105px !important;
+    min-height: 105px !important;
+    max-width: 105px !important;
+    max-height: 105px !important;
+    aspect-ratio: 1 / 1 !important;
+    object-fit: cover !important;
+    border-radius: 50%;
+    flex-shrink:   0;
+    margin-top: -9px;
+    margin-bottom: -40px;
+    position:      relative;
+    z-index:       10;
+}
+
+/* header-right: nav buttons + theme selector */
+.header-right {
+    display:     flex;
+    align-items: center;
+    gap:         var(--space-2);
+    margin-left: auto;  /* push the nav group to the far right on desktop */
+}
+
+/* header-settings no longer a separate wrapper (Settings lives in header-right now) */
+.header-settings {
+    display:     none;
+}
+
+.header-nav {
+    display:     flex;
+    gap:         var(--space-2);
+}
+
+/* Ensure SVG icons inside buttons align nicely */
+.btn-header {
+    font-size:      var(--font-size-sm);
+    padding:        var(--space-1) var(--space-3);
+    border-radius:  var(--radius-full);
+    background:     var(--color-bg-card);
+    color:          var(--color-text-main);
+    border:         1px solid var(--color-border-light);
+    white-space:    nowrap;
+    display:        inline-flex;
+    align-items:    center;
+    gap:            5px;
+    transition:     background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.btn-header:hover {
+    background:   var(--color-accord-bg);
+    border-color: var(--color-accent);
+}
+
+.theme-select {
+    font-size:      var(--font-size-sm);
+    padding:        var(--space-1) var(--space-3);
+    border-radius:  var(--radius-full);
+    background:     var(--color-bg-card);
+    color:          var(--color-text-main);
+    border:         1px solid var(--color-border-light);
+    cursor:         pointer;
+    appearance:     auto;
+}
+
+/* Hide the extras container — JS manages visibility of children */
+#header-extras {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding-left:  var(--space-1);
+        padding-right: var(--space-1);
+    }
+
+    :root {
+        --country-bar-height: 48px;
+        --header-height: 0px;
+        --section-bar-top: 48px;
+        --type-bar-top: 100px;
+    }
+    #app-header {
+        padding:    6px var(--space-4);
+        /* Two-row grid: logo spans both rows */
+        display:               grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows:    auto auto;
+        grid-template-areas:
+            "logo  title"
+            "logo  nav";
+        align-items:  center;
+        gap:          3px 8px;
+    }
+    #app-header .header-logo {
+        grid-area:    logo;
+        width:        57px !important;
+        height:       57px !important;
+        min-width:    57px !important;
+        min-height:   57px !important;
+        max-width:    57px !important;
+        max-height:   57px !important;
+        aspect-ratio: 1 / 1 !important;
+        object-fit:   cover !important;
+        border-radius: 50%;
+        margin:       0;
+        flex-shrink:  0;
+        align-self:   center;
+    }
+    .header-left {
+        grid-area:    title;
+        display:      flex;
+        align-items:  center;
+        min-width:    0;
+        overflow:     hidden;
+    }
+    .app-title {
+        font-size:     var(--font-size-sm);
+        white-space:   nowrap;
+        line-height:   1.1;
+    }
+    .header-right {
+        grid-area:      nav;
+        display:        flex;
+        align-items:    center;
+        gap:            6px;
+        justify-content: flex-end;
+    }
+    .btn-header {
+        font-size:  var(--font-size-xs);
+        padding:    2px 8px;
+        height:     28px;
+    }
+    .theme-select {
+        font-size:  var(--font-size-xs);
+        max-width:  120px;
+        padding:    2px 4px;
+        height:     28px;
+    }
+    /* Remove the ::after pseudo-element — border is on header directly */
+    #app-header::after {
+        display: none;
+    }
+}
+
+/*
+ * ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+ * ┃  Small-phone header: 2-row layout (≤480px)             ┃
+ * ┃                                                         ┃
+ * ┃  Row 1: [coin] [Title ───────────────────] [⚙ Settings] ┃
+ * ┃  Row 2: [▦ Layout] [i Info] [────── Theme ▾ ──────]      ┃
+ * ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+ */
+@media (max-width: 480px) {
+    #app-header {
+        /* Two rows: logo fills full height, spanning both rows */
+        display:               grid;
+        grid-template-columns: auto 1fr;            /* logo | (title / nav) */
+        grid-template-rows:    auto auto;
+        grid-template-areas:
+            "logo  title"
+            "logo  nav";
+        align-items:  stretch;
+        padding:      4px 10px;
+        gap:          3px 6px;
+    }
+
+    /* Coin logo — spans both rows, fixed size */
+    #app-header .header-logo {
+        grid-area:    logo;
+        width:        51px !important;
+        height:       51px !important;
+        min-width:    51px !important;
+        min-height:   51px !important;
+        max-width:    51px !important;
+        max-height:   51px !important;
+        aspect-ratio: 1 / 1 !important;
+        object-fit:   cover !important;
+        border-radius: 50%;
+        align-self:   center;
+        margin:       0;
+        flex-shrink:  0;
+    }
+
+    /* Title row */
+    .header-left {
+        grid-area:    title;
+        display:      flex;
+        align-items:  center;
+        min-width:    0;
+        overflow:     hidden;
+    }
+
+    .app-title {
+        font-size:   var(--font-size-sm);
+        white-space: nowrap;
+        overflow:    hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Bottom row: Grid / Info / Settings / Theme all together, right-aligned */
+    .header-right {
+        grid-area:      nav;
+        display:        flex;
+        align-items:    center;
+        gap:            6px;
+        justify-content: flex-end;
+    }
+    /* Theme select grows to fit the longest option (e.g. "Deep Forest") now that Layout is hidden in portrait */
+    .theme-select {
+        flex:      0 1 auto;
+        max-width: 150px;
+        min-width: 64px;
+    }
+
+    /* Uniform compact size for all header controls */
+    .btn-header,
+    .theme-select {
+        font-size:  0.72rem;
+        padding:    3px 8px;
+        height:     28px;
+        line-height: 1;
+    }
+}
+
+/* Hide the Layout (list/grid/compact) toggle on phones in portrait —
+   it has no effect in the single-column portrait layout, and freeing the
+   space lets the other buttons + theme selector fit. Shown again in
+   landscape / wider viewports where the toggle is useful. */
+@media (max-width: 480px) and (orientation: portrait) {
+    #btn-layout {
+        display: none !important;
+    }
+}
+
+/* Logo Zoom Lightbox */
+.logo-lightbox-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    backdrop-filter: blur(5px);
+}
+.logo-lightbox-overlay.is-active {
+    display: flex;
+    opacity: 1;
+}
+.logo-lightbox-overlay img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 50%;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+.logo-lightbox-overlay.is-active img {
+    transform: scale(1);
+}
+
+body.cc-color-dragging * {
+    transition: none !important;
+}

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <base href="/coin-catalog/app/">
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/coin-catalog/app/sw.js');</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- PWA -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Coin Catalog">
+    <meta name="theme-color" content="#60a5fa">
+
+    <!-- SEO -->
+    <title>Coin &amp; Collectable Catalog</title>
+    <meta name="description" content="Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.">
+
+    <!-- Manifest -->
+    <link rel="manifest" href="/coin-catalog/app/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+
+    <!-- Google Font — Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/css/base.css?v=1783680600">
+    <link rel="stylesheet" href="/css/themes.css?v=1783680800">
+    <link rel="stylesheet" href="/css/components.v2.css?v=9">
+
+    <!--
+        Theme is applied BEFORE paint to prevent a flash of the wrong theme.
+        We read localStorage here — no JS modules needed yet.
+    -->
+    <script>
+        (function applyThemeEarly() {
+            var saved = localStorage.getItem('cc-theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+        })();
+    </script>
+    <script>
+        // Error capture + splash control
+        window._caughtErrors = [];
+        window._bootComplete = false;
+        window.onerror = function(msg, url, line) {
+            window._caughtErrors.push({msg: msg, url: url, line: line});
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(e) {
+            var m = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+            window._caughtErrors.push({msg: m});
+        });
+        window._markBootComplete = function() {
+            window._bootComplete = true;
+            var s = document.getElementById('app-splash');
+            if (s) { s.style.display = 'none'; s.classList.add('hidden'); }
+        };
+    </script>
+
+    <script>
+        // Cycle through coin images on each page load
+        (function() {
+            var coins = [
+                '/images/coin_gold1.png',
+                '/images/coin_gold_proof1.png',
+                '/images/coin_silver1.png',
+                '/images/coin_copper1.png',
+                '/images/coin_copper_proof1.png',
+                '/images/coin_copper_green1.png',
+                '/images/coin_copper_toned1.png',
+                '/images/coin_bronze1.png',
+                '/images/coin_bend1.png',
+                '/images/coin_bend2.png',
+                '/images/coin_bend3.png',
+                '/images/coin_chocolate1.png',
+                '/images/coin_chocolate2.png',
+                '/images/coin_dirty1.png',
+                '/images/coin_dirty2.png',
+                '/images/coin_dirty3.png',
+                '/images/coin_dirty4.png',
+                '/images/coin_dirty5.png'
+            ];
+            var pick = coins[Math.floor(Math.random() * coins.length)];
+            function setCoinImages() {
+                var hdr = document.getElementById('header-coin-img');
+                if (hdr) hdr.src = pick;
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setCoinImages);
+            } else {
+                setCoinImages();
+            }
+        })();
+    </script>
+</head>
+
+<body id="app-body">
+
+    <!-- ================================================================
+         Splash screen — shown while JS loads and data fetches
+    ================================================================ -->
+    <div id="app-splash" aria-hidden="true" aria-live="polite">
+        <img class="splash-coin" id="splash-coin-anim" src="/icons/icon-512.png" alt="" aria-hidden="true">
+        <p class="splash-label">Loading...</p>
+    </div>
+
+
+    <!-- ================================================================
+         Application Header
+    ================================================================ -->
+    <header id="app-header" role="banner">
+        <!-- App title -->
+        <img src="" alt="" class="header-logo" aria-hidden="true" width="75" height="75" id="header-coin-img">
+        <div class="header-left">
+            <h1 class="app-title">
+                Coin &amp; Collectable Catalog
+            </h1>
+        </div>
+
+        <div class="header-right">
+            <button id="btn-install" class="btn-header" style="display:none" onclick="triggerPWAInstall()" aria-label="Install app">
+                <!-- Download/install icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Install</span>
+            </button>
+
+            <button id="btn-layout" class="btn-header" aria-label="Cycle Layout">
+                <!-- Layout/grid icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <span>Layout</span>
+            </button>
+
+            <button id="btn-info" class="btn-header" onclick="toggleInfoDropdown()" aria-label="Help and Info">
+                <!-- Info circle icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span>Info</span>
+            </button>
+
+            <button id="btn-settings" class="btn-header" onclick="toggleSettingsDropdown()" aria-label="Settings">
+                <!-- Gear icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                <span>Settings</span>
+            </button>
+
+            <label for="theme-selector" class="sr-only">Color theme</label>
+            <select id="theme-selector" class="theme-select" aria-label="Color theme" onchange="setTheme(this.value)">
+                <optgroup label="Dark Themes">
+                    <option value="dark">Dark</option>
+                    <option value="midnight">Midnight</option>
+                    <option value="gold">Gold</option>
+                    <option value="copper">Copper</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="forest">Deep Forest</option>
+                    <option value="cyberpunk">Cyberpunk</option>
+                    <option value="neon">Neon</option>
+                    <option value="matrix">Matrix</option>
+                </optgroup>
+                <optgroup label="Light Themes">
+                    <option value="light">Light</option>
+                    <option value="silver">Silver</option>
+                    <option value="paper">Aged Paper</option>
+                </optgroup>
+                <optgroup label="Custom">
+                    <option value="custom1">Custom 1</option>
+                    <option value="custom2">Custom 2</option>
+                    <option value="custom3">Custom 3</option>
+                </optgroup>
+            </select>
+        </div>
+    </header>
+
+    <!-- ================================================================
+         Main Content
+    ================================================================ -->
+    <script type="module" src="/js/app_v2/utils.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/state.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/api.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/themes.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/catalog.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/inventory.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/modals.v2.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/search.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/wishlist.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/images.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/album.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/portfolio_history.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/main.js?v=1783680800"></script>
+<main id="app-main" class="container" role="main">
+
+        <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->
+        <div id="dashboard-grid" class="dashboard-grid" aria-label="Dashboard"></div>
+
+        <!-- Search bar -->
+        <div id="card-search" class="card search-card" role="search">
+            <div class="search-row">
+                <label for="search-input" class="sr-only">Search coins</label>
+                <input id="search-input"
+                       type="search"
+                       class="search-input"
+                       placeholder="Search by year, type, mint mark, or notes…"
+                       autocomplete="off"
+                       spellcheck="false"
+                       aria-label="Search coins">
+                <!-- Year range filters -->
+                <div class="year-range-filters">
+                    <label for="min-year-input" class="sr-only">Minimum year</label>
+                    <input id="min-year-input"
+                           type="number"
+                           class="year-input"
+                           placeholder="Min year"
+                           min="0"
+                           max="9999"
+                           aria-label="Minimum year">
+                    <label for="max-year-input" class="sr-only">Maximum year</label>
+                    <input id="max-year-input"
+                           type="number"
+                           class="year-input"
+                           placeholder="Max year"
+                           min="0"
+                           max="9999"
+                           aria-label="Maximum year">
+                </div>
+                <div class="filter-pills" id="filter-pills" role="group" aria-label="Active filters"></div>
+            </div>
+        </div>
+
+        <!-- Coin catalogue — sections rendered by catalog.js -->
+        <div id="catalog-container" aria-label="Coin catalogue" aria-live="polite"></div>
+
+    </main>
+
+    <!-- ================================================================
+         Modal Layer — all modals injected here by modals.js
+    ================================================================ -->
+    <!-- ================================================================
+         Modal Layer — all modals injected here by modals.js
+    ================================================================ -->
+    <div id="modal-layer">
+
+        <!-- Phase 2 Modal Containers -->
+        <div id="cards-modal-container" class="modal-window-wrapper is-dismissed" role="dialog" aria-hidden="true"></div>
+        <div id="stories-modal-container" class="modal-window-wrapper is-dismissed" role="dialog" aria-hidden="true"></div>
+        <div id="info-modal-container" class="modal-window-wrapper is-dismissed" role="dialog" aria-hidden="true"></div>
+
+        <!-- Unified Image Interaction Modal -->
+        <div id="modal-image-interaction" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ii-title">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="ii-title">Coin Image</h2>
+                    <button class="modal-close" data-action="close-modal" aria-label="Close modal">✕</button>
+                </div>
+                <div class="modal-body" style="text-align:center;">
+                    <div class="image-preview-container" style="background:transparent; margin-bottom:0; border:none; box-shadow:none; display:flex; align-items:center; justify-content:center;">
+                        <img id="ii-main-image" src="" alt="Coin preview" style="width:100%; max-width:500px; height:auto; aspect-ratio:1; border-radius:50%; object-fit:cover; background:var(--color-accord-bg); box-shadow:var(--shadow-md);">
+                    </div>
+                </div>
+                <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end;">
+                    <button class="btn-danger" id="ii-btn-remove" style="display:none; margin-right:auto;"> Remove</button>
+                    <button class="btn-secondary" id="ii-btn-reset-master" style="display:none;">↩ Reset to Master</button>
+                    <button class="btn-secondary" id="ii-btn-promote-default" style="display:none;">⭐ Promote to Default</button>
+                    <button class="btn-secondary" data-action="ii-crop"> Crop</button>
+                    <button class="btn-secondary" data-action="ii-replace"> Replace</button>
+                    <button class="btn-primary" id="ii-btn-save" style="display:none;">Save</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Crop Modal -->
+        <div id="modal-crop" class="modal-overlay" role="dialog" aria-modal="true">
+                    <div class="modal-box">
+                        <div class="modal-header">
+                            <h2 class="modal-title">Adjust & Crop</h2>
+                            <button class="modal-close" data-action="close-crop" aria-label="Back">✕</button>
+                        </div>
+                        <div class="modal-body" style="text-align:center; padding:var(--space-4);">
+                            <p style="font-size:var(--font-size-xs); color:var(--color-text-muted); margin-bottom:var(--space-3);">
+                                Drag to pan, pinch/slide to zoom. Fit image inside the guide.
+                            </p>
+                            <div id="crop-container" class="crop-container crop-shape-circle" style="max-width:280px; max-height:280px; width:100%; aspect-ratio:1; margin:0 auto; background:#000; position:relative; overflow:hidden; border-radius:50%; cursor:grab; touch-action:none;">
+                                <canvas id="crop-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:50%; clip-path:circle(50%);"></canvas>
+                                <!-- Circle crop guide: dashed ring for visual boundary -->
+                                <div id="crop-guide-circle" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:80%; aspect-ratio:1; border-radius:50%; border:2px dashed var(--color-accent); pointer-events:none; z-index:2;"></div>
+                                <!-- Rectangular crop guide for paper currency (dollar outline) -->
+                                <div id="crop-guide-rect" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:80%; aspect-ratio:2.61; border-radius:8px; border:2px dashed var(--color-accent); pointer-events:none; z-index:2; display:none;">
+                                    <!-- Dollar bill visual elements -->
+                                    <div style="position:absolute; top:10%; left:50%; transform:translateX(-50%); font-size:10px; color:var(--color-accent); font-weight:bold; pointer-events:none;">FEDERAL RESERVE NOTE</div>
+                                    <div style="position:absolute; top:25%; left:10%; font-size:8px; color:var(--color-accent); pointer-events:none;">THE UNITED STATES OF AMERICA</div>
+                                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:24px; color:var(--color-accent); font-weight:bold; pointer-events:none;">$1</div>
+                                    <div style="position:absolute; bottom:15%; left:50%; transform:translateX(-50%); font-size:8px; color:var(--color-accent); pointer-events:none;">THIS NOTE IS LEGAL TENDER FOR ALL DEBTS, PUBLIC AND PRIVATE</div>
+                                    <div style="position:absolute; top:40%; right:10%; font-size:12px; color:var(--color-accent); font-weight:bold; pointer-events:none;">ONE</div>
+                                </div>
+                                <!-- Square crop guide -->
+                                <div id="crop-guide-square" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:80%; aspect-ratio:1; border-radius:8px; border:2px dashed var(--color-accent); pointer-events:none; z-index:2; display:none;"></div>
+                            </div>
+                            <div style="margin:var(--space-3) 0; display:flex; gap:var(--space-2); justify-content:center; flex-wrap:wrap;" id="crop-shape-row">
+                                <span style="font-size:0.75em; color:var(--color-text-muted); padding:4px 10px;" id="crop-shape-label">● Circle</span>
+                            </div>
+                            <div style="margin:var(--space-4) 0; display:flex; flex-direction:column; gap:var(--space-2);">
+                                <div style="display:flex; align-items:center; justify-content:space-between; font-size:var(--font-size-xs); color:var(--color-text-muted);">
+                                    <span>Zoom</span>
+                                    <span id="zoom-val">1.0x</span>
+                                </div>
+                                <input type="range" id="crop-zoom" min="0.1" max="4" step="0.01" value="1" style="width:100%;">
+                        
+                                <div style="display:flex; align-items:center; justify-content:space-between; font-size:var(--font-size-xs); color:var(--color-text-muted); margin-top:var(--space-2);">
+                                    <span>Rotate</span>
+                                    <span id="rotate-val">0°</span>
+                                </div>
+                                <input type="range" id="crop-rotate" min="-180" max="180" step="1" value="0" style="width:100%;">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn-primary" id="btn-save-crop">Save Crop</button>
+                        </div>
+                    </div>
+                </div>
+
+        <!-- Replace Scope / Workflow Modal -->
+        <div id="modal-replace-scope" class="modal-overlay" role="dialog" aria-modal="true">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h2 class="modal-title">Update Image</h2>
+                    <button class="modal-close" data-action="close-replace" aria-label="Back">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div style="display:flex; flex-direction:column; gap:var(--space-3); margin-bottom:var(--space-6);">
+                        <button class="btn-primary" id="btn-upload-file"> Upload New File</button>
+                        <button class="btn-secondary" id="btn-open-bank"> Browse Coin Bank</button>
+                    </div>
+
+                    <div id="scope-selection-box" style="display:none; background:var(--color-finance-bg); padding:var(--space-4); border-radius:var(--radius-md); border:1px solid var(--color-border-light);">
+                        <span style="font-weight:700; font-size:var(--font-size-sm); display:block; margin-bottom:var(--space-3);">Apply this image to:</span>
+                        <div style="display:flex; flex-direction:column; gap:var(--space-2);">
+                            <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--font-size-sm); cursor:pointer;" id="scope-lbl-item">
+                                <input type="radio" name="img_scope" value="specific_item"> This specific coin
+                            </label>
+                            <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--font-size-sm); cursor:pointer;">
+                                <input type="radio" name="img_scope" value="all" checked> All coins of this type
+                            </label>
+                            <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--font-size-sm); cursor:pointer;">
+                                <input type="radio" name="img_scope" value="empty_only"> Fill empty slots only
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-success" id="btn-execute-assign" style="display:none; width:100%;">Save &amp; Apply</button>
+                </div>
+                <input type="file" id="ii-hidden-file-input" accept="image/*" capture="environment" style="display:none;">
+            </div>
+        </div>
+
+        <!-- Coin Bank Modal -->
+        <div id="modal-coin-bank" class="modal-overlay" role="dialog" aria-modal="true">
+            <div class="modal-box wide">
+                <div class="modal-header">
+                    <h2 class="modal-title"> Coin Bank</h2>
+                    <button class="modal-close" data-action="close-bank" aria-label="Back">✕</button>
+                </div>
+                <div class="modal-body" style="padding:0; display:flex; flex-direction:column;">
+                    <div style="padding:var(--space-4) var(--space-6); border-bottom:1px solid var(--color-border-light); background:var(--color-bg-card); position:sticky; top:0; z-index:10;">
+                        <div style="display:flex; gap:var(--space-2); margin-bottom:var(--space-2);">
+                            <button id="cb-filter-ctx" style="flex:1;" class="btn-primary">Current Type</button>
+                            <button id="cb-filter-all" style="flex:1;" class="btn-secondary">Browse All</button>
+                        </div>
+                        <div id="cb-context-label" style="font-size:var(--font-size-xs); color:var(--color-text-muted);"></div>
+                    </div>
+                    <div id="coin-bank-grid" style="padding:var(--space-4); display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:var(--space-3);">
+                        <!-- Images loaded by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Details Modal -->
+        <div id="modal-inventory-details" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="inv-modal-title">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="inv-modal-title">Coin Details</h2>
+                    <button class="modal-close" data-action="close-modal" aria-label="Close modal">✕</button>
+                </div>
+                <div class="modal-body">
+
+                    
+                    <form id="inv-details-form" style="display:flex; flex-direction:column; gap:var(--space-4);">
+                        <input type="hidden" id="inv-coin-id">
+                        <input type="hidden" id="inv-entry-id">
+                        
+                        <div class="form-group">
+                            <label for="inv-grade">Grade / Condition</label>
+                            <select id="inv-grade" class="form-input">
+                                <option value="">— Select Grade —</option>
+                                <optgroup label="Poor to Good">
+                                    <option value="P-1">P-1 · Poor</option>
+                                    <option value="FA-2">FA-2 · Fair</option>
+                                    <option value="AG-3">AG-3 · About Good</option>
+                                    <option value="G-4">G-4 · Good</option>
+                                    <option value="G-6">G-6 · Good</option>
+                                </optgroup>
+                                <optgroup label="Very Good to Fine">
+                                    <option value="VG-8">VG-8 · Very Good</option>
+                                    <option value="VG-10">VG-10 · Very Good</option>
+                                    <option value="F-12">F-12 · Fine</option>
+                                    <option value="F-15">F-15 · Fine</option>
+                                </optgroup>
+                                <optgroup label="Very Fine to Extremely Fine">
+                                    <option value="VF-20">VF-20 · Very Fine</option>
+                                    <option value="VF-25">VF-25 · Very Fine</option>
+                                    <option value="VF-30">VF-30 · Very Fine</option>
+                                    <option value="VF-35">VF-35 · Very Fine</option>
+                                    <option value="EF-40">EF-40 · Extremely Fine</option>
+                                    <option value="EF-45">EF-45 · Extremely Fine</option>
+                                </optgroup>
+                                <optgroup label="About Uncirculated">
+                                    <option value="AU-50">AU-50 · About Uncirculated</option>
+                                    <option value="AU-55">AU-55 · About Uncirculated</option>
+                                    <option value="AU-58">AU-58 · About Uncirculated</option>
+                                </optgroup>
+                                <optgroup label="Mint State">
+                                    <option value="MS-60">MS-60 · Mint State</option>
+                                    <option value="MS-61">MS-61 · Mint State</option>
+                                    <option value="MS-62">MS-62 · Mint State</option>
+                                    <option value="MS-63">MS-63 · Choice Uncirculated</option>
+                                    <option value="MS-64">MS-64 · Choice Uncirculated</option>
+                                    <option value="MS-65">MS-65 · Gem Uncirculated</option>
+                                    <option value="MS-66">MS-66 · Gem Uncirculated</option>
+                                    <option value="MS-67">MS-67 · Superb Gem</option>
+                                    <option value="MS-68">MS-68 · Superb Gem</option>
+                                    <option value="MS-69">MS-69 · Near Perfect</option>
+                                    <option value="MS-70">MS-70 · Perfect Uncirculated</option>
+                                </optgroup>
+                                <optgroup label="Proof">
+                                    <option value="PR-60">PR-60 · Proof</option>
+                                    <option value="PR-63">PR-63 · Choice Proof</option>
+                                    <option value="PR-65">PR-65 · Gem Proof</option>
+                                    <option value="PR-67">PR-67 · Superb Gem Proof</option>
+                                    <option value="PR-69">PR-69 · Near Perfect Proof</option>
+                                    <option value="PR-70">PR-70 · Perfect Proof</option>
+                                </optgroup>
+                                <optgroup label="Other">
+                                    <option value="BU">BU · Brilliant Uncirculated</option>
+                                    <option value="Circulated">Circulated (ungraded)</option>
+                                    <option value="Details">Details / Cleaned</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-4);">
+                            <div class="form-group">
+                                <label for="inv-purchase-price">Purchase Price ($)</label>
+                                <input type="number" id="inv-purchase-price" step="0.01" min="0" placeholder="0.00" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label for="inv-current-value">Current Value ($)</label>
+                                <input type="number" id="inv-current-value" step="0.01" min="0" placeholder="0.00" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inv-date-acquired">Date Acquired</label>
+                            <input type="date" id="inv-date-acquired" class="form-input">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inv-notes">Personal Notes</label>
+                            <textarea id="inv-notes" rows="3" placeholder="Where did you get it? Any special provenance?" class="form-input" style="resize:vertical;"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Personal Photo</label>
+                            <div style="display:flex; gap:var(--space-2); align-items:center;">
+                                <button type="button" class="btn-secondary" id="inv-btn-photo"> Upload Photo</button>
+                                <span id="inv-photo-name" style="font-size:var(--font-size-xs); color:var(--color-text-muted);"></span>
+                                <input type="file" id="inv-hidden-photo" accept="image/*" capture="environment" style="display:none;">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer" style="justify-content:space-between;">
+                    <button class="btn-secondary" data-action="close-modal">Cancel</button>
+                    <button class="btn-primary" id="btn-save-inv" style="display:none;">Save Details</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast notification container -->
+    <div id="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
+
+    <!-- ================================================================
+         JavaScript — ES Modules
+         Load order matters: utils → state → api → feature modules → main
+    ================================================================ -->
+
+</body>
+</html>
