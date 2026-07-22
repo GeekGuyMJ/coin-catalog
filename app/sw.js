@@ -1,9 +1,7 @@
-// Coin Catalog App — Service Worker
-// Cache the app shell for offline use
-const CACHE = 'coin-catalog-v1';
-const STATIC_ASSETS = [
-  '/coin-catalog/app/',
-  '/coin-catalog/app/index.html',
+// Coin Catalog App PWA — Service Worker
+// Cache static assets for offline use, but always fetch the app shell fresh
+const CACHE = 'coin-catalog-v2';
+const ASSETS = [
   '/coin-catalog/app/manifest.json',
   '/coin-catalog/app/css/base.css',
   '/coin-catalog/app/css/themes.css',
@@ -26,42 +24,61 @@ const STATIC_ASSETS = [
   '/coin-catalog/app/js/app_v2/sync.js',
   '/coin-catalog/app/js/app_v2/notifications.js',
   '/coin-catalog/app/js/app_v2/db.js',
+  '/coin-catalog/app/js/app_v2/portfolio.js',
+  '/coin-catalog/app/js/app_v2/stories.js',
   '/coin-catalog/app/icons/icon-192.png',
   '/coin-catalog/app/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE).then((cache) => {
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    // Only cache what we know is safe — no index.html or root paths
+    await cache.addAll(ASSETS);
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))
-      );
-    })
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    // Delete old caches
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      // Return cached if found, otherwise fetch from network
-      return cached || fetch(event.request).then((response) => {
-        // Cache successful same-origin responses
-        if (response.ok && event.request.url.startsWith(self.location.origin)) {
-          const clone = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      });
-    })
-  );
+  const url = new URL(event.request.url);
+  
+  // For navigation (HTML pages): network-first, fall back to cached
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const network = await fetch(event.request);
+        const cache = await caches.open(CACHE);
+        cache.put(event.request, network.clone());
+        return network;
+      } catch (err) {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        // Last resort: try index.html cache
+        return caches.match('/coin-catalog/app/index.html');
+      }
+    })());
+    return;
+  }
+
+  // For static assets (JS, CSS, images): cache-first
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request);
+    if (cached) return cached;
+    
+    const network = await fetch(event.request);
+    if (network.ok && url.origin === self.location.origin) {
+      const cache = await caches.open(CACHE);
+      cache.put(event.request, network.clone());
+    }
+    return network;
+  })());
 });
