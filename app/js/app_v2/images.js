@@ -77,50 +77,9 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
         if (promoteBtn) promoteBtn.style.display = 'none';
     } else {
         title.textContent = `${side === 'obv' ? 'Obverse' : 'Reverse'}: ${typeStr}`;
-        // Hide both by default; show one after master check
+        // Master image system removed — no reset, no promote
         if (resetBtn) resetBtn.style.display = 'none';
         if (promoteBtn) promoteBtn.style.display = 'none';
-
-        if (isMasterTier) {
-            // Already the master image — no action needed
-        } else {
-            // User-tier or unknown image — check if a master file exists on disk
-            checkMaster(typeStr, side).then(result => {
-                if (result.has_master) {
-                    // Bundled or promoted-default master exists → show Reset button
-                    if (resetBtn) {
-                        resetBtn.style.display = 'inline-block';
-                        resetBtn.dataset.confirming = '';
-                        resetBtn.textContent = '↩ Reset to Master';
-                        resetBtn.style.background = '';
-                    }
-                } else if (isUserTier) {
-                    // User image with no master → offer to promote to default
-                    if (promoteBtn) {
-                        promoteBtn.style.display = 'inline-block';
-                        promoteBtn.dataset.confirming = '';
-                        promoteBtn.textContent = '⭐ Promote to Default';
-                        promoteBtn.style.background = '';
-                    }
-                } else {
-                    // Fallback: show reset button anyway
-                    if (resetBtn) {
-                        resetBtn.style.display = 'inline-block';
-                        resetBtn.dataset.confirming = '';
-                        resetBtn.textContent = '↩ Reset to Master';
-                        resetBtn.style.background = '';
-                    }
-                }
-            }).catch(err => {
-                console.warn('[images] Failed to check master:', err);
-                if (resetBtn) {
-                    resetBtn.style.display = 'inline-block';
-                    resetBtn.dataset.confirming = '';
-                    resetBtn.textContent = '↩ Reset to Master';
-                    resetBtn.style.background = '';
-                }
-            });
-        }
     }
 
     if (isGeneric) {

@@ -1074,8 +1074,8 @@ function buildCoinRow(coin) {
     
     var specificCfg = getTypeConfig(coin.coin_type);
     var mainCfg = getTypeConfig(getMainType(coin.coin_type));
-    var obvSrc = coin.obv_image || (specificCfg && specificCfg.obv_image) || (mainCfg ? mainCfg.obv_image : null);
-    var revSrc = coin.rev_image || (specificCfg && specificCfg.rev_image) || (mainCfg ? mainCfg.rev_image : null);
+    var obvSrc = coin.obv_image || null;
+    var revSrc = coin.rev_image || null;
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '?v=2';
     if (revSrc && !revSrc.includes('?')) revSrc += '?v=2';
     if (obvSrc) {

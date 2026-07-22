@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-    <!-- Clean SW — unregister any stale ones -->
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})})</script>
+    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js');</script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -21,10 +20,10 @@
     <meta name="description" content="Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.">
 
     <!-- Manifest -->
-    <link rel="manifest" href="/coin-catalog/app/manifest.json">
-    <link rel="apple-touch-icon" href="/coin-catalog/app/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/coin-catalog/app/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/coin-catalog/app/icons/icon-512.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
     <!-- Google Font — Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,9 +31,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="/coin-catalog/app/css/base.css?v=1783680600">
-    <link rel="stylesheet" href="/coin-catalog/app/css/themes.css?v=1783680800">
-    <link rel="stylesheet" href="/coin-catalog/app/css/components.v2.css?v=1">
+    <link rel="stylesheet" href="/css/base.css?v=1783680600">
+    <link rel="stylesheet" href="/css/themes.css?v=1783680800">
+    <link rel="stylesheet" href="/css/components.v2.css?v=1">
 
     <!--
         Theme is applied BEFORE paint to prevent a flash of the wrong theme.
@@ -108,7 +107,7 @@
          Splash screen — shown while JS loads and data fetches
     ================================================================ -->
     <div id="app-splash" aria-hidden="true" aria-live="polite">
-        <img class="splash-coin" id="splash-coin-anim" src="/coin-catalog/app/icons/icon-512.png" alt="" aria-hidden="true">
+        <img class="splash-coin" id="splash-coin-anim" src="/icons/icon-512.png" alt="" aria-hidden="true">
         <p class="splash-label">Loading...</p>
     </div>
 
@@ -194,19 +193,19 @@
     <!-- ================================================================
          Main Content
     ================================================================ -->
-    <script type="module" src="/coin-catalog/app/js/app_v2/utils.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/state.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/api.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/themes.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/catalog.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/inventory.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/modals.v2.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/search.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/wishlist.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/images.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/album.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/portfolio_history.js?v=1783680800"></script>
-    <script type="module" src="/coin-catalog/app/js/app_v2/main.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/utils.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/state.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/api.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/themes.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/catalog.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/inventory.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/modals.v2.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/search.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/wishlist.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/images.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/album.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/portfolio_history.js?v=1783680800"></script>
+    <script type="module" src="/js/app_v2/main.js?v=1783680800"></script>
 <main id="app-main" class="container" role="main">
 
         <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->
@@ -277,9 +276,7 @@
                     </div>
                 </div>
                 <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end;">
-                    <button class="btn-danger" id="ii-btn-remove" style="display:none; margin-right:auto;"> Remove</button>
-                    <button class="btn-secondary" id="ii-btn-reset-master" style="display:none;">↩ Reset to Master</button>
-                    <button class="btn-secondary" id="ii-btn-promote-default" style="display:none;">⭐ Promote to Default</button>
+                    <button class="btn-secondary" id="ii-btn-reset-master" style="display:none;">★ Promote to Default</button>
                     <button class="btn-secondary" data-action="ii-crop"> Crop</button>
                     <button class="btn-secondary" data-action="ii-replace"> Replace</button>
                     <button class="btn-primary" id="ii-btn-save" style="display:none;">Save</button>
