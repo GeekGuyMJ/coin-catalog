@@ -206,22 +206,18 @@ export async function initDb() {
                 const chunk = configs.slice(i, i + chunkSize);
                 // Only overwrite entries that don't already have a user-uploaded base64 image
                 for (const cfg of chunk) {
-                    const existing = await db.coin_type_config.get(cfg.coin_type);
-                    if (!existing) {
-                        await db.coin_type_config.add(cfg);
-                    } else {
-                        // Only update image fields if existing entry has no user-uploaded base64 images
-                        const hasUserObv = existing.obv_image && existing.obv_image.startsWith('data:image');
-                        const hasUserRev = existing.rev_image && existing.rev_image.startsWith('data:image');
-                        const updates = {
-                            base_price: cfg.base_price || existing.base_price || 0,
-                            key_price: cfg.key_price || existing.key_price || 0,
-                        };
-                        if (!hasUserObv && cfg.obv_image) updates.obv_image = cfg.obv_image;
-                        if (!hasUserRev && cfg.rev_image) updates.rev_image = cfg.rev_image;
-                        await db.coin_type_config.update(cfg.coin_type, updates);
+                        const existing = await db.coin_type_config.get(cfg.coin_type);
+                        if (!existing) {
+                            await db.coin_type_config.add(cfg);
+                        } else {
+                            // Never overwrite existing images — user may have uploaded, cropped, or deleted them
+                            const updates = {
+                                base_price: cfg.base_price || existing.base_price || 0,
+                                key_price: cfg.key_price || existing.key_price || 0,
+                            };
+                            await db.coin_type_config.update(cfg.coin_type, updates);
+                        }
                     }
-                }
             }
             console.log('Type configs seeding completed successfully!');
         } else {
