@@ -183,17 +183,7 @@ export async function initDb() {
     }
 
     const configCount = await db.coin_type_config.count();
-    // Check if we need to (re)seed — seed if empty, or if configs exist but have no images
     let needsSeed = configCount === 0;
-    if (!needsSeed) {
-        const sampleWithImg = await db.coin_type_config
-            .filter(cfg => !!(cfg.obv_image || cfg.rev_image))
-            .first();
-        if (!sampleWithImg) {
-            console.log('Type configs exist but have no images. Re-seeding from JSON...');
-            needsSeed = true;
-        }
-    }
     if (needsSeed) {
         console.log('Fetching type configs from JSON...');
         const response = await fetch('data/type_configs.json');
