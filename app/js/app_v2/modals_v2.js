@@ -415,7 +415,7 @@ export function openSettingsModal() {
                 { label: ' Edit Pricing Rules', onclick: () => { closeModal('modal-settings'); setTimeout(() => openPricingRulesModal(), 150); }, className: 'btn-secondary' },
                 { label: ' View Completion Dashboard', onclick: () => { closeModal('modal-settings'); setTimeout(() => openCompletionDashboard(), 150); }, className: 'btn-secondary' },
                 { label: ' Find Missing Images', onclick: () => { closeModal('modal-settings'); setTimeout(() => filterMissingImages(), 150); }, className: 'btn-secondary' },
-                { label: ' Image Manager', onclick: openImageManager, className: 'btn-secondary' },
+                { label: ' Coin Image Bank', onclick: openImageManager, className: 'btn-secondary' },
                 { label: ' Print Checklist', onclick: openPrintChecklist, className: 'btn-secondary' },
             ], true)
         ]));

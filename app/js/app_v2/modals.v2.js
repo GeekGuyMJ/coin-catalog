@@ -558,7 +558,7 @@ export function openSettingsModal() {
                 { label: 'Edit Pricing Rules', onclick: () => { closeModal('modal-settings'); setTimeout(() => openPricingRulesModal(), 150); }, className: 'btn-secondary' },
                 { label: 'View Completion Dashboard', onclick: () => { closeModal('modal-settings'); setTimeout(() => openCompletionDashboard(), 150); }, className: 'btn-secondary' },
                 { label: 'Find Missing Images', onclick: () => { closeModal('modal-settings'); setTimeout(() => filterMissingImages(), 150); }, className: 'btn-secondary' },
-                { label: 'Image Manager', onclick: openImageManager, className: 'btn-secondary' },
+                { label: 'Coin Image Bank', onclick: openImageManager, className: 'btn-secondary' },
                 { label: 'Print Checklist', onclick: openPrintChecklist, className: 'btn-secondary' },
             ], true)
         ]));
@@ -990,20 +990,10 @@ export function openImageManager() {
             var coins = data.coins || data || [];
             statsEl.textContent = coins.length + ' total coins';
             
-            // Attach image data
-            var checked = 0;
-            var checkPromises = coins.map(function(c) {
-                return fetch('/api/coins/' + c.id).then(function(r){return r.json();}).then(function(d){
-                    c.hasObv = !!d.obv_image;
-                    c.hasRev = !!d.rev_image;
-                    c.hasAny = c.hasObv || c.hasRev;
-                }).catch(function(){}).finally(function(){ checked++; });
-            });
-            
-            Promise.all(checkPromises).then(function(){
-                statsEl.textContent = coins.length + ' coins — ' + coins.filter(c=>c.hasAny).length + ' with images';
-                renderGallery();
-            });
+            // Master image system removed — no default images. Show all as placeholders.
+            coins.forEach(function(c) { c.hasObv = false; c.hasRev = false; c.hasAny = false; });
+            statsEl.textContent = coins.length + ' total coins — upload your own images';
+            renderGallery();
             
             function renderGallery() {
                 contentDiv.innerHTML = '';
@@ -1036,13 +1026,7 @@ export function openImageManager() {
                         var revImg = el('img', { src: '/api/coins/' + coin.id + '/image/rev', style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;' });
                         imgArea.appendChild(revImg);
                     } else {
-                        imgArea.appendChild(el('span', { style: 'font-size:2em;color:var(--color-text-muted);' }, '⚠'));
-                    }
-                    
-                    // Badge for missing
-                    if (!coin.hasAny) {
-                        var badge = el('span', { style: 'position:absolute;top:6px;right:6px;background:rgba(245,158,11,0.9);color:white;padding:2px 6px;border-radius:3px;font-size:0.65em;font-weight:700;' }, 'MISSING');
-                        imgArea.appendChild(badge);
+                        imgArea.appendChild(el('span', { style: 'font-size:2.5em;color:var(--color-text-muted);opacity:0.3;' }, '⊘'));
                     }
                     
                     card.appendChild(imgArea);

@@ -1189,7 +1189,7 @@ function openImageManager() {
     closeBtn.onclick = () => closeModal('modal-image-manager');
     footer.appendChild(closeBtn);
     
-    createModal('modal-image-manager', ' Image Manager', body, footer);
+    createModal('modal-image-manager', ' Coin Image Bank', body, footer);
     openModal('modal-image-manager');
 }
 
@@ -2149,8 +2149,8 @@ export function openExportModal() {
     };
     importRow.appendChild(importBtn);
 
-    // Image Manager (kept for convenience)
-    const imgMgrBtn = el('button', { className: 'btn-secondary', style: 'flex:1;min-width:120px;' }, ' Image Manager');
+    // Coin Image Bank (kept for convenience)
+    const imgMgrBtn = el('button', { className: 'btn-secondary', style: 'flex:1;min-width:120px;' }, ' Coin Image Bank');
     imgMgrBtn.onclick = () => {
         closeModal('modal-export');
         setTimeout(() => openImageManager(), 150);

@@ -1006,6 +1006,7 @@
     padding:         var(--space-4);
 }
 .modal-overlay.open { display: flex; }
+.modal-overlay.is-dismissed { display: none; }
 
 .modal-box {
     background:    var(--color-bg-card);

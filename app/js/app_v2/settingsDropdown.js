@@ -79,7 +79,7 @@ function openSettingsDropdown(btn) {
  {key: 'pricingRules', label: 'Pricing Rules', section: 'advanced' },
  {key: 'completion', label: 'Completion Dashboard', section: 'advanced' },
  {key: 'missingImages', label: 'Find Missing Images', section: 'advanced' },
- {key: 'imageManager', label: 'Image Manager', section: 'advanced' },
+ {key: 'imageManager', label: 'Coin Image Bank', section: 'advanced' },
  {key: 'printChecklist', label: 'Print Checklist', section: 'advanced' },
  {key: 'customCard', label: 'Custom Dashboard Card', section: 'advanced' },
  
