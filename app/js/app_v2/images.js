@@ -88,7 +88,7 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
     }
 
     preview.src = src;
-    removeBtn.style.display = 'block';
+    if (removeBtn) removeBtn.style.display = 'block';
     saveBtn.style.display = 'none'; // Hide save button initially
     
     openModalLegacy('modal-image-interaction');
