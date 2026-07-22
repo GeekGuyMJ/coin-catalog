@@ -9,7 +9,7 @@ import { el, escHtml } from './utils.js?v=8';
 import { getSpotPrices } from './state.js?v=8';
 import { showToast } from './notifications.js?v=8';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.v2.js?v=8';
-import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory } from './modals.v2.js?v=8';
+import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.v2.js?v=8';
 
 let _dropdownEl = null;
 
@@ -181,6 +181,7 @@ export function openSettingsSection(key) {
  case 'completion': openCompletionDashboard(); break;
  case 'missingImages': filterMissingImages(); break;
  case 'imageManager': openImageManager(); break;
+ case 'saveDefaults': saveCurrentImagesAsDefaults(); break;
  case 'printChecklist': openPrintChecklist(); break;
  case 'customCard': showCustomCardModal(); break;
  

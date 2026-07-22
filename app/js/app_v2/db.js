@@ -12,7 +12,7 @@ import Dexie from './dexie.js?v=4';
 
 export const db = new Dexie('CoinCatalogDB');
 
-db.version(1).stores({
+db.version(2).stores({
     coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
     user_inventory: '++id, coin_ref_id, quantity, grade',
     coin_type_config: 'coin_type',
@@ -24,7 +24,8 @@ db.version(1).stores({
     custom_category: 'name',
     wishlist_item: '++id, coin_id, category',
     portfolio_history: '++id, date',
-    user_settings: 'key'
+    user_settings: 'key',
+    pending_defaults: 'coin_type'
 });
 
 // ============================================================

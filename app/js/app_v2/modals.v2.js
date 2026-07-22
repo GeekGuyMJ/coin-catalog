@@ -1660,6 +1660,43 @@ export function openCollectablesModal() { openModal('modal-collectablesmodal'); 
 
 export function openCustomThemeDesigner(slot) {
     const COLOR_FIELDS = [
+export async function saveCurrentImagesAsDefaults() {
+    // Collect all type configs with base64 images and queue for Felix to process
+    try {
+        const typeConfigs = await db.coin_type_config.toArray();
+        const withImages = typeConfigs.filter(cfg => 
+            (cfg.obv_image && cfg.obv_image.startsWith('data:image')) ||
+            (cfg.rev_image && cfg.rev_image.startsWith('data:image')) ||
+            (cfg.proof_obv_image && cfg.proof_obv_image.startsWith('data:image')) ||
+            (cfg.proof_rev_image && cfg.proof_rev_image.startsWith('data:image'))
+        );
+        
+        if (withImages.length === 0) {
+            showToast('No user-uploaded images found to save as defaults.', 'warning');
+            return;
+        }
+        
+        // Store in pending_defaults table for Felix to pick up
+        // First, clear any old pending exports
+        await db.pending_defaults.clear();
+        await db.pending_defaults.bulkAdd(withImages.map(cfg => ({
+            coin_type: cfg.coin_type,
+            obv_image: cfg.obv_image || null,
+            rev_image: cfg.rev_image || null,
+            proof_obv_image: cfg.proof_obv_image || null,
+            proof_rev_image: cfg.proof_rev_image || null
+        })));
+        
+        showToast('Images queued for processing. Tell Felix to save as defaults!', 'success');
+        
+        // Also notify via console for Felix to detect
+        console.log('FELIX_SAVE_DEFAULTS_READY: ' + withImages.length + ' type configs queued');
+    } catch (err) {
+        console.error('saveCurrentImagesAsDefaults failed:', err);
+        showToast('Failed to queue defaults: ' + err.message, 'error');
+    }
+}
+
         { key: 'color-bg-body',      label: 'Page Background',     default: '#121212' },
         { key: 'color-bg-card',      label: 'Card Background',     default: '#1e1e1e' },
         { key: 'color-text-main',    label: 'Main Text',           default: '#f8f9fa' },
