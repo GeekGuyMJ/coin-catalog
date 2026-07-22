@@ -990,18 +990,23 @@ export function openImageManager() {
             var coins = data.coins || data || [];
             statsEl.textContent = coins.length + ' total coins';
             
-            // Check against loaded type configs for user-uploaded images
+            // Show unique images from type configs — one card per type+side, not per coin
+            var seenTypes = {};
             coins.forEach(function(c) {
-                // Check type config for user-uploaded images (stored in IndexedDB)
                 var cfg = getTypeConfig ? getTypeConfig(c.coin_type) : null;
-                c.hasObv = !!(cfg && cfg.obv_image);
-                c.hasRev = !!(cfg && cfg.rev_image);
-                c.hasAny = c.hasObv || c.hasRev;
-                c._obvSrc = c.hasObv ? cfg.obv_image : null;
-                c._revSrc = c.hasRev ? cfg.rev_image : null;
+                if (cfg && cfg.obv_image && !seenTypes[c.coin_type + '_obv']) {
+                    seenTypes[c.coin_type + '_obv'] = true;
+                    c._hasObv = true; c._obvSrc = cfg.obv_image;
+                }
+                if (cfg && cfg.rev_image && !seenTypes[c.coin_type + '_rev']) {
+                    seenTypes[c.coin_type + '_rev'] = true;
+                    c._hasRev = true; c._revSrc = cfg.rev_image;
+                }
             });
-            var withImages = coins.filter(function(c){return c.hasAny;}).length;
-            statsEl.textContent = coins.length + ' total coins — ' + withImages + ' with uploaded images';
+            var uniqueCount = Object.keys(seenTypes).length;
+            statsEl.textContent = uniqueCount + ' unique images';
+            // Filter coins to only those that contribute a unique image
+            coins = coins.filter(function(c){ return c._hasObv || c._hasRev; });
             renderGallery();
             
             function renderGallery() {
@@ -1028,10 +1033,10 @@ export function openImageManager() {
                     // Image area
                     var imgArea = el('div', { style: 'aspect-ratio:1/1;background:var(--color-accord-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;' });
                     
-                    if (coin.hasObv && coin._obvSrc) {
+                    if (coin._hasObv && coin._obvSrc) {
                         var obvImg = el('img', { src: coin._obvSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
                         imgArea.appendChild(obvImg);
-                    } else if (coin.hasRev && coin._revSrc) {
+                    } else if (coin._hasRev && coin._revSrc) {
                         var revImg = el('img', { src: coin._revSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
                         imgArea.appendChild(revImg);
                     } else {
@@ -1044,7 +1049,7 @@ export function openImageManager() {
                     var info = el('div', { style: 'padding:8px;display:flex;flex-direction:column;gap:2px;' });
                     info.appendChild(el('div', { style: 'font-weight:600;font-size:0.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, coin.name || 'Unnamed'));
                     info.appendChild(el('div', { style: 'font-size:0.7em;color:var(--color-text-muted);' }, (coin.country || '') + ' ' + (coin.year || '') + ' ' + (coin.denomination || '')));
-                    info.appendChild(el('div', { style: 'font-size:0.65em;color:var(--color-text-muted);display:flex;gap:8px;', innerHTML: (coin.hasObv ? '<span style="color:var(--color-success)">●</span> Obv' : '<span style="color:var(--color-danger)">○</span> Obv') + ' | ' + (coin.hasRev ? '<span style="color:var(--color-success)">●</span> Rev' : '<span style="color:var(--color-danger)">○</span> Rev') }));
+                    info.appendChild(el('div', { style: 'font-size:0.65em;color:var(--color-text-muted);display:flex;gap:8px;', innerHTML: (coin._hasObv ? '<span style="color:var(--color-success)">●</span> Obv' : '<span style="color:var(--color-danger)">○</span> Obv') + ' | ' + (coin._hasRev ? '<span style="color:var(--color-success)">●</span> Rev' : '<span style="color:var(--color-danger)">○</span> Rev') }));
                     
                     card.appendChild(info);
                     
@@ -1098,9 +1103,9 @@ export function openImageManager() {
                     
                     // Thumbnail
                     var thumb = el('div', { style: 'width:36px;height:36px;border-radius:4px;background:var(--color-accord-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;' });
-                    if (coin.hasObv) {
+                    if (coin._hasObv) {
                         thumb.appendChild(el('img', { src: coin._obvSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
-                    } else if (coin.hasRev) {
+                    } else if (coin._hasRev) {
                         thumb.appendChild(el('img', { src: coin._revSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
                     } else {
                         thumb.appendChild(el('span', { style: 'font-size:0.8em;color:var(--color-text-muted);' }, '⚠'));
