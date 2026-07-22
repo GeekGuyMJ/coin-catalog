@@ -276,7 +276,7 @@
                     </div>
                 </div>
                 <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end;">
-                    <button class="btn-secondary" id="ii-btn-reset-master" style="display:none;">★ Promote to Default</button>
+                    <button class="btn-danger" id="ii-btn-remove" style="display:none; margin-right:auto;">🗑️ Remove</button>
                     <button class="btn-secondary" data-action="ii-crop"> Crop</button>
                     <button class="btn-secondary" data-action="ii-replace"> Replace</button>
                     <button class="btn-primary" id="ii-btn-save" style="display:none;">Save</button>
@@ -329,7 +329,8 @@
                 </div>
                 <div class="modal-body">
                     <div style="display:flex; flex-direction:column; gap:var(--space-3); margin-bottom:var(--space-6);">
-                        <button class="btn-primary" id="btn-upload-file"> Upload New File</button>
+                        <button class="btn-primary" id="btn-upload-file"> Upload from Gallery</button>
+                        <button class="btn-secondary" id="btn-take-photo">📷 Take Photo</button>
                         <button class="btn-secondary" id="btn-open-bank"> Browse Coin Bank</button>
                     </div>
 
@@ -351,7 +352,8 @@
                 <div class="modal-footer">
                     <button class="btn-success" id="btn-execute-assign" style="display:none; width:100%;">Save &amp; Apply</button>
                 </div>
-                <input type="file" id="ii-hidden-file-input" accept="image/*" capture="environment" style="display:none;">
+                <input type="file" id="ii-hidden-file-input" accept="image/*" style="display:none;">
+                <input type="file" id="ii-camera-input" accept="image/*" capture="environment" style="display:none;">
             </div>
         </div>
 

@@ -1299,6 +1299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.dataset.action === 'ii-replace') openReplaceWorkflow();
         if (target.id === 'btn-save-crop') saveCrop();
         if (target.id === 'btn-upload-file') triggerFileUpload();
+        if (target.id === 'btn-take-photo') document.getElementById('ii-camera-input')?.click();
         if (target.id === 'btn-open-bank') openCoinBankModal();
         if (target.id === 'btn-execute-assign') executeImageAssignment();
         if (target.id === 'ii-btn-remove') removeCurrentImage();
@@ -1323,6 +1324,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fileInput = document.getElementById('ii-hidden-file-input');
     if (fileInput) fileInput.addEventListener('change', handleNewUpload);
+    const cameraInput = document.getElementById('ii-camera-input');
+    if (cameraInput) cameraInput.addEventListener('change', handleNewUpload);
 
     // Drag and Drop for Replace Scope Modal
     const replaceModal = document.getElementById('modal-replace-scope');

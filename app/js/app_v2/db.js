@@ -1178,26 +1178,34 @@ export async function promoteToDefaultLocal(coinType, side) {
 export async function fetchCoinBankImagesLocal(params = {}) {
     // Return all type configs that have any image (base64 or URL path).
     // Use 'filename' as the field name so images.js and catalog.js consumers work correctly.
-    const cfgs = await db.coin_type_config.toArray();
+    var coin_type = params.get ? params.get('coin_type') : (params.coin_type || null);
+    var side = params.get ? params.get('side') : (params.side || null);
+    const cfgs = coin_type 
+        ? await db.coin_type_config.where('coin_type').equals(coin_type).toArray()
+        : await db.coin_type_config.toArray();
     const result = [];
     cfgs.forEach(cfg => {
-        if (cfg.obv_image) {
-            result.push({
-                coin_type: cfg.coin_type,
-                side: 'obv',
-                filename: cfg.obv_image,  // 'filename' is what images.js expects
-                image: cfg.obv_image,     // keep 'image' for backward compat
-                tier: cfg.obv_image.startsWith('data:image') ? 'user' : 'master'
-            });
+        if (!side || side === 'obv') {
+            if (cfg.obv_image) {
+                result.push({
+                    coin_type: cfg.coin_type,
+                    side: 'obv',
+                    filename: cfg.obv_image,
+                    image: cfg.obv_image,
+                    tier: cfg.obv_image.startsWith('data:image') ? 'user' : 'master'
+                });
+            }
         }
-        if (cfg.rev_image) {
-            result.push({
-                coin_type: cfg.coin_type,
-                side: 'rev',
-                filename: cfg.rev_image,
-                image: cfg.rev_image,
-                tier: cfg.rev_image.startsWith('data:image') ? 'user' : 'master'
-            });
+        if (!side || side === 'rev') {
+            if (cfg.rev_image) {
+                result.push({
+                    coin_type: cfg.coin_type,
+                    side: 'rev',
+                    filename: cfg.rev_image,
+                    image: cfg.rev_image,
+                    tier: cfg.rev_image.startsWith('data:image') ? 'user' : 'master'
+                });
+            }
         }
     });
     return result;
