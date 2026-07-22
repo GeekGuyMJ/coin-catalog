@@ -714,6 +714,8 @@
 
 .coin-row-thumb:hover { opacity: 1; }
 
+.mobile-flip-btn { display: none; }
+
 .ref-link {
     font-size: var(--font-size-xs);
     color: var(--color-accent);
