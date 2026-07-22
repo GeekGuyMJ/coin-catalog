@@ -843,7 +843,8 @@ async function loadCoinBankImages(mode) {
                         el('option', { value: 'obv', selected: img.side === 'obv' }, 'Obverse'),
                         el('option', { value: 'rev', selected: img.side === 'rev' }, 'Reverse'),
                         el('option', { value: 'err', selected: img.side === 'err' }, 'Error'),
-                        el('option', { value: 'proof', selected: img.side === 'proof' }, 'Proof'),
+                        el('option', { value: 'proof_obv', selected: img.side === 'proof_obv' }, 'Proof Obverse'),
+                        el('option', { value: 'proof_rev', selected: img.side === 'proof_rev' }, 'Proof Reverse'),
                         el('option', { value: 'unknown', selected: img.side === 'unknown' }, 'Unknown')
                     )
                 )

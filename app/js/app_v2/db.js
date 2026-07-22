@@ -1124,7 +1124,8 @@ export async function assignImageLocal(data) {
             await db.coin_type_config.add(cfg);
         }
         
-        const sideKey = side === "obv" ? "obv_image" : "rev_image";
+        const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
+        const sideKey = sideMap[side] || "obv_image";
         if (scope === "all" || !cfg[sideKey]) {
             await db.coin_type_config.update(coin_type, { [sideKey]: image });
         }
@@ -1153,7 +1154,8 @@ export async function resetImageToMasterLocal(coinType, side) {
     // In local mode, resetting is simply deleting the type configuration for that side
     const cfg = await db.coin_type_config.get(coinType);
     if (cfg) {
-        const sideKey = side === "obv" ? "obv_image" : "rev_image";
+        const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
+        const sideKey = sideMap[side] || "obv_image";
         await db.coin_type_config.update(coinType, { [sideKey]: null });
     }
     return { status: "success" };
@@ -1207,6 +1209,28 @@ export async function fetchCoinBankImagesLocal(params = {}) {
                 });
             }
         }
+        if (!side || side === 'proof_obv') {
+            if (cfg.proof_obv_image) {
+                result.push({
+                    coin_type: cfg.coin_type,
+                    side: 'proof_obv',
+                    filename: cfg.proof_obv_image,
+                    image: cfg.proof_obv_image,
+                    tier: cfg.proof_obv_image.startsWith('data:image') ? 'user' : 'master'
+                });
+            }
+        }
+        if (!side || side === 'proof_rev') {
+            if (cfg.proof_rev_image) {
+                result.push({
+                    coin_type: cfg.coin_type,
+                    side: 'proof_rev',
+                    filename: cfg.proof_rev_image,
+                    image: cfg.proof_rev_image,
+                    tier: cfg.proof_rev_image.startsWith('data:image') ? 'user' : 'master'
+                });
+            }
+        }
     });
     return result;
 }
@@ -1214,12 +1238,12 @@ export async function fetchCoinBankImagesLocal(params = {}) {
 export async function deleteCoinBankImageLocal(filename) {
     // Find the record and null it
     const cfgs = await db.coin_type_config.toArray();
+    const fields = ["obv_image","rev_image","proof_obv_image","proof_rev_image"];
     for (const cfg of cfgs) {
-        if (cfg.obv_image === filename) {
-            await db.coin_type_config.update(cfg.coin_type, { obv_image: null });
-        }
-        if (cfg.rev_image === filename) {
-            await db.coin_type_config.update(cfg.coin_type, { rev_image: null });
+        for (const field of fields) {
+            if (cfg[field] === filename) {
+                await db.coin_type_config.update(cfg.coin_type, { [field]: null });
+            }
         }
     }
     return { status: "deleted" };
@@ -1446,14 +1470,17 @@ export async function restoreBackupLocal(backupObj) {
 export async function renameCoinBankImageLocal(data) {
     const { filename, new_side } = data;
     const cfgs = await db.coin_type_config.toArray();
+    const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
+    const fieldToSide = {"obv_image":"obv","rev_image":"rev","proof_obv_image":"proof_obv","proof_rev_image":"proof_rev"};
     for (const cfg of cfgs) {
-        if (cfg.obv_image === filename && new_side === 'rev') {
-            await db.coin_type_config.update(cfg.coin_type, { obv_image: null, rev_image: filename });
-            break;
-        }
-        if (cfg.rev_image === filename && new_side === 'obv') {
-            await db.coin_type_config.update(cfg.coin_type, { rev_image: null, obv_image: filename });
-            break;
+        for (const [oldField, oldSide] of Object.entries(fieldToSide)) {
+            if (cfg[oldField] === filename) {
+                const newField = sideMap[new_side];
+                if (newField && newField !== oldField) {
+                    await db.coin_type_config.update(cfg.coin_type, { [oldField]: null, [newField]: filename });
+                }
+                break;
+            }
         }
     }
     return { status: "renamed" };
