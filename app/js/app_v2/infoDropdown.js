@@ -281,7 +281,7 @@ async function showFamousStories() {
 
 function fetchStories() {
  if (_storiesCache) return Promise.resolve(_storiesCache);
- return fetch('/data/stories.json')
+ return fetch('data/stories.json')
  .then(r => r.ok ? r.json() : { stories: [] })
  .then(d => { _storiesCache = d; return d; })
  .catch(() => ({ stories: [] }));

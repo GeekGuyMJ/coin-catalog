@@ -166,7 +166,7 @@ export async function initDb() {
     const refCount = await db.coins_reference.count();
     if (refCount === 0) {
         console.log('IndexedDB empty. Fetching master coins catalogue from JSON...');
-        const response = await fetch('/data/coins.json');
+        const response = await fetch('data/coins.json');
         if (!response.ok) {
             throw new Error(`Failed to load coins.json: HTTP ${response.status}`);
         }
@@ -196,7 +196,7 @@ export async function initDb() {
     }
     if (needsSeed) {
         console.log('Fetching type configs from JSON...');
-        const response = await fetch('/data/type_configs.json');
+        const response = await fetch('data/type_configs.json');
         if (response.ok) {
             const configs = await response.json();
             console.log(`Seeding ${configs.length} type configs into IndexedDB...`);
