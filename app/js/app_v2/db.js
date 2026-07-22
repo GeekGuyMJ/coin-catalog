@@ -200,11 +200,24 @@ export async function initDb() {
                         if (!existing) {
                             await db.coin_type_config.add(cfg);
                         } else {
-                            // Never overwrite existing images — user may have uploaded, cropped, or deleted them
+                            // Never overwrite user-uploaded base64 images, but seed master paths if empty
                             const updates = {
                                 base_price: cfg.base_price || existing.base_price || 0,
                                 key_price: cfg.key_price || existing.key_price || 0,
                             };
+                            // Seed master image paths only if no user-uploaded base64 exists
+                            if (cfg.obv_image !== undefined && (!existing.obv_image || !existing.obv_image.startsWith('data:image'))) {
+                                updates.obv_image = cfg.obv_image;
+                            }
+                            if (cfg.rev_image !== undefined && (!existing.rev_image || !existing.rev_image.startsWith('data:image'))) {
+                                updates.rev_image = cfg.rev_image;
+                            }
+                            if (cfg.proof_obv_image !== undefined && (!existing.proof_obv_image || !existing.proof_obv_image.startsWith('data:image'))) {
+                                updates.proof_obv_image = cfg.proof_obv_image;
+                            }
+                            if (cfg.proof_rev_image !== undefined && (!existing.proof_rev_image || !existing.proof_rev_image.startsWith('data:image'))) {
+                                updates.proof_rev_image = cfg.proof_rev_image;
+                            }
                             await db.coin_type_config.update(cfg.coin_type, updates);
                         }
                     }
