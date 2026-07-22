@@ -168,7 +168,7 @@ export async function resizeToWebP(file) {
     });
 }
 
-export async function handleNewUpload(e) {
+async function handleNewUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -259,6 +259,21 @@ export function openCropTool(imgSrc) {
     }
 
     cropImg = new Image();
+    cropImg.onerror = () => {
+        // Show error on canvas
+        const canvas = document.getElementById('crop-canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#e8b04a';
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Image failed to load', canvas.width/2, canvas.height/2 - 10);
+        ctx.fillText('Try uploading a new photo', canvas.width/2, canvas.height/2 + 20);
+        const shapeLabel = document.getElementById('crop-shape-label');
+        if (shapeLabel) shapeLabel.textContent = 'Failed to load image';
+    };
     cropImg.onload = () => {
         // Fit image within the 80% visible crop circle at 1.0x zoom
         // so the whole image is visible inside the dashed ring
