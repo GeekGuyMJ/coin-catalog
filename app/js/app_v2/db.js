@@ -12,6 +12,21 @@ import Dexie from './dexie.js?v=4';
 
 export const db = new Dexie('CoinCatalogDB');
 
+db.version(1).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key'
+});
+
 db.version(2).stores({
     coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
     user_inventory: '++id, coin_ref_id, quantity, grade',
@@ -1144,23 +1159,29 @@ export async function assignImageLocal(data) {
             await db.coin_type_config.update(coin_type, { [sideKey]: image });
         }
     } else if (scope === "specific_coin") {
-        // Save to specific user inventory row
-        const refId = Number(item_id);
-        const inv = await db.user_inventory.where('coin_ref_id').equals(refId).first();
-        if (inv) {
-            await db.user_inventory.update(inv.id, { personal_photo: image });
-        } else {
-            await db.user_inventory.add({
-                coin_ref_id: refId,
-                quantity: 1,
-                grade: "",
-                purchase_price: 0,
-                current_value: 0,
-                notes: "",
-                personal_photo: image
-            });
+            // Save to specific user inventory row
+            const invId = Number(item_id);
+            const inv = await db.user_inventory.get(invId);
+            if (inv) {
+                await db.user_inventory.update(invId, { personal_photo: image });
+            } else {
+                // Fallback: try to find by coin_ref_id if item_id was actually a coin_ref_id
+                const fallback = await db.user_inventory.where('coin_ref_id').equals(invId).first();
+                if (fallback) {
+                    await db.user_inventory.update(fallback.id, { personal_photo: image });
+                } else {
+                    await db.user_inventory.add({
+                        coin_ref_id: invId,
+                        quantity: 1,
+                        grade: "",
+                        purchase_price: 0,
+                        current_value: 0,
+                        notes: "",
+                        personal_photo: image
+                    });
+                }
+            }
         }
-    }
     return { status: "success" };
 }
 

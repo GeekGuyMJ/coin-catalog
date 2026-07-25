@@ -673,7 +673,8 @@ export async function executeImageAssignment() {
     const isScopeModalOpen = document.getElementById('modal-replace-scope')?.classList.contains('open');
     let scope = (isScopeModalOpen && scopeEle) ? scopeEle.value : (activeContext.scope || 'all');
 
-    if (scope === 'specific_item' && activeContext.side !== 'personal') {
+    // Convert specific_item to specific_coin for DB layer (personal photos also go to specific_coin)
+    if (scope === 'specific_item') {
         scope = 'specific_coin';
     }
 

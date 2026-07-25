@@ -1073,23 +1073,23 @@ function buildCoinRow(coin) {
     }
     
     var specificCfg = getTypeConfig(coin.coin_type);
-        var mainCfg = getTypeConfig(getMainType(coin.coin_type));
-    
-        // Get personal photos from inventory entries (specific coin images take highest priority)
-        var entries = getInventoryEntries(coin.id) || [];
-        var personalPhotos = [];
-        entries.forEach(function(e) {
-            if (e.personal_photo) {
-                var parts = e.personal_photo.split(';').filter(Boolean);
-                personalPhotos = personalPhotos.concat(parts);
-            }
-        });
-        // Use first personal photo as obverse, second as reverse (if available)
-        var personalObv = personalPhotos[0] || null;
-        var personalRev = personalPhotos[1] || null;
-    
-        var obvSrc = personalObv || coin.obv_image || (specificCfg && specificCfg.obv_image) || (mainCfg && mainCfg.obv_image) || null;
-        var revSrc = personalRev || coin.rev_image || (specificCfg && specificCfg.rev_image) || (mainCfg && mainCfg.rev_image) || null;
+    var mainCfg = getTypeConfig(getMainType(coin.coin_type));
+
+    // Get personal photos from inventory entries (specific coin images take highest priority)
+    var entries = getInventoryEntries(coin.id) || [];
+    var personalPhotos = [];
+    entries.forEach(function(e) {
+        if (e.personal_photo) {
+            var parts = e.personal_photo.split(';').filter(Boolean);
+            personalPhotos = personalPhotos.concat(parts);
+        }
+    });
+    // Use first personal photo as obverse, second as reverse (if available)
+    var personalObv = personalPhotos[0] || null;
+    var personalRev = personalPhotos[1] || null;
+
+    var obvSrc = personalObv || coin.obv_image || (specificCfg && specificCfg.obv_image) || (mainCfg && mainCfg.obv_image) || null;
+    var revSrc = personalRev || coin.rev_image || (specificCfg && specificCfg.rev_image) || (mainCfg && mainCfg.rev_image) || null;
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '?v=2';
     if (revSrc && !revSrc.includes('?')) revSrc += '?v=2';
     if (obvSrc) {
