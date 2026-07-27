@@ -46,6 +46,16 @@ function syncThemeSelector() {
 // Boot sequence
 // ============================================================
 
+// Helper function for timeout protection
+function timeout(promise, timeoutMs, name) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => 
+            setTimeout(() => reject(new Error(`TIMEOUT: ${name} fetch exceeded ${timeoutMs}ms`)), timeoutMs)
+        )
+    ]);
+}
+
 async function boot() {
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
@@ -61,16 +71,32 @@ async function boot() {
     // Set sticky header offsets after first layout — use rAF to ensure DOM is painted
     requestAnimationFrame(() => updateStickyOffsets());
 
+    // CRITICAL: Global timeout to prevent infinite hanging
+    let globalTimeoutId = setTimeout(() => {
+        console.warn('[boot] GLOBAL TIMEOUT - forcing app to continue');
+        setLoading(false);
+        hideSplash();
+        showToast('App initialization took too long - loading with limited functionality', 'error', 8000);
+        
+        // ESTABLISH MINIMAL FUNCTIONALITY AS FALLBACK
+        setSections([]);
+        setInventory([]);
+        setTypeConfigs({});
+        setWishlist([]);
+        console.log('[boot] Continued with empty data - app will show "no data" state');
+        
+    }, 45000); // 45 seconds max for entire boot sequence
+
     try {
         // Initialize the local database (seeds from coins.json if empty)
         await initDb();
 
-        // Load sections, inventory, type configs, and wishlist in parallel
+        // Load sections, inventory, type configs, and wishlist in parallel with timeout protection
         const [sections, inventory, typeConfigs, wishlist] = await Promise.all([
-            fetchSections(),
-            fetchInventory(),
-            fetchTypeConfigs(),
-            fetchWishlist(),
+            timeout(fetchSections(), 20000, 'sections'),
+            timeout(fetchInventory(), 20000, 'inventory'),
+            timeout(fetchTypeConfigs(), 15000, 'typeConfigs'),
+            timeout(fetchWishlist(), 10000, 'wishlist'),
         ]);
 
         setSections(sections);
@@ -82,7 +108,7 @@ async function boot() {
         initWishlist();
 
         // Init dashboard
-        import('./portfolio.js?v=8').then(m => m.initPortfolio());
+        import('./portfolio.v2.js').then(m => m.initPortfolio());
 
         // Render the catalogue
         renderSections();
@@ -93,12 +119,22 @@ async function boot() {
         updateCompletionBadge(sections);
 
     } catch (err) {
-        showToast(`Failed to load catalogue: ${err.message}`, 'error', 8000);
+        showToast(`Failed to load app: ${err.message}. Showing empty state.`, 'error', 8000);
         console.error('[boot] Load failed:', err);
+        
+        // Establish minimal functionality as fallback
+        setSections([]);
+        setInventory([]);
+        setTypeConfigs({});
+        setWishlist([]);
     } finally {
+        // Always clear the global timeout
+        clearTimeout(globalTimeoutId);
+        
+        // Always clear loading state
         setLoading(false);
         hideSplash();
-        if (typeof window._markBootComplete === 'function') window._markBootComplete();
+    }
     }
 
     // Fetch spot prices in the background (non-blocking)
