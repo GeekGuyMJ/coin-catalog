@@ -3702,3 +3702,28 @@ select optgroup {
 .crop-container.crop-shape-rect #crop-guide-rect {
     display: block;
 }
+
+/* Ready Badge (Default Image Packaging) */
+.ready-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--color-warning);
+    color: #000;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 2;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s var(--transition-fast);
+}
+.ready-badge:hover { transform: scale(1.15); }
+.ready-badge.success { background: var(--color-success); }
+body.ready-mode-active .ready-badge { display: flex; }
+.coin-row-thumb-wrap { position: relative; }

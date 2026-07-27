@@ -442,6 +442,23 @@ export function openSettingsModal() {
             createHiddenFileInput('restoreInput', '.json', restoreJSON),
             createHiddenFileInput('importInput', '.csv', importCSV),
         ]));
+
+// Package Defaults Section
+        panel.appendChild(el('div', { className: 'settings-section', style: 'border-top: 2px solid var(--color-accent); margin-top: 20px; padding-top: 16px;' }, [
+            el('h3', { className: 'settings-section-title' }, '📦 Package Default Images'),
+            el('p', { className: 'settings-section-desc' }, 'Mark coin images as "Ready" in the catalog, then export them as a defaults package.'),
+            buildActionRow([
+                { label: '🔄 Toggle Ready Mode', onclick: () => { closeModal('modal-settings'); toggleReadyMode(); }, className: 'btn-secondary' },
+                { label: '📋 List Ready Images', onclick: () => { closeModal('modal-settings'); listReadyImages(); }, className: 'btn-secondary' },
+            ]),
+            buildActionRow([
+                { label: '📦 Create Defaults Package (JSON)', onclick: createDefaultsPackage, className: 'btn-primary' },
+                { label: '💾 Download Package', onclick: downloadDefaultsPackage, className: 'btn-secondary' },
+                { label: '📁 Load Package File', onclick: () => loadDefaultsInput.click(), className: 'btn-secondary' },
+            ]),
+            createHiddenFileInput('loadDefaultsInput', '.json', loadDefaultsPackageFile),
+            el('div', { id: 'defaults-package-status', style: 'margin-top:12px;padding:10px;background:var(--color-bg);border-radius:6px;font-size:0.75rem;min-height:60px;white-space:pre-wrap;color:var(--color-text-muted);' }, 'No package created yet.'),
+        ]));
     }
 
         async function buildCloudTab(panel) {
