@@ -243,6 +243,45 @@ export async function initDb() {
             console.error('Failed to load type_configs.json:', response.status);
         }
     }
+
+    // Seed from default_images.json (public app bundled defaults)
+    try {
+        const defaultsResp = await fetch('data/default_images.json');
+        if (defaultsResp.ok) {
+            const defaultsData = await defaultsResp.json();
+            if (defaultsData.defaults && Object.keys(defaultsData.defaults).length > 0) {
+                console.log('Seeding default images from bundled package...');
+                for (const [coinType, sides] of Object.entries(defaultsData.defaults)) {
+                    const existing = await db.coin_type_config.get(coinType);
+                    if (!existing) continue;
+                    
+                    const updates = { _ready_obv: false, _ready_rev: false };
+                    
+                    if (sides.obv) {
+                        updates.obv_image = sides.obv;
+                        updates._ready_obv = true;
+                    }
+                    if (sides.rev) {
+                        updates.rev_image = sides.rev;
+                        updates._ready_rev = true;
+                    }
+                    if (sides.proof_obv) {
+                        updates.proof_obv_image = sides.proof_obv;
+                        updates._ready_proof_obv = true;
+                    }
+                    if (sides.proof_rev) {
+                        updates.proof_rev_image = sides.proof_rev;
+                        updates._ready_proof_rev = true;
+                    }
+                    
+                    await db.coin_type_config.update(coinType, updates);
+                }
+                console.log('Default images seeded successfully!');
+            }
+        }
+    } catch (e) {
+        console.warn('Could not load default_images.json:', e);
+    }
 }
 
 // ============================================================
