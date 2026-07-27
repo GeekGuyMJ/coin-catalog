@@ -89,7 +89,7 @@ async function boot() {
 
     try {
         // Initialize the local database (seeds from coins.json if empty)
-        await initDb();
+        await timeout(initDb(), 30000, 'initDb');
 
         // Load sections, inventory, type configs, and wishlist in parallel with timeout protection
         const [sections, inventory, typeConfigs, wishlist] = await Promise.all([
