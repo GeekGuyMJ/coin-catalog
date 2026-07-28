@@ -74,18 +74,21 @@ async function boot() {
         setWishlist([]);
         console.log('[boot] Continued with empty data - app will show "no data" state');
         
-    }, 45000); // 45 seconds max for entire boot sequence
+    }, 20000); // 20 seconds max for entire boot sequence
 
     try {
         // Initialize the local database (seeds from coins.json if empty) - with timeout!
-        await timeout(initDb(), 30000, 'initDb');
+        console.log('[boot] Seeding database...');
+        await timeout(initDb(), 15000, 'initDb');
+        console.log('[boot] Database ready.');
 
         // Load sections, inventory, type configs, and wishlist in parallel with timeout protection
+        console.log('[boot] Fetching data...');
         const [sections, inventory, typeConfigs, wishlist] = await Promise.all([
-            timeout(fetchSections(), 20000, 'sections'),
-            timeout(fetchInventory(), 20000, 'inventory'),
-            timeout(fetchTypeConfigs(), 15000, 'typeConfigs'),
-            timeout(fetchWishlist(), 10000, 'wishlist'),
+            timeout(fetchSections(), 15000, 'sections'),
+            timeout(fetchInventory(), 15000, 'inventory'),
+            timeout(fetchTypeConfigs(), 10000, 'typeConfigs'),
+            timeout(fetchWishlist(), 8000, 'wishlist'),
         ]);
 
         // If we got any data, use it
