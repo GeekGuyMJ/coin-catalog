@@ -31,9 +31,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/base.css?v=1789030224">
-    <link rel="stylesheet" href="css/themes.css?v=1789030224">
-    <link rel="stylesheet" href="css/components.v2.css?v=1789030224">
+    <link rel="stylesheet" href="css/base.css?v=1789030226">
+    <link rel="stylesheet" href="css/themes.css?v=1789030226">
+    <link rel="stylesheet" href="css/components.v2.css?v=1789030226">
 
     <!--
         Theme is applied BEFORE paint to prevent a flash of the wrong theme.
@@ -185,6 +185,8 @@
                     <option value="custom1">Custom 1</option>
                     <option value="custom2">Custom 2</option>
                     <option value="custom3">Custom 3</option>
+                    <option value="custom-designer" disabled>────────────</option>
+                    <option value="custom-designer" onclick="event.stopPropagation(); openCustomThemeDesigner(1); this.selectedIndex = 0;">✦ Theme Designer</option>
                 </optgroup>
             </select>
         </div>
@@ -193,19 +195,19 @@
     <!-- ================================================================
          Main Content
     ================================================================ -->
-    <script type="module" src="js/app_v2/utils.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/state.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/api.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/themes.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/catalog.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/inventory.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/modals.v2.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/search.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/wishlist.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/images.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/album.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/portfolio_history.js?v=1789030224"></script>
-    <script type="module" src="js/app_v2/main.js?v=1789030224"></script>
+    <script type="module" src="js/app_v2/utils.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/state.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/api.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/themes.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/catalog.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/inventory.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/modals.v2.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/search.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/wishlist.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/images.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/album.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/portfolio_history.js?v=1789030226"></script>
+    <script type="module" src="js/app_v2/main.js?v=1789030226"></script>
 <main id="app-main" class="container" role="main">
 
         <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->

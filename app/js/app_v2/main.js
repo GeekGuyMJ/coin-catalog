@@ -22,7 +22,7 @@ import { renderSections, updateStickyOffsets } from './catalog.js';
 import { renderAlbumView } from './album.js';
 import { initSearch } from './search.js';
 import { showToast } from './notifications.js';
-import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal, openVisibilityModal } from './modals.v2.js';
+import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal, openVisibilityModal, openCustomThemeDesigner } from './modals.v2.js';
 import { openStoriesModal } from './stories.js';
 import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDropdown.js';
 import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection } from './settingsDropdown.js';
@@ -330,6 +330,7 @@ window.triggerPWAInstall = async () => {
 // Expose to window for HTML onclick handlers (window._btnCall)
 window.openSettingsModal    = openSettingsModal;
 window.openHelpModal       = openHelpModal;
+window.openCustomThemeDesigner = openCustomThemeDesigner;
 window.openStoriesModal    = openStoriesModal;
 window.openVisibilityModal = openVisibilityModal;
 window.openScrapMetalModal = openScrapMetalModal;
