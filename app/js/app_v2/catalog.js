@@ -34,6 +34,22 @@ const _expandedSections = new Set();
 const _expandedTypes = new Set();
 const _expandedCountries = new Set(['United States', 'Canada']); // Default US/Canada open
 
+/**
+ * Resolve a stored image path to a full URL.
+ * Personal photos stored as bare filenames or inv_ tokens get prefixed.
+ * Coin type images are returned as-is.
+ * @param {string} path
+ * @returns {string|null}
+ */
+function resolveImagePath(path) {
+    if (!path) return null;
+    const bad = ['undefined', 'null', 'none', '[object Object]'];
+    if (bad.includes(path.trim())) return null;
+    if (path.startsWith('data:') || path.startsWith('http') || path.startsWith('/')) return path;
+    // Bare filename — treat as personal photo
+    return '/data/images/personal/' + path;
+}
+
 // --- View Mode ---
 function isAlbumMode() {
     return _catalogViewMode === 'folder' || _catalogViewMode === 'album';
@@ -53,7 +69,9 @@ export function renderSections() {
     container.innerHTML = '';
 
     const sections = getSections();
+    console.log('[catalog] renderSections called, sections from state:', sections?.length, sections);
     if (!sections.length) {
+        console.warn('[catalog] No sections in state! State:', JSON.stringify(sections));
         container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalogue.</p>';
         return;
     }
@@ -363,10 +381,10 @@ async function expandSection(sectionName) {
     header.setAttribute('aria-expanded', 'true');
     _expandedSections.add(sectionName);
 
-    // Already loaded?
+    // Already loaded — just show cached content without re-rendering
     const cached = getCoinsForSection(sectionName);
     if (cached) {
-        renderTypeAccordions(content, cached);
+        // Content is already in the DOM; just show it
         return;
     }
 
@@ -1072,39 +1090,67 @@ function buildCoinRow(coin) {
         thumbWrap.classList.add("show-rev");
     }
     
-    var specificCfg = getTypeConfig(coin.coin_type);
-    var mainCfg = getTypeConfig(getMainType(coin.coin_type));
-
-    // Get personal photos from inventory entries (specific coin images take highest priority)
-    var entries = getInventoryEntries(coin.id) || [];
-    var personalPhotos = [];
-    entries.forEach(function(e) {
-        if (e.personal_photo) {
-            var parts = e.personal_photo.split(';').filter(Boolean);
-            personalPhotos = personalPhotos.concat(parts);
-        }
-    });
-    // Use first personal photo as obverse, second as reverse (if available)
-    var personalObv = personalPhotos[0] || null;
-    var personalRev = personalPhotos[1] || null;
-
-    var obvSrc = personalObv || coin.obv_image || (specificCfg && specificCfg.obv_image) || (mainCfg && mainCfg.obv_image) || null;
-    var revSrc = personalRev || coin.rev_image || (specificCfg && specificCfg.rev_image) || (mainCfg && mainCfg.rev_image) || null;
+    var specificCfg = getTypeConfig(coin.coin_type, coin.section);
+    var mainCfg = getTypeConfig(getMainType(coin.coin_type), coin.section);
+    
+    // Personal photo from inventory entries takes highest priority
+    var invEntries = getInventoryEntries(coin.id) || [];
+    var invObvPhoto = null, invRevPhoto = null;
+    if (invEntries.length > 0) {
+        var latestEntry = invEntries[0];
+        var photoStr = latestEntry.personal_photo || '';
+        var slots = photoStr.split(';').map(s => s.trim()).filter(s => s && !['undefined','null','none','[object Object]'].includes(s));
+        if (slots[0]) invObvPhoto = resolveImagePath(slots[0]);
+        if (slots[1]) invRevPhoto = resolveImagePath(slots[1]);
+    }
+    
+    var obvSrc = invObvPhoto || coin.obv_image || (specificCfg && specificCfg.obv_image) || (mainCfg && mainCfg.obv_image) || null;
+    var revSrc = invRevPhoto || coin.rev_image || (specificCfg && specificCfg.rev_image) || (mainCfg && mainCfg.rev_image) || null;
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '?v=2';
     if (revSrc && !revSrc.includes('?')) revSrc += '?v=2';
     if (obvSrc) {
-        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
+        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, section: coin.section || '', side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };
         thumbWrap.appendChild(img);
+        // Add ready badge if in ready mode and image is ready
+        if (_readyModeActive) {
+            var cfg = getTypeConfig(coin.coin_type, coin.section);
+            var isReady = cfg && cfg._ready_obv;
+            var readyBadge = el("span", {
+                className: "ready-badge",
+                title: isReady ? "Click to unmark ready" : "Click to mark ready",
+                style: "position:absolute;top:4px;right:4px;background:" + (isReady ? "var(--color-success)" : "var(--color-warning)") + ";color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,0.3);",
+                onclick: (e) => {
+                    e.stopPropagation();
+                    toggleCoinReady(coin.coin_type, 'obv', !isReady);
+                }
+            }, isReady ? "✓" : "?");
+            thumbWrap.appendChild(readyBadge);
+        }
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv"}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, section: coin.section || '', side: "obv"}}));
     }
     if (revSrc) {
-        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
+        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, section: coin.section || '', side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
         img2.onerror = function() { img2.src = placeholderCoinSvg(); img2.classList.add("placeholder"); };
         thumbWrap.appendChild(img2);
+        // Add ready badge if in ready mode and image is ready
+        if (_readyModeActive) {
+            var cfg = getTypeConfig(coin.coin_type, coin.section);
+            var isReady = cfg && cfg._ready_rev;
+            var readyBadge = el("span", {
+                className: "ready-badge",
+                title: isReady ? "Click to unmark ready" : "Click to mark ready",
+                style: "position:absolute;top:4px;right:4px;background:" + (isReady ? "var(--color-success)" : "var(--color-warning)") + ";color:#000;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,0.3);",
+                onclick: (e) => {
+                    e.stopPropagation();
+                    toggleCoinReady(coin.coin_type, 'rev', !isReady);
+                }
+            }, isReady ? "✓" : "?");
+            thumbWrap.appendChild(readyBadge);
+        }
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev"}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, section: coin.section || '', side: "rev"}}));
     }
     
     // Add mobile flip button if both obverse and reverse exist
@@ -1710,7 +1756,8 @@ async function handleCatalogClick(e) {
         import('./images.js?v=4').then(m => {
             // Set coin metadata on the images module
             if (m.setCoinMeta) m.setCoinMeta(year ? parseInt(year) : null, mintMark || null);
-            m.openImageInteractionModal(imgBtn, type, side, false, null, coinId);
+            const imgSection = imgBtn.dataset.section || '';
+            m.openImageInteractionModal(imgBtn, type, side, false, null, coinId, imgSection);
         });
         return;
     }
@@ -2005,7 +2052,7 @@ window.addEventListener('cc-image-updated', async (e) => {
         if (sectionName) {
             const cached = getCoinsForSection(sectionName);
             if (cached) {
-                renderTypeAccordions(content, cached);
+                // Content is already in the DOM; just show it
                     }
         }
     });
