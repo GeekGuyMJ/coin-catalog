@@ -426,4 +426,6 @@ window.APP_VERSION = "2.0.3-fix-input-clearing";
 // Start the app
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", boot);
+// NOTE: Module scripts are deferred - they execute AFTER DOM is parsed
+// BUT BEFORE DOMContentLoaded fires. Call boot() directly.
+boot();
