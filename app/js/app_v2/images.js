@@ -441,6 +441,10 @@ export function removeCurrentImage() {
     activeContext.b64 = '';
     // Show scope selection so user can choose which coins to clear
     openModalLegacy('modal-replace-scope');
+    // Set modal title for remove action
+    const titleEl = document.querySelector('#modal-replace-scope .modal-title');
+    if (titleEl) titleEl.textContent = 'Remove Image';
+    document.getElementById('btn-execute-assign').textContent = 'Confirm & Clear';
     showScopeSelection();
 }
 
@@ -455,6 +459,10 @@ export function saveCurrentImage() {
     
         // Show scope selection so user can choose how to apply
     openModalLegacy('modal-replace-scope');
+    // Set modal title for save/update action
+    const titleEl = document.querySelector('#modal-replace-scope .modal-title');
+    if (titleEl) titleEl.textContent = 'Update Image';
+    document.getElementById('btn-execute-assign').textContent = 'Save & Apply';
     showScopeSelection();
 }
 
@@ -716,11 +724,14 @@ export async function executeImageAssignment() {
         scope = 'specific_coin';
     }
 
+    // Detect if this is a remove action (no image data)
+    const isRemoveAction = !activeContext.b64;
+
     try {
         const result = await assignImage({
             coin_type: activeContext.typeStr,
             side:      activeContext.side,
-            image:     activeContext.b64,
+            image:     activeContext.b64 || '',  // Empty string for removal
             scope:     scope,
             item_id:   activeContext.itemId
         });
