@@ -39,10 +39,10 @@ let _readyModeActive = false;
 
 export function setReadyMode(active) {
     _readyModeActive = active;
-    const container = document.getElementById(catalog-container);
+    const container = document.getElementById('catalog-container');
     if (container) {
-        container.querySelectorAll(.section-content.open).forEach(content => {
-            const sectionName = content.closest(.section-card)?.querySelector(.section-header)?.dataset?.section;
+        container.querySelectorAll('.section-content.open').forEach(content => {
+            const sectionName = content.closest('.section-card')?.querySelector('.section-header')?.dataset?.section;
             if (sectionName) {
                 const coins = getCoinsForSection(sectionName);
                 if (coins) {
