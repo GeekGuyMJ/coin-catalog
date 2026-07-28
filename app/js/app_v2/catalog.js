@@ -352,7 +352,19 @@ function buildSectionCard(sec) {
 
     const chevron = el('span', { className: 'section-chevron', 'aria-hidden': 'true' }, '▾');
 
-    header.append(left, dragHandle, chevron);
+    // Publish Section button (only on self-hosted with backend)
+    const isSelfHosted = window.location.hostname.includes('opaleye-bluegill') || window.location.hostname.includes('192.168.0');
+    if (isSelfHosted) {
+        const publishBtn = el('button', {
+            className: 'btn-section-publish',
+            title: 'Publish this section\'s images to public app',
+            onclick: (e) => { e.stopPropagation(); openPublishSectionModal(sec.section); },
+            style: 'margin-left:var(--space-2); padding:2px 8px; font-size:0.75rem; background:var(--color-accent); color:var(--color-accent-text); border:none; border-radius:var(--radius-sm); cursor:pointer; display:flex; align-items:center; gap:4px;'
+        }, '📤 Publish');
+        header.append(left, dragHandle, publishBtn, chevron);
+    } else {
+        header.append(left, dragHandle, chevron);
+    }
 
     // Content area (initially hidden)
     const content = el('div', {
@@ -424,6 +436,150 @@ async function expandSection(sectionName) {
             Failed to load coins: ${escHtml(err.message)}
         </p>`;
     }
+}
+
+/**
+ * Open confirmation modal to publish a section's images to public.
+ * @param {string} sectionName
+ */
+async function openPublishSectionModal(sectionName) {
+    // Create modal if not exists
+    let modal = document.getElementById('modal-publish-section');
+    if (!modal) {
+        modal = el('div', { 
+            id: 'modal-publish-section', 
+            className: 'modal-overlay', 
+            role: 'dialog', 
+            'aria-modal': 'true',
+            'aria-labelledby': 'publish-section-title'
+        });
+        document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+        <div class="modal-box" style="max-width:500px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="publish-section-title">Publish Section to Public?</h2>
+                <button class="modal-close" data-action="close-publish-section" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body" style="padding:var(--space-4);">
+                <p style="margin-bottom:var(--space-4); color:var(--color-text-main);">
+                    This will copy all images from <strong id="publish-section-name"></strong> 
+                    to the master image store and update the public defaults.
+                </p>
+                <div style="background:var(--color-finance-bg); padding:var(--space-3); border-radius:var(--radius-md); margin-bottom:var(--space-4); font-size:var(--font-size-sm); color:var(--color-text-muted);">
+                    <strong>What happens:</strong>
+                    <ul style="margin:var(--space-2) 0 0 var(--space-4);">
+                        <li>Images copied from <code>types/user/</code> → <code>types/master/</code></li>
+                        <li>CoinTypeConfig records updated in database</li>
+                        <li>Exported for deploy to GitHub Pages + Play Store</li>
+                    </ul>
+                </div>
+                <p style="font-size:var(--font-size-sm); color:var(--color-warning);">
+                    ⚠ This is a one-way operation. The public app will use these images as defaults.
+                </p>
+            </div>
+            <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end;">
+                <button class="btn-secondary" data-action="close-publish-section">Cancel</button>
+                <button class="btn-primary" id="btn-confirm-publish-section">Publish Section</button>
+            </div>
+        </div>
+    `;
+    
+    // Set section name
+    modal.querySelector('#publish-section-name').textContent = sectionName;
+    
+    // Event handlers
+    const closeBtn = modal.querySelector('[data-action="close-publish-section"]');
+    const cancelBtn = modal.querySelector('.btn-secondary');
+    const confirmBtn = modal.querySelector('#btn-confirm-publish-section');
+    
+    const closeModal = () => {
+        modal.classList.add('is-dismissed');
+        setTimeout(() => {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+        }, 200);
+    };
+    
+    closeBtn.onclick = closeModal;
+    cancelBtn.onclick = closeModal;
+    modal.onclick = (e) => {
+        if (e.target === modal) closeModal();
+    };
+    
+    confirmBtn.onclick = async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Publishing...';
+        
+        try {
+            const response = await fetch('/api/publish_section', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ section: sectionName })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                // Show success with deploy instructions
+                modal.innerHTML = `
+                    <div class="modal-box" style="max-width:500px;">
+                        <div class="modal-header">
+                            <h2 class="modal-title">✅ Section Published!</h2>
+                            <button class="modal-close" data-action="close-publish-section" aria-label="Close">✕</button>
+                        </div>
+                        <div class="modal-body" style="padding:var(--space-4);">
+                            <p style="margin-bottom:var(--space-4);">
+                                Successfully published <strong>${result.images_copied} images</strong> 
+                                for <strong>${result.types_updated} coin types</strong> in 
+                                <strong>${sectionName}</strong>.
+                            </p>
+                            <div style="background:var(--color-finance-bg); padding:var(--space-3); border-radius:var(--radius-md); margin-bottom:var(--space-4); font-size:var(--font-size-sm); font-family:monospace; white-space:pre-wrap;">
+Export Path: ${result.export_path}
+                            </div>
+                            <p style="margin-bottom:var(--space-2); font-weight:600;">Next step — run the deploy script:</p>
+                            <div style="background:#1e1e1e; padding:var(--space-3); border-radius:var(--radius-md); font-family:monospace; font-size:var(--font-size-sm); overflow-x:auto;">
+./scripts/deploy_published_section.sh "${result.export_path}"
+                            </div>
+                            <p style="margin-top:var(--space-3); font-size:var(--font-size-sm); color:var(--color-text-muted);">
+                                This will copy images to the GitHub repo, commit, and push — triggering GitHub Pages + Play Store rebuild.
+                            </p>
+                        </div>
+                        <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end;">
+                            <button class="btn-primary" data-action="close-publish-section">Done</button>
+                        </div>
+                    </div>
+                `;
+                modal.querySelector('[data-action="close-publish-section"]').onclick = closeModal;
+            } else if (result.status === 'skipped') {
+                modal.innerHTML = `
+                    <div class="modal-box" style="max-width:500px;">
+                        <div class="modal-header">
+                            <h2 class="modal-title">ℹ️ Nothing to Publish</h2>
+                            <button class="modal-close" data-action="close-publish-section" aria-label="Close">✕</button>
+                        </div>
+                        <div class="modal-body" style="padding:var(--space-4); text-align:center;">
+                            <p>${result.message}</p>
+                        </div>
+                        <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end;">
+                            <button class="btn-primary" data-action="close-publish-section">OK</button>
+                        </div>
+                    </div>
+                `;
+                modal.querySelector('[data-action="close-publish-section"]').onclick = closeModal;
+            } else {
+                throw new Error(result.error || 'Unknown error');
+            }
+        } catch (err) {
+            console.error('[publish] Failed:', err);
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Publish Section';
+            alert('Failed to publish section: ' + err.message);
+        }
+    };
+    
+    // Show modal
+    modal.classList.remove('is-dismissed');
 }
 
 // ============================================================
