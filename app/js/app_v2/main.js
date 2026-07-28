@@ -92,6 +92,7 @@ async function boot() {
         ]);
 
         // If we got any data, use it
+        console.log('[boot] Data received.', { sectionsLength: sections?.length, inventoryLength: inventory?.length, typeConfigsKeys: Object.keys(typeConfigs || {}).length });
         if (sections || inventory || typeConfigs) {
             setSections(sections || []);
             setInventory(inventory || []);
