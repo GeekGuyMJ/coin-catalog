@@ -443,23 +443,301 @@ export function openSettingsModal() {
             createHiddenFileInput('importInput', '.csv', importCSV),
         ]));
 
-// Package Defaults Section
+// ============================================================
+// Default Images Packaging Section (admin only)
+// ============================================================
         panel.appendChild(el('div', { className: 'settings-section', style: 'border-top: 2px solid var(--color-accent); margin-top: 20px; padding-top: 16px;' }, [
             el('h3', { className: 'settings-section-title' }, '📦 Package Default Images'),
-            el('p', { className: 'settings-section-desc' }, 'Mark coin images as "Ready" in the catalog, then export them as a defaults package.'),
+            el('p', { className: 'settings-section-desc' }, 'Mark coin images as "Ready" in the catalog, then export them as a defaults package. The public app ships with this file pre-loaded.'),
+            
+            // Ready status overview
             buildActionRow([
-                { label: '🔄 Toggle Ready Mode', onclick: () => { closeModal('modal-settings'); toggleReadyMode(); }, className: 'btn-secondary' },
+                { label: '🔍 Show Ready Status in Catalog', onclick: () => { closeModal('modal-settings'); toggleReadyMode(); }, className: 'btn-secondary' },
                 { label: '📋 List Ready Images', onclick: () => { closeModal('modal-settings'); listReadyImages(); }, className: 'btn-secondary' },
             ]),
+            
+            // Package controls
             buildActionRow([
                 { label: '📦 Create Defaults Package (JSON)', onclick: createDefaultsPackage, className: 'btn-primary' },
-                { label: '💾 Download Package', onclick: downloadDefaultsPackage, className: 'btn-secondary' },
-                { label: '📁 Load Package File', onclick: () => loadDefaultsInput.click(), className: 'btn-secondary' },
+                { label: '💾 Download Package File', onclick: downloadDefaultsPackage, className: 'btn-secondary' },
+                { label: '🔄 Load Package into This App', onclick: loadDefaultsPackageFile, className: 'btn-secondary' },
             ]),
-            createHiddenFileInput('loadDefaultsInput', '.json', loadDefaultsPackageFile),
-            el('div', { id: 'defaults-package-status', style: 'margin-top:12px;padding:10px;background:var(--color-bg);border-radius:6px;font-size:0.75rem;min-height:60px;white-space:pre-wrap;color:var(--color-text-muted);' }, 'No package created yet.'),
+            createHiddenFileInput('loadDefaultsInput', '.json', (data) => loadDefaultsPackage(data)),
+
+            // Status display
+            el('div', { id: 'defaults-package-status', style: 'margin-top: 12px; padding: 10px; background: var(--color-bg); border-radius: 6px; font-family: monospace; font-size: 0.75rem; min-height: 60px; white-space: pre-wrap; color: var(--color-text-muted);' }, 'No package created yet. Mark images as Ready in the catalog first.'),
         ]));
     }
+
+
+
+// ============================================================
+// Ready Mode & Defaults Packaging
+// ============================================================
+
+let _readyModeActive = false;
+
+/**
+ * Toggle "Ready" overlay mode in the catalog.
+ * When active, each coin slot shows a checkmark badge if its image is marked ready,
+ * and clicking a slot toggles its ready state.
+ */
+function toggleReadyMode() {
+    _readyModeActive = !_readyModeActive;
+    const badge = document.getElementById('ready-mode-badge');
+    if (_readyModeActive) {
+        if (!badge) {
+            const b = document.createElement('div');
+            b.id = 'ready-mode-badge';
+            b.style.cssText = 'position:fixed;top:60px;right:12px;z-index:9999;background:var(--color-accent);color:#000;padding:8px 12px;border-radius:6px;font-weight:700;font-size:0.85rem;box-shadow:var(--shadow-lg);';
+            b.textContent = '🟢 Ready Mode: Click slots to mark Ready/Not Ready';
+            document.body.appendChild(b);
+        }
+        showToast('Ready Mode ON — Click any coin image slot to toggle Ready status', 'info', 5000);
+        document.body.classList.add('ready-mode-active');
+    } else {
+        if (badge) badge.remove();
+        showToast('Ready Mode OFF', 'info');
+        document.body.classList.remove('ready-mode-active');
+    }
+    // Re-render visible section cards to show/hide ready badges
+    // This uses the existing catalog.js render machinery
+    const main = document.getElementById('main-catalog') || document.querySelector('main');
+    if (main && window.renderSections) {
+        // Trigger re-render by re-calling renderSections
+        import('./catalog.js').then(m => m.renderSections());
+    }
+}
+
+/**
+ * Get all ready-marked images from IndexedDB.
+ * We store ready state in coin_type_config as _ready_obv / _ready_rev flags.
+ */
+async function getReadyImages() {
+    const { db } = await import('./db.js');
+    const allConfigs = await db.coin_type_config.toArray();
+    const ready = [];
+    for (const cfg of allConfigs) {
+        const coinType = cfg.coin_type;
+        if (!coinType) continue;
+        if (cfg._ready_obv && cfg.obv_image) {
+            ready.push({ coin_type: coinType, side: 'obv', image: cfg.obv_image });
+        }
+        if (cfg._ready_rev && cfg.rev_image) {
+            ready.push({ coin_type: coinType, side: 'rev', image: cfg.rev_image });
+        }
+        if (cfg._ready_proof_obv && cfg.proof_obv_image) {
+            ready.push({ coin_type: coinType, side: 'proof_obv', image: cfg.proof_obv_image });
+        }
+        if (cfg._ready_proof_rev && cfg.proof_rev_image) {
+            ready.push({ coin_type: coinType, side: 'proof_rev', image: cfg.proof_rev_image });
+        }
+    }
+    return ready;
+}
+
+/**
+ * Set ready flag for a specific coin type + side.
+ */
+async function setReadyState(coinType, side, isReady) {
+    const { db } = await import('./db.js');
+    const cfg = await db.coin_type_config.get(coinType);
+    if (!cfg) return false;
+    const field = '_ready_' + side;
+    const updates = { [field]: isReady };
+    // If un-marking, also clear the image if user wants (optional)
+    if (!isReady) {
+        // Keep image, just mark not ready
+    }
+    await db.coin_type_config.update(coinType, updates);
+    showToast(isReady ? '✅ Marked Ready' : '❌ Unmarked Ready', 'success');
+    return true;
+}
+
+/**
+ * Create the defaults package JSON object.
+ */
+async function createDefaultsPackage() {
+    const statusEl = document.getElementById('defaults-package-status');
+    statusEl.textContent = 'Scanning for ready images...';
+    statusEl.style.color = 'var(--color-text-main)';
+    
+    try {
+        const readyImages = await getReadyImages();
+        
+        if (readyImages.length === 0) {
+            statusEl.textContent = '⚠️ No images marked as Ready yet.\n\n1. Click "Show Ready Status in Catalog"\n2. Click coin image slots to toggle Ready (green checkmark appears)\n3. Click "Create Defaults Package" again';
+            statusEl.style.color = 'var(--color-warning)';
+            return;
+        }
+
+        // Build package
+        const packageData = {
+            version: 2,
+            created: new Date().toISOString(),
+            createdBy: 'Coin Catalog Admin',
+            defaults: {},
+            stats: {
+                total: readyImages.length,
+                obv: readyImages.filter(i => i.side === 'obv' || i.side === 'proof_obv').length,
+                rev: readyImages.filter(i => i.side === 'rev' || i.side === 'proof_rev').length,
+            }
+        };
+
+        // Organize by coin type
+        for (const img of readyImages) {
+            if (!packageData.defaults[img.coin_type]) {
+                packageData.defaults[img.coin_type] = {};
+            }
+            packageData.defaults[img.coin_type][img.side] = img.image;
+        }
+
+        // Store in global for download
+        window._defaultsPackage = packageData;
+        
+        const stats = packageData.stats;
+        statusEl.textContent = `✅ Package created with ${stats.total} images
+    - Obverse/Proof Obverse: ${stats.obv}
+    - Reverse/Proof Reverse: ${stats.rev}
+    - Coin types covered: ${Object.keys(packageData.defaults).length}
+
+Click "Download Package File" to save as JSON.
+Then copy this file to the public repo at: data/default_images.json`;
+        statusEl.style.color = 'var(--color-success)';
+        
+        // Also update the ready badges in catalog
+        if (window.renderSections) window.renderSections();
+        
+    } catch (err) {
+        statusEl.textContent = '❌ Error: ' + err.message;
+        statusEl.style.color = 'var(--color-danger)';
+        console.error('createDefaultsPackage error:', err);
+    }
+}
+
+/**
+ * Trigger download of the created package.
+ */
+function downloadDefaultsPackage() {
+    const pkg = window._defaultsPackage;
+    if (!pkg) {
+        showToast('No package created yet. Click "Create Defaults Package" first.', 'warning');
+        return;
+    }
+    const json = JSON.stringify(pkg, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'coin-catalog-default-images.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Downloaded: coin-catalog-default-images.json', 'success');
+}
+
+/**
+ * Handle file input for loading a defaults package into THIS app.
+ */
+function loadDefaultsPackageFile() {
+    const input = document.getElementById('loadDefaultsInput');
+    if (input) input.click();
+}
+
+async function loadDefaultsPackage(fileOrData) {
+    let data;
+    if (typeof fileOrData === 'string') {
+        // It's a file input event - extract
+        const file = fileOrData.target?.files?.[0];
+        if (!file) return;
+        data = await file.text();
+    } else {
+        data = fileOrData;
+    }
+    
+    try {
+        const pkg = JSON.parse(data);
+        const statusEl = document.getElementById('defaults-package-status');
+        statusEl.textContent = 'Loading package into local IndexedDB...';
+        statusEl.style.color = 'var(--color-text-main)';
+        
+        const { db } = await import('./db.js');
+        let count = 0;
+        
+        for (const [coinType, sides] of Object.entries(pkg.defaults)) {
+            const cfg = await db.coin_type_config.get(coinType);
+            if (!cfg) continue;
+            
+            const updates = {};
+            for (const [side, image] of Object.entries(sides)) {
+                const fieldMap = {
+                    'obv': 'obv_image',
+                    'rev': 'rev_image', 
+                    'proof_obv': 'proof_obv_image',
+                    'proof_rev': 'proof_rev_image',
+                };
+                const field = fieldMap[side];
+                if (field) {
+                    updates[field] = image;
+                    updates['_ready_' + side] = true;
+                }
+            }
+            if (Object.keys(updates).length > 0) {
+                await db.coin_type_config.update(coinType, updates);
+                count++;
+            }
+        }
+        
+        statusEl.textContent = `✅ Loaded ${count} coin types with default images.
+Refresh the catalog to see them.`;
+        statusEl.style.color = 'var(--color-success)';
+        showToast(`Loaded defaults for ${count} coin types`, 'success');
+        
+        if (window.renderSections) window.renderSections();
+        
+    } catch (err) {
+        const statusEl = document.getElementById('defaults-package-status');
+        statusEl.textContent = '❌ Load failed: ' + err.message;
+        statusEl.style.color = 'var(--color-danger)';
+        showToast('Failed to load package: ' + err.message, 'error');
+    }
+}
+
+/**
+ * List all ready images in a modal for review.
+ */
+async function listReadyImages() {
+    const ready = await getReadyImages();
+    if (!ready.length) {
+        showToast('No images marked Ready', 'info');
+        return;
+    }
+    
+    const { el, createModal } = await import('./modals.v2.js');
+    
+    const body = el('div', { style: 'max-height:60vh;overflow:auto;' }, [
+        el('p', { style: 'font-weight:600;margin-bottom:8px;' }, `Ready Images: ${ready.length}`),
+        ...ready.map(img => el('div', { 
+            style: 'display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--color-border-light);' 
+        }, [
+            el('span', { style: 'width:40px;height:40px;border-radius:50%;background:var(--color-accord-bg);border:1px solid var(--color-border);overflow:hidden;flex-shrink:0;' }, [
+                el('img', { src: img.image, style: 'width:100%;height:100%;object-fit:cover;' })
+            ]),
+            el('div', { style: 'flex:1;min-width:0;' }, [
+                el('div', { style: 'font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, img.coin_type),
+                el('div', { style: 'font-size:0.75rem;color:var(--color-text-muted);' }, `Side: ${img.side}`)
+            ]),
+            el('button', { 
+                className: 'btn-secondary', 
+                style: 'font-size:0.7rem;padding:2px 8px;',
+                onclick: () => setReadyState(img.coin_type, img.side, false).then(() => listReadyImages())
+            }, 'Unmark')
+        ])),
+    ]);
+    
+    createModal('modal-ready-list', 'Ready Images', body, null);
+    document.getElementById('modal-ready-list').classList.add('open');
+}
+
 
         async function buildCloudTab(panel) {
             // Import sync functions dynamically
@@ -1677,43 +1955,6 @@ export function openCollectablesModal() { openModal('modal-collectablesmodal'); 
 
 export function openCustomThemeDesigner(slot) {
     const COLOR_FIELDS = [
-export async function saveCurrentImagesAsDefaults() {
-    // Collect all type configs with base64 images and queue for Felix to process
-    try {
-        const typeConfigs = await db.coin_type_config.toArray();
-        const withImages = typeConfigs.filter(cfg => 
-            (cfg.obv_image && cfg.obv_image.startsWith('data:image')) ||
-            (cfg.rev_image && cfg.rev_image.startsWith('data:image')) ||
-            (cfg.proof_obv_image && cfg.proof_obv_image.startsWith('data:image')) ||
-            (cfg.proof_rev_image && cfg.proof_rev_image.startsWith('data:image'))
-        );
-        
-        if (withImages.length === 0) {
-            showToast('No user-uploaded images found to save as defaults.', 'warning');
-            return;
-        }
-        
-        // Store in pending_defaults table for Felix to pick up
-        // First, clear any old pending exports
-        await db.pending_defaults.clear();
-        await db.pending_defaults.bulkAdd(withImages.map(cfg => ({
-            coin_type: cfg.coin_type,
-            obv_image: cfg.obv_image || null,
-            rev_image: cfg.rev_image || null,
-            proof_obv_image: cfg.proof_obv_image || null,
-            proof_rev_image: cfg.proof_rev_image || null
-        })));
-        
-        showToast('Images queued for processing. Tell Felix to save as defaults!', 'success');
-        
-        // Also notify via console for Felix to detect
-        console.log('FELIX_SAVE_DEFAULTS_READY: ' + withImages.length + ' type configs queued');
-    } catch (err) {
-        console.error('saveCurrentImagesAsDefaults failed:', err);
-        showToast('Failed to queue defaults: ' + err.message, 'error');
-    }
-}
-
         { key: 'color-bg-body',      label: 'Page Background',     default: '#121212' },
         { key: 'color-bg-card',      label: 'Card Background',     default: '#1e1e1e' },
         { key: 'color-text-main',    label: 'Main Text',           default: '#f8f9fa' },
@@ -2083,7 +2324,7 @@ function keyToCssVar(key, slot) {
         var panel = document.getElementById('cte-panel-' + slotNum);
         if (!panel) return;
         var colors = {};
-        panel.querySelectorAll('input[type=color]').forEach(function(pi) {
+        panel.querySelectorAll('input[data-key]').forEach(function(pi) {
             var key = pi.getAttribute('data-key');
             if (key) colors[key] = pi.value;
         });
@@ -2102,7 +2343,7 @@ function keyToCssVar(key, slot) {
         var panel = document.getElementById('cte-panel-' + slotNum);
         if (!panel) return;
         var colors = {};
-        panel.querySelectorAll('input[type=color]').forEach(function(pi) {
+        panel.querySelectorAll('input[data-key]').forEach(function(pi) {
             var key = pi.getAttribute('data-key');
             if (key) colors[key] = pi.value;
         });
@@ -2194,4 +2435,41 @@ function validateThemeContrast(colors) {
         if (colors[p[0]] && colors[p[1]] && _cR(colors[p[0]], colors[p[1]]) < 3) iss.push(p[2]);
     });
     return iss;
+}
+
+export async function saveCurrentImagesAsDefaults() {
+    // Collect all type configs with base64 images and queue for Felix to process
+    try {
+        const typeConfigs = await db.coin_type_config.toArray();
+        const withImages = typeConfigs.filter(cfg => 
+            (cfg.obv_image && cfg.obv_image.startsWith('data:image')) ||
+            (cfg.rev_image && cfg.rev_image.startsWith('data:image')) ||
+            (cfg.proof_obv_image && cfg.proof_obv_image.startsWith('data:image')) ||
+            (cfg.proof_rev_image && cfg.proof_rev_image.startsWith('data:image'))
+        );
+        
+        if (withImages.length === 0) {
+            showToast('No user-uploaded images found to save as defaults.', 'warning');
+            return;
+        }
+        
+        // Store in pending_defaults table for Felix to pick up
+        // First, clear any old pending exports
+        await db.pending_defaults.clear();
+        await db.pending_defaults.bulkAdd(withImages.map(cfg => ({
+            coin_type: cfg.coin_type,
+            obv_image: cfg.obv_image || null,
+            rev_image: cfg.rev_image || null,
+            proof_obv_image: cfg.proof_obv_image || null,
+            proof_rev_image: cfg.proof_rev_image || null
+        })));
+        
+        showToast('Images queued for processing. Tell Felix to save as defaults!', 'success');
+        
+        // Also notify via console for Felix to detect
+        console.log('FELIX_SAVE_DEFAULTS_READY: ' + withImages.length + ' type configs queued');
+    } catch (err) {
+        console.error('saveCurrentImagesAsDefaults failed:', err);
+        showToast('Failed to queue defaults: ' + err.message, 'error');
+    }
 }
