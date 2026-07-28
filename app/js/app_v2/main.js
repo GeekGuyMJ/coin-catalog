@@ -48,6 +48,55 @@ function syncThemeSelector() {
 }
 
 // ============================================================
+// Logo Zoom Lightbox — click header coin to zoom
+// ============================================================
+
+function setupLogoZoomEngine() {
+    const logo = document.getElementById('header-coin-img');
+    if (!logo) return;
+
+    let lightbox = document.getElementById('logo-zoom-lightbox');
+    if (!lightbox) {
+        lightbox = document.createElement('div');
+        lightbox.id = 'logo-zoom-lightbox';
+        lightbox.className = 'logo-lightbox-overlay';
+        lightbox.innerHTML = '<div class="lightbox-img-wrapper"><img src="" alt="Coin Preview"></div>';
+        document.body.appendChild(lightbox);
+    }
+
+    logo.style.cursor = 'pointer';
+    logo.addEventListener('click', (e) => {
+        e.stopPropagation();
+        lightbox.querySelector('img').src = logo.src;
+        lightbox.classList.add('is-active');
+    });
+
+    // Click anywhere to dismiss
+    lightbox.addEventListener('click', () => {
+        lightbox.classList.remove('is-active');
+    });
+}
+
+// ============================================================
+// Theme Sync across devices via Tailscale MagicDNS
+// ============================================================
+
+function initThemeSync() {
+    // Listen for storage changes from other tabs/windows
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'cc-theme' && e.newValue !== e.oldValue) {
+            console.log('[theme] Sync received from another device:', e.newValue);
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            if (currentTheme !== e.newValue) {
+                window.setTheme(e.newValue);
+                const sel = document.getElementById('theme-selector');
+                if (sel) sel.value = e.newValue;
+            }
+        }
+    });
+}
+
+// ============================================================
 // Boot sequence
 // ============================================================
 
@@ -139,6 +188,10 @@ async function boot() {
         // Render the catalogue
         renderSections();
         initViewToggle();
+
+        // Initialize logo zoom and theme sync
+        setupLogoZoomEngine();
+        initThemeSync();
 
         // Update completion badge
         updateCompletionBadge(sections);
