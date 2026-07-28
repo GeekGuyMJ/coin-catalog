@@ -69,7 +69,7 @@ async function boot() {
         
         // ESTABLISH MINIMAL FUNCTIONALITY AS FALLBACK
         setSections([]);
-        setInventory([]);
+        setInventory({});
         setTypeConfigs({});
         setWishlist([]);
         console.log('[boot] Continued with empty data - app will show "no data" state');
@@ -112,7 +112,7 @@ async function boot() {
         console.log('[boot] Data received.', { sectionsLength: sections?.length, inventoryLength: Object.keys(inventory || {}).length, typeConfigsKeys: Object.keys(typeConfigs || {}).length });
         if (sections || inventory || typeConfigs) {
             setSections(sections || []);
-            setInventory(inventory || []);
+            setInventory(inventory || {});
             setTypeConfigs(typeConfigs || {});
             setWishlist(wishlist || []);
             showToast('App loaded successfully! Showing available data.', 'success', 3000);
@@ -137,7 +137,7 @@ async function boot() {
         
         // Establish minimal functionality as fallback
         setSections([]);
-        setInventory([]);
+        setInventory({});
         setTypeConfigs({});
         setWishlist([]);
     } finally {
