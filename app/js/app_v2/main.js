@@ -188,6 +188,7 @@ async function boot() {
         // Render the catalogue
         renderSections();
         initViewToggle();
+        initLayoutToggle();
 
         // Initialize logo zoom and theme sync
         setupLogoZoomEngine();
@@ -365,6 +366,45 @@ function initViewToggle() {
         import('./album.js').then(m => m.renderAlbumView(null));
     });
 }
+
+// ============================================================
+// Layout Toggle — Dashboard Grid
+// ============================================================
+
+function initLayoutToggle() {
+    const btn = document.getElementById('btn-layout');
+    if (!btn) return;
+    
+    // Three modes: Grid (default auto-fill), Compact (2-col equal), List (single column)
+    const layouts    = ['layout-grid', 'layout-compact', 'layout-list'];
+    const layoutNames = ['Grid', 'Compact', 'List'];
+    let currentIdx = parseInt(localStorage.getItem('cc-dashboard-layout') || '0', 10);
+    if (isNaN(currentIdx) || currentIdx < 0 || currentIdx >= layouts.length) currentIdx = 0;
+
+    const updateButtonLabel = () => {
+        const span = btn.querySelector('span');
+        if (span) span.textContent = layoutNames[currentIdx];
+    };
+    
+    const applyLayout = () => {
+        const grid = document.getElementById('dashboard-grid');
+        if (!grid) return;
+        grid.classList.remove(...layouts);
+        grid.classList.add(layouts[currentIdx]);
+        updateButtonLabel();
+    };
+    
+    // Apply after grid is rendered
+    setTimeout(applyLayout, 100);
+    
+    btn.addEventListener('click', () => {
+        currentIdx = (currentIdx + 1) % layouts.length;
+        localStorage.setItem('cc-dashboard-layout', currentIdx);
+        applyLayout();
+        import('./notifications.js').then(m => m.showToast(`Layout: ${layoutNames[currentIdx]}`, 'info', 1500));
+    });
+}
+
 
 // ============================================================
 // Splash control — defined here so it's always available
