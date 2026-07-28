@@ -101,6 +101,14 @@ async function boot() {
         ]);
 
         // If we got any data, use it
+        console.log('[boot] Data received - raw:', { 
+            sections: Array.isArray(sections) ? sections.slice(0,2) : sections,
+            inventory: typeof inventory,
+            inventoryKeys: Object.keys(inventory || {}).length,
+            typeConfigs: typeof typeConfigs,
+            typeConfigsKeys: Object.keys(typeConfigs || {}).length,
+            wishlist: Array.isArray(wishlist) ? wishlist.slice(0,2) : wishlist
+        });
         console.log('[boot] Data received.', { sectionsLength: sections?.length, inventoryLength: Object.keys(inventory || {}).length, typeConfigsKeys: Object.keys(typeConfigs || {}).length });
         if (sections || inventory || typeConfigs) {
             setSections(sections || []);
