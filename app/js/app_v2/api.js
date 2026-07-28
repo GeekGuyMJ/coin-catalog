@@ -49,6 +49,7 @@ import {
     searchCoinsLocal,
     fetchAllCoinsLocal,
     getFullBackupLocal,
+    publishSectionLocal,
     restoreBackupLocal,
     renameCoinBankImageLocal,
     saveToCoinBankLocal,
@@ -126,6 +127,7 @@ export const resetImageToMaster     = wrap(resetImageToMasterLocal);
 export const factoryResetImages     = wrap(factoryResetImagesLocal);
 export const checkMaster            = wrap(checkMasterLocal);
 export const promoteToDefault       = wrap(promoteToDefaultLocal);
+export const publishSection         = wrap(publishSectionLocal);
 
 // ============================================================
 // Global Network Fetch Interceptor
@@ -332,6 +334,10 @@ async function handleInterceptedRequest(urlStr, init) {
         else if (path === '/api/promote_to_default') {
             data = await promoteToDefaultLocal(body.coin_type, body.side);
         } 
+        
+        else if (path === '/api/publish_section') {
+            data = await publishSectionLocal(body.section);
+        }
         
         else if (path === '/api/coin_bank_images') {
             data = await fetchCoinBankImagesLocal(url.searchParams);
