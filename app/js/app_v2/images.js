@@ -10,11 +10,11 @@
  */
 
 import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.v2.js';
-import { assignImage, fetchCoinBankImages, saveToCoinBank, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, checkMaster, promoteToDefault } from './api.js';
+import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault } from './api.js';
 import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType } from './utils.js';
-import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries } from './state.js';
-import { fetchTypeConfigs } from './api.js';
+import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
+import { fetchTypeConfigs, fetchInventory } from './api.js';
 
 // ============================================================
 // State
@@ -23,12 +23,34 @@ import { fetchTypeConfigs } from './api.js';
 let activeContext = {
     el: null,       // The img element that was clicked
     typeStr: '',    // Full coin type string
+    section: '',    // Section name (e.g. "US Coinage — Half Cent") for qualified isolation
     side: '',       // 'obv' or 'rev'
     isItem: false,  // If clicked from a specific inventory item
     itemId: null,   // inventory item ID
     b64: '',        // Current working image data (base64)
     scope: 'all',   // Current scope for assignment
 };
+
+/**
+ * Determine if a given coin type / section combination should receive an image update.
+ * Uses strict coin_type equality when sections are available to prevent cross-denomination
+ * bleed (e.g. Half Cent "Draped Bust" updating Large Cent "Draped Bust").
+ *
+ * @param {string} coinType   - The coin's coin_type field
+ * @param {string} coinSection - The coin's section field
+ * @param {string} targetType  - The image target coin_type (activeContext.typeStr)
+ * @param {string} targetSection - The image target section (activeContext.section)
+ * @param {string} targetMainType - getMainType(targetType)
+ * @returns {boolean}
+ */
+function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, targetMainType) {
+    // If both sections are known and different, never cross-contaminate
+    if (coinSection && targetSection && coinSection !== targetSection) return false;
+    // Exact match always wins
+    if (coinType === targetType) return true;
+    // Main-type match (only when no section mismatch detected above)
+    return getMainType(coinType) === targetMainType;
+}
 
 // Crop tool state
 let cropImg = new Image();
@@ -46,10 +68,11 @@ let initialCropScale = 1;
 /**
  * Open the main image interaction modal.
  */
-export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, itemId = null, coinId = null) {
+export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, itemId = null, coinId = null, section = '') {
     activeContext = { 
         el: imgEl, 
         typeStr, 
+        section,
         side, 
         isItem, 
         itemId, 
@@ -102,17 +125,15 @@ export function openReplaceWorkflow() {
     
     const scopeLabel = document.getElementById('scope-lbl-item');
     if (scopeLabel) {
-        scopeLabel.style.display = activeContext.isItem ? 'flex' : 'none';
+        scopeLabel.style.display = 'flex'; // Always show all three options
     }
     
     // Reset scope selection to default
     const radios = document.querySelectorAll('input[name="img_scope"]');
     if (radios.length) {
-        if (activeContext.isItem) {
-            radios[0].checked = true;
-        } else {
-            radios[1].checked = true; // Default to "all"
-        }
+        radios[0].checked = false;
+        radios[1].checked = true; // Default to "all"
+        radios[2].checked = false;
     }
     
     document.getElementById('scope-selection-box').style.display = 'none';
@@ -160,7 +181,13 @@ export async function resizeToWebP(file) {
 
                 ctx.drawImage(img, 0, 0, w, h);
 
-                resolve(canvas.toDataURL('image/webp', 0.85));
+                // Try WebP, fall back to PNG if unsupported
+                try {
+                    const webpData = canvas.toDataURL('image/webp', 0.85);
+                    resolve(webpData && webpData.startsWith('data:image/webp') ? webpData : canvas.toDataURL('image/png', 0.95));
+                } catch(_) {
+                    resolve(canvas.toDataURL('image/png', 0.95));
+                }
             };
             img.src = e.target.result;
         };
@@ -181,16 +208,6 @@ async function handleNewUpload(e) {
         activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
         openCropTool(resized);
 
-        // Background: Save to Coin Bank (already 300x300 WebP — small)
-        if (!activeContext.isItem) {
-            saveToCoinBank({
-                coin_type:   activeContext.typeStr,
-                side:        activeContext.side,
-                image:       resized,
-                is_personal: false,
-                tags:        '',
-            }).catch(err => console.warn('[images] Failed to save to bank:', err));
-        }
     } catch (err) {
         import('./notifications.js').then(m => m.showToast(`Failed to process image: ${err.message}`, 'error'));
     }
@@ -301,6 +318,13 @@ export function openCropTool(imgSrc) {
     };
     
     const preview = document.getElementById('ii-main-image');
+    // Remove CSS clip-path on canvas — we now clip in drawCropCanvas via JS for browser compat
+    const canvasEl = document.getElementById('crop-canvas');
+    if (canvasEl) {
+        canvasEl.style.clipPath = 'none';
+        canvasEl.style.borderRadius = '0';
+    }
+    
     cropImg.src = imgSrc || (preview && preview.src) || (activeContext.el ? activeContext.el.src : '');
 }
 
@@ -366,7 +390,13 @@ export function saveCrop() {
     ctx.drawImage(cropImg, dx, dy, dw, dh);
     ctx.restore();
 
-    activeContext.b64 = tempCanvas.toDataURL('image/webp', 0.85);
+    // Try WebP, fall back to PNG if unsupported
+    try {
+        const webpData = tempCanvas.toDataURL('image/webp', 0.85);
+        activeContext.b64 = webpData && webpData.startsWith('data:image/webp') ? webpData : tempCanvas.toDataURL('image/png', 0.95);
+    } catch(_) {
+        activeContext.b64 = tempCanvas.toDataURL('image/png', 0.95);
+    }
     
     // Update preview in main modal
     const preview = document.getElementById('ii-main-image');
@@ -376,13 +406,10 @@ export function saveCrop() {
 
     closeModalLegacy('modal-crop');
     
-    if (!activeContext.isItem) {
-        // Main type spot: no scope selection needed, execute immediately
-        executeImageAssignment();
-    } else {
-        openModalLegacy('modal-replace-scope');
-        showScopeSelection();
-    }
+    // Always show scope selection — user chooses between
+    // "Fill all of this type", "Fill empty slots only", or "This specific coin only"
+    openModalLegacy('modal-replace-scope');
+    showScopeSelection();
 }
 
 /**
@@ -412,8 +439,9 @@ export function removeCurrentImage() {
     // Second press: confirmed
     removeBtn.dataset.confirming = '';
     activeContext.b64 = '';
-    activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
-    executeImageAssignment();
+    // Show scope selection so user can choose which coins to clear
+    openModalLegacy('modal-replace-scope');
+    showScopeSelection();
 }
 
 /**
@@ -425,8 +453,9 @@ export function saveCurrentImage() {
         return;
     }
     
-    activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
-    executeImageAssignment();
+        // Show scope selection so user can choose how to apply
+    openModalLegacy('modal-replace-scope');
+    showScopeSelection();
 }
 
 /**
@@ -469,6 +498,11 @@ export async function resetToMaster() {
             try {
                 const updatedConfigs = await fetchTypeConfigs();
                 setTypeConfigs(updatedConfigs);
+                // For personal photos, also refresh inventory state so re-render picks up changes
+                if (scope === 'specific_item' || scope === 'specific_coin') {
+                    const newInv = await fetchInventory();
+                    setInventory(newInv);
+                }
                 
                 // Update the detail panel image and all view-img elements
                 const targetMainType = getMainType(activeContext.typeStr);
@@ -610,6 +644,11 @@ export async function promoteToDefaultHandler() {
             // Refresh type configs
             const updatedConfigs = await fetchTypeConfigs();
             setTypeConfigs(updatedConfigs);
+                // For personal photos, also refresh inventory state so re-render picks up changes
+                if (scope === 'specific_item' || scope === 'specific_coin') {
+                    const newInv = await fetchInventory();
+                    setInventory(newInv);
+                }
             
             const targetMainType = getMainType(activeContext.typeStr);
             const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
@@ -673,8 +712,7 @@ export async function executeImageAssignment() {
     const isScopeModalOpen = document.getElementById('modal-replace-scope')?.classList.contains('open');
     let scope = (isScopeModalOpen && scopeEle) ? scopeEle.value : (activeContext.scope || 'all');
 
-    // Convert specific_item to specific_coin for DB layer (personal photos also go to specific_coin)
-    if (scope === 'specific_item') {
+    if (scope === 'specific_item' && activeContext.side !== 'personal') {
         scope = 'specific_coin';
     }
 
@@ -702,6 +740,11 @@ export async function executeImageAssignment() {
             try {
                 const updatedConfigs = await fetchTypeConfigs();
                 setTypeConfigs(updatedConfigs);
+                // For personal photos, also refresh inventory state so re-render picks up changes
+                if (scope === 'specific_item' || scope === 'specific_coin') {
+                    const newInv = await fetchInventory();
+                    setInventory(newInv);
+                }
 
                 // If type-level change, update local state & DOM immediately so change is visual instantly
                 if (scope === 'all' || scope === 'empty_only') {
@@ -710,46 +753,47 @@ export async function executeImageAssignment() {
                     const newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] || 
                                        updatedConfigs[targetMainType]?.[field];
                                        
-                    // 1. Clear matching local coins in state
+                    // 1. Clear matching local coins in state (section-qualified)
                     getSections().forEach(sec => {
                         const coins = getCoinsForSection(sec.section);
                         if (coins) {
                             coins.forEach(c => {
-                                const hasSubtype = activeContext.typeStr.includes(' - ');
-                                const shouldUpdate = (activeContext.side === 'rev' && hasSubtype)
-                                    ? (c.coin_type === activeContext.typeStr)
-                                    : (getMainType(c.coin_type) === targetMainType || c.coin_type === activeContext.typeStr);
-                                    
-                                if (shouldUpdate) {
+                                if (!shouldUpdateCoinType(c.coin_type, c.section, activeContext.typeStr, activeContext.section, targetMainType)) return;
+                                if (scope === 'empty_only') {
+                                    const imgVal = c[field];
+                                    // Only clear if it's a placeholder/type-level image (not personal)
+                                    if (imgVal && imgVal.includes('/images/types/')) {
+                                        c[field] = null;
+                                    }
+                                } else {
                                     const imgVal = c[field];
                                     if (imgVal && (imgVal.includes('/images/types/') || imgVal === newImageUrl)) {
-                                        c[field] = null; // Clear so it falls back to type config
+                                        c[field] = null;
                                     }
                                 }
                             });
                         }
                     });
                     
-                    // 2. Update all matching IMG elements in the DOM immediately
+                    // 2. Update all matching IMG elements in the DOM immediately (section-qualified)
                     const imgElements = document.querySelectorAll('img[data-action="view-img"]');
                     imgElements.forEach(img => {
                         const imgType = img.dataset.type;
                         const imgSide = img.dataset.side;
-                        const hasSubtype = activeContext.typeStr.includes(' - ');
-                        const shouldUpdate = (activeContext.side === 'rev' && hasSubtype)
-                            ? (imgType === activeContext.typeStr)
-                            : (getMainType(imgType) === targetMainType || imgType === activeContext.typeStr);
+                        const imgSection = img.dataset.section || '';
+                        if (imgSide !== activeContext.side) return;
+                        if (!shouldUpdateCoinType(imgType, imgSection, activeContext.typeStr, activeContext.section, targetMainType)) return;
+                        // Respect empty_only scope — skip if img already has a real image
+                        if (scope === 'empty_only' && img.src && !img.classList.contains('placeholder') && !img.src.includes('data:image/svg')) return;
                             
-                        if (imgSide === activeContext.side && shouldUpdate) {
-                            if (newImageUrl) {
-                                img.src = newImageUrl;
-                                img.classList.remove('placeholder');
-                            } else {
-                                import('./utils.js').then(m => {
-                                    img.src = m.placeholderCoinSvg();
-                                    img.classList.add('placeholder');
-                                });
-                            }
+                        if (newImageUrl) {
+                            img.src = newImageUrl;
+                            img.classList.remove('placeholder');
+                        } else {
+                            import('./utils.js').then(m => {
+                                img.src = m.placeholderCoinSvg();
+                                img.classList.add('placeholder');
+                            });
                         }
                     });
                 }
@@ -797,6 +841,8 @@ export async function openCoinBankModal() {
     loadCoinBankImages('context');
 }
 
+// Exposed globally for HTML oninput handlers
+window._cbLoadImages = loadCoinBankImages;
 async function loadCoinBankImages(mode) {
     const grid = document.getElementById('coin-bank-grid');
     grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-text-muted);">Loading bank...</div>';
@@ -822,11 +868,23 @@ async function loadCoinBankImages(mode) {
         }
 
         grid.innerHTML = '';
-        images.forEach(img => {
+        // Apply inline search filter
+        const searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
+        const filtered = searchQ
+            ? images.filter(img => 
+                (img.coin_type || '').toLowerCase().includes(searchQ) ||
+                (img.side || '').toLowerCase().includes(searchQ)
+              )
+            : images;
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-text-muted);">No images match your search.</div>';
+            return;
+        }
+        filtered.forEach(img => {
             const card = el('div', {
                 style: 'border:1px solid var(--color-border-light); border-radius:var(--radius-md); overflow:hidden; background:var(--color-bg-card); cursor:pointer; transition:transform 0.1s; position:relative;',
                 onclick: (e) => {
-                    if (e.target.tagName !== 'SELECT') {
+                    if (e.target.tagName !== 'SELECT' && e.target.tagName !== 'BUTTON') {
                         selectBankImage(img);
                     }
                 }
@@ -837,11 +895,7 @@ async function loadCoinBankImages(mode) {
                     onclick: (e) => { e.stopPropagation(); editCoinBankImage(img); },
                     title: 'Edit Image Context'
                 }, ''),
-                el('div', { 
-                    style: 'position:absolute; top:0; right:0; background:rgba(255,0,0,0.8); color:white; padding:2px 4px; font-size:0.7rem;',
-                    onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img); },
-                    title: 'Delete from Bank'
-                }, ''),
+
                 el('div', { 
                     style: 'padding:var(--space-1); display:flex; flex-direction:column; gap:4px;'
                 },
@@ -862,34 +916,14 @@ async function loadCoinBankImages(mode) {
                         el('option', { value: 'proof_obv', selected: img.side === 'proof_obv' }, 'Proof Obverse'),
                         el('option', { value: 'proof_rev', selected: img.side === 'proof_rev' }, 'Proof Reverse'),
                         el('option', { value: 'unknown', selected: img.side === 'unknown' }, 'Unknown')
-                    )
+                    ),
+                    el('button', {
+                        style: 'margin-top:4px; padding:3px 6px; font-size:0.7rem; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; width:100%;',
+                        onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img); },
+                        title: 'Delete this image from coin bank'
+                    }, 'Delete')
                 )
             );
-            card.onmouseenter = () => card.style.transform = 'scale(1.03)';
-            card.onmouseleave = () => card.style.transform = 'scale(1)';
-            // Add tier badge overlay (M=master, U=user)
-            if (img.tier) {
-                const tier = img.tier === 'master' ? 'M' : 'U';
-                const tierColor = img.tier === 'master' ? 'rgba(0,150,50,0.8)' : 'rgba(200,150,0,0.8)';
-                const badge = document.createElement('div');
-                badge.textContent = tier;
-                badge.title = img.tier === 'master' ? 'Master image (default)' : 'User image (custom)';
-                Object.assign(badge.style, {
-                    position: 'absolute',
-                    bottom: '4px',
-                    right: '4px',
-                    background: tierColor,
-                    color: 'white',
-                    padding: '1px 5px',
-                    fontSize: '0.65rem',
-                    fontWeight: '700',
-                    borderRadius: '3px',
-                    lineHeight: '1.3',
-                    zIndex: '2',
-                    pointerEvents: 'none',
-                });
-                card.appendChild(badge);
-            }
             grid.appendChild(card);
         });
     } catch (err) {
@@ -906,30 +940,41 @@ function selectBankImage(img) {
     }
     closeModalLegacy('modal-coin-bank');
     
-    if (!activeContext.isItem) {
-        // Main type spot: no scope selection needed, execute immediately
-        executeImageAssignment();
-    } else {
-        openModalLegacy('modal-replace-scope');
-        showScopeSelection();
-    }
+    // Always show scope selection
+    openModalLegacy('modal-replace-scope');
+    showScopeSelection();
 }
 
 async function deleteCoinBankImageConfirm(img) {
-    if (confirm(`Delete this image for ${img.coin_type} ${img.side}? This cannot be undone.`)) {
-        try {
-            await deleteCoinBankImage(img.filename);
-            showToast('Image deleted from coin bank', 'success');
-            // Refresh the bank view
-            const ctxBtn = document.getElementById('cb-filter-ctx');
-            loadCoinBankImages(ctxBtn && ctxBtn.className.includes('btn-primary') ? 'context' : 'all');
-        } catch (err) {
-            showToast(`Failed to delete image: ${err.message}`, 'error');
-        }
+    // First click: show confirmation state
+    if (img._confirming !== true) {
+        img._confirming = true;
+        showToast('Click Delete again to confirm permanent deletion', 'warning', 3000);
+        setTimeout(() => { img._confirming = false; }, 5000);
+        return;
+    }
+    // Second click: confirmed
+    img._confirming = false;
+    try {
+        const grid = document.getElementById('coin-bank-grid');
+        const scrollPos = grid ? grid.parentElement.scrollTop : 0;
+        await deleteCoinBankImage(img.filename);
+        showToast('Image deleted from coin bank', 'success');
+        // Notify catalog to refresh
+        window.dispatchEvent(new CustomEvent('cc-image-updated'));
+        window.dispatchEvent(new CustomEvent('cc-inventory-updated'));
+        // Refresh the bank view, then restore scroll
+        const ctxBtn = document.getElementById('cb-filter-ctx');
+        await loadCoinBankImages(ctxBtn && ctxBtn.className.includes('btn-primary') ? 'context' : 'all');
+        if (grid) requestAnimationFrame(() => { grid.parentElement.scrollTop = scrollPos; });
+    } catch (err) {
+        showToast(`Failed to delete image: ${err.message}`, 'error');
     }
 }
 
 async function renameCoinBankImage(img, newSide) {
+    const grid = document.getElementById('coin-bank-grid');
+    const scrollPos = grid ? grid.parentElement.scrollTop : 0;
     try {
         const response = await fetch('/api/coin_bank_images/rename', {
             method: 'POST',
@@ -941,12 +986,11 @@ async function renameCoinBankImage(img, newSide) {
         
         showToast('Image side updated', 'success');
         
-        // Refresh the bank view
+        // Refresh the bank view, then restore scroll
         const ctxBtn = document.getElementById('cb-filter-ctx');
-        loadCoinBankImages(ctxBtn && ctxBtn.className.includes('btn-primary') ? 'context' : 'all');
+        await loadCoinBankImages(ctxBtn && ctxBtn.className.includes('btn-primary') ? 'context' : 'all');
+        if (grid) requestAnimationFrame(() => { grid.parentElement.scrollTop = scrollPos; });
         
-        // If it's used in the catalog immediately, trigger an update?
-        // Let's just emit the image updated event just in case
         window.dispatchEvent(new CustomEvent('cc-image-updated'));
     } catch (err) {
         showToast(`Failed to update image side: ${err.message}`, 'error');
@@ -1198,23 +1242,10 @@ async function handleDroppedImage(file, dropZone) {
         
         openCropTool(resized);
         
-        if (!activeContext.isItem && activeContext.side !== 'personal') {
-            saveToCoinBank({
-                coin_type:   activeContext.typeStr,
-                side:        activeContext.side,
-                image:       resized,
-                is_personal: false,
-                tags:        '',
-            }).catch(err => console.warn('[images] Failed to save to bank:', err));
-        }
     } catch (err) {
         showToast(`Failed to process dropped image: ${err.message}`, 'error');
     }
 }
-
-// ============================================================
-// Initialization & Event Delegation
-// ============================================================
 
 document.addEventListener('DOMContentLoaded', () => {
     if (window.__cc_images_events_bound) return;
@@ -1335,8 +1366,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.dataset.action === 'close-bank') { closeModalLegacy('modal-coin-bank'); openModalLegacy('modal-replace-scope'); }
 
         // Filter buttons in bank
-        if (target.id === 'cb-filter-ctx') loadCoinBankImages('context');
-        if (target.id === 'cb-filter-all') loadCoinBankImages('all');
+        if (target.id === 'cb-filter-ctx') { document.getElementById('cb-search-input') && (document.getElementById('cb-search-input').value = ''); loadCoinBankImages('context'); }
+        if (target.id === 'cb-filter-all') { document.getElementById('cb-search-input') && (document.getElementById('cb-search-input').value = ''); loadCoinBankImages('all'); }
     });
 
     const fileInput = document.getElementById('ii-hidden-file-input');
@@ -1443,16 +1474,37 @@ function drawCropCanvas() {
     const cx = cw / 2;
     const cy = ch / 2;
 
+    // Clear with transparent — background is handled by container CSS
     ctx_crop.clearRect(0, 0, cw, ch);
     
+    const visibleR = 0.8;
+    // Clip to shape before drawing (replaces CSS clip-path which breaks on some mobile browsers)
     ctx_crop.save();
+    ctx_crop.beginPath();
+    if (cropShape === 'rect') {
+        // Rectangular clip for paper currency — match guide proportions
+        const guideW = cw * visibleR;
+        const guideH = ch * visibleR * (235/614); // bill aspect ratio
+        ctx_crop.rect(cx - guideW/2, cy - guideH/2, guideW, guideH);
+    } else if (cropShape === 'square') {
+        const guideS = Math.min(cw, ch) * visibleR;
+        ctx_crop.rect(cx - guideS/2, cy - guideS/2, guideS, guideS);
+    } else if (cropShape === 'original') {
+        // No clip — full image
+        ctx_crop.rect(0, 0, cw, ch);
+    } else {
+        // Circular clip (default for coins)
+        ctx_crop.arc(cx, cy, Math.min(cw, ch) * visibleR / 2, 0, Math.PI * 2);
+    }
+    ctx_crop.clip();
+    
+    // Draw image inside the clip region
     ctx_crop.translate(cx, cy);
     ctx_crop.rotate(cropRotation * Math.PI / 180);
     ctx_crop.drawImage(cropImg, cropOffX - cx, cropOffY - cy, cropImg.width * cropScale, cropImg.height * cropScale);
     ctx_crop.restore();
 
-    // Draw crop guide overlay (circle, rectangle, or square)
-    const visibleR = 0.8;
+    // Draw crop guide overlay (circle, rectangle, or square) — outside clip so always visible as dashed line
     const guideSize = Math.min(cw, ch) * visibleR;
     
     ctx_crop.strokeStyle = 'var(--color-accent, #e8b04a)';

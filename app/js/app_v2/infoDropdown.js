@@ -5,8 +5,8 @@
  * each option opens a clean, readable modal.
  */
 
-import { el, escHtml } from './utils.js?v=4';
-import { createModal, closeModal } from './modals.v2.js?v=4';
+import { el, escHtml } from './utils.js';
+import { createModal, closeModal } from './modals.v2.js';
 
 let _dropdownEl = null;
 let _storiesCache = null;

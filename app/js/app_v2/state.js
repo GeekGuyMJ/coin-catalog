@@ -109,7 +109,9 @@ export function getSections()                  { return _state.sections; }
 
 /** @param {Array} sections */
 export function setSections(sections) {
+    console.log('[state] setSections called with:', sections?.length, 'sections');
     _state.sections = sections;
+    console.log('[state] _state.sections now:', _state.sections?.length);
     _notify('sections', sections);
 }
 
@@ -214,11 +216,22 @@ export function getTypeConfigs()             { return _state.typeConfigs; }
 
 /**
  * Get config for a specific coin type.
+ * If a section is provided, checks the section-qualified key first
+ * (e.g. "US Coinage — Half Cent — Draped Bust") before falling back
+ * to the bare coinType key. This prevents cross-denomination image bleed
+ * when multiple series share the same coin_type name.
  *
  * @param {string} coinType
+ * @param {string} [section] - Optional section name for qualified lookup
  * @returns {Object|null}
  */
-export function getTypeConfig(coinType)      { return _state.typeConfigs[coinType] ?? null; }
+export function getTypeConfig(coinType, section) {
+    if (section) {
+        const qualifiedKey = section + ' — ' + coinType;
+        if (_state.typeConfigs[qualifiedKey]) return _state.typeConfigs[qualifiedKey];
+    }
+    return _state.typeConfigs[coinType] ?? null;
+}
 
 /** @param {Object} configs */
 export function setTypeConfigs(configs) {

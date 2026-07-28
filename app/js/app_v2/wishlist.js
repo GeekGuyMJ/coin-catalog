@@ -7,10 +7,10 @@
  * @module wishlist
  */
 
-import { el, escHtml } from './utils.js?v=4';
-import { showToast } from './notifications.js?v=4';
-import { getWishlist, setWishlist } from './state.js?v=4';
-import { fetchWishlist, addToWishlist, removeFromWishlist, updateWishlistItem } from './api.js?v=4';
+import { el, escHtml } from './utils.js';
+import { showToast } from './notifications.js';
+import { getWishlist, setWishlist } from './state.js';
+import { fetchWishlist, addToWishlist, removeFromWishlist, updateWishlistItem } from './api.js';
 
 // ============================================================
 // Init — wire wishlist buttons across catalog and search results

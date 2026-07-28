@@ -11,10 +11,10 @@
  * @module modals
  */
 
-import { el, escHtml } from './utils.js?v=4';
-import { showToast } from './notifications.js?v=4';
-import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js?v=4';
-import { saveCustomTheme } from './themes.js?v=4';
+import { el, escHtml } from './utils.js';
+import { showToast } from './notifications.js';
+import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js';
+import { saveCustomTheme } from './themes.js';
 
 // ============================================================
 // NEW ORCHESTRATOR — used by cards.js, stories.js, info.js
@@ -1194,7 +1194,7 @@ export function openHelpModal() {
     const storiesSection = el('div', { className: 'info-section' });
     storiesSection.appendChild(el('h3', { className: 'info-section-title' }, 'Stories and Tips'));
     storiesSection.appendChild(el('p', { className: 'info-text' }, 'Explore famous coin stories and collecting tips.'));
-    const btnStories = el('button', { className: 'btn-primary', style: 'width:100%;margin-bottom:8px;', onclick: () => { closeModalLegacy('modal-help'); import('./stories.js?v=4').then(m => m.openStoriesModal()); } }, 'Read Stories and Tips');
+    const btnStories = el('button', { className: 'btn-primary', style: 'width:100%;margin-bottom:8px;', onclick: () => { closeModalLegacy('modal-help'); import('./stories.js').then(m => m.openStoriesModal()); } }, 'Read Stories and Tips');
     storiesSection.appendChild(btnStories);
     body.appendChild(storiesSection);
 

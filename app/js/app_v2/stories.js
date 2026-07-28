@@ -3,8 +3,8 @@
  * Stories modal content and logic
  */
 
-import { el, escHtml } from './utils.js?v=4';
-import { openModal, closeModal, registerModal } from './modals.v2.js?v=4';
+import { el, escHtml } from './utils.js';
+import { openModal, closeModal, registerModal } from './modals.v2.js';
 
 // Cache for stories data
 let _storiesCache = null;

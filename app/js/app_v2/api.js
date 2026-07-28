@@ -51,10 +51,11 @@ import {
     getFullBackupLocal,
     restoreBackupLocal,
     renameCoinBankImageLocal,
+    saveToCoinBankLocal,
     importCSVLocal,
     deleteBulkCoinsLocal,
     fetchSpotHistoryLocal
-} from './db.js?v=4';
+} from './db.js?v=5';
 
 // Helper wrapper for the exported modules
 const wrap = (fn) => async (...args) => {
@@ -120,7 +121,7 @@ export const deleteCoinWeight       = async () => ({});
 export const fetchCoinBankImages    = wrap(fetchCoinBankImagesLocal);
 export const deleteCoinBankImage    = wrap(deleteCoinBankImageLocal);
 export const updateCoinBankImageInfo = async () => ({});
-export const saveToCoinBank         = async () => ({});
+export const saveToCoinBank         = async (data) => { try { return await saveToCoinBankLocal(data); } catch (e) { console.error("saveToCoinBank error:", e); return { status: "error", message: e.message }; } };
 export const resetImageToMaster     = wrap(resetImageToMasterLocal);
 export const factoryResetImages     = wrap(factoryResetImagesLocal);
 export const checkMaster            = wrap(checkMasterLocal);
@@ -336,13 +337,13 @@ async function handleInterceptedRequest(urlStr, init) {
             data = await fetchCoinBankImagesLocal(url.searchParams);
         } 
         
+        else if (path === '/api/coin_bank_images/rename') {
+            data = await renameCoinBankImageLocal(body);
+        } 
+        
         else if (path.startsWith('/api/coin_bank_images/')) {
             const name = path.substring('/api/coin_bank_images/'.length);
             data = await deleteCoinBankImageLocal(name);
-        } 
-        
-        else if (path === '/api/coin_bank_images/rename') {
-            data = await renameCoinBankImageLocal(body);
         }
         
         else if (path === '/api/backup/full') {

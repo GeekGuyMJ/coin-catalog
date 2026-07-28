@@ -3,15 +3,15 @@
  * Dashboard cards: Completion, Portfolio (V1-style), Bullion, Spot, Scrap, Paper, Custom
  */
 
-import { el } from './utils.js?v=4';
+import { el } from './utils.js';
 import { onChange, getSpotPrices, getInventory, getSections,
     getScrapMetal, getPaperCurrency, getCustomCategories, getOtherCollectables,
     getBullion, getRawBullion, getCoinWeight, getWishlist
-} from './state.js?v=4';
-import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } from './modals.v2.js?v=4';
-import { openPortfolioHistoryModal } from './portfolio_history.js?v=4';
+} from './state.js';
+import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } from './modals.v2.js';
+import { openPortfolioHistoryModal } from './portfolio_history.js';
 
-import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js?v=4';
+import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
 
 var _portfolioData = null;
 var _bulkCoinsData = [];
@@ -30,7 +30,7 @@ async function fetchPortfolioAsync() {
         ]);
         
         // Update state with the fetched data
-        const { setBullion, setRawBullion, setScrapMetal, setPaperCurrency, setCustomCategories, setOtherCollectables } = await import('./state.js?v=4');
+        const { setBullion, setRawBullion, setScrapMetal, setPaperCurrency, setCustomCategories, setOtherCollectables } = await import('./state.js');
         setBullion(bull || []);
         setRawBullion(rawBull || []);
         setScrapMetal(scrap || []);
@@ -482,8 +482,8 @@ function buildWishlistCard(wishlist) {
             checkBtn.onclick = async function(e) {
                 e.stopPropagation();
                 try {
-                    var { updateWishlistItem, fetchWishlist } = await import('./api.js?v=4');
-                    var { setWishlist } = await import('./state.js?v=4');
+                    var { updateWishlistItem, fetchWishlist } = await import('./api.js');
+                    var { setWishlist } = await import('./state.js');
                     await updateWishlistItem(item.id, { acquired: !item.acquired });
                     var fresh = await fetchWishlist();
                     setWishlist(fresh || []);
@@ -706,6 +706,9 @@ function buildBullionCard(items, p, prices) {
     var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
     if (items.length === 0) {
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No bullion entries yet. Add your first entry below.'));
+        // Remove min-height gap when empty
+        listDiv.style.minHeight = '0';
+        listDiv.style.marginBottom = '0';
     } else {
         metalOrder.forEach(function(m) {
             var entries = entriesByMetal[m];
@@ -1582,6 +1585,9 @@ function buildPaperCurrencyCard(items) {
     var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
     if (items.length === 0) {
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No banknotes yet.'));
+        // Remove min-height gap when empty
+        listDiv.style.minHeight = '0';
+        listDiv.style.marginBottom = '0';
     } else {
         items.forEach(function(item) {
             var row = el('div', { className: 'v1-item-row' });
@@ -1748,6 +1754,9 @@ function buildCustomCategoriesCard(categories, collectables) {
     var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
     if (collectables.length === 0) {
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No collectables yet.'));
+        // Remove min-height gap when empty
+        listDiv.style.minHeight = '0';
+        listDiv.style.marginBottom = '0';
     } else {
         // Group by category
         var bycat = {};
@@ -1855,7 +1864,7 @@ function buildCustomCategoriesCard(categories, collectables) {
 
 function _showCardToast(msg, type) {
     try {
-        import('./notifications.js?v=4').then(function(m){ m.showToast(msg, type || 'success'); });
+        import('./notifications.js').then(function(m){ m.showToast(msg, type || 'success'); });
     } catch(e) { console.log(msg); }
 }
 
@@ -1886,8 +1895,8 @@ document.addEventListener('click', async function(e) {
         var grams = unit === 'ozt' ? w*31.1035 : unit === 'oz' ? w*28.3495 : unit === 'lbs' ? w*453.592 : unit === 'gr' ? w*0.06479891 : w;
 
         try {
-            var { saveScrap, fetchScrap } = await import('./api.js?v=4');
-            var { setScrapMetal } = await import('./state.js?v=4');
+            var { saveScrap, fetchScrap } = await import('./api.js');
+            var { setScrapMetal } = await import('./state.js');
             await saveScrap({
                 name: nameIn.value.trim(),
                 metal_type: metalSel.value,
@@ -1913,8 +1922,8 @@ document.addEventListener('click', async function(e) {
         var scrapId = parseInt(btn.dataset.id);
         if (!scrapId) return;
         try {
-            var { deleteScrap, fetchScrap } = await import('./api.js?v=4');
-            var { setScrapMetal } = await import('./state.js?v=4');
+            var { deleteScrap, fetchScrap } = await import('./api.js');
+            var { setScrapMetal } = await import('./state.js');
             await deleteScrap(scrapId);
             var freshScrap = await fetchScrap();
             setScrapMetal(freshScrap);
@@ -1947,8 +1956,8 @@ document.addEventListener('click', async function(e) {
         var w = parseFloat(rbWgtIn.value);
         var unit = rbUnitSel.value;
         try {
-            var { saveRawBullion, fetchRawBullion } = await import('./api.js?v=4');
-            var { setRawBullion } = await import('./state.js?v=4');
+            var { saveRawBullion, fetchRawBullion } = await import('./api.js');
+            var { setRawBullion } = await import('./state.js');
             await saveRawBullion({
                 label: (rbLabelIn.value || '').trim(),
                 metal_type: rbMetalSel.value,
@@ -1975,8 +1984,8 @@ document.addEventListener('click', async function(e) {
         var rbId = parseInt(btn.dataset.id);
         if (!rbId) return;
         try {
-            var { deleteRawBullion, fetchRawBullion } = await import('./api.js?v=4');
-            var { setRawBullion } = await import('./state.js?v=4');
+            var { deleteRawBullion, fetchRawBullion } = await import('./api.js');
+            var { setRawBullion } = await import('./state.js');
             await deleteRawBullion(rbId);
             var freshRb = await fetchRawBullion();
             setRawBullion(freshRb);
@@ -1995,7 +2004,7 @@ document.addEventListener('click', async function(e) {
         btn.disabled = true;
 
         try {
-            var { fetchBulkEntries, addBulkEntry } = await import('./api.js?v=4');
+            var { fetchBulkEntries, addBulkEntry } = await import('./api.js');
             var labelIn = btn._labelIn;
             var metalSel = btn._metalSel;
             var wgtIn = btn._wgtIn;
@@ -2047,7 +2056,7 @@ document.addEventListener('click', async function(e) {
         var entryId = parseInt(btn.dataset.id);
         if (!entryId) return;
         try {
-            var { fetchBulkEntries, deleteBulkEntry } = await import('./api.js?v=4');
+            var { fetchBulkEntries, deleteBulkEntry } = await import('./api.js');
             await deleteBulkEntry(entryId);
             var freshEntries = await fetchBulkEntries();
             _bulkCoinsData = (freshEntries && freshEntries.entries) ? freshEntries.entries : (Array.isArray(freshEntries) ? freshEntries : []);
@@ -2097,8 +2106,8 @@ document.addEventListener('click', async function(e) {
                 })
             });
             if (!pcRes.ok) throw new Error('HTTP ' + pcRes.status);
-            var { fetchPaperCurrency } = await import('./api.js?v=4');
-            var { setPaperCurrency } = await import('./state.js?v=4');
+            var { fetchPaperCurrency } = await import('./api.js');
+            var { setPaperCurrency } = await import('./state.js');
             var freshPaper = await fetchPaperCurrency();
             setPaperCurrency(freshPaper);
             _showCardToast('Banknote added', 'success');
@@ -2119,8 +2128,8 @@ document.addEventListener('click', async function(e) {
         try {
             var delPcRes = await fetch('/api/paper_currency/' + paperId, { method: 'DELETE' });
             if (!delPcRes.ok) throw new Error('HTTP ' + delPcRes.status);
-            var { fetchPaperCurrency } = await import('./api.js?v=4');
-            var { setPaperCurrency } = await import('./state.js?v=4');
+            var { fetchPaperCurrency } = await import('./api.js');
+            var { setPaperCurrency } = await import('./state.js');
             var freshPaper = await fetchPaperCurrency();
             setPaperCurrency(freshPaper);
             _showCardToast('Deleted', 'info');
@@ -2163,8 +2172,8 @@ document.addEventListener('click', async function(e) {
                 })
             });
             if (!ocRes.ok) throw new Error('HTTP ' + ocRes.status);
-            var { fetchOtherCollectables, fetchCustomCategories } = await import('./api.js?v=4');
-            var { setOtherCollectables, setCustomCategories } = await import('./state.js?v=4');
+            var { fetchOtherCollectables, fetchCustomCategories } = await import('./api.js');
+            var { setOtherCollectables, setCustomCategories } = await import('./state.js');
             var [freshOC, freshCats] = await Promise.all([fetchOtherCollectables(), fetchCustomCategories()]);
             setOtherCollectables(freshOC);
             setCustomCategories(freshCats);
@@ -2186,8 +2195,8 @@ document.addEventListener('click', async function(e) {
         try {
             var delOcRes = await fetch('/api/other_collectables/' + ocId, { method: 'DELETE' });
             if (!delOcRes.ok) throw new Error('HTTP ' + delOcRes.status);
-            var { fetchOtherCollectables } = await import('./api.js?v=4');
-            var { setOtherCollectables } = await import('./state.js?v=4');
+            var { fetchOtherCollectables } = await import('./api.js');
+            var { setOtherCollectables } = await import('./state.js');
             var freshOC = await fetchOtherCollectables();
             setOtherCollectables(freshOC);
             _showCardToast('Deleted', 'info');

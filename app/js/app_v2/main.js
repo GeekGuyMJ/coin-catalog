@@ -121,8 +121,10 @@ async function boot() {
         });
         console.log('[boot] Data received.', { sectionsLength: sections?.length, inventoryLength: Object.keys(inventory || {}).length, typeConfigsKeys: Object.keys(typeConfigs || {}).length });
         if (sections || inventory || typeConfigs) {
-            setSections(sections || []);
-            setInventory(inventory || {});
+            console.log('[main] About to call setSections with:', sections?.length, 'sections');
+        setSections(sections || []);
+        console.log('[main] After setSections, getSections():', getSections()?.length);
+        setInventory(inventory || {});
             setTypeConfigs(typeConfigs || {});
             setWishlist(wishlist || []);
             showToast('App loaded successfully! Showing available data.', 'success', 3000);

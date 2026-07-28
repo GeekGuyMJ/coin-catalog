@@ -21,14 +21,14 @@ import {
     getMinYear, setMinYear,
     getMaxYear, setMaxYear,
     getWishlist,
-} from './state.js?v=4';
+} from './state.js';
 
-import { fetchCoinsForSection } from './api.js?v=4';
-import { renderSections } from './catalog.js?v=4';
+import { fetchCoinsForSection } from './api.js';
+import { renderSections } from './catalog.js';
 import {
     getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg,
-} from './utils.js?v=4';
-import { showToast } from './notifications.js?v=4';
+} from './utils.js';
+import { showToast } from './notifications.js';
 
 // ============================================================
 // Filter pill definitions

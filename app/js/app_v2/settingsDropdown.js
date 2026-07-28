@@ -754,7 +754,7 @@ function renderCustomCardsOnDashboard() {
  if (!dashboardGrid) return;
  
  // Import required functions
- import('./state.js?v=4').then(({ getPortfolioData, getSpotPrices }) => {
+ import('./state.js').then(({ getPortfolioData, getSpotPrices }) => {
  const portfolio = getPortfolioData() || {};
  const prices = getSpotPrices() || {};
  

@@ -16,18 +16,18 @@
 import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
     typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
-} from './utils.js?v=4';
+} from './utils.js';
 
 import {
     getSections, getCoinsForSection, setCoinsForSection,
     getTypeConfig,
-} from './state.js?v=4';
+} from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist } from './api.js?v=4';
-import { showToast } from './notifications.js?v=4';
-import { openImageInteractionModal } from './images.js?v=4';
-import { renderAlbumType, clearAlbumCache } from './album.js?v=4';
-import { getInventoryEntries, getInventoryTotalQty, setInventoryEntries, getWishlist, setWishlist } from './state.js?v=4';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist } from './api.js';
+import { showToast } from './notifications.js';
+import { openImageInteractionModal } from './images.js';
+import { renderAlbumType, clearAlbumCache } from './album.js';
+import { getInventoryEntries, getInventoryTotalQty, setInventoryEntries, getWishlist, setWishlist } from './state.js';
 
 // --- Expanded State Preservation ---
 const _expandedSections = new Set();
@@ -788,7 +788,7 @@ function saveCoinSlots(coinId, panelEl, isAutosave = false) {
     return Promise.all(promises).then(function() {
         return fetchInventory();
     }).then(function(newInv) {
-        return import('./state.js?v=4').then(function(m) {
+        return import('./state.js').then(function(m) {
             m.setInventory(newInv);
             window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: coinId, reason: isAutosave } }));
             if (panelEl && panelEl.rebuildSlots && isAutosave === 'photo-update') {
@@ -932,7 +932,7 @@ function triggerSlotFileUpload(slotIdx, photoIdx, coinId, dp) {
  * Fetches bank images for the coin's type and lets the user pick one.
  */
 function openSlotCoinBankPicker(slotIdx, photoIdx, coinId, dp) {
-    import('./state.js?v=4').then(state => {
+    import('./state.js').then(state => {
         let coin = null;
         for (const s of state.getSections()) {
             const coins = state.getCoinsForSection(s.section);
@@ -1026,7 +1026,7 @@ function openSlotCoinBankPicker(slotIdx, photoIdx, coinId, dp) {
                         })
                         .catch(function(err) {
                             console.warn('[catalog] Failed to fetch bank image:', err);
-                            import('./notifications.js?v=4').then(function(m) { m.showToast('Failed to load bank image', 'error'); });
+                            import('./notifications.js').then(function(m) { m.showToast('Failed to load bank image', 'error'); });
                         });
                 };
 
@@ -1419,7 +1419,7 @@ function buildCoinRow(coin) {
                 })
                 .then(function() { return fetchInventory(); })
                 .then(function(newInv) {
-                    return import('./state.js?v=4').then(function(m) {
+                    return import('./state.js').then(function(m) {
                         m.setInventory(newInv);
                         window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: coin.id } }));
                         rebuildSlots();
@@ -1455,7 +1455,7 @@ function buildCoinRow(coin) {
                     entries.push({ coin_ref_id: cId, quantity: 1 });
                 }
                 
-                import('./state.js?v=4').then(m => {
+                import('./state.js').then(m => {
                     m.setInventory(m.getInventory());
                     rebuildSlots();
                     
@@ -1522,7 +1522,7 @@ function buildCoinRow(coin) {
             var entries = getInventoryEntries(coinId) || [];
             var entry = entries[instanceIdx] || {};
 
-            import('./state.js?v=4').then(state => {
+            import('./state.js').then(state => {
                 let coin = null;
                 for (const s of state.getSections()) {
                     const coins = state.getCoinsForSection(s.section);
@@ -1532,7 +1532,7 @@ function buildCoinRow(coin) {
                     }
                 }
                 var coinType = coin ? coin.coin_type : '';
-                import('./images.js?v=4').then(function(m) {
+                import('./images.js').then(function(m) {
                     m.openImageInteractionModal(imgEl, coinType, 'personal', true, entry.id, coinId);
                 });
             });
@@ -1753,7 +1753,7 @@ async function handleCatalogClick(e) {
         const isCoinRef = !!coinId;
         // Set coin metadata for proper image naming
         const { year, mintMark } = imgBtn.dataset;
-        import('./images.js?v=4').then(m => {
+        import('./images.js').then(m => {
             // Set coin metadata on the images module
             if (m.setCoinMeta) m.setCoinMeta(year ? parseInt(year) : null, mintMark || null);
             const imgSection = imgBtn.dataset.section || '';
@@ -1938,7 +1938,7 @@ function updateStepperDisplay(coinId, qty) {
 // Listen for inventory updates — update stepper displays without rebuilding DOM
 window.addEventListener('cc-inventory-updated', async (e) => {
     // If reason is already provided, assume state was updated before dispatching.
-    const stateMod = await import('./state.js?v=4');
+    const stateMod = await import('./state.js');
     if (!e.detail || !e.detail.reason) {
         const newInv = await fetchInventory();
         stateMod.setInventory(newInv);
@@ -2057,7 +2057,7 @@ window.addEventListener('cc-image-updated', async (e) => {
         }
     });
     // Update section/subsection badges with new owned counts
-    const stateMod2 = await import('./state.js?v=4');
+    const stateMod2 = await import('./state.js');
     document.querySelectorAll('.type-wrapper').forEach(wrapper => {
         const header = wrapper.querySelector('.type-header');
         const badge = header ? header.querySelector('.count-badge') : null;
@@ -2133,7 +2133,7 @@ export async function setCatalogViewMode(mode) {
             var header = typeWrapper.querySelector('.type-header');
             var mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
             if (secName && mainType) {
-                import('./album.js?v=4').then(m => {
+                import('./album.js').then(m => {
                     if (m.renderAlbumType) m.renderAlbumType(secName, mainType, typeContent, header);
                 });
             }
@@ -2243,7 +2243,7 @@ function applySectionOrder() {
 }
 
 export function openCoinDetailModal(coinId) {
-    import('./state.js?v=4').then(state => {
+    import('./state.js').then(state => {
         let coin = null;
         for (const s of state.getSections()) {
             const coins = state.getCoinsForSection(s.section);
@@ -2309,7 +2309,7 @@ export function openCoinDetailModal(coinId) {
         imgContainer.onclick = () => {
             let side = localStorage.getItem(`cc-flipped-${coinId}`);
             if (!side) side = isSpecialReverse(coin.coin_type) ? 'rev' : 'obv';
-            import('./images.js?v=4').then(m => {
+            import('./images.js').then(m => {
                 m.openImageInteractionModal(imgEl, coin.coin_type, side, false, null, coinId);
             });
         };
@@ -2354,7 +2354,7 @@ export function openCoinDetailModal(coinId) {
         modalWrap.addEventListener('click', handleCatalogClick);
         
         // Use standard modal wrapper
-        import('./modals.js?v=4').then(modals => {
+        import('./modals.js').then(modals => {
             modals.createModal('modal-coin-detail-' + coinId, 'Details: ' + (coin.year||'') + ' ' + coin.coin_type, modalWrap);
         });
     });

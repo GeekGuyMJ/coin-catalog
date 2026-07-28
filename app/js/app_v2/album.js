@@ -22,17 +22,17 @@ import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
     typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark,
     formatMintage, isSpecialReverse
-} from './utils.js?v=4';
+} from './utils.js';
 
 import {
     getSections, getCoinsForSection, setCoinsForSection,
     getTypeConfig, getInventoryTotalQty, getInventoryEntries, setInventory,
     setTypeConfigs,
-} from './state.js?v=4';
+} from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchTypeConfigs } from './api.js?v=4';
-import { showToast } from './notifications.js?v=4';
-import { openImageInteractionModal } from './images.js?v=4';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchTypeConfigs } from './api.js';
+import { showToast } from './notifications.js';
+import { openImageInteractionModal } from './images.js';
 
 // --- View state ---
 let _albumSections = new Set();       // sections expanded in album view
@@ -223,7 +223,7 @@ function renderAlbumLayout(container) {
     const listBtnWrapper = el('div', { style: 'padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);' });
     const listBtn = el('button', { className: 'btn-secondary', style: 'width: 100%;' }, ' Switch to List View');
     listBtn.onclick = () => {
-        import('./catalog.js?v=4').then(m => m.setCatalogViewMode('list'));
+        import('./catalog.js').then(m => m.setCatalogViewMode('list'));
     };
     listBtnWrapper.appendChild(listBtn);
     sidebar.appendChild(listBtnWrapper);
@@ -543,7 +543,7 @@ async function toggleHoleOwnership(coinId, holeElement) {
         if (window.openCoinDetailModal) {
             window.openCoinDetailModal(coinId);
         } else {
-            import('./catalog.js?v=4').then(m => {
+            import('./catalog.js').then(m => {
                 if (m.openCoinDetailModal) m.openCoinDetailModal(coinId);
             });
         }
