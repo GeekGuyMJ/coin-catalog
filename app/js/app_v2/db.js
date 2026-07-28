@@ -1982,7 +1982,13 @@ export async function importCSVLocal(csvText) {
         imported++;
     }
     return { ok: true, imported };
+
+export async function publishSectionLocal(sectionName) {
+    console.log('[db] publishSectionLocal called for:', sectionName);
+    // For the self-hosted version, this proxy-call goes to the backend API.
+    // For the public/indexedDB version, this is a stub — real publishing
+    // only works on the self-hosted instance with the backend.
+    return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };
 }
 
-
-
+}

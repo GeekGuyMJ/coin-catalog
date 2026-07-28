@@ -56,7 +56,7 @@ import {
     importCSVLocal,
     deleteBulkCoinsLocal,
     fetchSpotHistoryLocal
-} from './db.js?v=5';
+} from './db.js';
 
 // Helper wrapper for the exported modules
 const wrap = (fn) => async (...args) => {
