@@ -34,6 +34,30 @@ const _expandedSections = new Set();
 const _expandedTypes = new Set();
 const _expandedCountries = new Set(['United States', 'Canada']); // Default US/Canada open
 
+// --- Ready Mode ---
+let _readyModeActive = false;
+
+export function setReadyMode(active) {
+    _readyModeActive = active;
+    const container = document.getElementById(catalog-container);
+    if (container) {
+        container.querySelectorAll(.section-content.open).forEach(content => {
+            const sectionName = content.closest(.section-card)?.querySelector(.section-header)?.dataset?.section;
+            if (sectionName) {
+                const coins = getCoinsForSection(sectionName);
+                if (coins) {
+                    renderTypeAccordions(content, coins);
+                }
+            }
+        });
+    }
+}
+
+export function getReadyMode() {
+    return _readyModeActive;
+}
+
+
 /**
  * Resolve a stored image path to a full URL.
  * Personal photos stored as bare filenames or inv_ tokens get prefixed.
