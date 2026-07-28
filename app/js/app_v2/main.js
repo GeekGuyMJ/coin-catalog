@@ -16,6 +16,7 @@ import { fetchSections, fetchInventory, fetchTypeConfigs, fetchSpotPrices, fetch
 import { initDb } from './db.js';
 import {
     setSections, setInventory, setTypeConfigs, setSpotPrices, setLoading, setWishlist,
+    getSections,
 } from './state.js';
 import { renderSections, updateStickyOffsets } from './catalog.js';
 import { renderAlbumView } from './album.js';
@@ -123,7 +124,6 @@ async function boot() {
         if (sections || inventory || typeConfigs) {
             console.log('[main] About to call setSections with:', sections?.length, 'sections');
         setSections(sections || []);
-        console.log('[main] After setSections, getSections():', getSections()?.length);
         setInventory(inventory || {});
             setTypeConfigs(typeConfigs || {});
             setWishlist(wishlist || []);
