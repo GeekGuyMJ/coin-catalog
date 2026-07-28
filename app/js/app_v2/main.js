@@ -21,10 +21,20 @@ import { renderSections, updateStickyOffsets } from './catalog.js';
 import { renderAlbumView } from './album.js';
 import { initSearch } from './search.js';
 import { showToast } from './notifications.js';
-import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal, openVisibilityModal } from './modals.js';
+import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal, openVisibilityModal } from './modals.v2.js';
 import { openStoriesModal } from './stories.js';
+import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDropdown.js';
+import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection } from './settingsDropdown.js';
+import { initWishlist, openWishlistPanel } from './wishlist.js';
 
 export { showToast };
+
+// Expose dropdown toggles globally for onclick handlers in index.html
+window.toggleInfoDropdown = toggleInfoDropdown;
+window.closeInfoDropdown = closeInfoDropdown;
+window.toggleSettingsDropdown = toggleSettingsDropdown;
+window.closeSettingsDropdown = closeSettingsDropdown;
+window.openWishlistPanel = openWishlistPanel;
 
 // ============================================================
 // Theme (sync selector with saved value — themes.js owns the logic)
