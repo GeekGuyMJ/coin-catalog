@@ -1,128 +1,92 @@
-/**
- * Coin & Collectable Catalog — Service Worker
- * Offline-first caching for PWA
- */
-
-const CACHE_NAME = 'coin-catalog-v1';
-const STATIC_ASSETS = [
+// Coin Catalog — Self-Hosted Service Worker
+const CACHE = 'coin-catalog-v46';
+const ASSETS = [
   '/',
   '/index.html',
-  '/privacy.html',
   '/manifest.json',
-  '/assets/styles.css',
-  '/assets/app.js',
+  '/css/base.css',
+  '/css/themes.css',
+  '/css/components.v2.css',
+  '/js/app_v2/utils.js',
+  '/js/app_v2/state.js',
+  '/js/app_v2/api.js',
+  '/js/app_v2/themes.js',
+  '/js/app_v2/catalog.js',
+  '/js/app_v2/inventory.js',
+  '/js/app_v2/modals.v2.js',
+  '/js/app_v2/search.js',
+  '/js/app_v2/wishlist.js',
+  '/js/app_v2/images.js',
+  '/js/app_v2/album.js',
+  '/js/app_v2/portfolio_history.js',
+  '/js/app_v2/main.js',
+  '/js/app_v2/settingsDropdown.js',
+  '/js/app_v2/infoDropdown.js',
+  '/js/app_v2/sync.js',
+  '/js/app_v2/notifications.js',
+  '/js/app_v2/dexie.js',
+  '/js/app_v2/db.js',
+  '/js/app_v2/portfolio.js',
+  '/js/app_v2/stories.js',
+  '/data/coins.json',
+  '/data/stories.json',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
 ];
 
-// Install - cache static assets
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Caching static assets');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE);
+    try { await cache.addAll(ASSETS); } catch (e) { /* non-critical assets may fail */ }
+    await self.skipWaiting();
+  })());
 });
 
-// Activate - clean old caches
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
-        );
-      })
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
 });
 
-// Fetch - network first for HTML, cache first for static
 self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
-  if (request.method !== 'GET') return;
-
-  // Skip chrome-extension, data: URLs
-  if (!url.protocol.startsWith('http')) return;
-
-  // HTML pages - network first
-  if (request.headers.get('accept')?.includes('text/html')) {
-    event.respondWith(networkFirst(request));
+  // Navigation: network-first (fresh HTML always)
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        return await fetch(event.request);
+      } catch (err) {
+        const cached = await caches.match(event.request);
+        return cached || caches.match('/index.html');
+      }
+    })());
     return;
   }
-
-  // Static assets - cache first
-  if (
-    url.pathname.endsWith('.css') ||
-    url.pathname.endsWith('.js') ||
-    url.pathname.endsWith('.png') ||
-    url.pathname.endsWith('.ico') ||
-    url.pathname.endsWith('.json')
-  ) {
-    event.respondWith(cacheFirst(request));
+  // Static assets: network-first for JS (so fixes take effect immediately)
+  const url = new URL(event.request.url);
+  if (url.pathname.endsWith('.js')) {
+    event.respondWith((async () => {
+      try {
+        const network = await fetch(event.request);
+        const cache = await caches.open(CACHE);
+        cache.put(event.request, network.clone());
+        return network;
+      } catch (err) {
+        return caches.match(event.request);
+      }
+    })());
     return;
   }
-
-  // Default - network first
-  event.respondWith(networkFirst(request));
-});
-
-async function cacheFirst(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-
-  if (cached) {
-    // Update in background
-    fetch(request).then((response) => {
-      if (response.ok) cache.put(request, response);
-    }).catch(() => {});
-    return cached;
-  }
-
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch (error) {
-    return new Response('Offline', { status: 503 });
-  }
-}
-
-async function networkFirst(request) {
-  const cache = await caches.open(CACHE_NAME);
-
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch (error) {
-    const cached = await cache.match(request);
+  // Everything else: cache-first
+  event.respondWith((async () => {
+    const cached = await caches.match(event.request);
     if (cached) return cached;
-
-    // Fallback for HTML
-    if (request.headers.get('accept')?.includes('text/html')) {
-      return cache.match('/index.html');
+    const network = await fetch(event.request);
+    if (network.ok && url.origin === self.location.origin) {
+      const cache = await caches.open(CACHE);
+      cache.put(event.request, network.clone());
     }
-
-    return new Response('Offline', { status: 503 });
-  }
-}
-
-// Listen for messages from client
-self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting();
-  }
+    return network;
+  })());
 });
