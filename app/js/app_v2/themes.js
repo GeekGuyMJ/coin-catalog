@@ -8,6 +8,25 @@ import { showToast } from './notifications.js';
 
 /** Apply a theme by name. Called by the <select> onchange and on boot. */
 export function setTheme(name) {
+    // Handle "Theme Designer" pseudo-theme - open designer instead of applying theme
+    if (name === 'custom-designer') {
+        const sel = document.getElementById('theme-selector');
+        if (sel) {
+            // Reset to previously saved theme
+            const saved = localStorage.getItem('cc-theme');
+            if (saved && saved !== 'custom-designer') {
+                sel.value = saved;
+            } else {
+                sel.value = 'dark'; // fallback
+            }
+        }
+        // Open the custom theme designer (same as Settings dropdown)
+        if (typeof openCustomThemeDesigner === 'function') {
+            openCustomThemeDesigner(1);
+        }
+        return;
+    }
+    
     document.documentElement.setAttribute('data-theme', name);
     document.body.setAttribute('data-theme', name);
     localStorage.setItem('cc-theme', name);
