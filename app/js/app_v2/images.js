@@ -436,16 +436,21 @@ export function removeCurrentImage() {
         return;
     }
 
-    // Second press: confirmed
+    // Second press: confirmed - delete immediately, no scope modal
     removeBtn.dataset.confirming = '';
     activeContext.b64 = '';
-    // Show scope selection so user can choose which coins to clear
-    openModalLegacy('modal-replace-scope');
-    // Set modal title for remove action
-    const titleEl = document.querySelector('#modal-replace-scope .modal-title');
-    if (titleEl) titleEl.textContent = 'Remove Image';
-    document.getElementById('btn-execute-assign').textContent = 'Confirm & Clear';
-    showScopeSelection();
+    
+    // Determine scope from activeContext (default to 'all' for type-level removal)
+    const scope = activeContext.scope || 'all';
+    
+    // Call assignImage with empty image to delete
+    executeImageAssignment({
+        coin_type: activeContext.typeStr,
+        side: activeContext.side,
+        image: '',  // Empty string for removal
+        scope: scope,
+        item_id: activeContext.itemId
+    });
 }
 
 /**
