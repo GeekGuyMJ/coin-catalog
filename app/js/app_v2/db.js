@@ -1982,6 +1982,7 @@ export async function importCSVLocal(csvText) {
         imported++;
     }
     return { ok: true, imported };
+}
 
 export async function publishSectionLocal(sectionName) {
     console.log('[db] publishSectionLocal called for:', sectionName);
