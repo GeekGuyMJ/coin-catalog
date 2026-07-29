@@ -118,6 +118,24 @@
 }
 
 /* Header nav buttons */
+/* Unified header button & select dimensions */
+.header-control {
+    background:       transparent;
+    color:            var(--color-header-text);
+    border:           1px solid color-mix(in srgb, var(--color-header-text) 30%, transparent);
+    border-radius:    var(--radius-sm);
+    padding:          var(--space-1) var(--space-3);
+    font-size:        var(--font-size-sm);
+    font-weight:      600;
+    white-space:      nowrap;
+    height:           2.25rem;           /* 36px - matches theme select native height */
+    line-height:      1.2;
+    box-sizing:       border-box;
+    display:          inline-flex;
+    align-items:      center;
+    gap:              5px;
+}
+
 .btn-header {
     background:    transparent;
     color:         var(--color-header-text);
@@ -127,6 +145,12 @@
     font-size:     var(--font-size-sm);
     font-weight:   600;
     white-space:   nowrap;
+    height:        2.25rem;
+    line-height:   1.2;
+    box-sizing:    border-box;
+    display:       inline-flex;
+    align-items:   center;
+    gap:           5px;
 }
 .btn-header:hover {
     background: color-mix(in srgb, var(--color-header-text) 15%, transparent);
@@ -135,14 +159,20 @@
 
 /* Theme select in header */
 .theme-select {
-    background:    transparent;
-    color:         var(--color-header-text);
-    border:        1px solid color-mix(in srgb, var(--color-header-text) 30%, transparent);
-    border-radius: var(--radius-sm);
-    padding:       var(--space-1) var(--space-2);
-    font-size:     var(--font-size-sm);
-    font-weight:   600;
-    cursor:        pointer;
+    background:       transparent;
+    color:            var(--color-header-text);
+    border:           1px solid color-mix(in srgb, var(--color-header-text) 30%, transparent);
+    border-radius:    var(--radius-sm);
+    padding:          var(--space-1) var(--space-3);
+    font-size:        var(--font-size-sm);
+    font-weight:      600;
+    cursor:           pointer;
+    height:           2.25rem;
+    line-height:      1.2;
+    box-sizing:       border-box;
+    appearance:       none;
+    -webkit-appearance: none;
+    padding-right:    2.5rem; /* room for native dropdown arrow */
 }
 
 /* Settings/Modal select dropdowns */
