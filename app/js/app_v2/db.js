@@ -1990,5 +1990,3 @@ export async function publishSectionLocal(sectionName) {
     // only works on the self-hosted instance with the backend.
     return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };
 }
-
-}
