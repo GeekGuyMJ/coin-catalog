@@ -31,9 +31,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/base.css?v=1789030249">
-    <link rel="stylesheet" href="css/themes.css?v=1789030249">
-    <link rel="stylesheet" href="css/components.v2.css?v=1789030249">
+    <link rel="stylesheet" href="css/base.css?v=1785612345">
+    <link rel="stylesheet" href="css/themes.css?v=1785612345">
+    <link rel="stylesheet" href="css/components.v2.css?v=1785612345">
 
     <!--
         Theme is applied BEFORE paint to prevent a flash of the wrong theme.
@@ -116,98 +116,100 @@
          Application Header
     ================================================================ -->
     <header id="app-header" role="banner">
-        <!-- App title -->
-        <img src="" alt="" class="header-logo" aria-hidden="true" width="75" height="75" id="header-coin-img">
-        <div class="header-left">
-            <h1 class="app-title">
-                Coin &amp; Collectable Catalog
-            </h1>
-        </div>
+        <div class="header-inner">
+            <!-- App title -->
+            <img src="" alt="" class="header-logo" aria-hidden="true" width="75" height="75" id="header-coin-img">
+            <div class="header-left">
+                <h1 class="app-title">
+                    Coin &amp; Collectable Catalog
+                </h1>
+            </div>
 
-        <div class="header-right">
-            <button id="btn-install" class="btn-header" style="display:none" onclick="triggerPWAInstall()" aria-label="Install app">
-                <!-- Download/install icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                </svg>
-                <span>Install</span>
-            </button>
+            <div class="header-right">
+                <button id="btn-install" class="btn-header" style="display:none" onclick="triggerPWAInstall()" aria-label="Install app">
+                    <!-- Download/install icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    <span>Install</span>
+                </button>
 
-            <button id="btn-layout" class="btn-header" aria-label="Cycle Layout">
-                <!-- Layout/grid icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                </svg>
-                <span>Layout</span>
-            </button>
+                <button id="btn-layout" class="btn-header" aria-label="Cycle Layout">
+                    <!-- Layout/grid icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                    </svg>
+                    <span>Layout</span>
+                </button>
 
-            <button id="btn-info" class="btn-header" onclick="toggleInfoDropdown()" aria-label="Help and Info">
-                <!-- Info circle icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <span>Info</span>
-            </button>
+                <button id="btn-info" class="btn-header" onclick="toggleInfoDropdown()" aria-label="Help and Info">
+                    <!-- Info circle icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>Info</span>
+                </button>
 
-            <button id="btn-settings" class="btn-header" onclick="toggleSettingsDropdown()" aria-label="Settings">
-                <!-- Gear icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-                <span>Settings</span>
-            </button>
+                <button id="btn-settings" class="btn-header" onclick="toggleSettingsDropdown()" aria-label="Settings">
+                    <!-- Gear icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span>Settings</span>
+                </button>
 
-            <label for="theme-selector" class="sr-only">Color theme</label>
-            <select id="theme-selector" class="theme-select" aria-label="Color theme" onchange="setTheme(this.value)">
-                <optgroup label="Dark Themes">
-                    <option value="dark">Dark</option>
-                    <option value="midnight">Midnight</option>
-                    <option value="gold">Gold</option>
-                    <option value="copper">Copper</option>
-                    <option value="ocean">Ocean</option>
-                    <option value="forest">Deep Forest</option>
-                    <option value="cyberpunk">Cyberpunk</option>
-                    <option value="neon">Neon</option>
-                    <option value="matrix">Matrix</option>
-                </optgroup>
-                <optgroup label="Light Themes">
-                    <option value="light">Light</option>
-                    <option value="silver">Silver</option>
-                    <option value="paper">Aged Paper</option>
-                </optgroup>
-                <optgroup label="Custom">
-                    <option value="custom1">Custom 1</option>
-                    <option value="custom2">Custom 2</option>
-                    <option value="custom3">Custom 3</option>
-                    <option value="custom-designer" disabled>────────────</option>
-                    <option value="custom-designer" onclick="event.stopPropagation(); openCustomThemeDesigner(1); this.selectedIndex = 0;">✦ Theme Designer</option>
-                </optgroup>
-            </select>
+                <label for="theme-selector" class="sr-only">Color theme</label>
+                <select id="theme-selector" class="theme-select" aria-label="Color theme" onchange="setTheme(this.value)">
+                    <optgroup label="Dark Themes">
+                        <option value="dark">Dark</option>
+                        <option value="midnight">Midnight</option>
+                        <option value="gold">Gold</option>
+                        <option value="copper">Copper</option>
+                        <option value="ocean">Ocean</option>
+                        <option value="forest">Deep Forest</option>
+                        <option value="cyberpunk">Cyberpunk</option>
+                        <option value="neon">Neon</option>
+                        <option value="matrix">Matrix</option>
+                    </optgroup>
+                    <optgroup label="Light Themes">
+                        <option value="light">Light</option>
+                        <option value="silver">Silver</option>
+                        <option value="paper">Aged Paper</option>
+                    </optgroup>
+                    <optgroup label="Custom">
+                        <option value="custom1">Custom 1</option>
+                        <option value="custom2">Custom 2</option>
+                        <option value="custom3">Custom 3</option>
+                        <option value="custom-designer" disabled>────────────</option>
+                        <option value="custom-designer" onclick="event.stopPropagation(); openCustomThemeDesigner(1); this.selectedIndex = 0;">✦ Theme Designer</option>
+                    </optgroup>
+                </select>
+            </div>
         </div>
     </header>
 
     <!-- ================================================================
          Main Content
     ================================================================ -->
-    <script type="module" src="js/app_v2/utils.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/state.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/api.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/themes.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/catalog.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/inventory.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/modals.v2.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/search.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/wishlist.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/images.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/album.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/portfolio_history.js?v=1789030249"></script>
-    <script type="module" src="js/app_v2/main.js?v=1789030249"></script>
+    <script type="module" src="js/app_v2/utils.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/state.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/api.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/themes.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/catalog.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/inventory.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/modals.v2.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/search.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/wishlist.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/images.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/album.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/portfolio_history.js?v=1785612345"></script>
+    <script type="module" src="js/app_v2/main.js?v=1785612345"></script>
 <main id="app-main" class="container" role="main">
 
         <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->
@@ -373,7 +375,7 @@
                             <button id="cb-filter-all" style="flex:1;" class="btn-secondary">Browse All</button>
                         </div>
                         <div id="cb-context-label" style="font-size:var(--font-size-xs); color:var(--color-text-muted);"></div>
-                        <input id="cb-search-input" type="text" placeholder="Search coin bank..." style="margin-top:6px; width:100%; padding:6px 8px; font-size:0.8rem; border:1px solid var(--color-border); border-radius:4px; background:var(--color-bg-input); color:var(--color-text-main);"
+                        <input id="cb-search-input" type="text" placeholder="Search coin bank..." style="margin-top:6px; width:100%; padding:6px 8px; font-size:0.8rem; border:1px solid var(--color-border); border-radius:4px; background:var(--color-bg-body); color:var(--color-text-main);"
                                oninput="window._coinBankDoSearch = setTimeout(() => { clearTimeout(window._coinBankDoSearch); const mode = document.getElementById('cb-filter-ctx')?.className.includes('btn-primary') ? 'context' : 'all'; _cbLoadImages(mode); }, 200);" />
                     </div>
                     <div id="coin-bank-grid" style="padding:var(--space-4); display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:var(--space-3);">

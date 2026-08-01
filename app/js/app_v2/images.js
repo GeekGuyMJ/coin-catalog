@@ -41,13 +41,16 @@ let activeContext = {
  * @param {string} targetType  - The image target coin_type (activeContext.typeStr)
  * @param {string} targetSection - The image target section (activeContext.section)
  * @param {string} targetMainType - getMainType(targetType)
+ * @param {string} side - The image side
  * @returns {boolean}
  */
-function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, targetMainType) {
-    // If both sections are known and different, never cross-contaminate
+function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, targetMainType, side) {
     if (coinSection && targetSection && coinSection !== targetSection) return false;
-    // Exact match always wins
     if (coinType === targetType) return true;
+    
+    const hasSubtype = targetMainType !== targetType;
+    if (side === 'rev' && hasSubtype) return false;
+    
     // Main-type match (only when no section mismatch detected above)
     return getMainType(coinType) === targetMainType;
 }
@@ -533,10 +536,8 @@ export async function resetToMaster() {
                     imgElements.forEach(img => {
                         const imgType = img.dataset.type;
                         const imgSide = img.dataset.side;
-                        const hasSubtype = activeContext.typeStr.includes(' - ');
-                        const shouldUpdate = (activeContext.side === 'rev' && hasSubtype)
-                            ? (imgType === activeContext.typeStr)
-                            : (getMainType(imgType) === targetMainType || imgType === activeContext.typeStr);
+                        const imgSection = img.dataset.section || '';
+                        const shouldUpdate = shouldUpdateCoinType(imgType, imgSection, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side);
                             
                         if (imgSide === activeContext.side && shouldUpdate) {
                             if (newImageUrl) {
@@ -556,10 +557,7 @@ export async function resetToMaster() {
                         const coins = getCoinsForSection(sec.section);
                         if (coins) {
                             coins.forEach(c => {
-                                const hasSubtype = activeContext.typeStr.includes(' - ');
-                                const shouldUpdate = (activeContext.side === 'rev' && hasSubtype)
-                                    ? (c.coin_type === activeContext.typeStr)
-                                    : (getMainType(c.coin_type) === targetMainType || c.coin_type === activeContext.typeStr);
+                                const shouldUpdate = shouldUpdateCoinType(c.coin_type, c.section, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side);
                                     
                                 if (shouldUpdate) {
                                     c[field] = null;
@@ -578,10 +576,8 @@ export async function resetToMaster() {
                     imgElements.forEach(img => {
                         const imgType = img.dataset.type;
                         const imgSide = img.dataset.side;
-                        const hasSubtype = activeContext.typeStr.includes(' - ');
-                        const shouldUpdate = (activeContext.side === 'rev' && hasSubtype)
-                            ? (imgType === activeContext.typeStr)
-                            : (getMainType(imgType) === targetMainType || imgType === activeContext.typeStr);
+                        const imgSection = img.dataset.section || '';
+                        const shouldUpdate = shouldUpdateCoinType(imgType, imgSection, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side);
                             
                         if (imgSide === activeContext.side && shouldUpdate) {
                             import('./utils.js').then(m => {
@@ -595,10 +591,7 @@ export async function resetToMaster() {
                         const coins = getCoinsForSection(sec.section);
                         if (coins) {
                             coins.forEach(c => {
-                                const hasSubtype = activeContext.typeStr.includes(' - ');
-                                const shouldUpdate = (activeContext.side === 'rev' && hasSubtype)
-                                    ? (c.coin_type === activeContext.typeStr)
-                                    : (getMainType(c.coin_type) === targetMainType || c.coin_type === activeContext.typeStr);
+                                const shouldUpdate = shouldUpdateCoinType(c.coin_type, c.section, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side);
                                 if (shouldUpdate) c[field] = null;
                             });
                         }
@@ -774,7 +767,7 @@ export async function executeImageAssignment() {
                         const coins = getCoinsForSection(sec.section);
                         if (coins) {
                             coins.forEach(c => {
-                                if (!shouldUpdateCoinType(c.coin_type, c.section, activeContext.typeStr, activeContext.section, targetMainType)) return;
+                                if (!shouldUpdateCoinType(c.coin_type, c.section, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side)) return;
                                 if (scope === 'empty_only') {
                                     const imgVal = c[field];
                                     // Only clear if it's a placeholder/type-level image (not personal)
@@ -798,7 +791,7 @@ export async function executeImageAssignment() {
                         const imgSide = img.dataset.side;
                         const imgSection = img.dataset.section || '';
                         if (imgSide !== activeContext.side) return;
-                        if (!shouldUpdateCoinType(imgType, imgSection, activeContext.typeStr, activeContext.section, targetMainType)) return;
+                        if (!shouldUpdateCoinType(imgType, imgSection, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side)) return;
                         // Respect empty_only scope — skip if img already has a real image
                         if (scope === 'empty_only' && img.src && !img.classList.contains('placeholder') && !img.src.includes('data:image/svg')) return;
                             
@@ -855,6 +848,16 @@ export async function openCoinBankModal() {
     }
 
     loadCoinBankImages('context');
+}
+
+export function openBankForPersonalSlot(coinTypeStr, onSelectCallback) {
+    activeContext = {
+        typeStr: coinTypeStr,
+        side: 'obv', // Generic side for searching
+        isPersonalSlot: true,
+        onSelect: onSelectCallback
+    };
+    openCoinBankModal();
 }
 
 // Exposed globally for HTML oninput handlers
@@ -920,7 +923,7 @@ async function loadCoinBankImages(mode) {
                         title: img.coin_type 
                     }, img.coin_type),
                     el('select', {
-                        style: 'font-size:0.75rem; padding:2px; width:100%; border:1px solid var(--color-border); border-radius:4px; background:var(--color-bg-input); color:var(--color-text-main); cursor:pointer;',
+                        style: 'font-size:0.75rem; padding:2px; width:100%; border:1px solid var(--color-border); border-radius:4px; background:var(--color-bg-body); color:var(--color-text-main); cursor:pointer;',
                         onchange: (e) => {
                             e.stopPropagation();
                             renameCoinBankImage(img, e.target.value);
@@ -948,6 +951,14 @@ async function loadCoinBankImages(mode) {
 }
 
 function selectBankImage(img) {
+    if (activeContext.isPersonalSlot) {
+        if (typeof activeContext.onSelect === 'function') {
+            activeContext.onSelect(img.filename);
+        }
+        closeModalLegacy('modal-coin-bank');
+        return;
+    }
+    
     activeContext.b64 = img.filename;
     // Update preview in main modal
     const preview = document.getElementById('ii-main-image');

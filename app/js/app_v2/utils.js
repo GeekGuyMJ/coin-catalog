@@ -95,7 +95,14 @@ export function mintRank(mint) {
  * @returns {number} Effective sort year.
  */
 export function sortYear(coin) {
-    return coin.year === 1776 ? 1976 : (coin.year || 9999);
+    if (coin.year === 1776) return 1976;
+    if (typeof coin.year === 'string') {
+        if (coin.year.includes('1776 - 2026')) return 2026;
+        const match = coin.year.match(/\d{4}/);
+        if (match) return parseInt(match[0], 10);
+        return 9999;
+    }
+    return coin.year || 9999;
 }
 
 /**

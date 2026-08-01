@@ -141,16 +141,16 @@
     color:         var(--color-header-text);
     border:        1px solid color-mix(in srgb, var(--color-header-text) 30%, transparent);
     border-radius: var(--radius-sm);
-    padding:       var(--space-1) var(--space-3);
+    padding:       2px 8px;
     font-size:     var(--font-size-sm);
     font-weight:   600;
     white-space:   nowrap;
-    height:        2.25rem;
+    height:        28px;
     line-height:   1.2;
     box-sizing:    border-box;
     display:       inline-flex;
     align-items:   center;
-    gap:           5px;
+    gap:           4px;
 }
 .btn-header:hover {
     background: color-mix(in srgb, var(--color-header-text) 15%, transparent);
@@ -163,11 +163,11 @@
     color:            var(--color-header-text);
     border:           1px solid color-mix(in srgb, var(--color-header-text) 30%, transparent);
     border-radius:    var(--radius-sm);
-    padding:          var(--space-1) var(--space-3);
+    padding:          2px 8px;
     font-size:        var(--font-size-sm);
     font-weight:      600;
     cursor:           pointer;
-    height:           2.25rem;
+    height:           28px;
     line-height:      1.2;
     box-sizing:       border-box;
     appearance:       none;
@@ -293,7 +293,36 @@
     box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
 }
 .search-input::placeholder {
-    color: var(--color-text-muted);
+    color:            var(--color-text-muted);
+}
+
+.year-input, .sort-select {
+    background:       var(--color-bg-body);
+    color:            var(--color-text-main);
+    border:           1px solid var(--color-border);
+    border-radius:    var(--radius-md);
+    padding:          var(--space-2) var(--space-3);
+    font-size:        var(--font-size-sm);
+    box-shadow:       var(--shadow-inset);
+    transition:       all 0.2s ease;
+}
+.year-input {
+    width:            90px;
+    -moz-appearance:  textfield; /* Firefox */
+    appearance:       textfield; /* Standard */
+}
+.year-input::-webkit-outer-spin-button,
+.year-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.year-input:focus, .sort-select:focus {
+    outline:          none;
+    border-color:     var(--color-accent);
+    box-shadow:       0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+.year-input::placeholder {
+    color:            var(--color-text-muted);
 }
 
 .filter-pills {
@@ -421,6 +450,22 @@
 .section-header[aria-expanded="true"] .section-chevron {
     transform: rotate(180deg);
 }
+
+.btn-section-publish {
+    background: var(--color-accent, #2563eb);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-full, 999px);
+    padding: var(--space-1) var(--space-3);
+    font-size: var(--font-size-xs, 0.8rem);
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1.6;
+    transition: filter var(--transition-fast, 0.15s ease);
+}
+.btn-section-publish:hover { filter: brightness(1.12); }
+.btn-section-publish:active { filter: brightness(0.95); }
 
 .folder-view-toggle {
     background: var(--color-bg-body);
@@ -935,6 +980,14 @@
     border:        1px solid var(--color-border-light);
     min-width:     0;
     overflow:      hidden;
+}
+
+#card-portfolio .finance-item {
+    padding: var(--space-2) var(--space-3);
+}
+
+#card-portfolio .finance-grid {
+    gap: var(--space-2);
 }
 
 .finance-label {
@@ -1890,7 +1943,10 @@ select optgroup {
         width:  28px;
         height: 28px;
         font-size: 0.9rem;
-    @media (max-width: 480px) {
+    }
+}
+
+@media (max-width: 480px) {
         .coin-row {
             padding: var(--space-1) var(--space-1);
             gap:    var(--space-1);
@@ -2350,12 +2406,7 @@ select optgroup {
 }
 
 /* ── Expandable cards: stretch to fill grid cell and grow content area ── */
-.dashboard-grid .coinweight-card,
-.dashboard-grid .bullion-card,
-.dashboard-grid .wishlist-card,
-.dashboard-grid .scrap-card,
-.dashboard-grid .paper-card,
-.dashboard-grid .custom-card {
+.dashboard-grid .dashboard-card {
     align-self: stretch;
 }
 .dashboard-grid .coinweight-card .v1-item-list,
@@ -2499,11 +2550,11 @@ select optgroup {
 }
 
 .v1-input {
-    background: var(--color-bg-body);
+    background: var(--color-bg-body) !important;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-base);
     padding: 6px 8px;
-    color: var(--color-text-main);
+    color: var(--color-text-main) !important;
     font-family: inherit;
     font-size: 0.82em;
     transition: border-color var(--transition-fast);
@@ -2518,12 +2569,12 @@ select optgroup {
 .v1-input::placeholder { color: var(--color-text-muted); opacity: 0.7; }
 
 .v1-select {
-    background: var(--color-bg-body);
+    background: var(--color-bg-body) !important;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-base);
     padding: 6px 6px;
     min-width: 0;
-    color: var(--color-text-main);
+    color: var(--color-text-main) !important;
     font-family: inherit;
     font-size: 0.82em;
     cursor: pointer;
@@ -3205,11 +3256,11 @@ select optgroup {
         flex-direction: column;
         align-items: stretch;
     }
-    /* Increase filter-pill touch targets */
+    /* Keep filter pills proportional on mobile */
     .filter-pill {
-        padding: var(--space-2) var(--space-3);
-        font-size: var(--font-size-sm);
-        min-height: 44px;
+        padding: var(--space-1) var(--space-2);
+        font-size: var(--font-size-xs);
+        min-height: 32px;
         display: inline-flex;
         align-items: center;
     }
@@ -3757,3 +3808,32 @@ select optgroup {
 .ready-badge.success { background: var(--color-success); }
 body.ready-mode-active .ready-badge { display: flex; }
 .coin-row-thumb-wrap { position: relative; }
+
+/* Custom tweaks for header and mobile layout */
+#app-header {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+}
+
+#app-header .header-logo {
+    margin-top: -2px !important;
+    margin-bottom: -45px !important;
+}
+
+
+.header-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+    #btn-install {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) and (orientation: portrait) {
+    #btn-layout {
+        display: none !important;
+    }
+}

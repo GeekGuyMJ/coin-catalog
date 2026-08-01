@@ -255,7 +255,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 3;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 4;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -273,71 +273,8 @@ export async function runMigrations() {
             .and(c => c.section === 'US Coinage — Large & Small Cent' && c.year === 2026)
             .toArray();
         for (const coin of coins2026) {
-            await db.coins_reference.update(coin.id, { year: '1776 - 2026' });
-            console.log(`  Updated coin id=${coin.id} year 2026 → "1776 - 2026"`);
-        }
-
-        // Add 2025 Omega Penny entries if they don't exist
-        const existing2025 = await db.coins_reference
-            .where('coin_type').equals('Lincoln Shield')
-            .and(c => c.section === 'US Coinage — Large & Small Cent' && 
-                      c.year === 2025 && 
-                      c.ref_notes && c.ref_notes.includes('Omega'))
-            .count();
-        if (existing2025 === 0) {
-            const maxId = await db.coins_reference.orderBy('id').last();
-            let nextId = (maxId?.id || 6000) + 1;
-            const omegaEntries = [
-                {
-                    id: nextId++,
-                    section: 'US Coinage — Large & Small Cent',
-                    denomination: '1 Cent',
-                    coin_type: 'Lincoln Shield',
-                    year: '2025 (Omega Privy Mark)',
-                    mint_mark: 'D',
-                    metal: '97.5% Zinc / 2.5% Copper',
-                    weight_grams: 2.5,
-                    is_key_date: false,
-                    is_proof: false,
-                    is_error: false,
-                    mintage: null,
-                    ref_notes: '2025 Omega Penny — Denver Mint. Special one-year Lincoln cent featuring the Omega privy mark (the Greek letter omega, symbolizing finality or completion). Released as a numismatic collectible alongside the Philadelphia and 24k Gold versions. The Lincoln Shield reverse continued.'
-                },
-                {
-                    id: nextId++,
-                    section: 'US Coinage — Large & Small Cent',
-                    denomination: '1 Cent',
-                    coin_type: 'Lincoln Shield',
-                    year: '2025 (Omega Privy Mark)',
-                    mint_mark: 'P',
-                    metal: '97.5% Zinc / 2.5% Copper',
-                    weight_grams: 2.5,
-                    is_key_date: false,
-                    is_proof: false,
-                    is_error: false,
-                    mintage: null,
-                    ref_notes: '2025 Omega Penny — Philadelphia Mint. Special one-year Lincoln cent featuring the Omega privy mark. The Omega privy mark signifies the final year of the Lincoln Shield cent design before the 2026 Semiquincentennial redesign. Struck at Philadelphia.'
-                },
-                {
-                    id: nextId++,
-                    section: 'US Coinage — Large & Small Cent',
-                    denomination: '1 Cent',
-                    coin_type: 'Lincoln Shield',
-                    year: '2025 (24K Gold Omega Privy Mark)',
-                    mint_mark: '',
-                    metal: '24k Gold (.9999 Fine)',
-                    weight_grams: 2.5,
-                    is_key_date: false,
-                    is_proof: true,
-                    is_error: false,
-                    mintage: null,
-                    ref_notes: '2025 Omega Penny — 24k Gold Proof. Struck in .9999 fine gold with the Omega privy mark. A numismatic release commemorating the final year of the Lincoln Shield cent design (2010-2025). Features a proof finish with the Omega symbol appearing on the obverse.'
-                }
-            ];
-            await db.coins_reference.bulkAdd(omegaEntries);
-            console.log(`  Added ${omegaEntries.length} Omega Penny entries`);
-        } else {
-            console.log(`  Omega Penny entries already exist (${existing2025}), skipping`);
+            await db.coins_reference.update(coin.id, { year: '1776 - 2026 Semiquincentennial' });
+            console.log(`  Updated coin id=${coin.id} year 2026 → "1776 - 2026 Semiquincentennial"`);
         }
     }
 
@@ -378,6 +315,28 @@ export async function runMigrations() {
         }
         console.log('Omega Penny rename migration complete.');
     }
+
+    // Migration 3 → 4: Clean up duplicate Omega Privy Mark entries and append Semiquincentennial to 2026
+    if (storedVersion < 4) {
+        // Delete dummy Omega Privy Mark entries
+        const toDelete = await db.coins_reference
+            .filter(c => typeof c.year === 'string' && (c.year === '2025 (Omega Privy Mark)' || c.year === '2025 (24K Gold Omega Privy Mark)'))
+            .primaryKeys();
+        if (toDelete.length > 0) {
+            await db.coins_reference.bulkDelete(toDelete);
+            console.log(`  Deleted ${toDelete.length} dummy Omega Privy Mark entries.`);
+        }
+        
+        // Update 1776 - 2026 to 1776 - 2026 Semiquincentennial
+        const coins2026_str = await db.coins_reference
+            .filter(c => typeof c.year === 'string' && c.year === '1776 - 2026')
+            .toArray();
+        for (const coin of coins2026_str) {
+            await db.coins_reference.update(coin.id, { year: '1776 - 2026 Semiquincentennial' });
+            console.log(`  Updated coin id=${coin.id} year → "1776 - 2026 Semiquincentennial"`);
+        }
+    }
+
 
     localStorage.setItem(versionKey, String(DB_DATA_VERSION));
     console.log(`Data migration to v${DB_DATA_VERSION} complete.`);
@@ -1399,10 +1358,8 @@ export async function _getCoimageGroupMembers(coinType, side) {
                     members.push(cfg.coin_type);
                 }
             }
-            if (members.length > 1) return [...new Set(members)];
+            if (members.length > 0) return [...new Set(members)];
         }
-        
-        // No base name — check if this is a standalone type like "Lincoln Memorial"
         // where ALL variants share the same reverse
         // Look for other configs that share the same "root" name
         const rootName = coinType.replace(/\(.*\)$/, '').replace(/_[a-z]+_proof$/i, '').replace(/ - .*$/, '').trim();
@@ -1986,8 +1943,34 @@ export async function importCSVLocal(csvText) {
 
 export async function publishSectionLocal(sectionName) {
     console.log('[db] publishSectionLocal called for:', sectionName);
-    // For the self-hosted version, this proxy-call goes to the backend API.
-    // For the public/indexedDB version, this is a stub — real publishing
-    // only works on the self-hosted instance with the backend.
-    return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };
+    // Self-hosted detection: Tailscale MagicDNS hostname or LAN IP.
+    const host = window.location.hostname || '';
+    const isSelfHosted = host.includes('opaleye-bluegill') || host.includes('ts.net') || host.includes('192.168.');
+    if (!isSelfHosted) {
+        // Public/indexedDB version: stub — real publishing only works on self-hosted.
+        return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };
+    }
+    // Self-hosted: call the real Flask backend. Use XMLHttpRequest so we bypass
+    // the global fetch interceptor in api.js (which would otherwise swallow this
+    // call and route it back here infinitely).
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/publish_section', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    resolve(JSON.parse(xhr.responseText));
+                } catch (e) {
+                    reject(new Error('Invalid JSON from publish API: ' + xhr.responseText));
+                }
+            } else {
+                let detail = xhr.responseText || ('HTTP ' + xhr.status);
+                try { detail = JSON.parse(xhr.responseText).error || detail; } catch (e) {}
+                reject(new Error(detail));
+            }
+        };
+        xhr.onerror = () => reject(new Error('Network error calling /api/publish_section'));
+        xhr.send(JSON.stringify({ section: sectionName }));
+    });
 }

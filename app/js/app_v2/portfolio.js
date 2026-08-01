@@ -583,6 +583,7 @@ function buildPortfolioBreakdownCard(p) {
     var btnRow = el('div', {style:'display:flex; gap:8px; margin-top:4px; font-size:0.7em;'});
     var periods = [
         {label:'1D', ms:86400000},
+        {label:'1W', ms:7*86400000},
         {label:'1M', ms:30*86400000},
         {label:'1Y', ms:365*86400000},
         {label:'10Y', ms:3650*86400000}
@@ -1012,9 +1013,9 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     var form = el('div', { className: 'v1-form', style: 'flex-shrink:0;' });
 
     // Row 1: Label + Metal Type
-    var row1 = el('div', { className: 'v1-form-row' });
-    var labelIn = el('input', { className: 'v1-input', placeholder: 'Label (e.g. Wheat Cents)', dataset: { field: 'be-label' }, style: 'flex:1;' });
-    var metalSel = el('select', { className: 'v1-select', dataset: { field: 'be-metal' } });
+    var row1 = el('div', { className: 'v1-form-row', style: 'flex-wrap: wrap;' });
+    var labelIn = el('input', { className: 'v1-input', placeholder: 'Label (e.g. Wheat Cents)', dataset: { field: 'be-label' }, style: 'flex:1; min-width:120px;' });
+    var metalSel = el('select', { className: 'v1-select', dataset: { field: 'be-metal' }, style: 'flex:1; min-width:120px;' });
     ['Copper Pennies 1959-1981', 'Zinc Pennies 1983-2025', 'Nickels', 'Clad Dimes', 'Clad Quarters', 'Clad Half Dollars', '90% Silver Coins',
      // Canada (small → large)
      'Canadian Copper Pennies 1920-1996', 'Canadian Zinc Pennies 1997-2012', 'Canadian Nickels', 'Canadian Silver Dimes (pre-1968)', 'Canadian Clad Dimes (1968+)', 'Canadian Silver Quarters (pre-1968)', 'Canadian Clad Quarters (1968+)', 'Canadian 50¢ Pieces', 'Canadian Loonies (1$)'].forEach(function(label) {
@@ -1025,9 +1026,9 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     form.appendChild(row1);
 
     // Row 2: Weight + Unit
-    var row2 = el('div', { className: 'v1-form-row' });
-    var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'be-weight' }, style: 'flex:1;min-width:60px;' });
-    var unitSel = el('select', { className: 'v1-select', style: 'width:76px;', dataset: { field: 'be-unit' } });
+    var row2 = el('div', { className: 'v1-form-row', style: 'flex-wrap: wrap;' });
+    var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'be-weight' }, style: 'flex:1; min-width:80px;' });
+    var unitSel = el('select', { className: 'v1-select', style: 'width:76px; flex-shrink:0;', dataset: { field: 'be-unit' } });
     [['lbs','lbs'],['g','g'],['oz','oz'],['kg','kg']].forEach(function(u) {
         unitSel.appendChild(el('option', { value: u[0] }, u[1]));
     });
@@ -1114,7 +1115,7 @@ function _sparkline(canvas, data, color, width, height) {
     var dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
     canvas.height = height * dpr;
-    canvas.style.width = width + 'px';
+    canvas.style.width = '100%';
     canvas.style.height = height + 'px';
     
     var ctx = canvas.getContext('2d');
