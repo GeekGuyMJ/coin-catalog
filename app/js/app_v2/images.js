@@ -62,6 +62,7 @@ let isDraggingCrop = false;
 let dragStartX, dragStartY;
 let cropOffX = 0, cropOffY = 0, cropScale = 1;
 let cropRotation = 0; // in degrees
+let cropShape = 'circle'; // current crop shape (circle/rect/square/original)
 let initialCropScale = 1;
 
 // ============================================================
