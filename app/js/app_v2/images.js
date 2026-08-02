@@ -1533,6 +1533,11 @@ function drawCropCanvas() {
     ctx_crop.restore();
 
     // Draw crop guide overlay (circle, rectangle, or square) — outside clip so always visible as dashed line
+    // NOTE: restore() above undid the translate(cx, cy), so re-translate to canvas
+    // center — all guide coords below are 0-centered. Without this, the guide is
+    // drawn at the top-left corner (stray black dashed arc).
+    ctx_crop.save();
+    ctx_crop.translate(cx, cy);
     const guideSize = Math.min(cw, ch) * visibleR;
     
     ctx_crop.strokeStyle = 'var(--color-accent, #e8b04a)';
@@ -1602,6 +1607,7 @@ function drawCropCanvas() {
         ctx_crop.lineWidth = 1;
         ctx_crop.stroke();
         ctx_crop.setLineDash([]);
+        ctx_crop.restore();
         return; // skip the default circle
     } else if (cropShape === 'rect') {
         // Rectangle guide
@@ -1618,6 +1624,7 @@ function drawCropCanvas() {
     }
     
     ctx_crop.setLineDash([]);
+    ctx_crop.restore();
 }
 
 // Set crop shape and update UI
