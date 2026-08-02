@@ -1540,7 +1540,10 @@ function drawCropCanvas() {
     ctx_crop.translate(cx, cy);
     const guideSize = Math.min(cw, ch) * visibleR;
     
-    ctx_crop.strokeStyle = 'var(--color-accent, #e8b04a)';
+    // Canvas 2D does NOT resolve CSS var() in strokeStyle — get the computed
+    // accent color so the guide isn't silently drawn in black.
+    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--color-accent').trim() || '#60a5fa';
+    ctx_crop.strokeStyle = accentColor;
     ctx_crop.lineWidth = 2;
     ctx_crop.setLineDash([8, 4]);
     
