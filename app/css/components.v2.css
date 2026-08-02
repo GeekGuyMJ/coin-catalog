@@ -3843,8 +3843,8 @@ body.ready-mode-active .ready-badge { display: flex; }
 /* Phone: shrink header coin logo so info/settings/theme buttons fit on one row */
 @media (max-width: 480px) {
     #app-header {
-        padding-top: 2px !important;
-        padding-bottom: 2px !important;
+        padding-top: 1px !important;
+        padding-bottom: 1px !important;
     }
     #app-header .header-logo,
     #header-coin-img {
@@ -3857,7 +3857,7 @@ body.ready-mode-active .ready-badge { display: flex; }
         gap: var(--space-1);
     }
     #app-header .app-title {
-        font-size: 0.95rem;
+        font-size: 1.05rem;
         line-height: 1.1;
     }
     #app-header .header-right {
