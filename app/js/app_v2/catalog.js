@@ -1014,17 +1014,7 @@ function buildCoinRow(coin) {
     } else {
         thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev"}}));
     }
-    
-    // Add mobile flip button if both obverse and reverse exist
-    if (obvSrc && revSrc) {
-        var flipBtn = el("button", {className: "mobile-flip-btn", title: "Show Reverse"}, "↺");
-        flipBtn.onclick = function(e) {
-            e.stopPropagation();
-            thumbWrap.classList.toggle("show-rev");
-        };
-        thumbWrap.appendChild(flipBtn);
-    }
-    
+
     row.appendChild(thumbWrap);
 
     var info = el("div", {className: "coin-row-info"});
@@ -1082,12 +1072,7 @@ function buildCoinRow(coin) {
     if (sub.length) info.appendChild(el("span", {className: "coin-row-sub"}, sub.join(" · ")));
     row.appendChild(info);
 
-    // Detail toggle button
-    var detailBtn = el("span", {className: "coin-row-detail-toggle", role: "button", tabIndex: 0, dataset: {action: "toggle-detail"}}, "▼ Details");
-    // Only hide if 0 qty AND no historical notes, otherwise they can't open notes
-    if (totalQty === 0 && !hasRefNotes) {
-        detailBtn.style.display = "none";
-    }
+    // Show detail toggle always — it's the "more info" chevron indicator
     row.appendChild(detailBtn);
 
     // Wishlist Heart Icon
