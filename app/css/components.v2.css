@@ -3870,20 +3870,36 @@ body.ready-mode-active .ready-badge { display: flex; }
     }
 }
 
-/* Small landscape: stack title over buttons into two rows so nothing pushes off the edge */
+/* Small landscape: coin + title on top row (title right-aligned), buttons on 2nd row right-aligned */
 @media (max-width: 900px) and (orientation: landscape) {
     #app-header .header-inner {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 2px !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+    }
+    #app-header .header-inner .header-logo,
+    #app-header #header-coin-img {
+        width: 48px !important;
+        height: 48px !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+        max-width: 48px !important;
+        max-height: 48px !important;
+        margin: 0 !important;
+    }
+    #app-header .header-left {
+        flex: 1 1 auto !important;
+        margin: 0 !important;
+        text-align: right !important;
     }
     #app-header .app-title {
-        font-size: 0.95rem;
+        font-size: 1rem;
+        text-align: right !important;
     }
     #app-header .header-right {
-        width: 100% !important;
-        justify-content: flex-start !important;
+        flex-basis: 100% !important;
+        justify-content: flex-end !important;
         flex-wrap: wrap !important;
+        margin-top: 2px !important;
     }
 }
 
