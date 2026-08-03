@@ -747,9 +747,13 @@ async function _restoreFromOneDrive(auth) {
 // ============================================================
 
 async function _syncToWebDAV(jsonStr, auth) {
-  const url = auth.url;
+  let url = auth.url;
   const username = auth.username;
   const password = auth.password;
+
+  // Self-hosted: route through the same-origin /dav/ proxy if a Nextcloud
+  // URL was entered (avoids cross-origin Basic-auth browser prompt)
+  if (/nextcloud\.opaleye-bluegill\.ts\.net/i.test(url)) url = '/dav/';
 
   if (!url) throw new Error('WebDAV URL not configured');
 
@@ -773,9 +777,13 @@ async function _syncToWebDAV(jsonStr, auth) {
 }
 
 async function _restoreFromWebDAV(auth) {
-  const url = auth.url;
+  let url = auth.url;
   const username = auth.username;
   const password = auth.password;
+
+  // Self-hosted: route through the same-origin /dav/ proxy if a Nextcloud
+  // URL was entered (avoids cross-origin Basic-auth browser prompt)
+  if (/nextcloud\.opaleye-bluegill\.ts\.net/i.test(url)) url = '/dav/';
 
   if (!url) throw new Error('WebDAV URL not configured');
 
