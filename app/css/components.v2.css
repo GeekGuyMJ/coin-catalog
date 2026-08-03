@@ -3846,10 +3846,14 @@ body.ready-mode-active .ready-badge { display: flex; }
         align-items: center;
         gap: var(--space-1);
     }
-    #app-header .header-logo,
-    #header-coin-img {
+    #app-header .header-inner .header-logo,
+    #app-header #header-coin-img {
         width: 24px !important;
         height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        max-width: 24px !important;
+        max-height: 24px !important;
         margin: 0 !important;
     }
     #app-header .app-title {
