@@ -3834,39 +3834,37 @@ body.ready-mode-active .ready-badge { display: flex; }
     }
 }
 
-/* Phone: shrink header coin logo so info/settings/theme buttons fit on one row */
+/* Phone: short title bar — thin colored strip; coin overlaps bottom edge, buttons keep app size */
 @media (max-width: 480px) {
     #app-header {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-        margin-bottom: -8px !important;
+        height: 20px !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+    #app-header .header-inner {
+        align-items: flex-end;
+        height: 100%;
+        gap: var(--space-1);
     }
     #app-header .header-logo,
     #header-coin-img {
-        width: 22px !important;
-        height: 22px !important;
+        width: 24px !important;
+        height: 24px !important;
         margin: 0 !important;
-    }
-    #app-header .header-inner {
-        align-items: center;
-        gap: var(--space-1);
     }
     #app-header .app-title {
         font-size: 1rem;
         line-height: 1;
+        margin: 0;
     }
     #app-header .header-right {
         flex-wrap: nowrap;
         justify-content: flex-end;
         gap: var(--space-1);
+        align-items: flex-end;
     }
-    #app-header .btn-header,
-    #app-header .theme-select {
-        height: 22px !important;
-        padding: 0 5px !important;
-        font-size: 0.72rem !important;
-        min-height: 0 !important;
-    }
+    /* Buttons intentionally keep their normal app size (28px) — no override */
 }
 
 
