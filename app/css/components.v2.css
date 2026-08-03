@@ -3817,12 +3817,6 @@ body.ready-mode-active .ready-badge { display: flex; }
     padding-bottom: 4px !important;
 }
 
-#app-header .header-logo {
-    margin-top: -2px !important;
-    margin-bottom: -45px !important;
-}
-
-
 .header-right {
     flex-wrap: wrap;
     justify-content: flex-end;
