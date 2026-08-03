@@ -3902,7 +3902,7 @@ body.ready-mode-active .ready-badge { display: flex; }
     }
     #app-header .app-title {
         font-size: 0.95rem;
-        line-height: 1 !important;
+        line-height: 28px !important;
         text-align: right !important;
         margin: 0 !important;
         white-space: nowrap !important;
