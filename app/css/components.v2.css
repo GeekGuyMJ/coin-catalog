@@ -3893,6 +3893,7 @@ body.ready-mode-active .ready-badge { display: flex; }
         max-height: 60px !important;
         margin: 0 0 -16px 0 !important;
         z-index: 20 !important;
+        align-self: flex-start !important;
     }
     #app-header .header-left {
         flex: 1 1 auto !important;
