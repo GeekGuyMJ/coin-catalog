@@ -468,7 +468,7 @@ async function showCloudSyncModal() {
         getProviderAuthState, setProviderAuthState,
         syncToCloud, syncFromCloud,
         authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox
-    } = await import('./sync.js?v=7');
+    } = await import('./sync.js?v=8');
 
     const providers = getAllProviders();
 
@@ -536,19 +536,26 @@ async function showCloudSyncModal() {
                             onchange: (e) => setProviderAuthState('webdav', { ...authState, password: e.target.value }),
                         })
                     ]),
-                ]) : el('div', { style: 'padding: 12px; background: var(--color-bg); border-radius: 8px; color: var(--color-text-muted); font-size: var(--font-size-sm); text-align: center;' },
-                    'This provider requires a backend server with OAuth support. Not available from this app. Use WebDAV instead — it works right now.'
-                ),
+                ]) : el('div', { style: 'display:flex; flex-direction:column; gap:12px;' }, [
+                    el('p', { className: 'settings-text' }, 'Sign in with ' + provider.name + ' to back up and restore your collection. Uses a secure browser OAuth flow — no server required.'),
+                    el('button', {
+                        className: 'btn-primary',
+                        onclick: provider.id === 'googleDrive' ? authenticateGoogleDrive : (provider.id === 'dropbox' ? authenticateDropbox : authenticateOneDrive)
+                    }, authState.authenticated ? 'Re-authenticate with ' + provider.name : 'Sign in with ' + provider.name),
+                ]),
             ]));
 
-            // Sync Actions — only show for WebDAV (others don't actually work)
-            if (currentProviderId === 'webdav') {
+            // Sync Actions — WebDAV always; OAuth only after authentication
+            const canSync = currentProviderId === 'webdav' || authState.authenticated;
+            if (canSync) {
                 panel.appendChild(el('div', { className: 'settings-section' }, [
                     el('h4', { className: 'settings-subhead' }, 'Sync Actions'),
-                    el('p', { className: 'settings-text' }, 'Enter your server details above, then click Backup. This sends your full collection backup as a JSON file to the WebDAV server.'),
+                    el('p', { className: 'settings-text' }, currentProviderId === 'webdav'
+                        ? 'Enter your server details above, then click Backup. This sends your full collection backup as a JSON file to the WebDAV server.'
+                        : 'Click Backup to save your collection to ' + provider.name + ', or Restore to load a previous backup.'),
                     el('div', { className: 'settings-action-group' }, [
-                        el('button', { className: 'btn-primary', onclick: syncToCloud }, 'Backup to WebDAV'),
-                        el('button', { className: 'btn-secondary', onclick: syncFromCloud }, 'Restore from WebDAV'),
+                        el('button', { className: 'btn-primary', onclick: syncToCloud }, 'Backup to ' + provider.name),
+                        el('button', { className: 'btn-secondary', onclick: syncFromCloud }, 'Restore from ' + provider.name),
                     ])
                 ]));
             }

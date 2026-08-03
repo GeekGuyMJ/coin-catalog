@@ -58,13 +58,6 @@ const CREDENTIALS = {
 
 const PROVIDERS = [
   {
-    id: 'webdav',
-    name: 'WebDAV',
-    icon: '\u{1F5C2}',
-    description: 'Self-hosted WebDAV-compatible storage (Nextcloud, ownCloud, Synology). Add your server URL and credentials below.',
-    requiresAuth: false,
-  },
-  {
     id: 'googleDrive',
     name: 'Google Drive',
     icon: '\u{1F310}',

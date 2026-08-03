@@ -26,6 +26,7 @@ import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrenc
 import { openStoriesModal } from './stories.js';
 import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDropdown.js';
 import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection } from './settingsDropdown.js';
+import { handleOAuthCallback } from './sync.js';
 import { initWishlist, openWishlistPanel } from './wishlist.js';
 
 export { showToast };
@@ -116,6 +117,14 @@ async function boot() {
     }
     console.log('[boot] Starting...');
     setLoading(true);
+
+    // Handle OAuth provider redirects (Google/Dropbox/OneDrive) returning to the app
+    try {
+        const handled = await handleOAuthCallback();
+        if (handled) console.log('[boot] OAuth callback handled.');
+    } catch (e) {
+        console.warn('[boot] OAuth callback handling failed:', e.message);
+    }
     syncThemeSelector();
     // Set sticky header offsets after first layout — use rAF to ensure DOM is painted
     requestAnimationFrame(() => updateStickyOffsets());
