@@ -3883,6 +3883,7 @@ body.ready-mode-active .ready-badge { display: flex; }
         flex-wrap: nowrap !important;
         align-items: center !important;
         gap: var(--space-1) !important;
+        padding: 0 !important;
     }
     #app-header .header-inner .header-logo,
     #app-header #header-coin-img {
@@ -3892,7 +3893,7 @@ body.ready-mode-active .ready-badge { display: flex; }
         min-height: 60px !important;
         max-width: 60px !important;
         max-height: 60px !important;
-        margin: 0 !important;
+        margin: 0 0 -8px 0 !important;
         z-index: 20 !important;
         align-self: flex-start !important;
     }
