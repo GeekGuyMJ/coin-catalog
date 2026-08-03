@@ -3870,21 +3870,29 @@ body.ready-mode-active .ready-badge { display: flex; }
     }
 }
 
-/* Small landscape: coin + title on top row (title right-aligned), buttons on 2nd row right-aligned */
+/* Small landscape: coin spans both rows + spills; title top-right, buttons bottom-right; shallow bar */
 @media (max-width: 900px) and (orientation: landscape) {
+    #app-header {
+        min-height: 38px !important;
+        height: auto !important;
+        padding: 2px var(--space-1) !important;
+        overflow: visible !important;
+    }
     #app-header .header-inner {
         flex-wrap: wrap !important;
         align-items: center !important;
+        gap: 0 !important;
     }
     #app-header .header-inner .header-logo,
     #app-header #header-coin-img {
-        width: 48px !important;
-        height: 48px !important;
-        min-width: 48px !important;
-        min-height: 48px !important;
-        max-width: 48px !important;
-        max-height: 48px !important;
-        margin: 0 !important;
+        width: 60px !important;
+        height: 60px !important;
+        min-width: 60px !important;
+        min-height: 60px !important;
+        max-width: 60px !important;
+        max-height: 60px !important;
+        margin: 0 0 -18px 0 !important;
+        z-index: 20 !important;
     }
     #app-header .header-left {
         flex: 1 1 auto !important;
@@ -3892,14 +3900,17 @@ body.ready-mode-active .ready-badge { display: flex; }
         text-align: right !important;
     }
     #app-header .app-title {
-        font-size: 1rem;
+        font-size: 0.95rem;
+        line-height: 1 !important;
         text-align: right !important;
+        margin: 0 !important;
     }
     #app-header .header-right {
         flex-basis: 100% !important;
         justify-content: flex-end !important;
         flex-wrap: wrap !important;
-        margin-top: 2px !important;
+        align-items: center !important;
+        margin-top: 0 !important;
     }
 }
 
