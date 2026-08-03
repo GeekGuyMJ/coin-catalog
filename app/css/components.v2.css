@@ -3837,7 +3837,7 @@ body.ready-mode-active .ready-badge { display: flex; }
 /* Phone: short title bar — thin colored strip; coin overlaps bottom edge, buttons keep app size */
 @media (max-width: 480px) {
     #app-header {
-        height: 20px !important;
+        height: 34px !important;
         min-height: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
