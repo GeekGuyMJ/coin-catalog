@@ -3834,17 +3834,16 @@ body.ready-mode-active .ready-badge { display: flex; }
     }
 }
 
-/* Phone: short title bar — thin colored strip; coin overlaps bottom edge, buttons keep app size */
+/* Phone: shorter title bar that still contains its content (no spill onto cards) */
 @media (max-width: 480px) {
     #app-header {
-        height: 34px !important;
-        min-height: 0 !important;
-        padding: 0 !important;
-        overflow: visible !important;
+        min-height: 34px !important;
+        height: auto !important;
+        padding: 3px var(--space-1) !important;
+        overflow: hidden !important;
     }
     #app-header .header-inner {
-        align-items: flex-end;
-        height: 100%;
+        align-items: center;
         gap: var(--space-1);
     }
     #app-header .header-logo,
@@ -3862,9 +3861,9 @@ body.ready-mode-active .ready-badge { display: flex; }
         flex-wrap: nowrap;
         justify-content: flex-end;
         gap: var(--space-1);
-        align-items: flex-end;
+        align-items: center;
     }
-    /* Buttons intentionally keep their normal app size (28px) — no override */
+    /* Buttons keep their normal app size (28px) — they fit inside the 34px bar */
 }
 
 
