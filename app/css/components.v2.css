@@ -3873,7 +3873,7 @@ body.ready-mode-active .ready-badge { display: flex; }
 /* Small landscape: single row — coin left (spills past short bar), title + buttons line up level right-aligned */
 @media (max-width: 900px) and (orientation: landscape) {
     #app-header {
-        min-height: 52px !important;
+        min-height: 50px !important;
         height: auto !important;
         padding: 1px var(--space-1) !important;
         overflow: visible !important;
