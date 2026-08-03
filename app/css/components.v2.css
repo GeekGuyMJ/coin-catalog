@@ -3870,10 +3870,10 @@ body.ready-mode-active .ready-badge { display: flex; }
     }
 }
 
-/* Small landscape: single row — coin left (spills), title + buttons line up right-aligned; thin bar */
+/* Small landscape: single row — coin left (spills past short bar), title + buttons line up level right-aligned */
 @media (max-width: 900px) and (orientation: landscape) {
     #app-header {
-        min-height: 32px !important;
+        min-height: 52px !important;
         height: auto !important;
         padding: 1px var(--space-1) !important;
         overflow: visible !important;
@@ -3891,7 +3891,7 @@ body.ready-mode-active .ready-badge { display: flex; }
         min-height: 60px !important;
         max-width: 60px !important;
         max-height: 60px !important;
-        margin: 0 0 -16px 0 !important;
+        margin: 0 !important;
         z-index: 20 !important;
         align-self: flex-start !important;
     }
