@@ -3870,4 +3870,21 @@ body.ready-mode-active .ready-badge { display: flex; }
     }
 }
 
+/* Small landscape: stack title over buttons into two rows so nothing pushes off the edge */
+@media (max-width: 900px) and (orientation: landscape) {
+    #app-header .header-inner {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 2px !important;
+    }
+    #app-header .app-title {
+        font-size: 0.95rem;
+    }
+    #app-header .header-right {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+    }
+}
+
 
