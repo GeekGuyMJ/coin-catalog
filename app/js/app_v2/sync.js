@@ -42,7 +42,7 @@ import { getFullBackupLocal, restoreBackupLocal } from './db.js';
 
 const CREDENTIALS = {
   googleDrive: {
-    clientId: 'YOUR_GOOGLE_DRIVE_CLIENT_ID.apps.googleusercontent.com',
+    clientId: '83040502093-ee0g8gfbrnplh1j56ochq4v5p0q6do5f.apps.googleusercontent.com',
     scope: 'https://www.googleapis.com/auth/drive.appdata'
   },
   dropbox: {
