@@ -541,6 +541,10 @@ export async function fetchTypeConfigsLocal() {
             rev_image: cfg._deleted_rev_image ? null : cfg.rev_image,
             proof_obv_image: cfg._deleted_proof_obv_image ? null : cfg.proof_obv_image,
             proof_rev_image: cfg._deleted_proof_rev_image ? null : cfg.proof_rev_image,
+            _deleted_obv_image: !!cfg._deleted_obv_image,
+            _deleted_rev_image: !!cfg._deleted_rev_image,
+            _deleted_proof_obv_image: !!cfg._deleted_proof_obv_image,
+            _deleted_proof_rev_image: !!cfg._deleted_proof_rev_image,
             base_price: cfg.base_price || 0,
             key_price: cfg.key_price || 0
         };
@@ -1653,8 +1657,25 @@ export async function deleteCoinBankImageLocal(filename) {
 }
 
 export async function factoryResetImagesLocal() {
-    await db.coin_type_config.clear();
-    console.log('[factoryReset] Cleared all coin_type_config and deletion flags.');
+    // IMPORTANT: do NOT db.coin_type_config.clear() -- that empties the table and on the
+    // next boot configCount===0 triggers a re-seed from type_configs.json, restoring every
+    // image. Instead null every image field and set _deleted_<field> flags so the deletion
+    // persists and the seed-merge logic (which honors _deleted_*) never re-adds them.
+    const cfgs = await db.coin_type_config.toArray();
+    const fields = ["obv_image", "rev_image", "proof_obv_image", "proof_rev_image"];
+    for (const cfg of cfgs) {
+        const updates = {};
+        for (const f of fields) {
+            if (cfg[f] !== undefined && cfg[f] !== null) {
+                updates[f] = null;
+                updates["_deleted_" + f] = true;
+            }
+        }
+        if (Object.keys(updates).length) {
+            await db.coin_type_config.update(cfg.coin_type, updates);
+        }
+    }
+    console.log('[factoryReset] Nulled all coin_type_config images and set deletion flags.');
     // Nullify all inventory photos
     const items = await db.user_inventory.toArray();
     for (const item of items) {
