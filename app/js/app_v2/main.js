@@ -25,7 +25,7 @@ import { showToast } from './notifications.js';
 import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal, openVisibilityModal, openCustomThemeDesigner } from './modals.v2.js';
 import { openStoriesModal } from './stories.js';
 import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDropdown.js';
-import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection } from './settingsDropdown.js';
+import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection, showCloudSyncModal } from './settingsDropdown.js';
 import { handleOAuthCallback } from './sync.js';
 import { initWishlist, openWishlistPanel } from './wishlist.js';
 
@@ -121,7 +121,12 @@ async function boot() {
     // Handle OAuth provider redirects (Google/Dropbox/OneDrive) returning to the app
     try {
         const handled = await handleOAuthCallback();
-        if (handled) console.log('[boot] OAuth callback handled.');
+        if (handled) {
+            console.log('[boot] OAuth callback handled.');
+            // Auto-open Cloud Sync so the user sees the authenticated provider + Backup/Restore buttons
+            // (Dropbox/OneDrive use a full-page redirect, so the modal was closed on return).
+            try { await showCloudSyncModal(); } catch (mErr) { console.warn('[boot] auto-open Cloud Sync failed:', mErr.message); }
+        }
     } catch (e) {
         console.warn('[boot] OAuth callback handling failed:', e.message);
     }
