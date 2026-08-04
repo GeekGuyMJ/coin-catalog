@@ -208,12 +208,32 @@ export async function authenticateGoogleDrive() {
     });
 
     const expiresAt = Date.now() + (tokenResponse.expires_in || 3600) * 1000;
+    const accessToken = tokenResponse.access_token;
     setProviderAuthState('googleDrive', {
       authenticated: true,
-      accessToken: tokenResponse.access_token,
+      accessToken: accessToken,
       tokenType: tokenResponse.token_type || 'Bearer',
       expiresAt,
     });
+
+    // Verify the granted token actually has the drive.appdata scope by hitting
+    // the Drive API immediately. If Google didn't grant it (e.g. the scope isn't
+    // configured in the OAuth consent screen), fail loudly instead of 403-ing later.
+    try {
+      const verify = await fetch(
+        'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1&fields=files(id)',
+        { headers: { Authorization: 'Bearer ' + accessToken } }
+      );
+      if (!verify.ok) {
+        const body = await verify.text();
+        showToast('Google Drive authenticated, but Drive API access was denied (HTTP ' + verify.status + '). Add the "drive.appdata" scope in Google Cloud Console → OAuth consent screen → Scopes.', 'error');
+        console.error('Google Drive scope verification failed:', verify.status, body);
+        return false;
+      }
+    } catch (vErr) {
+      showToast('Google Drive authenticated, but Drive API check failed: ' + vErr.message, 'error');
+      return false;
+    }
 
     showToast('Google Drive authenticated!', 'success');
     return true;
@@ -511,11 +531,11 @@ export async function syncFromCloud() {
 // ============================================================
 
 function _getGoogleAccessToken(auth) {
-  // Check token expiry — refresh if needed (GIS handles this internally)
+  if (!auth || !auth.accessToken) {
+    throw new Error('Not authenticated with Google Drive. Please sign in again.');
+  }
   if (auth.expiresAt && Date.now() > auth.expiresAt - 60000) {
-    // Token expired — need re-auth
-    // For simplicity, re-trigger auth silently
-    return _refreshGoogleToken();
+    throw new Error('Google Drive session expired. Please sign in with Google Drive again.');
   }
   return auth.accessToken;
 }

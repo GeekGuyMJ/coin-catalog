@@ -468,7 +468,7 @@ async function showCloudSyncModal() {
         getProviderAuthState, setProviderAuthState,
         syncToCloud, syncFromCloud,
         authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox
-    } = await import('./sync.js?v=10');
+    } = await import('./sync.js?v=11');
 
     const providers = getAllProviders();
 
@@ -476,6 +476,17 @@ async function showCloudSyncModal() {
         const panel = el('div');
         const currentProvider = getCurrentProvider();
         const currentProviderId = currentProvider ? currentProvider.id : null;
+
+        // Re-render the whole Cloud Sync panel after OAuth completes so the
+        // Backup/Restore buttons appear without the user re-clicking.
+        // Defined in this scope so it can see `render`.
+        const refreshCloudSyncPanel = () => {
+            const modal = document.getElementById('modal-settings-cloud');
+            if (!modal) return;
+            const bc = modal.querySelector('.modal-body');
+            if (bc) { bc.innerHTML = ''; bc.appendChild(render()); }
+        };
+        window.__refreshCloudSyncPanel = refreshCloudSyncPanel;
 
         // Provider Selection
         panel.appendChild(el('div', { className: 'settings-section' }, [
@@ -574,16 +585,6 @@ async function showCloudSyncModal() {
         [{ control: render() }]
     );
     createModal('modal-settings-cloud', 'Cloud Sync', body, null);
-}
-
-// Re-render the Cloud Sync panel in place (used after OAuth auth completes,
-// so Backup/Restore buttons appear without the user re-clicking).
-function refreshCloudSyncPanel() {
-  const modal = document.getElementById('modal-settings-cloud');
-  if (!modal) return;
-  const old = modal.querySelector('.settings-section-body');
-  if (!old) return;
-  old.replaceWith(_sectionBody('Cloud Sync', 'Configure cloud backup and sync settings.', [{ control: render() }]));
 }
 
 // Pricing Rules - already handled by openPricingRulesModal()
