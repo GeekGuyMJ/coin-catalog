@@ -468,7 +468,7 @@ async function showCloudSyncModal() {
         getProviderAuthState, setProviderAuthState,
         syncToCloud, syncFromCloud,
         authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox
-    } = await import('./sync.js?v=9');
+    } = await import('./sync.js?v=10');
 
     const providers = getAllProviders();
 
@@ -540,7 +540,12 @@ async function showCloudSyncModal() {
                     el('p', { className: 'settings-text' }, 'Sign in with ' + provider.name + ' to back up and restore your collection. Uses a secure browser OAuth flow — no server required.'),
                     el('button', {
                         className: 'btn-primary',
-                        onclick: provider.id === 'googleDrive' ? authenticateGoogleDrive : (provider.id === 'dropbox' ? authenticateDropbox : authenticateOneDrive)
+                        onclick: async () => {
+                            const fn = provider.id === 'googleDrive' ? authenticateGoogleDrive
+                                : (provider.id === 'dropbox' ? authenticateDropbox : authenticateOneDrive);
+                            await fn();
+                            refreshCloudSyncPanel();
+                        }
                     }, authState.authenticated ? 'Re-authenticate with ' + provider.name : 'Sign in with ' + provider.name),
                 ]),
             ]));
@@ -569,6 +574,16 @@ async function showCloudSyncModal() {
         [{ control: render() }]
     );
     createModal('modal-settings-cloud', 'Cloud Sync', body, null);
+}
+
+// Re-render the Cloud Sync panel in place (used after OAuth auth completes,
+// so Backup/Restore buttons appear without the user re-clicking).
+function refreshCloudSyncPanel() {
+  const modal = document.getElementById('modal-settings-cloud');
+  if (!modal) return;
+  const old = modal.querySelector('.settings-section-body');
+  if (!old) return;
+  old.replaceWith(_sectionBody('Cloud Sync', 'Configure cloud backup and sync settings.', [{ control: render() }]));
 }
 
 // Pricing Rules - already handled by openPricingRulesModal()

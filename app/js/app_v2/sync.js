@@ -202,8 +202,9 @@ export async function authenticateGoogleDrive() {
           else resolve(resp);
         },
         error_callback: (err) => reject(new Error(err?.message || 'Google auth failed')),
+        prompt: 'consent',
       });
-      client.requestAccessToken();
+      client.requestAccessToken({ prompt: 'consent' });
     });
 
     const expiresAt = Date.now() + (tokenResponse.expires_in || 3600) * 1000;
