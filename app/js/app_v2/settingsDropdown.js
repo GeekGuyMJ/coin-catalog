@@ -468,7 +468,7 @@ export async function showCloudSyncModal() {
         getProviderAuthState, setProviderAuthState,
         syncToCloud, syncFromCloud,
         authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox
-    } = await import('./sync.js?v=13');
+    } = await import('./sync.js?v=14');
 
     const providers = getAllProviders();
 

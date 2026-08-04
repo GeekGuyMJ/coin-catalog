@@ -49,11 +49,6 @@ const CREDENTIALS = {
     clientId: 'k5enlxmbj8y8ndc',
     scope: 'files.content.write files.content.read'
   },
-  oneDrive: {
-    clientId: 'YOUR_ONEDRIVE_CLIENT_ID',
-    authority: 'https://login.microsoftonline.com/common',
-    scope: 'Files.ReadWrite.AppFolder offline_access'
-  }
 };
 
 const PROVIDERS = [
@@ -69,13 +64,6 @@ const PROVIDERS = [
     name: 'Dropbox',
     icon: '\u{1F4E6}',
     description: 'Backup to your Dropbox. Uses PKCE OAuth flow — no server needed.',
-    requiresAuth: true,
-  },
-  {
-    id: 'oneDrive',
-    name: 'OneDrive',
-    icon: '\u{2601}',
-    description: 'Backup to Microsoft OneDrive. Uses MSAL.js PKCE flow.',
     requiresAuth: true,
   },
 ];
