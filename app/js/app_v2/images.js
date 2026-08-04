@@ -900,7 +900,13 @@ async function loadCoinBankImages(mode) {
     }
 
     try {
-        const params = mode === 'context' ? { coin_type: activeContext.typeStr, side: activeContext.side } : {};
+        // When searching, ignore the narrow per-type filter so the search can find
+        // images across the whole bank (context mode otherwise only shows the current
+        // coin type's already-assigned images, which is empty when nothing is assigned yet).
+        const searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
+        const params = (mode === 'context' && !searchQ)
+            ? { coin_type: activeContext.typeStr, side: activeContext.side }
+            : {};
         const images = await fetchCoinBankImages(params);
 
         if (!images.length) {
