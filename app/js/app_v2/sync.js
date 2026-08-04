@@ -46,7 +46,7 @@ const CREDENTIALS = {
     scope: 'https://www.googleapis.com/auth/drive.appdata'
   },
   dropbox: {
-    clientId: 'YOUR_DROPBOX_APP_KEY',
+    clientId: 'k5enlxmbj8y8ndc',
     scope: 'files.content.write files.content.read'
   },
   oneDrive: {
