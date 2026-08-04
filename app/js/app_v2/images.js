@@ -12,7 +12,7 @@
 import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.v2.js';
 import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault } from './api.js';
 import { showToast } from './notifications.js';
-import { el, placeholderCoinSvg, getMainType } from './utils.js';
+import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
 import { fetchTypeConfigs, fetchInventory } from './api.js';
 
@@ -47,12 +47,25 @@ let activeContext = {
 function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, targetMainType, side) {
     if (coinSection && targetSection && coinSection !== targetSection) return false;
     if (coinType === targetType) return true;
-    
+
     const hasSubtype = targetMainType !== targetType;
-    if (side === 'rev' && hasSubtype) return false;
-    
-    // Main-type match (only when no section mismatch detected above)
-    return getMainType(coinType) === targetMainType;
+    if (!hasSubtype) {
+        // Target is the base/main type (no subtype) -> fill the whole main type.
+        return getMainType(coinType) === targetMainType;
+    }
+
+    // Target has a subtype. Composition variants (Clad/Silver/etc.) share the
+    // same obverse/reverse design, so allow bleed across those. But design
+    // varieties (e.g. Liberty Cap Head-Facing-Left vs Head-Facing-Right) have
+    // distinct designs on BOTH sides, so never bleed across them.
+    const targetIsComp = isCompositionSub(getSubType(targetType));
+    const coinIsComp = isCompositionSub(getSubType(coinType));
+    if (targetIsComp || coinIsComp) {
+        return getMainType(coinType) === targetMainType;
+    }
+
+    // Design variety: do NOT bleed across subtypes (each variety keeps its own art).
+    return false;
 }
 
 // Crop tool state
