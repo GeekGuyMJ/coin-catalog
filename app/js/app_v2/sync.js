@@ -529,9 +529,9 @@ async function _refreshGoogleToken() {
           if (resp.error) reject(new Error(resp.error));
           else resolve(resp);
         },
-        prompt: '',
+        prompt: 'consent',
       });
-      client.requestAccessToken({ prompt: '' });
+      client.requestAccessToken({ prompt: 'consent' });
     });
 
     const expiresAt = Date.now() + (tokenResponse.expires_in || 3600) * 1000;
