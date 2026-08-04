@@ -48,23 +48,29 @@ function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, 
     if (coinSection && targetSection && coinSection !== targetSection) return false;
     if (coinType === targetType) return true;
 
-    const hasSubtype = targetMainType !== targetType;
-    if (!hasSubtype) {
+    // Must belong to the same main type family.
+    if (getMainType(coinType) !== targetMainType) return false;
+
+    const targetSub = getSubType(targetType);
+    const coinSub = getSubType(coinType);
+    const targetHasSub = targetSub !== '';
+    const coinHasSub = coinSub !== '';
+
+    if (!targetHasSub) {
         // Target is the base/main type (no subtype) -> fill the whole main type.
-        return getMainType(coinType) === targetMainType;
+        return true;
     }
-
-    // Target has a subtype. Composition variants (Clad/Silver/etc.) share the
-    // same obverse/reverse design, so allow bleed across those. But design
-    // varieties (e.g. Liberty Cap Head-Facing-Left vs Head-Facing-Right) have
-    // distinct designs on BOTH sides, so never bleed across them.
-    const targetIsComp = isCompositionSub(getSubType(targetType));
-    const coinIsComp = isCompositionSub(getSubType(coinType));
-    if (targetIsComp || coinIsComp) {
-        return getMainType(coinType) === targetMainType;
+    if (!coinHasSub) {
+        // Target has a subtype but this coin is the base type -> base shares the
+        // family design, so fill it too.
+        return true;
     }
-
-    // Design variety: do NOT bleed across subtypes (each variety keeps its own art).
+    // Both have subtypes:
+    if (coinSub === targetSub) return true; // same subtype -> fill all of THIS subtype
+    // Different subtypes: only bleed if it's a composition family (Clad/Silver
+    // share the same obverse/reverse design). Design varieties (e.g. Liberty Cap
+    // Head-Facing-Left vs Head-Facing-Right) must NOT bleed across each other.
+    if (isCompositionSub(targetSub) || isCompositionSub(coinSub)) return true;
     return false;
 }
 
