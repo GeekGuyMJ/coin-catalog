@@ -903,8 +903,9 @@ async function loadCoinBankImages(mode) {
         // When searching, ignore the narrow per-type filter so the search can find
         // images across the whole bank (context mode otherwise only shows the current
         // coin type's already-assigned images, which is empty when nothing is assigned yet).
-        const searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
-        const params = (mode === 'context' && !searchQ)
+        // NOTE: searchQ is declared just below (used by the inline filter) — reuse it here.
+        const _searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
+        const params = (mode === 'context' && !_searchQ)
             ? { coin_type: activeContext.typeStr, side: activeContext.side }
             : {};
         const images = await fetchCoinBankImages(params);
