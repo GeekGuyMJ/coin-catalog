@@ -15,7 +15,7 @@
 
 import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
-    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
+    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse, cacheBustImageUrl,
 } from './utils.js';
 
 import {
@@ -1001,8 +1001,8 @@ function buildCoinRow(coin) {
     var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
     var obvSrc = coin.obv_image || specObv || (mainCfg ? mainCfg.obv_image : null);
     var revSrc = coin.rev_image || specRev || (mainCfg ? mainCfg.rev_image : null);
-    if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
-    if (revSrc && !revSrc.includes('?')) revSrc += '';
+    if (obvSrc && !obvSrc.startsWith('data:') && !obvSrc.includes('?')) obvSrc = cacheBustImageUrl(obvSrc);
+    if (revSrc && !revSrc.startsWith('data:') && !revSrc.includes('?')) revSrc = cacheBustImageUrl(revSrc);
     if (obvSrc) {
         var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };

@@ -128,6 +128,13 @@ export function coinSortComparator(a, b) {
  * @param {Object} coin 
  * @returns {string} Formatted mint mark
  */
+export function cacheBustImageUrl(url) {
+    if (!url || url.startsWith('data:')) return url;
+    const version = window.APP_VERSION || '2';
+    if (url.includes('#')) url = url.split('#')[0];
+    return url + '?v=' + version;
+}
+
 export function formatMintMark(coin) {
     if (!coin.mint_mark) return '';
     // Special rule for US Pennies from Philadelphia
