@@ -1076,6 +1076,7 @@ function buildCoinRow(coin) {
     row.appendChild(info);
 
     // Show detail toggle always — it's the "more info" chevron indicator
+    var detailBtn = el("span", {className: "coin-row-detail-toggle", role: "button", tabIndex: 0, dataset: {action: "toggle-detail"}}, "▼ Details");
     row.appendChild(detailBtn);
 
     // Wishlist Heart Icon
