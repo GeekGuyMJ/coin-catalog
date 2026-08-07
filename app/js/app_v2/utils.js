@@ -95,14 +95,7 @@ export function mintRank(mint) {
  * @returns {number} Effective sort year.
  */
 export function sortYear(coin) {
-    if (coin.year === 1776) return 1976;
-    if (typeof coin.year === 'string') {
-        if (coin.year.includes('1776 - 2026')) return 2026;
-        const match = coin.year.match(/\d{4}/);
-        if (match) return parseInt(match[0], 10);
-        return 9999;
-    }
-    return coin.year || 9999;
+    return coin.year === 1776 ? 1976 : (coin.year || 9999);
 }
 
 /**
@@ -125,6 +118,7 @@ export function coinSortComparator(a, b) {
 
 /**
  * Format mint mark for display. Removes 'P' from pennies prior to 2017.
+ * Also removes 'P' from Half Cent (Philadelphia never minted half cents with a mint mark).
  * @param {Object} coin 
  * @returns {string} Formatted mint mark
  */
@@ -132,6 +126,7 @@ export function cacheBustImageUrl(url) {
     if (!url || url.startsWith('data:')) return url;
     const version = window.APP_VERSION || '2';
     if (url.includes('#')) url = url.split('#')[0];
+    if (url.includes('?')) return url + '&v=' + version;
     return url + '?v=' + version;
 }
 
@@ -142,7 +137,7 @@ export function formatMintMark(coin) {
         // If it's a penny (1 Cent)
         const typeStr = (coin.coin_type || '').toLowerCase();
         const denomStr = (coin.denomination || '').toLowerCase();
-        if (denomStr === '1 cent' || typeStr.includes('cent')) {
+        if (denomStr === '1 cent' || typeStr.includes('half cent') || typeStr.includes('cent')) {
             return '';
         }
     }
@@ -264,16 +259,18 @@ const ERROR_KEYWORDS = [
  * @param {string} [refNotes] - ref_notes value.
  * @returns {boolean}
  */
-export function isErrorVariety(coinType, refNotes) {
-    if (!coinType && !refNotes) return false;
-    const combined = `${coinType} ${refNotes || ''}`.toLowerCase();
-    return ERROR_KEYWORDS.some(kw => combined.includes(kw));
+export function isErrorVariety(coinType, refNotes = '') {
+    if (!coinType) return false;
+    const lower = coinType.toLowerCase();
+    if (ERROR_KEYWORDS.some(kw => lower.includes(kw))) return true;
+    const notePrefix = (refNotes || '').split('.')[0].toLowerCase();
+    return ERROR_KEYWORDS.some(kw => notePrefix.includes(kw));
 }
 
 /**
  * Returns true if a coin type typically has a special reverse design
  * that users are more interested in than the standard obverse.
- * 
+ *
  * @param {string} coinType
  * @returns {boolean}
  */
@@ -377,14 +374,7 @@ export function el(tag, props = {}, ...children) {
     }
     for (const child of children) {
         if (child == null) continue;
-        // Flatten arrays recursively
-        const flatten = (c) => {
-            if (c == null) return [];
-            if (Array.isArray(c)) return c.flatMap(flatten);
-            if (c instanceof Node) return [c];
-            return [document.createTextNode(String(c))];
-        };
-        node.append(...flatten(child));
+        node.append(child instanceof Node ? child : document.createTextNode(String(child)));
     }
     return node;
 }
