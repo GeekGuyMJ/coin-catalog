@@ -137,7 +137,7 @@ export function formatMintMark(coin) {
         // If it's a penny (1 Cent)
         const typeStr = (coin.coin_type || '').toLowerCase();
         const denomStr = (coin.denomination || '').toLowerCase();
-        if (denomStr === '1 cent' || typeStr.includes('half cent') || typeStr.includes('cent')) {
+        if (denomStr === '1 cent' || denomStr === 'half cent' || typeStr.includes('cent')) {
             return '';
         }
     }
