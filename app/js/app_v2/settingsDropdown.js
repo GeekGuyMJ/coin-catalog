@@ -5,11 +5,11 @@
  * each option opens a clean, readable modal.
  */
 
-import { el, escHtml } from './utils.js?v=8';
-import { getSpotPrices } from './state.js?v=8';
-import { showToast } from './notifications.js?v=8';
-import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.v2.js?v=8';
-import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.v2.js?v=8';
+import { el, escHtml } from './utils.js';
+import { getSpotPrices } from './state.js';
+import { showToast } from './notifications.js';
+import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.v2.js';
+import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.v2.js';
 
 let _dropdownEl = null;
 
@@ -468,7 +468,7 @@ export async function showCloudSyncModal() {
         getProviderAuthState, setProviderAuthState,
         syncToCloud, syncFromCloud,
         authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox
-    } = await import('./sync.js?v=14');
+    } = await import('./sync.js');
 
     const providers = getAllProviders();
 

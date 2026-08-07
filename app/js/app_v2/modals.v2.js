@@ -744,7 +744,7 @@ async function listReadyImages() {
             const { getAllProviders, getCurrentProvider, setCurrentProvider, 
                     getProviderAuthState, setProviderAuthState,
                     syncToCloud, syncFromCloud,
-                    authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox } = await import('./sync.js?v=7');
+                    authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox } = await import('./sync.js');
 
             const providers = getAllProviders();
             const currentProvider = getCurrentProvider();
