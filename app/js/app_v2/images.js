@@ -472,7 +472,8 @@ export function removeCurrentImage() {
         side: activeContext.side,
         image: '',  // Empty string for removal
         scope: scope,
-        item_id: activeContext.itemId
+        item_id: activeContext.itemId,
+        section: activeContext.section || ''
     });
 }
 
@@ -751,7 +752,8 @@ export async function executeImageAssignment() {
             side:      activeContext.side,
             image:     activeContext.b64 || '',  // Empty string for removal
             scope:     scope,
-            item_id:   activeContext.itemId
+            item_id:   activeContext.itemId,
+            section:   activeContext.section || ''
         });
 
         if (result.status === 'success' || result.status === 'skipped') {

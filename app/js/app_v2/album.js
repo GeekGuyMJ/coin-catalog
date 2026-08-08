@@ -332,7 +332,7 @@ function renderAlbumGrid(container, sectionName, coins) {
     const grid = el('div', { className: 'album-grid' });
 
     for (const [mainType, typeCoins] of sortedTypes) {
-        const cfg = getTypeConfig(mainType) || {};
+        const cfg = getTypeConfig(mainType, sectionName) || {};
         const sorted = [...typeCoins].sort(coinSortComparator);
 
         // Type header row (full width, sticky) — NO completion pill
@@ -400,8 +400,8 @@ function buildCoinHole(coin, typeCfg) {
     const slot = el('div', { className: 'album-hole-slot' });
 
     const flipState = localStorage.getItem(`cc-flipped-${coin.id}`) || 'obv';
-    const specificCfg = getTypeConfig(coin.coin_type);
-    const mainCfg = typeCfg || getTypeConfig(getMainType(coin.coin_type)) || {};
+    const specificCfg = getTypeConfig(coin.coin_type, coin.section);
+    const mainCfg = typeCfg || getTypeConfig(getMainType(coin.coin_type), coin.section) || {};
     const isSpecial = isSpecialReverse(mainCfg?.coin_type || coin.coin_type);
     let displaySide = flipState === 'rev' ? 'rev' : 'obv';
     // If special reverse, the default view is the reverse. Flipping it would show the obverse.
@@ -571,8 +571,8 @@ async function toggleHoleOwnership(coinId, holeElement) {
             slot.innerHTML = '';
             // Try to get image from config
             const coinType = holeElement.dataset.coinType;
-            const specificCfg = getTypeConfig(coinType);
-            const mainCfg = getTypeConfig(getMainType(coinType)) || {};
+            const specificCfg = getTypeConfig(coinType, section);
+            const mainCfg = getTypeConfig(getMainType(coinType), section) || {};
             
             const flipState = localStorage.getItem(`cc-flipped-${coinId}`) || 'obv';
             const isSpecial = isSpecialReverse(mainCfg.coin_type || coinType);

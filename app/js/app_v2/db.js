@@ -255,7 +255,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 4;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 5;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -335,6 +335,69 @@ export async function runMigrations() {
             await db.coins_reference.update(coin.id, { year: '1776 - 2026 Semiquincentennial' });
             console.log(`  Updated coin id=${coin.id} year → "1776 - 2026 Semiquincentennial"`);
         }
+    }
+
+
+
+    // Migration 4 → 5 (Issue 1/2/6): section-scope colliding type configs.
+    // Coin types shared by >1 section now live under '<section> — <coin_type>'
+    // so images never bleed between series (e.g. Half Cent vs Large & Small Cent
+    // "Braided Hair"). Existing plain rows are copied into every qualifying
+    // section row; the plain row is cleared to stop fallback bleed.
+    if (storedVersion < 5) {
+        const collidingTypes = new Set(["Barber", "Braided Hair", "Capped Bust", "Classic Head", "Draped Bust", "Draped Bust - Heraldic Eagle", "Draped Bust - Small Eagle", "Flowing Hair", "Seated Liberty", "Trade Dollar"]);
+        const refs = await db.coins_reference.toArray();
+        const typeSections = {};
+        refs.forEach(r => {
+            if (!r.coin_type || !r.section) return;
+            if (!typeSections[r.coin_type]) typeSections[r.coin_type] = new Set();
+            typeSections[r.coin_type].add(r.section);
+        });
+
+        const allConfigs = await db.coin_type_config.toArray();
+        let created = 0, cleared = 0;
+
+        for (const cfg of allConfigs) {
+            const t = cfg.coin_type || '';
+            // --- Colliding plain rows: split into per-section qualified rows ---
+            if (collidingTypes.has(t) && !t.includes(' — ')) {
+                const secs = [...(typeSections[t] || [])];
+                for (const sec of secs) {
+                    const key = sec + ' — ' + t;
+                    const exists = await db.coin_type_config.get(key);
+                    if (!exists) {
+                        await db.coin_type_config.add({
+                            ...cfg,
+                            coin_type: key,
+                            section: sec,
+                            _section_scoped: true,
+                        });
+                        created++;
+                    }
+                }
+                // Clear the legacy shared row so no fallback bleeds the wrong section's image
+                await db.coin_type_config.update(t, {
+                    obv_image: null, rev_image: null,
+                    proof_obv_image: null, proof_rev_image: null,
+                });
+                cleared++;
+            }
+            // --- Section-slot rows (section-name keys): drop stale master images ---
+            else if (typeSections[t] && typeSections[t].size > 0 && allConfigs.some(c => c.coin_type === t)) {
+                // This is a section-name key that is NOT a real coin type: it is the
+                // section example slot. Remove any inherited master/liberty-cap images.
+                const isSectionSlot = refs.some(r => r.section === t) &&
+                                      !refs.some(r => r.coin_type === t);
+                if (isSectionSlot) {
+                    await db.coin_type_config.update(t, {
+                        obv_image: null, rev_image: null,
+                        proof_obv_image: null, proof_rev_image: null,
+                    });
+                    cleared++;
+                }
+            }
+        }
+        console.log(`  Migration 4→5: created ${created} section-qualified rows, cleared ${cleared} legacy rows.`);
     }
 
 
@@ -1374,6 +1437,11 @@ function _extractBaseName(coinType) {
  * @param {string} side 'obv' or 'rev'
  * @returns {Promise<string[]>} Array of coin_type values to update together.
  */
+// Coin-type names shared by MORE THAN ONE section. These are section-scoped:
+// a config row for one of these must live under '<section> — <coin_type>' so
+// Half Cent images can never bleed into Large & Small Cent (e.g. "Braided Hair").
+export const _COLLIDING_TYPES = new Set(["Barber", "Braided Hair", "Capped Bust", "Classic Head", "Draped Bust", "Draped Bust - Heraldic Eagle", "Draped Bust - Small Eagle", "Flowing Hair", "Seated Liberty", "Trade Dollar"]);
+
 export async function _getCoimageGroupMembers(coinType, side) {
     const allConfigs = await db.coin_type_config.toArray();
     const isRev = (side === 'rev' || side === 'proof_rev');
@@ -1494,15 +1562,17 @@ export async function _getCoimageGroupMembers(coinType, side) {
 }
 
 export async function assignImageLocal(data) {
-    const { coin_type, side, image, scope, item_id } = data;
+    const { coin_type, side, image, scope, item_id, section } = data;
     // For offline-first, images are saved directly as base64 strings in the DB
     if (scope === "all" || scope === "empty_only") {
         // Determine which coin types should be updated together
         const members = await _getCoimageGroupMembers(coin_type, side);
         const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
         const sideKey = sideMap[side] || "obv_image";
+        const qualify = (t) => (section && _COLLIDING_TYPES.has(t)) ? (section + ' — ' + t) : t;
         
-        for (const memberType of members) {
+        for (const _m of members) {
+            const memberType = qualify(_m);
             let cfg = await db.coin_type_config.get(memberType);
             if (!cfg) {
                 cfg = { coin_type: memberType, obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null };
@@ -1513,25 +1583,38 @@ export async function assignImageLocal(data) {
             // scope="all": overwrite everything. scope="empty_only": only if slot is empty/null.
             if (scope === "all" || !cfg[sideKey]) {
                 const updates = {};
-                updates[sideKey] = image;
-                updates['_deleted_' + sideKey] = false;
+                // Empty image = user wants this side REMOVED. Mark _deleted so a later
+                // merge/seed can never re-inject the old URL (ghost image bug).
+                if (image) {
+                    updates[sideKey] = image;
+                    updates['_deleted_' + sideKey] = false;
+                } else {
+                    updates[sideKey] = null;
+                    updates['_deleted_' + sideKey] = true;
+                }
                 await db.coin_type_config.update(memberType, updates);
             }
         }
     } else if (scope === "specific_coin") {
         // If no item_id, this is a main type coin — update only this coin_type (no group propagation)
         if (!item_id) {
-            let cfg = await db.coin_type_config.get(coin_type);
+            const targetKey = (section && _COLLIDING_TYPES.has(coin_type)) ? (section + ' — ' + coin_type) : coin_type;
+            let cfg = await db.coin_type_config.get(targetKey);
             if (!cfg) {
-                cfg = { coin_type, obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null };
+                cfg = { coin_type: targetKey, obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null };
                 await db.coin_type_config.add(cfg);
             }
             const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
             const sideKey = sideMap[side] || "obv_image";
             const updates = {};
-            updates[sideKey] = image;
-            updates['_deleted_' + sideKey] = false;
-            await db.coin_type_config.update(coin_type, updates);
+            if (image) {
+                updates[sideKey] = image;
+                updates['_deleted_' + sideKey] = false;
+            } else {
+                updates[sideKey] = null;
+                updates['_deleted_' + sideKey] = true;
+            }
+            await db.coin_type_config.update(targetKey, updates);
         } else {
             // Save to specific coin reference — item_id is coin_ref_id
             const refId = Number(item_id);

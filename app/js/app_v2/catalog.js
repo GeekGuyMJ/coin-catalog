@@ -239,8 +239,9 @@ function buildSectionCard(sec) {
     
     // Add example images (always show, even if just placeholders)
     if (sec.section) {
-        // Use sample_type (a coin type name with images) not section name (which is never a type config key)
-        const cfg = getTypeConfig(sec.sample_type) || getTypeConfig(sec.section) || {};
+        // Issue 1: section example images use their OWN per-section slot (sec.section),
+        // decoupled from type-level images. Slot is seeded empty; filled by user upload.
+        const cfg = getTypeConfig(sec.section, sec.section) || {};
         const pair = el('div', { className: 'coin-img-pair' });
         const hasObv = cfg?.obv_image;
         const hasRev = cfg?.rev_image;
@@ -428,7 +429,8 @@ function renderTypeAccordions(container, coins) {
  */
 function buildTypeAccordion(mainType, typeCoins) {
     const typeId = 'type-' + mainType.replace(/[^a-zA-Z0-9]/g, '');
-    const cfg = getTypeConfig(mainType) || {};
+    const firstCoinSection = (typeCoins && typeCoins[0]) ? (typeCoins[0].section || '') : '';
+    const cfg = getTypeConfig(mainType, firstCoinSection) || {};
 
     const wrapper = el('div', { className: 'type-wrapper', id: typeId });
     
@@ -994,8 +996,8 @@ function buildCoinRow(coin) {
         thumbWrap.classList.add("show-rev");
     }
     
-    var specificCfg = getTypeConfig(coin.coin_type);
-    var mainCfg = getTypeConfig(getMainType(coin.coin_type));
+    var specificCfg = getTypeConfig(coin.coin_type, coin.section);
+    var mainCfg = getTypeConfig(getMainType(coin.coin_type), coin.section);
     // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
     var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
     var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
@@ -1004,14 +1006,14 @@ function buildCoinRow(coin) {
     if (obvSrc && !obvSrc.startsWith('data:') && !obvSrc.includes('?')) obvSrc = cacheBustImageUrl(obvSrc);
     if (revSrc && !revSrc.startsWith('data:') && !revSrc.includes('?')) revSrc = cacheBustImageUrl(revSrc);
     if (obvSrc) {
-        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
+        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };
         thumbWrap.appendChild(img);
     } else {
         thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv"}}));
     }
     if (revSrc) {
-        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
+        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img2.onerror = function() { img2.src = placeholderCoinSvg(); img2.classList.add("placeholder"); };
         thumbWrap.appendChild(img2);
     } else {
@@ -2128,8 +2130,8 @@ export function openCoinDetailModal(coinId) {
         const totalQty = state.getInventoryTotalQty(coinId);
 
         const mainType = getMainType(coin.coin_type);
-        const mainCfg = state.getTypeConfig(mainType) || {};
-        const specificCfg = state.getTypeConfig(coin.coin_type) || {};
+        const mainCfg = state.getTypeConfig(mainType, coin.section) || {};
+        const specificCfg = state.getTypeConfig(coin.coin_type, coin.section) || {};
         
         let currentSide = localStorage.getItem(`cc-flipped-${coinId}`);
         if (!currentSide) {
