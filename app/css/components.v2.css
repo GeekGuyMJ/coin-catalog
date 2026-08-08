@@ -3813,8 +3813,8 @@ body.ready-mode-active .ready-badge { display: flex; }
 
 /* Custom tweaks for header and mobile layout */
 #app-header {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
+    padding-top: 8px !important;    /* thicker title bar: more room for the title */
+    padding-bottom: 8px !important;
 }
 
 .header-right {
