@@ -3813,8 +3813,8 @@ body.ready-mode-active .ready-badge { display: flex; }
 
 /* Custom tweaks for header and mobile layout */
 #app-header {
-    padding-top: 8px !important;    /* thicker title bar: more room for the title */
-    padding-bottom: 8px !important;
+    padding-top: 4px !important;    
+    padding-bottom: 4px !important;
 }
 
 .header-right {
@@ -3837,9 +3837,9 @@ body.ready-mode-active .ready-badge { display: flex; }
 /* Phone: short title bar; large coin logo spans bar + next row, spills past bottom edge */
 @media (max-width: 480px) {
     #app-header {
-        min-height: 34px !important;
+        min-height: 38px !important;
         height: auto !important;
-        padding: 2px var(--space-1) !important;
+        padding: 6px var(--space-1) !important; /* phone title bar: slightly thicker for readability */
         overflow: visible !important;
     }
     #app-header .header-inner {
