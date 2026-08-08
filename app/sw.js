@@ -1,5 +1,5 @@
 // Coin Catalog — Self-Hosted Service Worker
-const CACHE = 'coin-catalog-public-v60';
+const CACHE = 'coin-catalog-public-v61';
 const ASSETS = [
   './',
   './index.html',
