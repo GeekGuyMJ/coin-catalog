@@ -581,7 +581,7 @@ export async function fetchSpotPricesLocal() {
     let successCount = 0;
     const promises = Object.keys(symbolMap).map(async key => {
         const symbol = symbolMap[key];
-        const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}`;
+        const primaryUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
         const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol)}`;
         
         try {
@@ -671,7 +671,7 @@ export async function fetchSpotHistoryLocal(period) {
     const dataObj = {};
     const promises = Object.keys(symbolMap).map(async key => {
         const symbol = symbolMap[key];
-        const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
+        const primaryUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
         const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol + '?range=' + range + '&interval=' + interval)}`;
         
         try {
