@@ -78,6 +78,11 @@ self.addEventListener('fetch', (event) => {
     })());
     return;
   }
+  // API requests: network-only, never cache
+  if (url.pathname.startsWith('/api/')) {
+    return fetch(request).catch(() => caches.match(request));
+  }
+
   // Everything else: cache-first
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
