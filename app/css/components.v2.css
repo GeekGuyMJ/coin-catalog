@@ -3241,9 +3241,13 @@ select optgroup {
 #modal-image-interaction,
 #modal-crop,
 #modal-replace-scope,
-#modal-coin-bank {
-    z-index: 2000;
+#modal-coin-bank .search-input,
+#modal-coin-bank input[type="text"] {
+  background: var(--color-bg-body) !important;
+  color: var(--color-text-main) !important;
+  border-color: var(--color-border) !important;
 }
+
 
 /* =========================================================================
    Mobile Enhancements — Touch targets & responsive fixes

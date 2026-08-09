@@ -126,7 +126,7 @@ function openSettingsDropdown(btn) {
  onclick: () => { closeSettingsDropdown(); openSettingsSection(it.key); },
  });
  item.appendChild(el('span', { className: 'settings-menu-icon' }, it.icon));
- item.appendChild(el('span', { className: 'settings-menu-label' }, it.label));
+ const _labelSpan = el('span', { className: 'settings-menu-label' }); _labelSpan.textContent = _safeText(it.label); item.appendChild(_labelSpan);
  menu.appendChild(item);
  });
  });
@@ -208,6 +208,10 @@ function _sectionBody(title, intro, blocks) {
  if (b.control) body.appendChild(b.control);
  });
  return body;
+function _safeText(val) {
+ if (val == null) return '';
+ return (val instanceof Node) ? (val.textContent || String(val)) : String(val);
+}
 }
 
 // Sort Order
@@ -519,7 +523,7 @@ export async function showCloudSyncModal() {
 
             panel.appendChild(el('div', { className: 'settings-section' }, [
                 el('h4', { className: 'settings-subhead' }, `${provider.name} Configuration`),
-                el('p', { className: 'settings-text' }, provider.description),
+                el('p', { className: 'settings-text' }, _safeText(provider.description)),
 
                 currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, [
                     el('div', { className: 'form-group' }, [
@@ -568,7 +572,7 @@ export async function showCloudSyncModal() {
                     el('h4', { className: 'settings-subhead' }, 'Sync Actions'),
                     el('p', { className: 'settings-text' }, currentProviderId === 'webdav'
                         ? 'Enter your server details above, then click Backup. This sends your full collection backup as a JSON file to the WebDAV server.'
-                        : 'Click Backup to save your collection to ' + provider.name + ', or Restore to load a previous backup.'),
+                        : 'Click Backup to save your collection to ' + _safeText(provider.name) + ', or Restore to load a previous backup.'),
                     el('div', { className: 'settings-action-group' }, [
                         el('button', { className: 'btn-primary', onclick: syncToCloud }, 'Backup to ' + provider.name),
                         el('button', { className: 'btn-secondary', onclick: syncFromCloud }, 'Restore from ' + provider.name),
