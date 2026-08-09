@@ -64,41 +64,7 @@
         };
     </script>
 
-    <script>
-        // Cycle through coin images on each page load
-        (function() {
-            var coins = [
-                '/coin-catalog/images/coin_gold1.png',
-                '/coin-catalog/images/coin_gold_proof1.png',
-                '/coin-catalog/images/coin_silver1.png',
-                '/coin-catalog/images/coin_copper1.png',
-                '/coin-catalog/images/coin_copper_proof1.png',
-                '/coin-catalog/images/coin_copper_green1.png',
-                '/coin-catalog/images/coin_copper_toned1.png',
-                '/coin-catalog/images/coin_bronze1.png',
-                '/coin-catalog/images/coin_bend1.png',
-                '/coin-catalog/images/coin_bend2.png',
-                '/coin-catalog/images/coin_bend3.png',
-                '/coin-catalog/images/coin_chocolate1.png',
-                '/coin-catalog/images/coin_chocolate2.png',
-                '/coin-catalog/images/coin_dirty1.png',
-                '/coin-catalog/images/coin_dirty2.png',
-                '/coin-catalog/images/coin_dirty3.png',
-                '/coin-catalog/images/coin_dirty4.png',
-                '/coin-catalog/images/coin_dirty5.png',
-            ];
-            var pick = coins[Math.floor(Math.random() * coins.length)];
-            function setCoinImages() {
-                var hdr = document.getElementById('header-coin-img');
-                if (hdr) hdr.src = pick;
-            }
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', setCoinImages);
-            } else {
-                setCoinImages();
-            }
-        })();
-    </script>
+
 </head>
 
 <body id="app-body">
