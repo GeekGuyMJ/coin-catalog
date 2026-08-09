@@ -856,6 +856,21 @@ export async function executeImageAssignment() {
 // Coin Bank
 // ============================================================
 
+// Re-run coin bank load when search query changes
+(function attachCoinBankSearch() {
+    const input = document.getElementById('cb-search-input');
+    if (!input) return;
+    let timer;
+    input.addEventListener('input', () => {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+            const ctxBtn = document.getElementById('cb-filter-ctx');
+            const mode = ctxBtn && ctxBtn.classList.contains('btn-primary') ? 'context' : 'all';
+            loadCoinBankImages(mode);
+        }, 150);
+    });
+})();
+
 export async function openCoinBankModal() {
     closeModalLegacy('modal-replace-scope');
     openModalLegacy('modal-coin-bank');

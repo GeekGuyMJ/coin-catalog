@@ -112,9 +112,9 @@ function openSettingsDropdown(btn) {
  if (!sectionItems || !sectionItems.length) return;
  
  // Section header
- const sectionHeader = el('div', { className: 'settings-menu-section' }, [
- el('span', { className: 'settings-menu-section-label' }, sectionLabels[sectionKey]),
- ]);
+ const sectionHeader = el('div', { className: 'settings-menu-section' },
+ el('span', { className: 'settings-menu-section-label' }, sectionLabels[sectionKey])
+ );
  menu.appendChild(sectionHeader);
  
  // Section items
