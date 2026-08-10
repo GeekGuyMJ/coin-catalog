@@ -121,6 +121,11 @@ export function closeModalLegacy(modalId) {
     modal.classList.remove('open');
     openModalsStack = openModalsStack.filter(id => id !== modalId);
     updateBodyScrollLock();
+    if (modal.dataset.ephemeral === 'true') {
+        setTimeout(function() {
+            if (modal.parentNode) modal.parentNode.removeChild(modal);
+        }, 220);
+    }
 }
 
 export function closeAllModals() {
@@ -181,6 +186,7 @@ export function createModal(id, title, bodyContent, extra) {
     overlay.classList.add('open');
     document.body.classList.add('modal-open');
     if (!openModalsStack.includes(id)) { openModalsStack.push(id); }
+    overlay.dataset.ephemeral = 'true';
     return overlay;
 }
 
@@ -1808,20 +1814,21 @@ export function filterMissingImages() {
 
     fetch('/api/coins?limit=5000').then(function(r){return r.json();}).then(function(data){
         var coins = data.coins || data || [];
-        var missing = 0, total = coins.length;
+        var total = coins.length;
 
-        var promises = coins.slice(0, 200).map(function(c) {
+        var promises = coins.map(function(c) {
             return fetch('/api/coins/' + c.id).then(function(r){return r.json();}).then(function(d){
-                if (!d.obv_image && !d.rev_image) missing++;
-            }).catch(function(){});
+                c._hasImage = !!(d.obv_image || d.rev_image);
+            }).catch(function(){ c._hasImage = false; });
         });
 
         Promise.all(promises).then(function(){
+            var missing = coins.filter(function(c){ return !c._hasImage; }).length;
             var body = el('div', { style: 'display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto;' });
             
             // Stats header
             var statsDiv = el('div', { style: 'text-align:center;padding:12px;background:var(--color-accord-bg);border-radius:8px;' });
-            var pct = total > 0 ? ((total - missing) / total * 100).toFixed(0) + '%' : 'N/A';
+            var pct = total > 0 ? ((total - missing) / total * 100).toFixed(1) + '%' : 'N/A';
             statsDiv.appendChild(el('h3', { style: 'margin-bottom:8px;' }, 'Image Coverage'));
             statsDiv.appendChild(el('div', { style: 'font-size:2em;font-weight:700;color:var(--color-accent);' }, pct));
             statsDiv.appendChild(el('p', { style: 'color:var(--color-text-muted);margin-top:4px;' }, (total - missing) + ' of ' + total + ' coins have reference images'));
