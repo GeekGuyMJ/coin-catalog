@@ -6,7 +6,7 @@
  */
 
 import { el, escHtml } from './utils.js';
-import { createModal, closeModal } from './modals.v2.js';
+import { createModal, closeModal } from './modals.js';
 
 let _dropdownEl = null;
 let _storiesCache = null;

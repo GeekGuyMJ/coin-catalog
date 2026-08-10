@@ -13,7 +13,7 @@ const ASSETS = [
   './js/app_v2/themes.js',
   './js/app_v2/catalog.js',
   './js/app_v2/inventory.js',
-  './js/app_v2/modals.v2.js',
+  './js/app_v2/modals.js',
   './js/app_v2/search.js',
   './js/app_v2/wishlist.js',
   './js/app_v2/images.js',

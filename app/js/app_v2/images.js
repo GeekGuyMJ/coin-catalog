@@ -9,7 +9,7 @@
  * @module images
  */
 
-import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.v2.js';
+import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.js';
 import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault } from './api.js';
 import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';

@@ -8,8 +8,8 @@
 import { el, escHtml } from './utils.js';
 import { getSpotPrices } from './state.js';
 import { showToast } from './notifications.js';
-import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.v2.js';
-import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.v2.js';
+import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
+import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
 
 let _dropdownEl = null;
 

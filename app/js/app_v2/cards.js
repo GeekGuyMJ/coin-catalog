@@ -20,7 +20,7 @@ import {
     getSubTypesVisibility,
     setSubTypeState,
 } from './state.js';
-import { openModal, closeModal, registerModal } from './modals.v2.js';
+import { openModal, closeModal, registerModal } from './modals.js';
 
 // ============================================================
 // ACCORDION_SCHEMA — nested series → subtypes data model

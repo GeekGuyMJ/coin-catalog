@@ -725,7 +725,7 @@ async function listReadyImages() {
         return;
     }
     
-    const { el, createModal } = await import('./modals.v2.js');
+
     
     const body = el('div', { style: 'max-height:60vh;overflow:auto;' }, [
         el('p', { style: 'font-weight:600;margin-bottom:8px;' }, `Ready Images: ${ready.length}`),

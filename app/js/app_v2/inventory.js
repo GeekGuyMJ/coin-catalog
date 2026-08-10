@@ -13,7 +13,7 @@
  * @module inventory
  */
 
-import { openModal, closeModal } from './modals.v2.js';
+import { openModal, closeModal } from './modals.js';
 import { updateInventory, deleteInventoryEntry } from './api.js';
 import { getInventoryEntries } from './state.js';
 import { showToast } from './notifications.js';

@@ -1,4 +1,4 @@
-import { createModal } from './modals.v2.js';
+import { createModal } from './modals.js';
 import { el } from './utils.js';
 
 export function openPortfolioHistoryModal() {

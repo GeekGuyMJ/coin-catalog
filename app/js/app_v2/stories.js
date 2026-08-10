@@ -4,7 +4,7 @@
  */
 
 import { el, escHtml } from './utils.js';
-import { openModal, closeModal, registerModal } from './modals.v2.js';
+import { openModal, closeModal, registerModal } from './modals.js';
 
 // Cache for stories data
 let _storiesCache = null;
