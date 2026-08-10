@@ -374,7 +374,14 @@ export function el(tag, props = {}, ...children) {
     }
     for (const child of children) {
         if (child == null) continue;
-        node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+        if (Array.isArray(child)) {
+            for (const c of child) {
+                if (c == null) continue;
+                node.append(c instanceof Node ? c : document.createTextNode(String(c)));
+            }
+        } else {
+            node.append(child instanceof Node ? child : document.createTextNode(String(child)));
+        }
     }
     return node;
 }

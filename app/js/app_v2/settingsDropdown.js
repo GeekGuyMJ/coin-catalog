@@ -210,7 +210,7 @@ function _sectionBody(title, intro, blocks) {
  b.list.forEach(li => ul.appendChild(el('li', {}, li)));
  body.appendChild(ul);
  }
- if (b.control) body.appendChild(b.control);
+ if (b.control && b.control.nodeType === 1) body.appendChild(b.control);
  });
  return body;
 }
@@ -760,13 +760,16 @@ function showCustomCardModal() {
  ]);
  
  createModal(modalId, 'Custom Dashboard Card', body, footer);
- 
+
  // Show/hide custom value field based on data source
- document.getElementById('custom-card-source').addEventListener('change', (e) => {
- const group = document.getElementById('custom-card-custom-group');
- group.style.display = e.target.value === 'custom' ? 'block' : 'none';
- });
-}
+ const sourceEl = document.getElementById('custom-card-source');
+ if (sourceEl) {
+     sourceEl.addEventListener('change', (e) => {
+         const group = document.getElementById('custom-card-custom-group');
+         if (group) group.style.display = e.target.value === 'custom' ? 'block' : 'none';
+     });
+ }
+ }
 
 function renderCustomCardsOnDashboard() {
  let customCards = [];
@@ -868,3 +871,4 @@ function renderCustomCardsOnDashboard() {
 window.toggleSettingsDropdown = toggleSettingsDropdown;
 window.closeSettingsDropdown = closeSettingsDropdown;
 window.openSettingsSection = openSettingsSection;
+

@@ -119,12 +119,19 @@ export function closeModalLegacy(modalId) {
     if (!modal) return;
     modal.style.zIndex = '';
     modal.classList.remove('open');
+    modal.classList.add('is-dismissed');
+    modal.setAttribute('aria-hidden', 'true');
+    if (typeof modal.inert !== 'undefined') modal.inert = true;
     openModalsStack = openModalsStack.filter(id => id !== modalId);
     updateBodyScrollLock();
     if (modal.dataset.ephemeral === 'true') {
         setTimeout(function() {
-            if (modal.parentNode) modal.parentNode.removeChild(modal);
-        }, 220);
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            } else {
+                modal.remove();
+            }
+        }, 240);
     }
 }
 
@@ -1251,227 +1258,176 @@ export function openHelpModal() {
 // ============================================================
 
 export function openImageManager() {
-    const body = el('div', { style: 'display:flex; flex-direction:column; gap:12px; max-height:85vh; overflow-y:auto;' });
-    
-    // Header with search and view toggle
-    const headerRow = el('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--color-border-light);padding-bottom:12px;' });
-    
-    // Search input
-    const searchIn = el('input', { 
-        type: 'text', 
-        placeholder: 'Search coin images by name, year, country...', 
-        style: 'flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--color-border-light);border-radius:6px;background:var(--color-input-bg);color:var(--color-text-main);font-size:0.9em;' 
-    });
-    headerRow.appendChild(searchIn);
-    
-    // View toggle
-    const viewToggle = el('div', { style: 'display:flex;gap:4px;background:var(--color-accord-bg);border-radius:6px;padding:2px;' });
-    let currentView = 'gallery';
-    const galleryBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-main);', onclick: () => { currentView = 'gallery'; galleryBtn.classList.add('active'); listBtn.classList.remove('active'); renderGallery(); } }, 'Gallery');
-    const listBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-muted);', onclick: () => { currentView = 'list'; listBtn.classList.add('active'); galleryBtn.classList.remove('active'); renderList(); } }, 'List');
-    galleryBtn.classList.add('active');
-    viewToggle.appendChild(galleryBtn);
-    viewToggle.appendChild(listBtn);
-    headerRow.appendChild(viewToggle);
-    
-    // Stats
-    const statsEl = el('span', { className: 'dashboard-detail', style: 'margin-left:auto;font-size:0.85em;color:var(--color-text-muted);' }, 'Loading...');
-    headerRow.appendChild(statsEl);
-    
-    body.appendChild(headerRow);
-    
-    // Main content area
-    const contentDiv = el('div', { style: 'flex:1;overflow-y:auto;min-height:300px;' });
-    body.appendChild(contentDiv);
-    
-    // Fetch all coins with images
-    function loadCoinData() {
-        statsEl.textContent = 'Loading coin data...';
-        fetch('/api/coins?limit=10000').then(function(r){return r.json();}).then(function(data){
-            var coins = data.coins || data || [];
-            statsEl.textContent = coins.length + ' total coins';
-            
-            // Show unique images from type configs — one card per type+side, not per coin
-            var seenTypes = {};
-            coins.forEach(function(c) {
-                var cfg = getTypeConfig ? getTypeConfig(c.coin_type) : null;
-                if (cfg && cfg.obv_image && !seenTypes[c.coin_type + '_obv']) {
-                    seenTypes[c.coin_type + '_obv'] = true;
-                    c._hasObv = true; c._obvSrc = cfg.obv_image;
-                }
-                if (cfg && cfg.rev_image && !seenTypes[c.coin_type + '_rev']) {
-                    seenTypes[c.coin_type + '_rev'] = true;
-                    c._hasRev = true; c._revSrc = cfg.rev_image;
-                }
-            });
-            var uniqueCount = Object.keys(seenTypes).length;
-            statsEl.textContent = uniqueCount + ' unique images';
-            // Filter coins to only those that contribute a unique image
-            coins = coins.filter(function(c){ return c._hasObv || c._hasRev; });
-            renderGallery();
-            
-            function renderGallery() {
-                contentDiv.innerHTML = '';
-                var grid = el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;' });
-                
-                var filtered = coins.filter(function(c) {
-                    var q = searchIn.value.toLowerCase();
-                    if (!q) return true;
-                    return (c.name || '').toLowerCase().includes(q) || 
-                           (c.year || '').toLowerCase().includes(q) || 
-                           (c.country || '').toLowerCase().includes(q) ||
-                           (c.denomination || '').toLowerCase().includes(q);
-                });
-                
-                if (filtered.length === 0) {
-                    contentDiv.appendChild(el('div', { style: 'text-align:center;padding:40px;color:var(--color-text-muted);' }, 'No coins match your search'));
-                    return;
-                }
-                
-                filtered.forEach(function(coin) {
-                    var card = el('div', { style: 'border:1px solid var(--color-border-light);border-radius:8px;overflow:hidden;background:var(--color-card-bg);transition:transform 0.15s,box-shadow 0.15s;', onmouseover: "this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'", onmouseout: "this.style.transform='none';this.style.boxShadow='none'" });
-                    
-                    // Image area
-                    var imgArea = el('div', { style: 'aspect-ratio:1/1;background:var(--color-accord-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;' });
-                    
-                    if (coin._hasObv && coin._obvSrc) {
-                        var obvImg = el('img', { src: coin._obvSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
-                        imgArea.appendChild(obvImg);
-                    } else if (coin._hasRev && coin._revSrc) {
-                        var revImg = el('img', { src: coin._revSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
-                        imgArea.appendChild(revImg);
-                    } else {
-                        imgArea.appendChild(el('span', { style: 'font-size:2.5em;color:var(--color-text-muted);opacity:0.3;' }, ' '));
-                    }
-                    
-                    card.appendChild(imgArea);
-                    
-                    // Info
-                    var info = el('div', { style: 'padding:8px;display:flex;flex-direction:column;gap:2px;' });
-                    info.appendChild(el('div', { style: 'font-weight:600;font-size:0.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, coin.name || 'Unnamed'));
-                    info.appendChild(el('div', { style: 'font-size:0.7em;color:var(--color-text-muted);' }, (coin.country || '') + ' ' + (coin.year || '') + ' ' + (coin.denomination || '')));
-                    info.appendChild(el('div', { style: 'font-size:0.65em;color:var(--color-text-muted);display:flex;gap:8px;', innerHTML: (coin._hasObv ? '<span style="color:var(--color-success)">Y</span> Obv' : '<span style="color:var(--color-danger)">N</span> Obv') + ' | ' + (coin._hasRev ? '<span style="color:var(--color-success)">Y</span> Rev' : '<span style="color:var(--color-danger)">N</span> Rev') }));
-                    
-                    card.appendChild(info);
-                    
-                    // Actions row
-                    var actions = el('div', { style: 'display:flex;gap:4px;padding:0 8px 8px;border-top:1px solid var(--color-border-light);' });
-                    
-                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Upload image', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, 'Upload');
-                    actions.appendChild(uploadBtn);
-                    
-                    if (coin.hasObv || coin.hasRev) {
-                        var removeBtn = el('button', { className: 'btn-danger', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Remove image', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, 'Remove');
-                        actions.appendChild(removeBtn);
-                    }
-                    
-                    card.appendChild(actions);
-                    
-                    // No click-to-navigate — Coin Image Bank is for browsing/managing images only
-                    
-                    grid.appendChild(card);
-                });
-                
-                contentDiv.appendChild(grid);
-            }
-            
-            function renderList() {
-                contentDiv.innerHTML = '';
-                var table = el('div', { style: 'display:flex;flex-direction:column;' });
-                
-                // Header
-                var header = el('div', { style: 'display:grid;grid-template-columns:40px 1fr 100px 80px 80px 80px 120px;gap:8px;padding:8px;background:var(--color-accord-bg);font-weight:600;font-size:0.75em;color:var(--color-text-muted);border-radius:6px 6px 0 0;' });
-                ['', 'Coin', 'Country', 'Year', 'Denom', 'Obv', 'Rev', 'Actions'].forEach(function(h) {
-                    header.appendChild(el('div', {}, h));
-                });
-                table.appendChild(header);
-                
-                var filtered = coins.filter(function(c) {
-                    var q = searchIn.value.toLowerCase();
-                    if (!q) return true;
-                    return (c.name || '').toLowerCase().includes(q) || 
-                           (c.year || '').toLowerCase().includes(q) || 
-                           (c.country || '').toLowerCase().includes(q) ||
-                           (c.denomination || '').toLowerCase().includes(q);
-                });
-                
-                filtered.forEach(function(coin) {
-                    var row = el('div', { style: 'display:grid;grid-template-columns:40px 1fr 100px 80px 80px 80px 120px;gap:8px;padding:8px;border-bottom:1px solid var(--color-border-light);align-items:center;font-size:0.8em;', onmouseover: "this.style.background='var(--color-accord-bg)'", onmouseout: "this.style.background='transparent'" });
-                    
-                    // Thumbnail
-                    var thumb = el('div', { style: 'width:36px;height:36px;border-radius:4px;background:var(--color-accord-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;' });
-                    if (coin._hasObv) {
-                        thumb.appendChild(el('img', { src: coin._obvSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
-                    } else if (coin._hasRev) {
-                        thumb.appendChild(el('img', { src: coin._revSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
-                    } else {
-                        thumb.appendChild(el('span', { style: 'font-size:0.8em;color:var(--color-text-muted);' }, ' '));
-                    }
-                    row.appendChild(thumb);
-                    
-                    // Name
-                    var nameDiv = el('div', { style: 'font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;', onclick: function() { window.dispatchEvent(new CustomEvent('cc-navigate-coin', { detail: { id: coin.id } })); closeModal('modal-image-manager'); } }, coin.name || 'Unnamed');
-                    row.appendChild(nameDiv);
-                    
-                    // Country
-                    row.appendChild(el('div', { style: 'color:var(--color-text-muted);' }, coin.country || ''));
-                    // Year
-                    row.appendChild(el('div', { style: 'text-align:center;color:var(--color-text-muted);' }, coin.year || ''));
-                    // Denom
-                    row.appendChild(el('div', { style: 'text-align:center;color:var(--color-text-muted);' }, coin.denomination || ''));
-                    // Obv
-                    row.appendChild(el('div', { style: 'text-align:center;', innerHTML: coin.hasObv ? '<span style="color:var(--color-success)">✓</span>' : '<span style="color:var(--color-danger)">✗</span>' }));
-                    // Rev
-                    row.appendChild(el('div', { style: 'text-align:center;', innerHTML: coin.hasRev ? '<span style="color:var(--color-success)">✓</span>' : '<span style="color:var(--color-danger)">✗</span>' }));
-                    
-                    // Actions
-                    var actions = el('div', { style: 'display:flex;gap:4px;' });
-                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, 'Upload');
-                    actions.appendChild(uploadBtn);
-                    if (coin.hasObv || coin.hasRev) {
-                        var removeBtn = el('button', { className: 'btn-danger', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, 'Remove');
-                        actions.appendChild(removeBtn);
-                    }
-                    row.appendChild(actions);
-                    
-                    table.appendChild(row);
-                });
-                
-                if (filtered.length === 0) {
-                    table.appendChild(el('div', { style: 'text-align:center;padding:40px;color:var(--color-text-muted);' }, 'No coins match your search'));
-                }
-                
-                contentDiv.appendChild(table);
-            }
-            
-            // Search handler
-            searchIn.oninput = function() {
-                if (currentView === 'gallery') renderGallery();
-                else renderList();
-            };
-        });
-    }
-    
-    function removeCoinImage(coinId) {
-        // API: DELETE /api/coins/:id/image/:type
-        fetch('/api/coins/' + coinId + '/image/obv', { method: 'DELETE' }).then(function() {
-            showToast('Image removed', 'success');
-            loadCoinData();
-        }).catch(function() { showToast('Failed to remove', 'error'); });
-    }
-    
-    loadCoinData();
-    
-    // Footer
-    var footer = el('div', { style: 'display:flex;gap:8px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--color-border-light);' });
-    var closeBtn = el('button', { className: 'btn-secondary' }, 'Close');
+    const body = el('div', { style: 'padding: 16px; max-height: 70vh; overflow-y: auto;' });
+    const footer = el('div', { style: 'display:flex; gap:8px; justify-content:flex-end; padding-top:8px; border-top:1px solid var(--color-border-light);' });
+    const closeBtn = el('button', { className: 'btn-secondary' }, 'Close');
     closeBtn.onclick = () => closeModal('modal-image-manager');
     footer.appendChild(closeBtn);
     
-    createModal('modal-image-manager', 'Coin Image Bank', body, footer, { maxWidth: '95vw', maxHeight: '95vh' });
+    const searchWrap = el('div', { style: 'margin-bottom: 12px;' });
+    const searchIn = el('input', { type: 'text', placeholder: 'Filter coin types...', style: 'width: 100%; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-bg-body); color: var(--color-text-main); font-size: 0.9em;' });
+    searchWrap.appendChild(searchIn);
+    body.appendChild(searchWrap);
+    
+    const tabWrap = el('div', { style: 'display:flex; gap:4px; margin-bottom:12px;' });
+    const tabMissing = el('button', { className: 'btn-primary', style: 'flex:1;' }, 'Missing Images');
+    const tabAll = el('button', { className: 'btn-secondary', style: 'flex:1;' }, 'All Types');
+    let currentTab = 'missing';
+    
+    function setTab(t) {
+        currentTab = t;
+        tabMissing.className = t === 'missing' ? 'btn-primary' : 'btn-secondary';
+        tabAll.className = t === 'all' ? 'btn-primary' : 'btn-secondary';
+        renderTypes();
+    }
+    tabMissing.onclick = () => setTab('missing');
+    tabAll.onclick = () => setTab('all');
+    tabWrap.appendChild(tabMissing);
+    tabWrap.appendChild(tabAll);
+    body.appendChild(tabWrap);
+    
+    const listDiv = el('div', { style: 'display:flex; flex-direction:column; gap:8px;' });
+    body.appendChild(listDiv);
+    
+    let typeMap = {};
+    
+    async function loadData() {
+        try {
+            const res = await fetch('/api/coins?limit=5000');
+            const data = await res.json();
+            const coins = data.coins || data || [];
+            typeMap = {};
+            coins.forEach(c => {
+                const ct = c.coin_type || c.type || '';
+                if (!ct) return;
+                if (!typeMap[ct]) typeMap[ct] = { section: c.section || 'Other', count: 0, hasObv: false, hasRev: false, ids: [] };
+                typeMap[ct].count++;
+                typeMap[ct].ids.push(c.id);
+                if (c.obv_image || c._obvSrc) typeMap[ct].hasObv = true;
+                if (c.rev_image || c._revSrc) typeMap[ct].hasRev = true;
+            });
+            renderTypes();
+        } catch (err) {
+            listDiv.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--color-danger);">Error loading coins: ' + err.message + '</div>';
+        }
+    }
+    
+    function renderTypes() {
+        listDiv.innerHTML = '';
+        const q = (searchIn.value || '').toLowerCase().trim();
+        let types = Object.keys(typeMap);
+        types.sort((a, b) => {
+            const sa = typeMap[a].section, sb = typeMap[b].section;
+            if (sa < sb) return -1;
+            if (sa > sb) return 1;
+            return a.localeCompare(b);
+        });
+        if (currentTab === 'missing') {
+            types = types.filter(t => !typeMap[t].hasObv || !typeMap[t].hasRev);
+        }
+        if (q) {
+            types = types.filter(t => t.toLowerCase().includes(q) || typeMap[t].section.toLowerCase().includes(q));
+        }
+        if (types.length === 0) {
+            listDiv.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--color-text-muted);">' + (currentTab === 'missing' ? 'All types have images!' : 'No types match.') + '</div>';
+            return;
+        }
+        types.forEach(ct => {
+            const info = typeMap[ct];
+            const row = el('div', { 
+                style: 'display:flex; align-items:center; gap:12px; padding:10px; border:1px solid var(--color-border-light); border-radius:8px; background:var(--color-bg-card); flex-wrap:wrap;'
+            });
+            const nameDiv = el('div', { style: 'flex:1; min-width:140px;' });
+            nameDiv.appendChild(el('div', { style: 'font-weight:600; font-size:0.9em;' }, ct));
+            nameDiv.appendChild(el('div', { style: 'font-size:0.75em; color:var(--color-text-muted);' }, info.section + ' · ' + info.count + ' coins'));
+            row.appendChild(nameDiv);
+            const badgeWrap = el('div', { style: 'display:flex; gap:6px; align-items:center;' });
+            const obvBadge = el('span', { style: 'font-size:0.7em; padding:2px 8px; border-radius:12px; ' + (info.hasObv ? 'background:rgba(46,125,50,0.2); color:var(--color-success);' : 'background:rgba(220,38,38,0.2); color:var(--color-danger);') }, info.hasObv ? 'Obv ✓' : 'Obv ✗');
+            const revBadge = el('span', { style: 'font-size:0.7em; padding:2px 8px; border-radius:12px; ' + (info.hasRev ? 'background:rgba(46,125,50,0.2); color:var(--color-success);' : 'background:rgba(220,38,38,0.2); color:var(--color-danger);') }, info.hasRev ? 'Rev ✓' : 'Rev ✗');
+            badgeWrap.appendChild(obvBadge);
+            badgeWrap.appendChild(revBadge);
+            row.appendChild(badgeWrap);
+            const drop = el('div', {
+                style: 'width: 56px; height: 56px; border: 2px dashed var(--color-border); border-radius: 8px; display:flex; align-items:center; justify-content:center; cursor:pointer; color: var(--color-text-muted); font-size: 0.7em; text-align:center; transition: all 0.15s; background: var(--color-bg-body);',
+                ondragover: "event.preventDefault(); this.style.borderColor='var(--color-accent)'; this.style.background='rgba(96,165,250,0.08)';",
+                ondragleave: "this.style.borderColor='var(--color-border)'; this.style.background='var(--color-bg-body)';",
+                ondrop: "event.preventDefault(); this.style.borderColor='var(--color-border)'; this.style.background='var(--color-bg-body)'; handleDrop(event, '" + ct + "');",
+                onclick: "triggerUpload('" + ct + "')"
+            }, '+');
+            drop.title = 'Click or drop image for ' + ct;
+            row.appendChild(drop);
+            const camBtn = el('button', {
+                className: 'btn-secondary',
+                style: 'padding:6px 10px; font-size:0.75em;',
+                title: 'Take photo for ' + ct,
+                onclick: "triggerCamera('" + ct + "')"
+            }, '📷');
+            row.appendChild(camBtn);
+            listDiv.appendChild(row);
+        });
+    }
+    
+    const fileMap = {};
+    function getFileInput(coinType) {
+        if (!fileMap[coinType]) {
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = 'image/*';
+            inp.style.display = 'none';
+            inp.onchange = (e) => handleFiles(e.target.files, coinType);
+            document.body.appendChild(inp);
+            fileMap[coinType] = inp;
+        }
+        return fileMap[coinType];
+    }
+    
+    window.triggerUpload = function(coinType) {
+        const inp = getFileInput(coinType);
+        inp.value = '';
+        inp.click();
+    };
+    window.triggerCamera = function(coinType) {
+        const inp = getFileInput(coinType);
+        inp.removeAttribute('accept');
+        inp.capture = 'environment';
+        inp.value = '';
+        inp.click();
+        setTimeout(() => { inp.removeAttribute('capture'); inp.accept = 'image/*'; }, 1000);
+    };
+    window.handleDrop = function(evt, coinType) {
+        const file = evt.dataTransfer.files[0];
+        if (file) handleFiles([file], coinType);
+    };
+    
+    async function handleFiles(files, coinType) {
+        const file = files[0];
+        if (!file) return;
+        const side = confirm('Save as Obverse? Cancel for Reverse.') ? 'obv' : 'rev';
+        const form = new FormData();
+        form.append('coin_type', coinType);
+        form.append('side', side);
+        form.append('image', file);
+        showToast('Uploading ' + coinType + '...', 'info');
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: form });
+            const data = await res.json();
+            if (data.ok) {
+                showToast('Image uploaded for ' + coinType, 'success');
+                loadData();
+            } else {
+                showToast('Upload failed: ' + (data.error || 'unknown'), 'error');
+            }
+        } catch (err) {
+            showToast('Upload error: ' + err.message, 'error');
+        }
+    }
+    
+    searchIn.oninput = renderTypes;
+    
+    createModal('modal-image-manager', 'Find Images', body, footer, { maxWidth: '900px', maxHeight: '85vh' });
     openModal('modal-image-manager');
+    loadData();
 }
-
 // ============================================================
 // PRINT CHECKLIST — Settings → Advanced Tab
 // ============================================================
