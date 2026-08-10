@@ -194,6 +194,11 @@ export function openSettingsSection(key) {
 // Individual setting modals
 // ---------------------------------------------------------------------------
 
+function _safeText(val) {
+ if (val == null) return '';
+ return (val instanceof Node) ? (val.textContent || String(val)) : String(val);
+}
+
 function _sectionBody(title, intro, blocks) {
  const body = el('div', { className: 'settings-section-body' });
  if (intro) body.appendChild(el('p', { className: 'settings-intro' }, intro));
@@ -208,10 +213,6 @@ function _sectionBody(title, intro, blocks) {
  if (b.control) body.appendChild(b.control);
  });
  return body;
-function _safeText(val) {
- if (val == null) return '';
- return (val instanceof Node) ? (val.textContent || String(val)) : String(val);
-}
 }
 
 // Sort Order
