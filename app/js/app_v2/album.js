@@ -568,17 +568,34 @@ async function _setHoleQty(coinId, holeElement, newQty) {
     const section = holeElement.dataset.section;
     try {
         if (newQty <= 0) {
-            // Remove every inventory entry for this coin so the hole goes empty
-            const entries = getInventoryEntries(coinId);
-            if (entries) {
-                for (const e of entries) {
-                    try { await deleteInventoryEntry(e.id); } catch (_) { /* non-fatal */ }
-                }
+            // Remove ALL inventory entries so the hole goes empty
+            let entries = getInventoryEntries(coinId);
+            while (entries && entries.length) {
+                try { await deleteInventoryEntry(coinId); } catch (_) { /* non-fatal */ }
+                entries = getInventoryEntries(coinId);
             }
         } else {
-            const result = await updateInventory(coinId, { quantity: newQty });
-            if (!result || result.status === 'error') {
-                throw new Error((result && result.error) || 'Update rejected');
+            const entries = getInventoryEntries(coinId);
+            if (!entries || entries.length === 0) {
+                // Place into an empty hole: create one entry with qty = newQty
+                const result = await updateInventory(coinId, { quantity: newQty });
+                if (!result || result.status === 'error') {
+                    throw new Error((result && result.error) || 'Update rejected');
+                }
+            } else {
+                // Decrement by one: reduce the first entry that still has stock
+                const target = entries.find(e => (e.quantity || 0) > 0);
+                if (target) {
+                    const ne = (target.quantity || 0) - 1;
+                    if (ne <= 0) {
+                        await deleteInventoryEntry(coinId);
+                    } else {
+                        const result = await updateInventory(coinId, { id: target.id, quantity: ne });
+                        if (!result || result.status === 'error') {
+                            throw new Error((result && result.error) || 'Update rejected');
+                        }
+                    }
+                }
             }
         }
 
