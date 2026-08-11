@@ -569,11 +569,16 @@ async function _setHoleQty(coinId, holeElement, newQty) {
     const section = holeElement.dataset.section;
     try {
         if (newQty <= 0) {
-            // Remove ALL inventory entries so the hole goes empty
-            let entries = getInventoryEntries(coinId);
-            while (entries && entries.length) {
+            // Remove ALL inventory entries so the hole goes empty.
+            // deleteInventoryEntry() only touches IndexedDB, so we must refresh
+            // _state.inventory from IndexedDB after each delete (getInventoryEntries
+            // reads in-memory state) -- otherwise the loop never sees the deletion.
+            let guard = 0;
+            while (guard++ < 50) {
+                const entries = getInventoryEntries(coinId);
+                if (!entries || !entries.length) break;
                 try { await deleteInventoryEntry(coinId); } catch (_) { /* non-fatal */ }
-                entries = getInventoryEntries(coinId);
+                try { const fresh = await fetchInventory(); setInventory(fresh); } catch (_) {}
             }
         } else {
             const entries = getInventoryEntries(coinId);
