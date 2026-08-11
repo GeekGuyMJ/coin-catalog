@@ -758,13 +758,15 @@ export async function executeImageAssignment() {
 
         if (result.status === 'success' || result.status === 'skipped') {
             showToast(result.message || 'Image updated successfully', 'success');
-            if (activeContext.isItem) {
-                closeModalLegacy('modal-image-interaction');
-                closeModalLegacy('modal-replace-scope');
-                closeModalLegacy('modal-crop');
-            } else {
-                closeAllModals();
-            }
+            // Guarantee EVERY modal layer is dismissed (legacy .modal-overlay,
+            // new orchestrator .modal-window-wrapper, or coin-bank left on stack)
+            // to prevent a stuck, click-through modal after Save & Apply.
+            closeModalLegacy('modal-image-interaction');
+            closeModalLegacy('modal-replace-scope');
+            closeModalLegacy('modal-crop');
+            closeModalLegacy('modal-coin-bank');
+            closeAllModals();
+            document.body.classList.remove('modal-open');
 
             // Soft re-render: refetch type configs (images live there) and
             // rerender sections — preserves all accordion/scroll state.

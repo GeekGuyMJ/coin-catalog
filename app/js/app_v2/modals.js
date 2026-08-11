@@ -138,10 +138,24 @@ export function closeModalLegacy(modalId) {
 export function closeAllModals() {
     openModalsStack.forEach(id => {
         const modal = document.getElementById(id);
-        if (modal) modal.classList.remove('open');
+        if (modal) {
+            modal.classList.remove('open');
+            modal.classList.add('is-dismissed');
+            modal.setAttribute('aria-hidden', 'true');
+            if (typeof modal.inert !== 'undefined') modal.inert = true;
+        }
     });
     openModalsStack = [];
     updateBodyScrollLock();
+    // Belt-and-suspenders: hide any legacy overlay still showing (e.g. coin-bank)
+    document.querySelectorAll('.modal-overlay.open').forEach(m => {
+        m.classList.remove('open');
+        m.classList.add('is-dismissed');
+        m.setAttribute('aria-hidden', 'true');
+        if (typeof m.inert !== 'undefined') m.inert = true;
+    });
+    const bd = document.getElementById('modal-backdrop');
+    if (bd) { bd.classList.add('fade-out'); bd.classList.remove('fade-in'); }
 }
 
 document.addEventListener('click', function(e) {

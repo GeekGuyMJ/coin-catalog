@@ -196,7 +196,14 @@ export function openSettingsSection(key) {
 
 function _safeText(val) {
  if (val == null) return '';
- return (val instanceof Node) ? (val.textContent || String(val)) : String(val);
+ // Never stringify a DOM node (would render "[object HTMLDivElement]" etc).
+ if (val instanceof Node) {
+   if (val.nodeType === 3) return val.nodeValue || '';
+   if (typeof val.textContent === 'string' && val.textContent.trim() !== '') return val.textContent;
+   if (typeof val.innerText === 'string' && val.innerText.trim() !== '') return val.innerText;
+   return '';
+ }
+ return String(val);
 }
 
 function _sectionBody(title, intro, blocks) {
