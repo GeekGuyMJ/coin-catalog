@@ -103,12 +103,25 @@ function updateBodyScrollLock() {
 export function openModalLegacy(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) { console.error('[modals] Modal not found:', modalId); return; }
-    if (openModalsStack.includes(modalId)) return;
-    
+    if (openModalsStack.includes(modalId)) {
+        // Already open: clear any prior dismiss state so it stays visible.
+        modal.classList.remove('is-dismissed');
+        modal.setAttribute('aria-hidden', 'false');
+        if (typeof modal.inert !== 'undefined') modal.inert = false;
+        return;
+    }
+
     // Ensure modal appears on top of any already open modals
     const baseZ = 10000;
     modal.style.zIndex = baseZ + (openModalsStack.length * 10);
-    
+
+    // Clear any prior dismiss state (is-dismissed / inert / aria-hidden) so the
+    // modal is actually visible when reopened. Without this, a previously closed
+    // legacy modal would stay display:none while body kept the scroll-lock.
+    modal.classList.remove('is-dismissed');
+    modal.setAttribute('aria-hidden', 'false');
+    if (typeof modal.inert !== 'undefined') modal.inert = false;
+
     modal.classList.add('open');
     openModalsStack.push(modalId);
     updateBodyScrollLock();
