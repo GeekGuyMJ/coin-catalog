@@ -563,7 +563,7 @@ function buildPortfolioBreakdownCard(p) {
     }
 
     var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio'});
-    card.appendChild(el('div',{className:'card-title'},'Portfolio Overview'));
+    card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
 
     // Top section: Total on top, Sparkline below it
     var topSec = el('div', {style:'display:flex; flex-direction:column; margin-bottom:8px; gap:8px; min-height: 60px;'});
@@ -696,10 +696,10 @@ function buildBullionCard(items, p, prices) {
 
     // Header with total value
     var grandTotal = Object.values(totals).reduce(function(a, b) { return a + b; }, 0);
-    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;' });
-    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, 'Bullion Holdings'));
-    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:28px;' });
-    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);">$' + grandTotal.toFixed(2) + '</span><br>' + items.length + ' entr' + (items.length !== 1 ? 'ies' : 'y');
+    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;gap:8px;' });
+    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;min-width:0;' }, 'Bullion Holdings'));
+    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:32px;white-space:nowrap;' });
+    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);display:block;">$' + grandTotal.toFixed(2) + '</span><span style="font-size:0.8em;">' + items.length + ' entr' + (items.length !== 1 ? 'ies' : 'y') + '</span>';
     hdr.appendChild(hdrRight);
     card.appendChild(hdr);
 
@@ -772,16 +772,19 @@ function buildBullionCard(items, p, prices) {
     row1.appendChild(metalSel);
     form.appendChild(row1);
 
-    // Row 2: Weight + Unit + Purity
-    var row2 = el('div', { className: 'v1-form-row' });
+    // Row 2: Weight + Unit (grouped) + Purity
+    var row2 = el('div', { className: 'v1-form-row', style: 'align-items:flex-end; gap:8px;' });
     var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'rb-weight' }, style: 'flex:1;min-width:60px;' });
     var unitSel = el('select', { className: 'v1-select', style: 'width:76px;', dataset: { field: 'rb-unit' } });
     [['oz','oz'],['ozt','troy oz'],['g','g'],['lbs','lbs'],['kg','kg']].forEach(function(u) {
         unitSel.appendChild(el('option', { value: u[0] }, u[1]));
     });
     var purityIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', min: '0.01', max: '1', value: '1.0', placeholder: 'Purity', dataset: { field: 'rb-purity' }, style: 'width:60px;' });
-    row2.appendChild(wgtIn);
-    row2.appendChild(unitSel);
+    // Group weight + unit
+    var wgtWrap2 = el('div', { style: 'display:flex; align-items:flex-end; gap:2px; flex:1; min-width:120px;' });
+    wgtWrap2.appendChild(wgtIn);
+    wgtWrap2.appendChild(unitSel);
+    row2.appendChild(wgtWrap2);
     row2.appendChild(purityIn);
     form.appendChild(row2);
 
@@ -909,11 +912,11 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
         totalVal += calcCoinValue(entry, prices).value;
     });
 
-    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;' });
-    var titleDiv = el('div', { className: 'card-title', style: 'margin-bottom:0;' }, 'Bulk Coins');
+    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;gap:8px;' });
+    var titleDiv = el('div', { className: 'card-title', style: 'margin-bottom:0;min-width:0;' }, 'Bulk Coins');
     hdr.appendChild(titleDiv);
-    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:28px;' });
-    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);">$' + totalVal.toFixed(2) + '</span><br>' + (bulkEntries || []).length + ' entr' + ((bulkEntries || []).length !== 1 ? 'ies' : 'y');
+    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:32px;white-space:nowrap;' });
+    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);display:block;">$' + totalVal.toFixed(2) + '</span><span style="font-size:0.8em;">' + (bulkEntries || []).length + ' entr' + ((bulkEntries || []).length !== 1 ? 'ies' : 'y') + '</span>';
     hdr.appendChild(hdrRight);
     card.appendChild(hdr);
 
