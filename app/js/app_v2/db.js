@@ -1754,11 +1754,16 @@ export async function fetchCoinBankImagesLocal(params = {}) {
 export async function deleteCoinBankImageLocal(filename) {
     // Find the record and null it.
     // Also set a _deleted_<field> flag so re-seed logic preserves the deletion.
+    // The stored value is a FULL path (e.g. /data/images/types/x.webp) while the
+    // caller may pass a basename, so compare on basename to guarantee a match.
+    const norm = (val) => (val || '').split('/').pop().split(String.fromCharCode(92)).pop();
+    const target = norm(filename);
+    if (!target) return { status: "deleted" };
     const cfgs = await db.coin_type_config.toArray();
     const fields = ["obv_image","rev_image","proof_obv_image","proof_rev_image"];
     for (const cfg of cfgs) {
         for (const field of fields) {
-            if (cfg[field] === filename) {
+            if (cfg[field] && norm(cfg[field]) === target) {
                 const updates = { [field]: null };
                 updates['_deleted_' + field] = true;
                 await db.coin_type_config.update(cfg.coin_type, updates);
