@@ -411,8 +411,9 @@ function buildCoinHole(coin, typeCfg) {
         displaySide = flipState === 'rev' ? 'obv' : 'rev';
     }
     
-    const obvImg = (specificCfg && specificCfg.obv_image) || mainCfg.obv_image;
-    const revImg = (specificCfg && specificCfg.rev_image) || mainCfg.rev_image;
+    // Prefer the coin's own uploaded image (per-coin), then fall back to the type-config default.
+    const obvImg = coin.obv_image || (specificCfg && specificCfg.obv_image) || mainCfg.obv_image;
+    const revImg = coin.rev_image || (specificCfg && specificCfg.rev_image) || mainCfg.rev_image;
     let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
     if (displayImg && !displayImg.includes('?')) {
         displayImg += '?v=2';
