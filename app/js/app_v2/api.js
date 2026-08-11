@@ -391,6 +391,8 @@ async function handleInterceptedRequest(urlStr, init) {
 
 // Override fetch globally
 const originalFetch = window.fetch;
+// Exposed for server-authoritative reads (e.g. per-coin image sync on self-hosted).
+window.__nativeFetch = originalFetch;
 window.fetch = async function(input, init) {
     let urlStr = typeof input === 'string' ? input : (input && input.url ? input.url : '');
     

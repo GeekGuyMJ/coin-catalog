@@ -103,7 +103,9 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     document.documentElement.style.setProperty('--folder-label', ftVal);
 
     const grid = el('div', { className: 'album-holes-grid inline-album-grid' });
-    const cfg = getTypeConfig(typeName) || {};
+    // Pass the section so colliding type names (e.g. 'Liberty Cap' in multiple
+    // sections) resolve to the correct config and its example OBV/REV images.
+    const cfg = getTypeConfig(typeName, sectionName) || {};
 
     // Obv Example
     const obvHole = el('div', { className: 'album-hole owned example-hole' });

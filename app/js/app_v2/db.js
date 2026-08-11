@@ -482,6 +482,37 @@ export async function fetchCoinsForSectionLocal(sectionName) {
         return (a.mint_mark || '').localeCompare(b.mint_mark || '');
     });
 
+    // Server-authoritative per-coin image sync (self-hosted only). Makes uploaded
+    // images appear on EVERY device (laptop, phone) instead of only the browser that
+    // performed the upload. Public (GitHub Pages) has no backend, so it is skipped and
+    // falls back to the seeded IndexedDB data. Guarded + non-fatal on failure.
+    try {
+        const _host = (window.location && window.location.hostname) || '';
+        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.');
+        if (_selfHosted && typeof window.__nativeFetch === 'function') {
+            const _res = await window.__nativeFetch('/api/coins?section=' + encodeURIComponent(sectionName));
+            if (_res && _res.ok) {
+                const _server = await _res.json();
+                const _byId = {};
+                (_server || []).forEach(c => { if (c && c.id != null) _byId[c.id] = c; });
+                for (const _c of coins) {
+                    const _s = _byId[_c.id];
+                    if (_s) {
+                        const _upd = {};
+                        if (_s.obv_image) _upd.obv_image = _s.obv_image;
+                        if (_s.rev_image) _upd.rev_image = _s.rev_image;
+                        if (Object.keys(_upd).length) {
+                            await db.coins_reference.update(_c.id, _upd);
+                            Object.assign(_c, _upd);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (_e) {
+        console.warn('[db] per-coin image server sync skipped:', _e && _e.message);
+    }
+
     return coins.map(coin => ({
         ...coin,
         coin_id: coin.id,
@@ -528,6 +559,11 @@ export async function fetchInventoryLocal() {
         if (row.personal_photo) row.personal_photo = scrubBadPhotoTokens(row.personal_photo);
         result[key].push({ ...row, id: row.id });
     });
+    if (q) {
+        const ql = String(q).toLowerCase();
+        const filtered = result.filter(r => ((r.coin_type||'')+' '+(r.filename||'')+' '+(r.side||'')).toLowerCase().includes(ql));
+        return filtered;
+    }
     return result;
 }
 
@@ -1704,6 +1740,7 @@ export async function fetchCoinBankImagesLocal(params = {}) {
     // Use 'filename' as the field name so images.js and catalog.js consumers work correctly.
     var coin_type = params.get ? params.get('coin_type') : (params.coin_type || null);
     var side = params.get ? params.get('side') : (params.side || null);
+    var q = params.get ? params.get('q') : (params.q || null);
     const cfgs = coin_type 
         ? await db.coin_type_config.where('coin_type').equals(coin_type).toArray()
         : await db.coin_type_config.toArray();
