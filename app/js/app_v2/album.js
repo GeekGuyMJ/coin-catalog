@@ -30,7 +30,7 @@ import {
     setTypeConfigs,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchTypeConfigs } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchTypeConfigs, deleteInventoryEntry } from './api.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 
@@ -155,6 +155,7 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     container.appendChild(grid);
     
     grid.addEventListener('click', handleAlbumClick);
+    grid.addEventListener('contextmenu', handleAlbumRightClick);
 }
 
 export async function renderAlbumView(sectionName) {
@@ -378,6 +379,7 @@ function renderAlbumGrid(container, sectionName, coins) {
 
     // Single event delegation on the grid
     grid.addEventListener('click', handleAlbumClick);
+    grid.addEventListener('contextmenu', handleAlbumRightClick);
 }
 
 /**
@@ -537,8 +539,8 @@ async function handleAlbumClick(e) {
  */
 async function toggleHoleOwnership(coinId, holeElement) {
     const qty = getInventoryTotalQty(coinId);
-    
-    // If ALREADY owned, open the details modal
+
+    // If ALREADY owned, open the details modal (where qty/grade can be edited)
     if (qty > 0) {
         if (window.openCoinDetailModal) {
             window.openCoinDetailModal(coinId);
@@ -550,59 +552,71 @@ async function toggleHoleOwnership(coinId, holeElement) {
         return;
     }
 
-    const newQty = 1;
+    // Empty hole -> place one coin (qty 1)
+    await _setHoleQty(coinId, holeElement, 1);
+}
 
+// Right-click on a filled hole removes one coin.
+async function decrementHole(coinId, holeElement) {
+    const qty = getInventoryTotalQty(coinId);
+    if (qty <= 0) return;
+    await _setHoleQty(coinId, holeElement, qty - 1);
+}
+
+// Place/remove coins for a hole and re-render that single hole in place.
+async function _setHoleQty(coinId, holeElement, newQty) {
+    const section = holeElement.dataset.section;
     try {
-        const result = await updateInventory(coinId, { quantity: newQty });
-        
+        if (newQty <= 0) {
+            // Remove every inventory entry for this coin so the hole goes empty
+            const entries = getInventoryEntries(coinId);
+            if (entries) {
+                for (const e of entries) {
+                    try { await deleteInventoryEntry(e.id); } catch (_) { /* non-fatal */ }
+                }
+            }
+        } else {
+            const result = await updateInventory(coinId, { quantity: newQty });
+            if (!result || result.status === 'error') {
+                throw new Error((result && result.error) || 'Update rejected');
+            }
+        }
+
         // Refresh local inventory state
         try {
             const fresh = await fetchInventory();
             setInventory(fresh);
         } catch { /* non-critical */ }
-        
-        // Visually update just the specific hole
-        const isOwned = newQty > 0;
-        holeElement.className = 'album-hole' + (isOwned ? ' owned' : ' missing');
-        
-        // Update the slot internals
-        const slot = holeElement.querySelector('.album-hole-slot');
-        if (slot) {
-            slot.innerHTML = '';
-            // Try to get image from config
-            const coinType = holeElement.dataset.coinType;
-            const specificCfg = getTypeConfig(coinType, section);
-            const mainCfg = getTypeConfig(getMainType(coinType), section) || {};
-            
-            const flipState = localStorage.getItem(`cc-flipped-${coinId}`) || 'obv';
-            const isSpecial = isSpecialReverse(mainCfg.coin_type || coinType);
-            let displaySide = flipState === 'rev' ? 'rev' : 'obv';
-            if (isSpecial) {
-                displaySide = flipState === 'rev' ? 'obv' : 'rev';
-            }
-            
-            const obvImg = (specificCfg && specificCfg.obv_image) || mainCfg.obv_image;
-            const revImg = (specificCfg && specificCfg.rev_image) || mainCfg.rev_image;
-            let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
-            if (displayImg && !displayImg.includes('?')) {
-                displayImg += '?v=2';
-            }
 
-            if (isOwned && displayImg) {
-                const img = el('img', { className: 'album-hole-img', src: displayImg });
-                // NO data-action="view-img" — clicking an owned coin opens details modal, not image lightbox
-                img.onerror = () => { img.src = placeholderCoinSvg(); };
-                slot.appendChild(img);
-            } else if (isOwned) {
-                slot.appendChild(el('div', { className: 'album-hole-filled' }, '●'));
-            } else {
-                // Removed — show clean empty hole, not placeholder
-                slot.innerHTML = '';
-                slot.appendChild(el('div', { className: 'album-hole-empty' }));
-            }
+        // Re-render just this hole (image + xN badge) so it stays in sync
+        const coins = _albumLoaded[section] || getCoinsForSection(section) || [];
+        const coin = coins.find(c => c.id === coinId);
+        if (coin) {
+            const cfg = getTypeConfig(getMainType(coin.coin_type), section) || {};
+            const freshHole = buildCoinHole(coin, cfg);
+            holeElement.replaceWith(freshHole);
+        } else {
+            const isOwned = getInventoryTotalQty(coinId) > 0;
+            holeElement.className = 'album-hole' + (isOwned ? ' owned' : ' missing');
         }
     } catch (err) {
         showToast(`Failed to update: ${err.message}`, 'error');
+    }
+}
+
+// ============================================================
+// Right-click handling
+// ============================================================
+
+async function handleAlbumRightClick(e) {
+    const target = e.target;
+    const hole = target.closest('.album-hole');
+    if (hole && !hole.classList.contains('example-hole')) {
+        e.preventDefault();
+        const coinId = hole.dataset.coinId;
+        if (coinId) {
+            await decrementHole(parseInt(coinId, 10), hole);
+        }
     }
 }
 
