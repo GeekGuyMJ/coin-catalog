@@ -1616,22 +1616,24 @@ export async function assignImageLocal(data) {
             }
             await db.coin_type_config.update(targetKey, updates);
         } else {
-            // Save to specific coin reference — item_id is coin_ref_id
+            // Save to the specific coin reference record (item_id = coin_ref_id) so the
+            // album/catalog, which read db.coins_reference.obv_image / rev_image, display it.
             const refId = Number(item_id);
-            const inv = await db.user_inventory.where('coin_ref_id').equals(refId).first();
-            if (inv) {
-                await db.user_inventory.update(inv.id, { personal_photo: image });
-            } else {
-                await db.user_inventory.add({
-                    coin_ref_id: refId,
-                    quantity: 1,
-                    grade: "",
-                    purchase_price: 0,
-                    current_value: 0,
-                    notes: "",
-                    personal_photo: image
-                });
+            const sideMap = { "obv":"obv_image", "rev":"rev_image", "proof_obv":"proof_obv_image", "proof_rev":"proof_rev_image" };
+            const sideKey = sideMap[side] || "obv_image";
+            const ref = await db.coins_reference.get(refId);
+            if (ref) {
+                const updates = {};
+                if (image) {
+                    updates[sideKey] = image;
+                    updates['_deleted_' + sideKey] = false;
+                } else {
+                    updates[sideKey] = null;
+                    updates['_deleted_' + sideKey] = true;
+                }
+                await db.coins_reference.update(refId, updates);
             }
+            
         }
     } else if (scope === "specific_item") {
         // Save to specific inventory entry by its id — item_id is user_inventory.id
