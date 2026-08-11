@@ -107,11 +107,24 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     // sections) resolve to the correct config and its example OBV/REV images.
     const cfg = getTypeConfig(typeName, sectionName) || {};
 
+    // Representative per-coin example images: if the type config has no curated
+    // example image, fall back to the first coin of this type that has an uploaded
+    // image (now server-synced across devices). This makes the example holes show a
+    // real coin photo instead of a placeholder when one exists.
+    let _repObv = null, _repRev = null;
+    for (const _c of typeCoins) {
+        if (!_repObv && _c.obv_image) _repObv = _c.obv_image;
+        if (!_repRev && _c.rev_image) _repRev = _c.rev_image;
+        if (_repObv && _repRev) break;
+    }
+    const _exObv = cfg.obv_image || _repObv;
+    const _exRev = cfg.rev_image || _repRev;
+
     // Obv Example
     const obvHole = el('div', { className: 'album-hole owned example-hole' });
     const obvSlot = el('div', { className: 'album-hole-slot' });
-    if (cfg.obv_image) {
-        obvSlot.appendChild(el('img', { className: 'album-hole-img', src: cfg.obv_image, dataset: { action: 'view-img', type: typeName, side: 'obv' } }));
+    if (_exObv) {
+        obvSlot.appendChild(el('img', { className: 'album-hole-img', src: _exObv, dataset: { action: 'view-img', type: typeName, side: 'obv' } }));
     } else {
         obvSlot.appendChild(el('img', { className: 'album-hole-img', src: placeholderCoinSvg(), style: 'cursor:pointer; opacity: 0.5;', dataset: { action: 'view-img', type: typeName, side: 'obv' } }));
     }
@@ -122,8 +135,8 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     // Rev Example
     const revHole = el('div', { className: 'album-hole owned example-hole' });
     const revSlot = el('div', { className: 'album-hole-slot' });
-    if (cfg.rev_image) {
-        revSlot.appendChild(el('img', { className: 'album-hole-img', src: cfg.rev_image, dataset: { action: 'view-img', type: typeName, side: 'rev' } }));
+    if (_exRev) {
+        revSlot.appendChild(el('img', { className: 'album-hole-img', src: _exRev, dataset: { action: 'view-img', type: typeName, side: 'rev' } }));
     } else {
         revSlot.appendChild(el('img', { className: 'album-hole-img', src: placeholderCoinSvg(), style: 'cursor:pointer; opacity: 0.5;', dataset: { action: 'view-img', type: typeName, side: 'rev' } }));
     }
