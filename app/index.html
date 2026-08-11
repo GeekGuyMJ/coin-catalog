@@ -65,6 +65,41 @@
     </script>
 
 
+    <script>
+        // Cycle through coin images on each page load (public build: relative paths)
+        (function() {
+            var coins = [
+                'images/coin_gold1.png',
+                'images/coin_gold_proof1.png',
+                'images/coin_silver1.png',
+                'images/coin_copper1.png',
+                'images/coin_copper_proof1.png',
+                'images/coin_copper_green1.png',
+                'images/coin_copper_toned1.png',
+                'images/coin_bronze1.png',
+                'images/coin_bend1.png',
+                'images/coin_bend2.png',
+                'images/coin_bend3.png',
+                'images/coin_chocolate1.png',
+                'images/coin_chocolate2.png',
+                'images/coin_dirty1.png',
+                'images/coin_dirty2.png',
+                'images/coin_dirty3.png',
+                'images/coin_dirty4.png',
+                'images/coin_dirty5.png'
+            ];
+            var pick = coins[Math.floor(Math.random() * coins.length)];
+            function setCoinImages() {
+                var hdr = document.getElementById('header-coin-img');
+                if (hdr) hdr.src = pick;
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', setCoinImages);
+            } else {
+                setCoinImages();
+            }
+        })();
+    </script>
 </head>
 
 <body id="app-body">
