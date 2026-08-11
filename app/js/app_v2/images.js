@@ -985,8 +985,9 @@ async function loadCoinBankImages(mode) {
                         el('option', { value: 'unknown', selected: img.side === 'unknown' }, 'Unknown')
                     ),
                     el('button', {
+                        class: 'cb-delete-btn',
                         style: 'margin-top:4px; padding:3px 6px; font-size:0.7rem; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; width:100%;',
-                        onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img); },
+                        onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img, e.currentTarget); },
                         title: 'Delete this image from coin bank'
                     }, 'Delete')
                 )
@@ -1020,25 +1021,26 @@ function selectBankImage(img) {
     showScopeSelection();
 }
 
-async function deleteCoinBankImageConfirm(img) {
-    // First click: show confirmation state
+async function deleteCoinBankImageConfirm(img, btn) {
+    // First click: turn the BUTTON ITSELF into a confirm prompt
     if (img._confirming !== true) {
         img._confirming = true;
-        showToast('Click Delete again to confirm permanent deletion', 'warning', 3000);
-        setTimeout(() => { img._confirming = false; }, 5000);
+        if (btn) { btn.textContent = 'Click to confirm'; btn.style.background = '#f59e0b'; btn.dataset.confirming = '1'; }
+        clearTimeout(img._confirmTimer);
+        img._confirmTimer = setTimeout(() => { img._confirming = false; if (btn && btn.dataset.confirming === '1') { btn.textContent = 'Delete'; btn.style.background = '#dc2626'; btn.dataset.confirming = ''; } }, 5000);
         return;
     }
     // Second click: confirmed
     img._confirming = false;
+    clearTimeout(img._confirmTimer);
+    if (btn) { btn.textContent = 'Delete'; btn.style.background = '#dc2626'; btn.dataset.confirming = ''; }
     try {
         const grid = document.getElementById('coin-bank-grid');
         const scrollPos = grid ? grid.parentElement.scrollTop : 0;
         await deleteCoinBankImage(img.filename);
         showToast('Image deleted from coin bank', 'success');
-        // Notify catalog to refresh
         window.dispatchEvent(new CustomEvent('cc-image-updated'));
         window.dispatchEvent(new CustomEvent('cc-inventory-updated'));
-        // Refresh the bank view, then restore scroll
         const ctxBtn = document.getElementById('cb-filter-ctx');
         await loadCoinBankImages(ctxBtn && ctxBtn.className.includes('btn-primary') ? 'context' : 'all');
         if (grid) requestAnimationFrame(() => { grid.parentElement.scrollTop = scrollPos; });
