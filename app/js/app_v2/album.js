@@ -400,8 +400,8 @@ function renderAlbumGrid(container, sectionName, coins) {
 /**
  * Build a single coin hole element.
  */
-function buildCoinHole(coin, typeCfg) {
-    const qty = getInventoryTotalQty(coin.id);
+function buildCoinHole(coin, typeCfg, qtyOverride) {
+    const qty = (qtyOverride != null) ? qtyOverride : getInventoryTotalQty(coin.id);
     const isOwned = qty > 0;
 
     const hole = el('div', {
@@ -582,6 +582,7 @@ async function decrementHole(coinId, holeElement) {
 // Place/remove coins for a hole and re-render that single hole in place.
 async function _setHoleQty(coinId, holeElement, newQty) {
     const section = holeElement.dataset.section;
+    let _newQty = newQty;
     try {
         if (newQty <= 0) {
             // Remove ALL inventory entries so the hole goes empty.
@@ -593,6 +594,7 @@ async function _setHoleQty(coinId, holeElement, newQty) {
                 const entries = getInventoryEntries(coinId);
                 if (!entries || !entries.length) break;
                 try { await deleteInventoryEntry(coinId); } catch (_) { /* non-fatal */ }
+                _newQty = 0;
                 try { const fresh = await fetchInventory(); setInventory(fresh); } catch (_) {}
             }
         } else {
@@ -631,7 +633,7 @@ async function _setHoleQty(coinId, holeElement, newQty) {
         const coin = coins.find(c => c.id === coinId);
         if (coin) {
             const cfg = getTypeConfig(getMainType(coin.coin_type), section) || {};
-            const freshHole = buildCoinHole(coin, cfg);
+            const freshHole = buildCoinHole(coin, cfg, _newQty);
             holeElement.replaceWith(freshHole);
         } else {
             const isOwned = getInventoryTotalQty(coinId) > 0;
