@@ -4,11 +4,12 @@
  * Design (per user spec):
  *  - Seed from REAL Yahoo monthly (12) + yearly (10) averages.
  *    Public ships app/data/spot_history_seed.json ({metal:{monthly,yearly}}).
- *    Self-hosted fetches /api/spot_history (may return a FLAT [{t,v}] array).
+ *    Self-hosted fetches /api/spot_history.
  *  - On every app open (throttled to <=1x/hour) we append the REAL current
  *    price as a raw point.
- *  - Raw points roll up into daily/weekly/monthly/yearly averages. History
- *    compounds over time with no unbounded growth and ZERO synthetic points.
+ *  - Raw points roll up per-metal into daily/weekly/monthly/yearly averages.
+ *  - History is stored PER METAL (each metal has its own buckets) so the
+ *    trend card shows genuinely different lines for gold vs silver vs copper.
  *  - buildSeries(metalKey, period) returns only REAL buckets; missing buckets
  *    fall back to the next-coarser REAL bucket (never faked).
  */
@@ -26,14 +27,19 @@ function _yearKey(t) { return String(new Date(t).getFullYear()); }
 
 function _avg(arr) { if (!arr.length) return 0; return arr.reduce((a, b) => a + b, 0) / arr.length; }
 
+function _emptyMetal() {
+  return { raw: [], daily: {}, weekly: {}, monthly: {}, yearly: {} };
+}
 function _emptyStore() {
-  return { raw: [], daily: {}, weekly: {}, monthly: {}, yearly: {}, seed: null, updated_at: 0 };
+  const metals = {};
+  for (const k of METAL_KEYS) metals[k] = _emptyMetal();
+  return { metals, seed: null, updated_at: 0 };
 }
 
 function loadStore() {
   try {
     const s = JSON.parse(localStorage.getItem(SPOT_HISTORY_KEY));
-    if (s && s.daily) return s;
+    if (s && s.metals && s.metals.gold_oz) return s;
   } catch (e) {}
   return _emptyStore();
 }
@@ -43,108 +49,106 @@ function saveStore(s) {
   try { localStorage.setItem(SPOT_HISTORY_KEY, JSON.stringify(s)); } catch (e) {}
 }
 
-// Accepts BOTH seed shapes:
-//   Shape A: { metalKey: { monthly:[{t,v}], yearly:[{t,v}] } }   (public static JSON)
-//   Shape B: { metalKey: [ {t,v}, ... ] }                        (self-hosted /api/spot_history flat array)
+// Accepts BOTH seed shapes, PER METAL:
+//   Shape A: { metalKey: { monthly:[{t,v}], yearly:[{t,v}] } }   (public static JSON / backend)
+//   Shape B: { metalKey: [ {t,v}, ... ] }                        (flat array fallback)
 function applySeed(s, seed) {
   if (!seed) return;
   s.seed = seed;
   for (const k of METAL_KEYS) {
     const sm = seed[k];
     if (!sm) continue;
+    const m = s.metals[k] || (s.metals[k] = _emptyMetal());
     if (Array.isArray(sm.monthly) || Array.isArray(sm.yearly)) {
       // Shape A
-      for (const p of (sm.monthly || [])) s.monthly[_monthKey(p.t)] = p.v;
-      for (const p of (sm.yearly || [])) s.yearly[_yearKey(p.t)] = p.v;
+      for (const p of (sm.monthly || [])) m.monthly[_monthKey(p.t)] = p.v;
+      for (const p of (sm.yearly || [])) m.yearly[_yearKey(p.t)] = p.v;
     } else if (Array.isArray(sm)) {
-      // Shape B — roll the flat array into real monthly + yearly AVERAGES
+      // Shape B — roll the flat array into per-metal monthly + yearly AVERAGES
       const mBuckets = {}, yBuckets = {};
       for (const p of sm) {
         (mBuckets[_monthKey(p.t)] ||= []).push(p.v);
         (yBuckets[_yearKey(p.t)] ||= []).push(p.v);
       }
-      for (const mk in mBuckets) s.monthly[mk] = _avg(mBuckets[mk]);
-      for (const yk in yBuckets) s.yearly[yk] = _avg(yBuckets[yk]);
+      for (const mk in mBuckets) m.monthly[mk] = _avg(mBuckets[mk]);
+      for (const yk in yBuckets) m.yearly[yk] = _avg(yBuckets[yk]);
     }
   }
 }
 
 function addRawPoint(s, prices) {
-  // prices: { gold_oz, silver_oz, ... } real current values
   const now = Date.now();
   for (const k of METAL_KEYS) {
-    if (prices[k] == null) continue;
-    s.raw.push({ t: now, v: prices[k] });
+    const v = prices[k];
+    if (v == null) continue;
+    const m = s.metals[k] || (s.metals[k] = _emptyMetal());
+    m.raw.push({ t: now, v: v });
+    if (m.raw.length > 200) m.raw = m.raw.slice(-200);
+    // Roll up raw into daily/weekly/monthly/yearly (per metal)
+    const byDay = {}, byWeek = {}, byMonth = {}, byYear = {};
+    for (const p of m.raw) {
+      (byDay[_dayKey(p.t)] ||= []).push(p.v);
+      (byWeek[_weekKey(p.t)] ||= []).push(p.v);
+      (byMonth[_monthKey(p.t)] ||= []).push(p.v);
+      (byYear[_yearKey(p.t)] ||= []).push(p.v);
+    }
+    for (const dk in byDay) m.daily[dk] = _avg(byDay[dk]);
+    for (const wk in byWeek) m.weekly[wk] = _avg(byWeek[wk]);
+    for (const mk in byMonth) m.monthly[mk] = _avg(byMonth[mk]);
+    for (const yk in byYear) m.yearly[yk] = _avg(byYear[yk]);
+    const trim = (obj, max) => { const ks = Object.keys(obj).sort(); if (ks.length > max) ks.slice(0, ks.length - max).forEach(k => delete obj[k]); };
+    trim(m.daily, 400); trim(m.weekly, 120); trim(m.monthly, 120);
   }
-  if (s.raw.length > 200) s.raw = s.raw.slice(-200);
-  // Roll up raw into daily/weekly/monthly/yearly
-  const byDay = {}, byWeek = {}, byMonth = {}, byYear = {};
-  for (const p of s.raw) {
-    (byDay[_dayKey(p.t)] ||= []).push(p.v);
-    (byWeek[_weekKey(p.t)] ||= []).push(p.v);
-    (byMonth[_monthKey(p.t)] ||= []).push(p.v);
-    (byYear[_yearKey(p.t)] ||= []).push(p.v);
-  }
-  for (const dk in byDay) s.daily[dk] = _avg(byDay[dk]);
-  for (const wk in byWeek) s.weekly[wk] = _avg(byWeek[wk]);
-  for (const mk in byMonth) s.monthly[mk] = _avg(byMonth[mk]);
-  for (const yk in byYear) s.yearly[yk] = _avg(byYear[yk]);
-  // Caps
-  const trim = (obj, max) => { const ks = Object.keys(obj).sort(); if (ks.length > max) ks.slice(0, ks.length - max).forEach(k => delete obj[k]); };
-  trim(s.daily, 400); trim(s.weekly, 120); trim(s.monthly, 120);
   saveStore(s);
 }
 
 function _toSeries(bucketObj, keyFn) {
   return Object.keys(bucketObj).sort().map(k => ({ t: keyFn(k), v: bucketObj[k] }));
 }
-function _monthlySeries(s) { return _toSeries(s.monthly, k => new Date(k + '-01T00:00:00').getTime()); }
-function _dailySeries(s) { return _toSeries(s.daily, k => new Date(k + 'T00:00:00').getTime()); }
+function _monthlySeries(m) { return _toSeries(m.monthly, k => new Date(k + '-01T00:00:00').getTime()); }
+function _dailySeries(m) { return _toSeries(m.daily, k => new Date(k + 'T00:00:00').getTime()); }
 
-// Pick the richer of two real series for a period
 function _best(a, b) { return a.length >= b.length ? a : b; }
 
 /*
- * Build a REAL series for a metal + period.
+ * Build a REAL series for a metal + period. PER METAL buckets.
  * period: '1D' | '1W' | '1M' | '1Y' | '10Y'
  * Returns [{t, v}] — only genuine data; never fabricated.
- * Falls back to the next-coarser REAL bucket when a fine bucket is sparse,
- * so every period always renders a true line (no blank, no fake).
+ * Falls back to the next-coarser REAL bucket when a fine bucket is sparse.
  */
 function buildSeries(s, metalKey, period) {
+  const m = s.metals[metalKey] || _emptyMetal();
   if (period === '1D') {
     const cutoff = Date.now() - 86400000;
-    let recent = s.raw.filter(p => p.t >= cutoff).map(p => ({ t: p.t, v: p.v }));
+    let recent = m.raw.filter(p => p.t >= cutoff).map(p => ({ t: p.t, v: p.v }));
     if (recent.length < 1) {
-      // fall back to the latest real daily/monthly point so the card isn't blank
-      const all = _dailySeries(s).concat(_monthlySeries(s)).sort((a, b) => a.t - b.t);
+      const all = _dailySeries(m).concat(_monthlySeries(m)).sort((a, b) => a.t - b.t);
       if (all.length) recent = [all[all.length - 1]];
     }
     return recent;
   }
   if (period === '1W') {
     const cutoff = Date.now() - 7 * 86400000;
-    const daily = _dailySeries(s).filter(p => p.t >= cutoff);
-    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
+    const daily = _dailySeries(m).filter(p => p.t >= cutoff);
+    const monthly = _monthlySeries(m).filter(p => p.t >= cutoff);
     return _best(daily, monthly);
   }
   if (period === '1M') {
     const cutoff = Date.now() - 30 * 86400000;
-    const daily = _dailySeries(s).filter(p => p.t >= cutoff);
-    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
+    const daily = _dailySeries(m).filter(p => p.t >= cutoff);
+    const monthly = _monthlySeries(m).filter(p => p.t >= cutoff);
     return _best(daily, monthly);
   }
   if (period === '1Y') {
     const cutoff = Date.now() - 365 * 86400000;
-    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
-    const yearly = _toSeries(s.yearly, k => new Date(k + '-01-01T00:00:00').getTime()).filter(p => p.t >= cutoff);
+    const monthly = _monthlySeries(m).filter(p => p.t >= cutoff);
+    const yearly = _toSeries(m.yearly, k => new Date(k + '-01-01T00:00:00').getTime()).filter(p => p.t >= cutoff);
     return _best(monthly, yearly);
   }
   if (period === '10Y') {
-    const yr = _toSeries(s.yearly, k => new Date(k + '-01-01T00:00:00').getTime());
-    const yearly = yr.slice(-10);
-    const mo = _monthlySeries(s);
-    return yearly.concat(mo);
+    const yearly = _toSeries(m.yearly, k => new Date(k + '-01-01T00:00:00').getTime()).slice(-10);
+    const monthly = _monthlySeries(m);
+    return yearly.concat(monthly);
   }
   return [];
 }
