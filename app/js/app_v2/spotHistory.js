@@ -14,7 +14,7 @@
  *    fall back to the next-coarser REAL bucket (never faked).
  */
 
-const SPOT_HISTORY_KEY = 'cc-spot-history-v2';
+const SPOT_HISTORY_KEY = 'cc-spot-history-v3';
 const SPOT_LAST_FETCH_KEY = 'cc-spot-lastfetch';
 const FETCH_THROTTLE_MS = 60 * 60 * 1000; // at most once an hour
 
@@ -147,6 +147,12 @@ function buildSeries(s, metalKey, period) {
   }
   if (period === '10Y') {
     const yearly = _toSeries(m.yearly, k => new Date(k + '-01-01T00:00:00').getTime()).slice(-10);
+    const monthly = _monthlySeries(m);
+    return yearly.concat(monthly);
+  }
+  if (period === 'All') {
+    // Full real history: every yearly point + every monthly point, oldest -> newest.
+    const yearly = _toSeries(m.yearly, k => new Date(k + '-01-01T00:00:00').getTime());
     const monthly = _monthlySeries(m);
     return yearly.concat(monthly);
   }

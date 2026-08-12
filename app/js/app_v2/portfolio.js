@@ -450,8 +450,8 @@ function buildSpotTrendCard(prices) {
     ];
 
     var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:8px;font-size:0.7em;flex-wrap:nowrap;white-space:nowrap;' });
-    var periods = ['1D', '1W', '1M', '1Y', '10Y'];
-    var activePeriod = localStorage.getItem('cc-trend-period') || '1Y';
+    var periods = ['1D', '1W', '1M', '1Y', '10Y', 'All'];
+    var activePeriod = localStorage.getItem('cc-trend-period') || 'All';
     periods.forEach(function(p) {
         var b = el('div', { style: 'cursor:pointer;color:' + (p === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';font-weight:' + (p === activePeriod ? 'bold' : 'normal') + ';padding:2px;' }, p);
         b.addEventListener('click', function(e) { e.stopPropagation(); localStorage.setItem('cc-trend-period', p); renderDashboard(); });
@@ -550,11 +550,14 @@ function buildSpotTrendCard(prices) {
         var dt = new Date(cursorT);
         var timePart = (activePeriod === '1D' || activePeriod === '1W') ? ' ' + dt.toLocaleTimeString() : '';
         var line1 = '<div style="display:flex;justify-content:space-between;gap:8px;"><span>@ ' + dt.toLocaleDateString() + timePart + '</span><span style="font-weight:700;color:var(--color-accent);">Est. collection value: $' + totalAtT.toFixed(2) + '</span></div>';
-        var line2parts = metals.map(function(m) {
-            var v = _interpAt(seriesByMetal[m.key], cursorT);
-            return v == null ? '' : ('<span style="color:' + m.c + ';">' + m.l + ': $' + v.toFixed(2) + '</span>');
-        }).filter(Boolean);
-        readout.innerHTML = line1 + '<div style="color:var(--color-text-muted);margin-top:2px;">' + line2parts.join('  ·  ') + '</div>';
+        var minT = null, maxT = null;
+        metals.forEach(function(m){ var ser = seriesByMetal[m.key]; if (!ser || !ser.length) return; ser.forEach(function(pt){ if (minT===null||pt.t<minT) minT=pt.t; if (maxT===null||pt.t>maxT) maxT=pt.t; }); });
+        var spanTxt = 'No price history yet';
+        if (minT!==null && maxT!==null) {
+          var df = function(t){ var d=new Date(t); return d.toLocaleDateString(); };
+          spanTxt = (activePeriod==='All' ? 'Full history: ' : '') + df(minT) + ' \u2013 ' + df(maxT);
+        }
+        readout.innerHTML = line1 + '<div style="color:var(--color-text-muted);margin-top:2px;">' + spanTxt + '</div>';
     }
     function update() { draw(); rebuildReadout(); }
 
