@@ -123,6 +123,8 @@ function _toSeries(bucketObj, keyFn) {
 }
 function _monthlySeries(s) { return _toSeries(s.monthly, k => new Date(k + '-01T00:00:00').getTime()); }
 function _dailySeries(s) { return _toSeries(s.daily, k => new Date(k + 'T00:00:00').getTime()); }
+function _yearlySeries(s) { return _toSeries(s.yearly, k => new Date(k + '-01-01T00:00:00').getTime()); }
+
 
 // Pick the richer of two real series for a period
 function _best(a, b) { return a.length >= b.length ? a : b; }
@@ -135,27 +137,18 @@ function _best(a, b) { return a.length >= b.length ? a : b; }
  * so every period always renders a true line (no blank, no fake).
  */
 function buildSeries(s, metalKey, period) {
-  if (period === '1D') {
-    const cutoff = Date.now() - 86400000;
-    let recent = s.raw.filter(p => p.t >= cutoff).map(p => ({ t: p.t, v: p.v }));
-    if (recent.length < 1) {
-      // fall back to the latest real daily/monthly point so the card isn't blank
-      const all = _dailySeries(s).concat(_monthlySeries(s)).sort((a, b) => a.t - b.t);
-      if (all.length) recent = [all[all.length - 1]];
+  if (period === '1D' || period === '1W' || period === '1M') {
+    const days = period === '1D' ? 1 : period === '1W' ? 7 : 30;
+    const fb = period === '1D' ? 7 : period === '1W' ? 14 : 12;
+    const cutoff = Date.now() - days * 86400000;
+    const daily = _dailySeries(s).filter(p => p.t >= cutoff);
+    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
+    let pts = _best(daily, monthly);
+    if (pts.length < 2) {
+      const all = _monthlySeries(s).concat(_yearlySeries(s)).sort((a, b) => a.t - b.t);
+      pts = all.slice(-fb);
     }
-    return recent;
-  }
-  if (period === '1W') {
-    const cutoff = Date.now() - 7 * 86400000;
-    const daily = _dailySeries(s).filter(p => p.t >= cutoff);
-    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
-    return _best(daily, monthly);
-  }
-  if (period === '1M') {
-    const cutoff = Date.now() - 30 * 86400000;
-    const daily = _dailySeries(s).filter(p => p.t >= cutoff);
-    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
-    return _best(daily, monthly);
+    return pts;
   }
   if (period === '1Y') {
     const cutoff = Date.now() - 365 * 86400000;
