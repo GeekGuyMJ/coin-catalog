@@ -1,0 +1,8 @@
+{
+  "_comment": "STATIC 50-YEAR BASELINE for the Metal Price Trends card. Merged UNDER the live Yahoo data (1970-1999 here, Yahoo covers 2000+). Populate 'yearly' arrays with REAL annual average prices (USD/oz for gold/silver/platinum/palladium, USD/lb for copper). Source recommendation: FRED series GOLDAMGBD228NLBM (gold) and SLVPRUSD (silver) annual averages, or LBMA/World Gold Council annual averages. Empty arrays = app shows Yahoo real history (2000+). To fill: run the FRED fetch command (see repo notes) and paste the resulting yearly arrays here, then commit. Once present, the 'All' view extends automatically to ~50y with zero code changes.",
+  "gold_oz": { "yearly": [] },
+  "silver_oz": { "yearly": [] },
+  "copper_lb": { "yearly": [] },
+  "platinum_oz": { "yearly": [] },
+  "palladium_oz": { "yearly": [] }
+}
