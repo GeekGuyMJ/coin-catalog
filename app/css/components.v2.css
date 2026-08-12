@@ -2269,9 +2269,11 @@ select optgroup {
 @media (min-width: 769px) and (max-width: 1500px) {
     .dashboard-card .card-title {
         font-size: 0.85em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        overflow: visible;
+        text-overflow: clip;
     }
     .dashboard-card .v1-item-row {
         flex-wrap: wrap;
@@ -2347,6 +2349,13 @@ select optgroup {
     .dashboard-card {
         overflow: hidden;
         min-width: 0;
+        padding-right: 44px;
+    }
+    /* keep the big portfolio/wishlist total clear of the grab handle */
+    .dashboard-card .dashboard-big-number,
+    .dashboard-card .finance-grid,
+    .dashboard-card > div:first-child {
+        padding-right: 0;
     }
     .v1-item-list {
         overflow-x: hidden;

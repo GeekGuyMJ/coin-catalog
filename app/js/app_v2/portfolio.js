@@ -442,14 +442,14 @@ function buildSpotTrendCard(prices) {
     titleRow.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, 'Metal Price Trends'));
 
     var metals = [
-        { key: 'gold_oz', l: 'Gold', c: '#d4af37' },
-        { key: 'silver_oz', l: 'Silver', c: '#94a3b8' },
-        { key: 'copper_lb', l: 'Copper', c: '#b45309' },
-        { key: 'platinum_oz', l: 'Platinum', c: '#38bdf8' },
-        { key: 'palladium_oz', l: 'Palladium', c: '#a78bfa' }
+        { key: 'gold_oz', base: 'gold', l: 'Gold', c: '#d4af37' },
+        { key: 'silver_oz', base: 'silver', l: 'Silver', c: '#94a3b8' },
+        { key: 'copper_lb', base: 'copper', l: 'Copper', c: '#b45309' },
+        { key: 'platinum_oz', base: 'platinum', l: 'Platinum', c: '#38bdf8' },
+        { key: 'palladium_oz', base: 'palladium', l: 'Palladium', c: '#a78bfa' }
     ];
 
-    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:8px;font-size:0.7em;flex-wrap:nowrap;white-space:nowrap;' });
+    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:8px;font-size:0.7em;flex-wrap:wrap;white-space:nowrap;' });
     var periods = ['1D', '1W', '1M', '1Y', '10Y', 'All'];
     var activePeriod = localStorage.getItem('cc-trend-period') || 'All';
     periods.forEach(function(p) {
@@ -538,18 +538,22 @@ function buildSpotTrendCard(prices) {
     }
     function rebuildReadout() {
         var totalAtT = 0;
+        var priceBits = [];
         metals.forEach(function(m) {
             var v = _interpAt(seriesByMetal[m.key], cursorT);
             if (v == null) return;
             var spotNow = prices[m.key] || 0;
-            var meltAtT = spotNow > 0 ? (meltNow[m] || 0) * (v / spotNow) : (meltNow[m] || 0);
+            // Scale current holdings melt value to the historical spot ratio at cursorT.
+            var meltAtT = spotNow > 0 ? (meltNow[m.base] || 0) * (v / spotNow) : (meltNow[m.base] || 0);
             totalAtT += meltAtT;
             var leg = legend.querySelector('[data-metal="' + m.key + '"]');
             if (leg) leg.title = '$' + v.toFixed(2);
+            priceBits.push('<span style="color:' + m.c + ';font-weight:600;">' + m.l + ' $' + v.toFixed(2) + '</span>');
         });
         var dt = new Date(cursorT);
         var timePart = (activePeriod === '1D' || activePeriod === '1W') ? ' ' + dt.toLocaleTimeString() : '';
-        var line1 = '<div style="display:flex;justify-content:space-between;gap:8px;"><span>@ ' + dt.toLocaleDateString() + timePart + '</span><span style="font-weight:700;color:var(--color-accent);">Est. collection value: $' + totalAtT.toFixed(2) + '</span></div>';
+        var line1 = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span>@ ' + dt.toLocaleDateString() + timePart + '</span><span style="font-weight:700;color:var(--color-accent);">Est. collection value: $' + totalAtT.toFixed(2) + '</span></div>';
+        var line2 = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.74em;margin-top:4px;">' + priceBits.join('') + '</div>';
         var minT = null, maxT = null;
         metals.forEach(function(m){ var ser = seriesByMetal[m.key]; if (!ser || !ser.length) return; ser.forEach(function(pt){ if (minT===null||pt.t<minT) minT=pt.t; if (maxT===null||pt.t>maxT) maxT=pt.t; }); });
         var spanTxt = 'No price history yet';
@@ -557,7 +561,7 @@ function buildSpotTrendCard(prices) {
           var df = function(t){ var d=new Date(t); return d.toLocaleDateString(); };
           spanTxt = (activePeriod==='All' ? 'Full history: ' : '') + df(minT) + ' \u2013 ' + df(maxT);
         }
-        readout.innerHTML = line1 + '<div style="color:var(--color-text-muted);margin-top:2px;">' + spanTxt + '</div>';
+        readout.innerHTML = line1 + line2 + '<div style="color:var(--color-text-muted);margin-top:2px;">' + spanTxt + '</div>';
     }
     function update() { draw(); rebuildReadout(); }
 
@@ -1374,7 +1378,7 @@ async function buildSpotPricesCard(prices) {
     var titleRow = el('div', {style:'display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;padding-right:28px;'});
     titleRow.appendChild(el('div',{className:'card-title', style:'margin-bottom:0;'},'Live Spot Prices'));
     
-    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:8px; font-size:0.7em; flex-wrap:nowrap; white-space:nowrap;'});
+    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:8px; font-size:0.7em; flex-wrap:wrap; white-space:nowrap;'});
     var periods = [
         {label:'1D', range:'1D'},
         {label:'1W', range:'1W'},
