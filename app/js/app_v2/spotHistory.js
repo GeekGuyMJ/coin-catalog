@@ -149,12 +149,15 @@ function buildSeries(s, metalKey, period) {
     // the trailing real monthly points (seed has 27+ monthly) so the sparkline
     // always renders a genuine trend (>=2 points, never fabricated).
     const days = period === '1D' ? 1 : period === '1W' ? 7 : 30;
-    const fb = period === '1D' ? 7 : period === '1W' ? 14 : 12;
+    const fb = period === '1D' ? 7 : period === '1W' ? 10 : 12;
     const cutoff = Date.now() - days * 86400000;
     const daily = _dailySeries(m).filter(p => p.t >= cutoff);
     const monthly = _monthlySeries(m).filter(p => p.t >= cutoff);
     let pts = _best(daily, monthly);
-    if (pts.length < 2) {
+    // Seed only carries monthly+yearly; recent fine buckets are sparse, so if we
+    // have fewer than 6 real points fall back to the trailing monthly history
+    // (>=6) so each metal's sparkline shows a genuine, distinct trend.
+    if (pts.length < 6) {
       const all = _monthlySeries(m).concat(_yearlySeries(m)).sort((a, b) => a.t - b.t);
       pts = all.slice(-fb);
     }
