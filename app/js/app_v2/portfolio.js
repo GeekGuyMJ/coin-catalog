@@ -9,6 +9,7 @@ import { onChange, getSpotPrices, getInventory, getSections,
     getBullion, getRawBullion, getCoinWeight, getWishlist
 } from './state.js';
 import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } from './modals.js';
+import { initSpotHistory, getSeriesForPeriod } from './spotHistory.js';
 import { openPortfolioHistoryModal } from './portfolio_history.js';
 
 import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
