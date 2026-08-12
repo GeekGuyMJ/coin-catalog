@@ -438,7 +438,7 @@ function _fmtAxis(t) {
 
 function buildSpotTrendCard(prices) {
     var card = el('div', { className: 'card dashboard-card trend-card', id: 'card-trend', style: 'display:flex;flex-direction:column;' });
-    var titleRow = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-right:28px;' });
+    var titleRow = el('div', { style: 'display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;padding-right:28px;' });
     titleRow.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, 'Metal Price Trends'));
 
     var metals = [
@@ -1375,7 +1375,7 @@ var _spotCanvases = [];
 async function buildSpotPricesCard(prices) {
     var card = el('div',{className:'card dashboard-card spot-card',id:'card-spot'});
     
-    var titleRow = el('div', {style:'display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;padding-right:28px;'});
+    var titleRow = el('div', {style:'display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;padding-right:28px;'});
     titleRow.appendChild(el('div',{className:'card-title', style:'margin-bottom:0;'},'Live Spot Prices'));
     
     var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:8px; font-size:0.7em; flex-wrap:wrap; white-space:nowrap;'});

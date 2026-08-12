@@ -2270,8 +2270,8 @@ select optgroup {
     .dashboard-card .card-title {
         font-size: 0.85em;
         white-space: normal;
-        overflow-wrap: anywhere;
-        word-break: break-word;
+        overflow-wrap: break-word;
+        word-break: normal;
         overflow: visible;
         text-overflow: clip;
     }

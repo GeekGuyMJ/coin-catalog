@@ -1137,11 +1137,9 @@ export function applyFolderColor(v) {
     document.documentElement.style.setProperty('--folder-header-text', ftVal);
     document.documentElement.style.setProperty('--folder-label', ftVal);
     
-    document.querySelectorAll('.album-inline, #album-grid-area').forEach(a => {
+    // Update every album element that uses the folder color (live, no refresh).
+    document.querySelectorAll('.album-inline, #album-grid-area, .album-type-header, .album-inline-title, .album-type-title, .type-header-title').forEach(a => {
         a.style.background = fcVal;
-    });
-    document.querySelectorAll('.type-header-title').forEach(t => {
-        t.style.background = fcVal;
     });
     showToast('Album color updated', 'info');
 }

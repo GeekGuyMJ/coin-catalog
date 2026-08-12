@@ -2098,7 +2098,7 @@ function applySectionOrder() {
 }
 
 export function openCoinDetailModal(coinId) {
-    import('./state.js').then(state => {
+    import('./state.js').then(async (state) => {
         let coin = null;
         for (const s of state.getSections()) {
             const coins = state.getCoinsForSection(s.section);
@@ -2106,6 +2106,14 @@ export function openCoinDetailModal(coinId) {
                 coin = coins.find(c => c.id === coinId);
                 if (coin) break;
             }
+        }
+        if (!coin) {
+            // Fallback: look the coin up directly in the local DB so the detail
+            // modal still opens even if it isn't in the in-memory section cache.
+            try {
+                const dbm = await import('./db.js');
+                if (dbm.fetchCoinLocal) coin = await dbm.fetchCoinLocal(coinId);
+            } catch (_) { /* non-fatal */ }
         }
         if (!coin) return;
         

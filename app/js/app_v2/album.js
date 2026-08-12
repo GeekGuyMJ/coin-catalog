@@ -777,6 +777,47 @@ window.addEventListener('cc-image-updated', async () => {
     }
 });
 
+// Issue C fix: list-view (and any other view) inventory edits dispatch
+// 'cc-inventory-updated'. Re-render the active album grid so owned/missing
+// holes stay in sync with the list view.
+// Issue B fix: when the folder color changes in Settings, re-apply it to the
+// live album DOM immediately (don't wait for a page refresh).
+window.addEventListener('cc-settings-changed', (e) => {
+    const detail = (e && e.detail) || {};
+    if (detail.key === 'cc-folder-color') {
+        const v = detail.value || localStorage.getItem('cc-folder-color') || 'green';
+        import('./modals.js').then(m => { if (m.applyFolderColor) m.applyFolderColor(v); })
+            .catch(() => {});
+    }
+});
+
+window.addEventListener('cc-inventory-updated', (e) => {
+    const detail = (e && e.detail) || {};
+    const changedId = detail.coinId;
+    const gridArea = document.getElementById('album-grid-area');
+    if (gridArea && _activeSection) {
+        const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
+        if (coins) {
+            const container = gridArea.closest('.album-layout')?.parentElement;
+            if (container) renderAlbumGrid(container, _activeSection, coins);
+        }
+    }
+    // Re-render inline album grids (album-type view) too
+    document.querySelectorAll('.type-content.open.album-inline').forEach(async (container) => {
+        const typeWrapper = container.closest('.type-wrapper');
+        if (!typeWrapper) return;
+        const sectionCard = typeWrapper.closest('.section-card');
+        if (!sectionCard) return;
+        const secName = sectionCard.dataset.section;
+        const header = typeWrapper.querySelector('.type-header');
+        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
+        if (secName && mainType) {
+            if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
+            await renderAlbumType(secName, mainType, container, header);
+        }
+    });
+});
+
 window.addEventListener('cc-album-options-changed', () => {
     // Re-render standalone album grid if visible
     const gridArea = document.getElementById('album-grid-area');

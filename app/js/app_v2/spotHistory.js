@@ -14,7 +14,7 @@
  *    fall back to the next-coarser REAL bucket (never faked).
  */
 
-const SPOT_HISTORY_KEY = 'cc-spot-history-v3';
+const SPOT_HISTORY_KEY = 'cc-spot-history-v4';
 const SPOT_LAST_FETCH_KEY = 'cc-spot-lastfetch';
 const FETCH_THROTTLE_MS = 60 * 60 * 1000; // at most once an hour
 
@@ -187,6 +187,20 @@ async function initSpotHistory({ getSeed, getPrices, getBaseline }) {
   const s = loadStore();
   if (getSeed) { try { applySeed(s, await getSeed()); } catch (e) {} }
   if (getBaseline) { try { applyBaseline(s, await getBaseline()); } catch (e) {} }
+  // Self-heal: if seeding left any metal with <6 yearly points (stale/empty
+  // store from an old cache), drop the stale metal buckets so a later reseed
+  // (or the next load with a fresh store) produces real history.
+  let healthy = true;
+  for (const k of METAL_KEYS) {
+    const m = s.metals && s.metals[k];
+    if (!m || Object.keys(m.yearly || {}).length < 6) { healthy = false; break; }
+  }
+  if (!healthy && getSeed) {
+    try {
+      const fresh = await getSeed();
+      if (fresh) { const clean = _emptyStore(); applySeed(clean, fresh); if (getBaseline) { try { applyBaseline(clean, await getBaseline()); } catch(e){} } s.metals = clean.metals; s.seed = clean.seed; }
+    } catch (e) {}
+  }
   const last = Number(localStorage.getItem(SPOT_LAST_FETCH_KEY) || 0);
   if (Date.now() - last > FETCH_THROTTLE_MS) {
     try {
