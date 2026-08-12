@@ -1389,6 +1389,7 @@ async function buildSpotPricesCard(prices) {
         try {
             window._spotHistoryStore = await initSpotHistory({
                 getSeed: async () => { try { const r = await fetch('data/spot_history_seed.json?t=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+getBaseline: async () => { try { const r = await fetch('/data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
                 getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
             });
         } catch(e) { window._spotHistoryStore = null; }
