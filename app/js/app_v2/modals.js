@@ -372,7 +372,7 @@ export function openSettingsModal() {
 
     // --- Tab Content Builders ---
     function buildGeneralTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'General'),
             el('p', { className: 'settings-section-desc' }, 'Core application behavior and defaults.'),
             buildSettingRow('Default Sort Order', 'settings-sort', 'select', {
@@ -416,7 +416,7 @@ export function openSettingsModal() {
     }
 
     function buildAppearanceTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Album Page Color'),
             el('p', { className: 'settings-section-desc' }, 'Background color for the album view folders.'),
             buildSettingRow('Folder Background', 'settings-folder-color', 'select', {
@@ -431,14 +431,14 @@ export function openSettingsModal() {
             }),
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('p', { className: 'settings-section-desc' }, 'Create your own color scheme with live preview.'),
             el('button', { className: 'btn-primary', style: 'width:100%;', onclick: () => { closeModal('modal-settings'); setTimeout(() => openCustomThemeDesigner(1), 150); } },
                 'Open Theme Designer'
             ),
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Dashboard Card Visibility'),
             el('p', { className: 'settings-section-desc' }, 'Show or hide entire dashboard cards.'),
             ...buildCardVisibilityRows(),
@@ -446,7 +446,7 @@ export function openSettingsModal() {
     }
 
     function buildCatalogTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Display Filters'),
             el('p', { className: 'settings-section-desc' }, 'Control which coins appear in the catalog. Changes apply on next load.'),
             [
@@ -460,7 +460,7 @@ export function openSettingsModal() {
     }
 
     function buildDataTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Export & Backup'),
             el('p', { className: 'settings-section-desc' }, 'Download your collection data for safekeeping or migration.'),
             buildActionRow([
@@ -470,7 +470,7 @@ export function openSettingsModal() {
             ]),
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Import & Restore'),
             el('p', { className: 'settings-section-desc' }, 'Restore from a previous backup or import CSV data.'),
             buildActionRow([
@@ -486,7 +486,7 @@ export function openSettingsModal() {
 // ============================================================
 // Default Images Packaging Section (admin only)
 // ============================================================
-        panel.appendChild(el('div', { className: 'settings-section', style: 'border-top: 2px solid var(--color-accent); margin-top: 20px; padding-top: 16px;' }, [
+        panel.appendChild(el('div', { className: 'settings-section', style: 'border-top: 2px solid var(--color-accent); margin-top: 20px; padding-top: 16px;' }, ...[
             el('h3', { className: 'settings-section-title' }, '📦 Package Default Images'),
             el('p', { className: 'settings-section-desc' }, 'Mark coin images as "Ready" in the catalog, then export them as a defaults package. The public app ships with this file pre-loaded.'),
             
@@ -754,15 +754,15 @@ async function listReadyImages() {
     
 
     
-    const body = el('div', { style: 'max-height:60vh;overflow:auto;' }, [
+    const body = el('div', { style: 'max-height:60vh;overflow:auto;' }, ...[
         el('p', { style: 'font-weight:600;margin-bottom:8px;' }, `Ready Images: ${ready.length}`),
         ...ready.map(img => el('div', { 
             style: 'display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--color-border-light);' 
-        }, [
-            el('span', { style: 'width:40px;height:40px;border-radius:50%;background:var(--color-accord-bg);border:1px solid var(--color-border);overflow:hidden;flex-shrink:0;' }, [
+        }, ...[
+            el('span', { style: 'width:40px;height:40px;border-radius:50%;background:var(--color-accord-bg);border:1px solid var(--color-border);overflow:hidden;flex-shrink:0;' }, ...[
                 el('img', { src: img.image, style: 'width:100%;height:100%;object-fit:cover;' })
             ]),
-            el('div', { style: 'flex:1;min-width:0;' }, [
+            el('div', { style: 'flex:1;min-width:0;' }, ...[
                 el('div', { style: 'font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, img.coin_type),
                 el('div', { style: 'font-size:0.75rem;color:var(--color-text-muted);' }, `Side: ${img.side}`)
             ]),
@@ -790,7 +790,7 @@ async function listReadyImages() {
             const currentProvider = getCurrentProvider();
             const currentProviderId = currentProvider ? currentProvider.id : null;
 
-            panel.appendChild(el('div', { className: 'settings-section' }, [
+            panel.appendChild(el('div', { className: 'settings-section' }, ...[
                 el('h3', { className: 'settings-section-title' }, 'Cloud Backup & Sync'),
                 el('p', { className: 'settings-section-desc' }, 'Choose a cloud provider to automatically backup and sync your collection data.'),
 
@@ -819,11 +819,11 @@ async function listReadyImages() {
                 const isAuthenticated = authState.authenticated === true;
 
                 // Provider info & auth
-                panel.appendChild(el('div', { className: 'settings-section' }, [
+                panel.appendChild(el('div', { className: 'settings-section' }, ...[
                     el('h3', { className: 'settings-section-title' }, `${provider.icon} ${provider.name} Configuration`),
                     el('p', { className: 'settings-section-desc' }, provider.description),
 
-                    provider.requiresAuth ? el('div', { style: 'margin-bottom: 12px; padding: 12px; background: var(--color-bg); border-radius: 8px;' }, [
+                    provider.requiresAuth ? el('div', { style: 'margin-bottom: 12px; padding: 12px; background: var(--color-bg); border-radius: 8px;' }, ...[
                         isAuthenticated 
                             ? el('div', { className: 'success-message', style: 'color: var(--color-success); font-weight: 600;' }, '✓ Authenticated')
                             : el('div', { className: 'warning-message', style: 'color: var(--color-warning); font-weight: 600;' }, 'Not authenticated'),
@@ -855,7 +855,7 @@ async function listReadyImages() {
                     ]) : null,
 
                     // WebDAV config fields
-                    currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, [
+                    currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, ...[
                         buildSettingRow('WebDAV Server URL', 'settings-webdav-url', 'text', {
                             value: authState.url || '',
                             placeholder: 'https://your-nextcloud.com/remote.php/dav/files/username/',
@@ -873,7 +873,7 @@ async function listReadyImages() {
                 ]));
 
                 // Sync Actions
-                panel.appendChild(el('div', { className: 'settings-section' }, [
+                panel.appendChild(el('div', { className: 'settings-section' }, ...[
                     el('h3', { className: 'settings-section-title' }, 'Sync Actions'),
                     el('p', { className: 'settings-section-desc' }, 'Manually trigger backup or restore.'),
                     buildActionRow([
@@ -886,7 +886,7 @@ async function listReadyImages() {
 
 
     function buildAdvancedTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Advanced Tools'),
             el('p', { className: 'settings-section-desc' }, 'Power-user features for pricing, completion, and images.'),
             buildActionRow([
@@ -898,7 +898,7 @@ async function listReadyImages() {
             ], true)
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Danger Zone'),
             el('p', { className: 'settings-section-desc' }, 'Irreversible actions. Use with caution.'),
             buildActionRow([
