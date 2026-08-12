@@ -368,7 +368,7 @@ export function initPortfolio() {
 
 function fmt(v) { return '$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
-export function renderDashboard() {
+export async function renderDashboard() {
     var c = document.getElementById('dashboard-grid');
     if (!c) return;
     var scrollY = window.scrollY;
@@ -399,7 +399,7 @@ export function renderDashboard() {
     if (cwCard) { if (vis['card-coinweight'] === false) cwCard.style.display='none'; addDragHandle(cwCard); c.appendChild(cwCard); }
 
     // Spot prices card - always render (shows loading state if no data)
-    var sc = buildSpotPricesCard(prices);
+    var sc = await buildSpotPricesCard(prices);
     if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
 
     var sm = getScrapMetal();
@@ -1166,36 +1166,30 @@ function _sparkline(canvas, data, color, width, height) {
 // Track which canvas elements need updating
 var _spotCanvases = [];
 
-function buildSpotPricesCard(prices) {
+async function buildSpotPricesCard(prices) {
     var card = el('div',{className:'card dashboard-card spot-card',id:'card-spot'});
     
     var titleRow = el('div', {style:'display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;padding-right:28px;'});
     titleRow.appendChild(el('div',{className:'card-title', style:'margin-bottom:0;'},'Live Spot Prices'));
     
-    var btnRow = el('div', {style:'display:flex; gap:8px; font-size:0.7em;'});
+    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:8px; font-size:0.7em; flex-wrap:nowrap; white-space:nowrap;'});
     var periods = [
         {label:'1D', range:'1D'},
         {label:'1W', range:'1W'},
         {label:'1M', range:'1M'},
         {label:'1Y', range:'1Y'},
-        {label:'All', range:'All'}
+        {label:'10Y', range:'10Y'}
     ];
     var activePeriod = localStorage.getItem('cc-spot-period') || '1M';
     
-    // Automatically trigger fetch if we don't have data for the active period (and it's not 1D)
-    if (activePeriod !== '1D' && (!window._historicalSpotData || window._historicalSpotData._period !== activePeriod)) {
-        if (!window._fetchingHistory) {
-            window._fetchingHistory = true;
-            fetch('/api/spot_history?period=' + activePeriod)
-                .then(r => r.json())
-                .then(hist => {
-                    window._historicalSpotData = hist;
-                    window._historicalSpotData._period = activePeriod;
-                    window._fetchingHistory = false;
-                    renderDashboard();
-                })
-                .catch(e => { window._fetchingHistory = false; });
-        }
+    // Initialize REAL spot history engine (seed + accumulate live prices, no fabrication)
+    if (!window._spotHistoryStore) {
+        try {
+            window._spotHistoryStore = await initSpotHistory({
+                getSeed: async () => { try { const r = await fetch('data/spot_history_seed.json?t=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+                getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
+            });
+        } catch(e) { window._spotHistoryStore = null; }
     }
     
     periods.forEach(p => {
@@ -1239,22 +1233,7 @@ function buildSpotPricesCard(prices) {
         var metalKey = m.key.replace('_oz','').replace('_lb','');
         return bullionVis[metalKey] !== false;
     });
-    var now = Date.now();
-    // Seed empty histories FIRST so sparklines have data even on first visit
-    metals.forEach(function(m) {
-        if (prices[m.key] && (!history[m.key] || history[m.key].length < 2)) {
-            history[m.key] = [
-                { t: now - 86400000, v: prices[m.key] * (1 + (Math.random() * 0.04 - 0.02)) },
-                { t: now - 43200000, v: prices[m.key] * (1 + (Math.random() * 0.02 - 0.01)) },
-            ];
-        }
-    });
-    _saveSpotHistory(history);
-    // Then add the current data point
-    metals.forEach(function(m) {
-        if (prices[m.key]) _addSpotPoint(history, m.key, prices[m.key], 60);
-    });
-    _saveSpotHistory(history);
+    // No fabricated seed — only real data. (Engine already appended the live price on init.)
     // Track session open price for meaningful change display (resets on tab close)
     var sessionOpen = {};
     try { sessionOpen = JSON.parse(sessionStorage.getItem('cc-spot-session') || '{}'); } catch(e) {}
@@ -1282,10 +1261,10 @@ function buildSpotPricesCard(prices) {
         var changeSign = change >= 0 ? '+' : '';
         
         var data = [];
-        if (activePeriod === '1D') {
-            data = history[m.key] || [];
+        if (window._spotHistoryStore) {
+            data = getSeriesForPeriod(window._spotHistoryStore, m.key, activePeriod) || [];
         } else {
-            data = (window._historicalSpotData && window._historicalSpotData[m.key]) ? window._historicalSpotData[m.key] : [];
+            data = history[m.key] || [];
         }
         
         var minVal = data.length > 1 ? Math.min.apply(null,data.map(function(x){return x.v;})) : null;

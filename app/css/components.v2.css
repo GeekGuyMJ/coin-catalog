@@ -3928,3 +3928,15 @@ body.ready-mode-active .ready-badge { display: flex; }
 }
 
 
+
+/* Keep spot-price range buttons (1D 1W 1M 1Y 10Y) on a single row in thin cards */
+.spot-period-row {
+    flex-wrap: nowrap !important;
+    white-space: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.spot-period-row > div {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
