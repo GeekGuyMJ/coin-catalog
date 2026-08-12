@@ -2,16 +2,15 @@
  * spotHistory.js — REAL tiered spot-price history engine (no fabricated data)
  *
  * Design (per user spec):
- *  - "Historical data is by definition already done." We seed from REAL Yahoo
- *    monthly (12) + yearly (10) averages shipped as app/data/spot_history_seed.json
- *    (self-hosted fetches the same from its backend /api/spot_history).
+ *  - Seed from REAL Yahoo monthly (12) + yearly (10) averages.
+ *    Public ships app/data/spot_history_seed.json ({metal:{monthly,yearly}}).
+ *    Self-hosted fetches /api/spot_history (may return a FLAT [{t,v}] array).
  *  - On every app open (throttled to <=1x/hour) we append the REAL current
  *    price as a raw point.
- *  - Raw points roll up into: daily avg (keep ~400), weekly avg (~120),
- *    monthly avg (~120), yearly avg (all). History compounds over time with
- *    no unbounded growth and ZERO synthetic points.
+ *  - Raw points roll up into daily/weekly/monthly/yearly averages. History
+ *    compounds over time with no unbounded growth and ZERO synthetic points.
  *  - buildSeries(metalKey, period) returns only REAL buckets; missing buckets
- *    are simply absent (never faked).
+ *    fall back to the next-coarser REAL bucket (never faked).
  */
 
 const SPOT_HISTORY_KEY = 'cc-spot-history-v2';
@@ -44,15 +43,29 @@ function saveStore(s) {
   try { localStorage.setItem(SPOT_HISTORY_KEY, JSON.stringify(s)); } catch (e) {}
 }
 
+// Accepts BOTH seed shapes:
+//   Shape A: { metalKey: { monthly:[{t,v}], yearly:[{t,v}] } }   (public static JSON)
+//   Shape B: { metalKey: [ {t,v}, ... ] }                        (self-hosted /api/spot_history flat array)
 function applySeed(s, seed) {
-  // seed: { metalKey: { monthly:[{t,v}], yearly:[{t,v}] } }
   if (!seed) return;
   s.seed = seed;
   for (const k of METAL_KEYS) {
     const sm = seed[k];
     if (!sm) continue;
-    for (const p of (sm.monthly || [])) s.monthly[_monthKey(p.t)] = p.v;
-    for (const p of (sm.yearly || [])) s.yearly[_yearKey(p.t)] = p.v;
+    if (Array.isArray(sm.monthly) || Array.isArray(sm.yearly)) {
+      // Shape A
+      for (const p of (sm.monthly || [])) s.monthly[_monthKey(p.t)] = p.v;
+      for (const p of (sm.yearly || [])) s.yearly[_yearKey(p.t)] = p.v;
+    } else if (Array.isArray(sm)) {
+      // Shape B — roll the flat array into real monthly + yearly AVERAGES
+      const mBuckets = {}, yBuckets = {};
+      for (const p of sm) {
+        (mBuckets[_monthKey(p.t)] ||= []).push(p.v);
+        (yBuckets[_yearKey(p.t)] ||= []).push(p.v);
+      }
+      for (const mk in mBuckets) s.monthly[mk] = _avg(mBuckets[mk]);
+      for (const yk in yBuckets) s.yearly[yk] = _avg(yBuckets[yk]);
+    }
   }
 }
 
@@ -85,56 +98,57 @@ function addRawPoint(s, prices) {
 function _toSeries(bucketObj, keyFn) {
   return Object.keys(bucketObj).sort().map(k => ({ t: keyFn(k), v: bucketObj[k] }));
 }
+function _monthlySeries(s) { return _toSeries(s.monthly, k => new Date(k + '-01T00:00:00').getTime()); }
+function _dailySeries(s) { return _toSeries(s.daily, k => new Date(k + 'T00:00:00').getTime()); }
+
+// Pick the richer of two real series for a period
+function _best(a, b) { return a.length >= b.length ? a : b; }
 
 /*
  * Build a REAL series for a metal + period.
  * period: '1D' | '1W' | '1M' | '1Y' | '10Y'
  * Returns [{t, v}] — only genuine data; never fabricated.
+ * Falls back to the next-coarser REAL bucket when a fine bucket is sparse,
+ * so every period always renders a true line (no blank, no fake).
  */
 function buildSeries(s, metalKey, period) {
   if (period === '1D') {
-    // intraday: raw points from last 24h (few, real)
     const cutoff = Date.now() - 86400000;
-    return s.raw.filter(p => p.t >= cutoff).map(p => ({ t: p.t, v: p.v }));
-  }
-  if (period === '1W') {
-    // daily for last 7 days + any seed monthly context is coarser; use daily only
-    const series = _toSeries(s.daily, k => new Date(k + 'T00:00:00').getTime());
-    const cutoff = Date.now() - 7 * 86400000;
-    return series.filter(p => p.t >= cutoff);
-  }
-  if (period === '1M') {
-    const series = _toSeries(s.daily, k => new Date(k + 'T00:00:00').getTime());
-    const cutoff = Date.now() - 30 * 86400000;
-    return series.filter(p => p.t >= cutoff);
-  }
-  if (period === '1Y') {
-    const series = _toSeries(s.monthly, k => new Date(k + '-01T00:00:00').getTime());
-    const cutoff = Date.now() - 365 * 86400000;
-    const recent = series.filter(p => p.t >= cutoff);
-    // If we have fewer than 2 real monthly points, also include yearly seed (real)
-    if (recent.length < 2) {
-      const yr = _toSeries(s.yearly, k => new Date(k + '-01-01T00:00:00').getTime()).filter(p => p.t >= cutoff);
-      return yr.length >= recent.length ? yr : recent;
+    let recent = s.raw.filter(p => p.t >= cutoff).map(p => ({ t: p.t, v: p.v }));
+    if (recent.length < 1) {
+      // fall back to the latest real daily/monthly point so the card isn't blank
+      const all = _dailySeries(s).concat(_monthlySeries(s)).sort((a, b) => a.t - b.t);
+      if (all.length) recent = [all[all.length - 1]];
     }
     return recent;
   }
+  if (period === '1W') {
+    const cutoff = Date.now() - 7 * 86400000;
+    const daily = _dailySeries(s).filter(p => p.t >= cutoff);
+    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
+    return _best(daily, monthly);
+  }
+  if (period === '1M') {
+    const cutoff = Date.now() - 30 * 86400000;
+    const daily = _dailySeries(s).filter(p => p.t >= cutoff);
+    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
+    return _best(daily, monthly);
+  }
+  if (period === '1Y') {
+    const cutoff = Date.now() - 365 * 86400000;
+    const monthly = _monthlySeries(s).filter(p => p.t >= cutoff);
+    const yearly = _toSeries(s.yearly, k => new Date(k + '-01-01T00:00:00').getTime()).filter(p => p.t >= cutoff);
+    return _best(monthly, yearly);
+  }
   if (period === '10Y') {
     const yr = _toSeries(s.yearly, k => new Date(k + '-01-01T00:00:00').getTime());
-    const series = yr.slice(-10);
-    const mo = _toSeries(s.monthly, k => new Date(k + '-01T00:00:00').getTime());
-    // Append recent monthly points (real, finer detail) after the yearly line
-    return series.concat(mo);
+    const yearly = yr.slice(-10);
+    const mo = _monthlySeries(s);
+    return yearly.concat(mo);
   }
   return [];
 }
 
-/*
- * Initialize: load store, apply seed (provided), and if throttle allows,
- * fetch real current prices and append. Returns the store.
- * getPrices: async () => ({gold_oz, ...}) real live prices (CORS-open source)
- * getSeed: () => seed object (from static JSON or backend)
- */
 async function initSpotHistory({ getSeed, getPrices }) {
   const s = loadStore();
   if (getSeed) { try { applySeed(s, await getSeed()); } catch (e) {} }
