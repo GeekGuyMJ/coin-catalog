@@ -32,6 +32,13 @@
     display:       flex;
     align-items:   center;
     gap:           var(--space-2);
+    /* Always clear the absolute top-right drag handle, even in very narrow
+       cards, so long titles (e.g. "Collection Completion") never sit under it. */
+    padding-right: 36px;
+    max-width:     calc(100% - 40px);
+    min-width:     0;
+    overflow-wrap: break-word;
+    word-break:    normal;
 }
 
 .drag-handle {
