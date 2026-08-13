@@ -444,9 +444,9 @@ function buildSpotTrendCard(prices) {
     var metals = [
         { key: 'gold_oz', base: 'gold', l: 'Gold', c: '#d4af37' },
         { key: 'silver_oz', base: 'silver', l: 'Silver', c: '#94a3b8' },
-        { key: 'copper_lb', base: 'copper', l: 'Copper', c: '#b45309' },
         { key: 'platinum_oz', base: 'platinum', l: 'Platinum', c: '#38bdf8' },
-        { key: 'palladium_oz', base: 'palladium', l: 'Palladium', c: '#a78bfa' }
+        { key: 'palladium_oz', base: 'palladium', l: 'Palladium', c: '#a78bfa' },
+        { key: 'copper_lb', base: 'copper', l: 'Copper', c: '#b45309' }
     ];
 
     var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:8px;font-size:0.7em;flex-wrap:wrap;white-space:nowrap;' });
@@ -1431,9 +1431,9 @@ getBaseline: async () => { try { const r = await fetch('/data/spot_history_basel
     var metals = [
         {key:'gold_oz',l:'Gold',c:'#d4af37'},
         {key:'silver_oz',l:'Silver',c:'#94a3b8'},
-        {key:'copper_lb',l:'Copper',c:'#b45309'},
         {key:'platinum_oz',l:'Platinum',c:'#38bdf8'},
-        {key:'palladium_oz',l:'Palladium',c:'#a78bfa'}
+        {key:'palladium_oz',l:'Palladium',c:'#a78bfa'},
+        {key:'copper_lb',l:'Copper',c:'#b45309'}
     ];
     // Filter by visible metals
     var filteredMetals = metals.filter(function(m) {

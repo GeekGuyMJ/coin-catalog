@@ -1012,8 +1012,8 @@ function buildBullionVisibilityRows() {
     const bullionVis = JSON.parse(localStorage.getItem('cc-bullion-vis') || '{}');
     const metals = [
         { id: 'gold', label: 'Gold' }, { id: 'silver', label: 'Silver' },
-        { id: 'copper', label: 'Copper' }, { id: 'platinum', label: 'Platinum' },
-        { id: 'palladium', label: 'Palladium' },
+        { id: 'platinum', label: 'Platinum' }, { id: 'palladium', label: 'Palladium' },
+        { id: 'copper', label: 'Copper' },
     ];
     return metals.map(m => {
         const row = el('div', { className: 'settings-row' });
@@ -1188,14 +1188,14 @@ export function openHelpModal() {
     if (prices.silver_oz) {
         statItems.push({ label: 'Silver', value: '$' + prices.silver_oz.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/oz' });
     }
-    if (prices.copper_lb) {
-        statItems.push({ label: 'Copper', value: '$' + prices.copper_lb.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/lb' });
-    }
     if (prices.platinum_oz) {
         statItems.push({ label: 'Platinum', value: '$' + prices.platinum_oz.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/oz' });
     }
     if (prices.palladium_oz) {
         statItems.push({ label: 'Palladium', value: '$' + prices.palladium_oz.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/oz' });
+    }
+    if (prices.copper_lb) {
+        statItems.push({ label: 'Copper', value: '$' + prices.copper_lb.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/lb' });
     }
 
     statItems.forEach(item => {
