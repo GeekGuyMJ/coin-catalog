@@ -2320,7 +2320,11 @@ function keyToCssVar(key, slot) {
         for (var k in colors) {
             root.style.setProperty(keyToCssVar(k, slotNum), colors[k]);
         }
+        document.documentElement.setAttribute('data-theme', 'custom' + slotNum);
         document.body.setAttribute('data-theme', 'custom' + slotNum);
+        // NOTE: custom-theme CSS remap is keyed on [data-theme="customN"] on <html>,
+        // so the attribute MUST be set on documentElement (body alone does not apply it).
+        // This is why saving previously required reselecting in the dropdown.
     }
 
     function livePreviewSlot(slotNum) {
@@ -2344,7 +2348,11 @@ function keyToCssVar(key, slot) {
         for (var k in colors) {
             root.style.setProperty(keyToCssVar(k, slotNum), colors[k]);
         }
+        document.documentElement.setAttribute('data-theme', 'custom' + slotNum);
         document.body.setAttribute('data-theme', 'custom' + slotNum);
+        // NOTE: custom-theme CSS remap is keyed on [data-theme="customN"] on <html>,
+        // so the attribute MUST be set on documentElement (body alone does not apply it).
+        // This is why saving previously required reselecting in the dropdown.
         var sel = document.getElementById('theme-selector');
         if (sel) sel.value = 'custom' + slotNum;
         localStorage.setItem('cc-theme', 'custom' + slotNum);
