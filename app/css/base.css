@@ -320,7 +320,7 @@ button {
         align-items:  center;
         gap:          3px 8px;
     }
-    .header-inner .header-logo {
+    #app-header .header-logo {
         grid-area:    logo;
         width:        70px !important;
         height:       70px !important;
@@ -401,7 +401,7 @@ button {
     }
 
     /* Coin logo — spans both rows, fixed size */
-    .header-inner .header-logo {
+    #app-header .header-logo {
         grid-area:    logo;
         width:        45px !important;
         height:       45px !important;
