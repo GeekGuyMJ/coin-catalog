@@ -554,10 +554,15 @@ async function handleAlbumClick(e) {
  * Toggle a coin's ownership status.
  */
 async function toggleHoleOwnership(coinId, holeElement) {
-    const qty = getInventoryTotalQty(coinId);
+    // Branch on the hole's RENDERED visual state, not a fresh inventory lookup.
+    // A live re-lookup can momentarily disagree with what was drawn (e.g. right
+    // after a write or a cc-inventory-updated re-render), which would send a
+    // filled hole down the "place a coin" path (just highlighting it) instead
+    // of opening the details modal.
+    const isOwnedNow = !!(holeElement && holeElement.classList.contains('owned'));
 
-    // If ALREADY owned, open the details modal (where qty/grade can be edited)
-    if (qty > 0) {
+    if (isOwnedNow) {
+        // Already owned -> open the details modal (qty/grade editable there)
         if (window.openCoinDetailModal) {
             window.openCoinDetailModal(coinId);
         } else {
