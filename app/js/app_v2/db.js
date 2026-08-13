@@ -559,11 +559,6 @@ export async function fetchInventoryLocal() {
         if (row.personal_photo) row.personal_photo = scrubBadPhotoTokens(row.personal_photo);
         result[key].push({ ...row, id: row.id });
     });
-    if (q) {
-        const ql = String(q).toLowerCase();
-        const filtered = result.filter(r => ((r.coin_type||'')+' '+(r.filename||'')+' '+(r.side||'')).toLowerCase().includes(ql));
-        return filtered;
-    }
     return result;
 }
 
