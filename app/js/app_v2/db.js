@@ -166,11 +166,11 @@ function sectionSortKey(section) {
 }
 
 const FALLBACK_SPOT_PRICES = {
-    gold_oz:      4343.30,
-    silver_oz:       63.71,
-    copper_lb:        6.47,
-    platinum_oz:   1753.00,
-    palladium_oz:  1397.00,
+    gold_oz:      4121.05,
+    silver_oz:       59.87,
+    copper_lb:        6.25,
+    platinum_oz:   1634.00,
+    palladium_oz:  1293.00,
 };
 
 // ============================================================
@@ -255,7 +255,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 5;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 6;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -400,6 +400,17 @@ export async function runMigrations() {
         console.log(`  Migration 4→5: created ${created} section-qualified rows, cleared ${cleared} legacy rows.`);
     }
 
+    // Migration 5 → 6: Clean up any stale per-coin black circles (1793, 1840, 1847) from local IndexedDB
+    // so client browsers immediately purge corrupted local rows without needing a manual DB wipe.
+    if (storedVersion < 6) {
+        for (const coinId of [1, 27, 34]) {
+            const coin = await db.coins_reference.get(coinId);
+            if (coin && (coin.obv_image || coin.rev_image)) {
+                await db.coins_reference.update(coinId, { obv_image: null, rev_image: null });
+                console.log(`  Migration 5→6: Cleared stale image on coin id=${coinId}`);
+            }
+        }
+    }
 
     localStorage.setItem(versionKey, String(DB_DATA_VERSION));
     console.log(`Data migration to v${DB_DATA_VERSION} complete.`);
@@ -477,8 +488,10 @@ export async function fetchCoinsForSectionLocal(sectionName) {
     
     // Sort coins by coin_type, year, mint_mark
     coins.sort((a, b) => {
-        if (a.coin_type !== b.coin_type) return a.coin_type.localeCompare(b.coin_type);
-        if (a.year !== b.year) return a.year - b.year;
+        if (a.coin_type !== b.coin_type) return (a.coin_type || '').localeCompare(b.coin_type || '');
+        const yA = typeof a.year === 'number' ? a.year : (parseInt(String(a.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+        const yB = typeof b.year === 'number' ? b.year : (parseInt(String(b.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+        if (yA !== yB) return yA - yB;
         return (a.mint_mark || '').localeCompare(b.mint_mark || '');
     });
 
@@ -489,22 +502,41 @@ export async function fetchCoinsForSectionLocal(sectionName) {
     try {
         const _host = (window.location && window.location.hostname) || '';
         const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.');
-        if (_selfHosted && typeof window.__nativeFetch === 'function') {
-            const _res = await window.__nativeFetch('/api/coins?section=' + encodeURIComponent(sectionName));
-            if (_res && _res.ok) {
-                const _server = await _res.json();
-                const _byId = {};
-                (_server || []).forEach(c => { if (c && c.id != null) _byId[c.id] = c; });
-                for (const _c of coins) {
-                    const _s = _byId[_c.id];
-                    if (_s) {
-                        const _upd = {};
-                        if (_s.obv_image) _upd.obv_image = _s.obv_image;
-                        if (_s.rev_image) _upd.rev_image = _s.rev_image;
-                        if (Object.keys(_upd).length) {
-                            await db.coins_reference.update(_c.id, _upd);
-                            Object.assign(_c, _upd);
+        if (_selfHosted) {
+            const _native = window.__nativeFetch || window.fetch;
+            if (typeof _native === 'function') {
+                const _res = await _native('/api/coins?section=' + encodeURIComponent(sectionName));
+                if (_res && _res.ok) {
+                    const _server = await _res.json();
+                    const _byId = {};
+                    (_server || []).forEach(c => { if (c && c.id != null) _byId[c.id] = c; });
+                    const toUpdate = [];
+                    for (const _c of coins) {
+                        const _s = _byId[_c.id];
+                        if (_s) {
+                            const serverObv = _s.obv_image || null;
+                            const serverRev = _s.rev_image || null;
+                            const localObv = _c.obv_image || null;
+                            const localRev = _c.rev_image || null;
+
+                            const serverDeletedObv = _s._deleted_obv_image || false;
+                            const serverDeletedRev = _s._deleted_rev_image || false;
+                            const localDeletedObv = _c._deleted_obv_image || false;
+                            const localDeletedRev = _c._deleted_rev_image || false;
+
+                            if (localObv !== serverObv || localRev !== serverRev || localDeletedObv !== serverDeletedObv || localDeletedRev !== serverDeletedRev) {
+                                const _upd = { obv_image: serverObv, rev_image: serverRev, _deleted_obv_image: serverDeletedObv, _deleted_rev_image: serverDeletedRev };
+                                toUpdate.push({ id: _c.id, changes: _upd });
+                                Object.assign(_c, _upd);
+                            }
                         }
+                    }
+                    if (toUpdate.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const item of toUpdate) {
+                                await db.coins_reference.update(item.id, item.changes);
+                            }
+                        });
                     }
                 }
             }
@@ -643,6 +675,136 @@ export async function fetchTypeConfigsLocal() {
             key_price: cfg.key_price || 0
         };
     });
+
+    // Server-authoritative type config sync (self-hosted only).
+    // Fetches latest type configs from server and updates IndexedDB so uploaded
+    // type images appear on EVERY device (laptop, phone) instead of only the
+    // browser that performed the upload. Public (GitHub Pages) has no backend,
+    // so it is skipped and falls back to the seeded IndexedDB data.
+    // Guarded + non-fatal on failure.
+    try {
+        const _host = (window.location && window.location.hostname) || '';
+        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.');
+        if (_selfHosted) {
+            const _native = window.__nativeFetch || window.fetch;
+            if (typeof _native === 'function') {
+                const _res2 = await _native('/api/pricing_rules');
+                if (_res2 && _res2.ok) {
+                    const _server = await _res2.json();
+                    if (_server && typeof _server === 'object') {
+                        const toUpdate = [];
+                        for (const [coinType, serverCfg] of Object.entries(_server)) {
+                            const localCfg = await db.coin_type_config.get(coinType);
+                            if (!localCfg) {
+                                // New type config from server - add it
+                                toUpdate.push({
+                                    coin_type: coinType,
+                                    obv_image: serverCfg.obv_image || null,
+                                    rev_image: serverCfg.rev_image || null,
+                                    proof_obv_image: serverCfg.proof_obv_image || null,
+                                    proof_rev_image: serverCfg.proof_rev_image || null,
+                                    _deleted_obv_image: !!serverCfg._deleted_obv_image,
+                                    _deleted_rev_image: !!serverCfg._deleted_rev_image,
+                                    _deleted_proof_obv_image: !!serverCfg._deleted_proof_obv_image,
+                                    _deleted_proof_rev_image: !!serverCfg._deleted_proof_rev_image,
+                                    base_price: serverCfg.base_price || 0,
+                                    key_price: serverCfg.key_price || 0
+                                });
+                            } else {
+                                // Check for differences
+                                const serverObv = serverCfg.obv_image || null;
+                                const serverRev = serverCfg.rev_image || null;
+                                const serverDelObv = !!serverCfg._deleted_obv_image;
+                                const serverDelRev = !!serverCfg._deleted_rev_image;
+
+                                if (localCfg.obv_image !== serverObv ||
+                                    localCfg.rev_image !== serverRev ||
+                                    localCfg._deleted_obv_image !== serverDelObv ||
+                                    localCfg._deleted_rev_image !== serverDelRev) {
+                                    toUpdate.push({
+                                        coin_type: coinType,
+                                        obv_image: serverObv,
+                                        rev_image: serverRev,
+                                        _deleted_obv_image: serverDelObv,
+                                        _deleted_rev_image: serverDelRev
+                                    });
+                                }
+                            }
+                        }
+                        if (toUpdate.length > 0) {
+                            await db.transaction('rw', db.coin_type_config, async () => {
+                                for (const item of toUpdate) {
+                                    const existing = await db.coin_type_config.get(item.coin_type);
+                                    if (existing) {
+                                        await db.coin_type_config.update(item.coin_type, item);
+                                    } else {
+                                        await db.coin_type_config.add(item);
+                                    }
+                                }
+                            });
+                            // Update result with fresh server data
+                            for (const item of toUpdate) {
+                                result[item.coin_type] = {
+                                    obv_image: item._deleted_obv_image ? null : item.obv_image,
+                                    rev_image: item._deleted_rev_image ? null : item.rev_image,
+                                    proof_obv_image: null,
+                                    proof_rev_image: null,
+                                    _deleted_obv_image: item._deleted_obv_image,
+                                    _deleted_rev_image: item._deleted_rev_image,
+                                    _deleted_proof_obv_image: false,
+                                    _deleted_proof_rev_image: false,
+                                    base_price: item.base_price || 0,
+                                    key_price: item.key_price || 0
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (_e) {
+        console.warn('[db] type config server sync skipped:', _e && _e.message);
+    }
+
+    // Public (GitHub Pages) JSON merge: the published type_configs.json is the
+    // source of truth for section/type images. Re-read it so newly published
+    // images appear WITHOUT the user having to clear IndexedDB. Never overrides
+    // a locally deleted field or a user-assigned base64 image.
+    try {
+        const _host2 = (window.location && window.location.hostname) || '';
+        const _selfHosted2 = _host2.includes('opaleye-bluegill') || _host2.includes('ts.net') || _host2.includes('192.168.');
+        if (!_selfHosted2) {
+            const _native2 = window.__nativeFetch || window.fetch;
+            if (typeof _native2 === 'function') {
+                const _jres = await _native2('data/type_configs.json');
+                if (_jres && _jres.ok) {
+                    const _json = await _jres.json();
+                    const _list = Array.isArray(_json) ? _json : Object.values(_json);
+                    for (const jc of _list) {
+                        const ct = jc.coin_type || jc.id;
+                        if (!ct) continue;
+                        const cur = result[ct] || {};
+                        const merged = { ...cur };
+                        for (const fld of ['obv_image','rev_image','proof_obv_image','proof_rev_image']) {
+                            const delFlag = '_deleted_' + fld;
+                            const jsonVal = jc[fld] || null;
+                            const locallyDeleted = cur[delFlag];
+                            if (jsonVal && !cur[fld] && !locallyDeleted) {
+                                merged[fld] = jsonVal;
+                            }
+                        }
+                        merged.base_price = jc.base_price || cur.base_price || 0;
+                        merged.key_price = jc.key_price || cur.key_price || 0;
+                        result[ct] = merged;
+                    }
+                    console.log('[db] merged published type_configs.json into public view');
+                }
+            }
+        }
+    } catch (_e2) {
+        console.warn('[db] public type_configs.json merge skipped:', _e2 && _e2.message);
+    }
+
     return result;
 }
 
@@ -651,13 +813,12 @@ export async function fetchTypeConfigsLocal() {
 // ============================================================
 
 export async function fetchSpotPricesLocal() {
-    // Live spot prices via gold-api.com (CORS-enabled, free, no key needed)
     const symbolMap = {
-        gold_oz: "XAU",
-        silver_oz: "XAG",
-        copper_lb: "HG",
-        platinum_oz: "XPT",
-        palladium_oz: "XPD"
+        gold_oz: "GC=F",
+        silver_oz: "SI=F",
+        copper_lb: "HG=F",
+        platinum_oz: "PL=F",
+        palladium_oz: "PA=F"
     };
 
     // Load from cache first
@@ -676,12 +837,13 @@ export async function fetchSpotPricesLocal() {
     let successCount = 0;
     const promises = Object.keys(symbolMap).map(async key => {
         const symbol = symbolMap[key];
-        const primaryUrl = `https://api.gold-api.com/price/${symbol}`;
+        const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}`;
+        const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol)}`;
         
         try {
             let resp;
             let controller = new AbortController();
-            let timeoutId = setTimeout(() => controller.abort(), 6000);
+            let timeoutId = setTimeout(() => controller.abort(), 4000);
             
             try {
                 resp = await fetch(primaryUrl, { signal: controller.signal });
@@ -690,16 +852,21 @@ export async function fetchSpotPricesLocal() {
             }
             clearTimeout(timeoutId);
 
+            if (!resp || !resp.ok) {
+                // Try backup
+                controller = new AbortController();
+                timeoutId = setTimeout(() => controller.abort(), 4000);
+                resp = await fetch(backupUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+            }
+
             if (resp && resp.ok) {
                 const data = await resp.json();
-                if (data && data.price != null) {
-                    prices[key] = parseFloat(parseFloat(data.price).toFixed(2));
-                    successCount++;
-                } else {
-                    throw new Error("No price in response for " + symbol);
-                }
+                const price = data.chart.result[0].meta.regularMarketPrice;
+                prices[key] = parseFloat(parseFloat(price).toFixed(2));
+                successCount++;
             } else {
-                throw new Error("API failed for " + symbol);
+                throw new Error("API completely failed for " + symbol);
             }
         } catch (e) {
             console.warn(`Failed to fetch ${symbol} live spot price, using fallback/cache.`);
@@ -760,7 +927,7 @@ export async function fetchSpotHistoryLocal(period) {
     const dataObj = {};
     const promises = Object.keys(symbolMap).map(async key => {
         const symbol = symbolMap[key];
-        const primaryUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
+        const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
         const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol + '?range=' + range + '&interval=' + interval)}`;
         
         try {
@@ -806,42 +973,7 @@ export async function fetchSpotHistoryLocal(period) {
     }
     
     // Fallback to cache entirely if fetch failed
-    if (cached && cached.data && Object.keys(cached.data).length > 0) {
-        return cached.data;
-    }
-    
-    // Last resort: build a plausible series from current live prices (gold-api)
-    try {
-        const spot = await fetchSpotPricesLocal();
-        const now = Date.now();
-        const spanMs = (period === '1W') ? 7 * 86400000
-            : (period === '1M') ? 30 * 86400000
-            : (period === '1Y') ? 365 * 86400000
-            : (period === 'All') ? 3650 * 86400000
-            : 86400000;
-        const points = (period === 'All') ? 48 : 30;
-        const step = spanMs / (points - 1);
-        for (const key of Object.keys(symbolMap)) {
-            const cur = spot[key] || FALLBACK_SPOT_PRICES[key];
-            if (!cur) continue;
-            const arr = [];
-            let seed = cur * (1 + (Math.random() * 0.06 - 0.03));
-            for (let i = 0; i < points; i++) {
-                // Simple random walk back from current price to create a plausible sparkline
-                const trend = (cur - seed) * (i / (points - 1));
-                const noise = cur * (Math.random() * 0.005 - 0.0025);
-                arr.push({ t: now - (points - 1 - i) * step, v: Math.max(0.01, seed + trend + noise) });
-            }
-            dataObj[key] = arr;
-        }
-        try {
-            localStorage.setItem(cacheKey, JSON.stringify({ data: dataObj, updated_at: Date.now() }));
-        } catch(e) {}
-        return dataObj;
-    } catch (e) {
-        console.warn('Spot history synthetic fallback failed', e);
-        return cached ? (cached.data || {}) : {};
-    }
+    return cached ? cached.data : {};
 }
 
 // ============================================================
@@ -1664,6 +1796,10 @@ export async function assignImageLocal(data) {
                 }
                 await db.coins_reference.update(refId, updates);
             }
+            // NOTE: previously this wrongly wrote to user_inventory.personal_photo,
+            // creating a fake "owned" row. The per-coin reference image belongs on
+            // db.coins_reference so the album shows it. Personal photos are a separate
+            // specific_item scope.
             
         }
     } else if (scope === "specific_item") {
@@ -1730,58 +1866,96 @@ export async function saveToCoinBankLocal(data) {
 }
 
 export async function fetchCoinBankImagesLocal(params = {}) {
-    // Return all type configs that have any image (base64 or URL path).
-    // Respect _deleted flags so user-deleted images stay gone.
-    // Use 'filename' as the field name so images.js and catalog.js consumers work correctly.
     var coin_type = params.get ? params.get('coin_type') : (params.coin_type || null);
     var side = params.get ? params.get('side') : (params.side || null);
     var q = params.get ? params.get('q') : (params.q || null);
+
+    // On self-hosted: try fetching the server-authoritative Coin Bank list (scans filesystem + DB)
+    try {
+        const _native = window.__nativeFetch || window.fetch;
+        if (typeof _native === 'function') {
+            const search = new URLSearchParams();
+            if (coin_type) search.set('coin_type', coin_type);
+            if (side) search.set('side', side);
+            if (q) search.set('q', q);
+            const queryStr = search.toString() ? ('?' + search.toString()) : '';
+            const res = await _native('/api/coin_bank_images' + queryStr);
+            if (res && res.ok) {
+                const serverImages = await res.json();
+                if (Array.isArray(serverImages) && serverImages.length > 0) {
+                    return serverImages.map(img => ({
+                        coin_type: img.coin_type || '',
+                        side: img.side || '',
+                        filename: img.filename || '',
+                        image: img.filename || '',
+                        source: img.source || 'server'
+                    }));
+                }
+            }
+        }
+    } catch (e) {
+        // Fall back to local DB
+    }
+
+    // Local / Offline fallback
     const cfgs = coin_type 
         ? await db.coin_type_config.where('coin_type').equals(coin_type).toArray()
         : await db.coin_type_config.toArray();
     const result = [];
     cfgs.forEach(cfg => {
+        // Skip dummy unverified default paths that don't exist on disk
+        const isDummy = (url) => typeof url === 'string' && url.includes('_default_');
         if (!side || side === 'obv') {
-            if (cfg.obv_image && !cfg._deleted_obv_image) {
-                result.push({
-                    coin_type: cfg.coin_type,
-                    side: 'obv',
-                    filename: cfg.obv_image,
-                    image: cfg.obv_image,
-                });
+            if (cfg.obv_image && !cfg._deleted_obv_image && !isDummy(cfg.obv_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'obv', filename: cfg.obv_image, image: cfg.obv_image });
             }
         }
         if (!side || side === 'rev') {
-            if (cfg.rev_image && !cfg._deleted_rev_image) {
-                result.push({
-                    coin_type: cfg.coin_type,
-                    side: 'rev',
-                    filename: cfg.rev_image,
-                    image: cfg.rev_image,
-                });
+            if (cfg.rev_image && !cfg._deleted_rev_image && !isDummy(cfg.rev_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'rev', filename: cfg.rev_image, image: cfg.rev_image });
             }
         }
         if (!side || side === 'proof_obv') {
-            if (cfg.proof_obv_image && !cfg._deleted_proof_obv_image) {
-                result.push({
-                    coin_type: cfg.coin_type,
-                    side: 'proof_obv',
-                    filename: cfg.proof_obv_image,
-                    image: cfg.proof_obv_image,
-                });
+            if (cfg.proof_obv_image && !cfg._deleted_proof_obv_image && !isDummy(cfg.proof_obv_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'proof_obv', filename: cfg.proof_obv_image, image: cfg.proof_obv_image });
             }
         }
         if (!side || side === 'proof_rev') {
-            if (cfg.proof_rev_image && !cfg._deleted_proof_rev_image) {
-                result.push({
-                    coin_type: cfg.coin_type,
-                    side: 'proof_rev',
-                    filename: cfg.proof_rev_image,
-                    image: cfg.proof_rev_image,
-                });
+            if (cfg.proof_rev_image && !cfg._deleted_proof_rev_image && !isDummy(cfg.proof_rev_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'proof_rev', filename: cfg.proof_rev_image, image: cfg.proof_rev_image });
             }
         }
     });
+
+    // Include per-coin uploaded images
+    try {
+        let coinRows = [];
+        if (coin_type) {
+            coinRows = await db.coins_reference.where('coin_type').equals(coin_type).toArray();
+        } else {
+            coinRows = await db.coins_reference.toArray();
+        }
+        const sideMap = { obv: 'obv_image', rev: 'rev_image' };
+        for (const row of coinRows) {
+            const want = side === 'obv' ? 'obv' : (side === 'rev' ? 'rev' : null);
+            const checks = want ? [want] : ['obv', 'rev'];
+            for (const sc of checks) {
+                const val = row[sideMap[sc]];
+                if (val && !val.includes('_default_')) {
+                    result.push({
+                        coin_type: row.coin_type,
+                        side: sc,
+                        filename: val,
+                        image: val,
+                        perCoin: true,
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[coinBank] per-coin scan skipped:', e.message);
+    }
+
     return result;
 }
 
@@ -1789,7 +1963,8 @@ export async function deleteCoinBankImageLocal(filename) {
     // Find the record and null it.
     // Also set a _deleted_<field> flag so re-seed logic preserves the deletion.
     // The stored value is a FULL path (e.g. /data/images/types/x.webp) while the
-    // caller may pass a basename, so compare on basename to guarantee a match.
+    // caller may pass a basename (deleteCoinBankImage strips to basename before
+    // calling), so compare on basename to guarantee a match either way.
     const norm = (val) => (val || '').split('/').pop().split(String.fromCharCode(92)).pop();
     const target = norm(filename);
     if (!target) return { status: "deleted" };
