@@ -231,7 +231,8 @@ async function handleNewUpload(e) {
     try {
         const resized = await resizeToWebP(file);
         activeContext.b64 = resized;
-        activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
+        // DON'T overwrite scope here - preserve the scope set when modal opened
+        // (specific_coin for coin references, specific_item for inventory, all for type-level)
         openCropTool(resized);
 
     } catch (err) {
@@ -827,9 +828,13 @@ export async function executeImageAssignment(overrideParams = null) {
                 } else if (scope === 'specific_item' && targetItemId) {
                     const newInv = await fetchInventory();
                     setInventory(newInv);
-                } else if (scope === 'all' || scope === 'empty_only' || (scope === 'specific_coin' && !targetItemId)) {
+                } else if (scope === 'all' || scope === 'empty_only') {
                     const targetMainType = getMainType(activeContext.typeStr);
                     const newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] || imageB64;
+                    // specific_coin without targetItemId is a programming error - log and skip
+                    if (scope === 'specific_coin' && !targetItemId) {
+                        console.error('[images] specific_coin scope without targetItemId - this should not happen');
+                    }
                                        
                     // Update all matching IMG elements in the DOM immediately (section-qualified)
                     const imgElements = document.querySelectorAll('img[data-action="view-img"]');
