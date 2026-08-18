@@ -14,7 +14,7 @@ import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankIm
 import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
-import { fetchTypeConfigs, fetchInventory } from './api.js';
+import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
 
 // ============================================================
 // State
