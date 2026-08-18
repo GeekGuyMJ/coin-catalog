@@ -15,7 +15,7 @@
 
 import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
-    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse, cacheBustImageUrl,
+    typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
 } from './utils.js';
 
 import {
@@ -23,7 +23,7 @@ import {
     getTypeConfig,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchTypeConfigs } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist } from './api.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
@@ -293,7 +293,7 @@ function buildSectionCard(sec) {
         const publishBtn = el('button', {
             className: 'btn-section-publish',
             title: "Publish this section's images to public app",
-            onclick: (e) => { e.stopPropagation(); openPublishSectionModal(sec.section); },
+            onclick: (e) => { e.stopPropagation(); window.openPublishSectionModal(sec.section); },
         }, '📤 Publish');
         header.append(left, dragHandle, publishBtn, chevron);
     } else {
@@ -405,8 +405,8 @@ function renderTypeAccordions(container, coins) {
 
     // Sort type groups by their earliest coin year
     const sortedTypes = [...typeMap.entries()].sort((a, b) => {
-        const minA = Math.min(...a[1].map(c => c.year === 1776 ? 1976 : c.year || 9999));
-        const minB = Math.min(...b[1].map(c => c.year === 1776 ? 1976 : c.year || 9999));
+        const minA = Math.min(...a[1].map(c => sortYear(c)));
+        const minB = Math.min(...b[1].map(c => sortYear(c)));
         return minA - minB;
     });
 
@@ -996,15 +996,14 @@ function buildCoinRow(coin) {
         thumbWrap.classList.add("show-rev");
     }
     
-    var specificCfg = getTypeConfig(coin.coin_type, coin.section);
-    var mainCfg = getTypeConfig(getMainType(coin.coin_type), coin.section);
-    // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
-    var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
-    var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-    var obvSrc = coin.obv_image || specObv || (mainCfg ? mainCfg.obv_image : null);
-    var revSrc = coin.rev_image || specRev || (mainCfg ? mainCfg.rev_image : null);
-    if (obvSrc && !obvSrc.startsWith('data:') && !obvSrc.includes('?')) obvSrc = cacheBustImageUrl(obvSrc);
-    if (revSrc && !revSrc.startsWith('data:') && !revSrc.includes('?')) revSrc = cacheBustImageUrl(revSrc);
+    // No fallback chain - per-coin images only. Section/type configs are for
+    // section header examples and type reference, NOT for year coin fallback.
+    // Respect explicit per-coin deletions: if the coin itself deleted a side,
+    // show placeholder (do NOT fall back to type/section config).
+    var obvSrc = coin._deleted_obv_image ? null : coin.obv_image;
+    var revSrc = coin._deleted_rev_image ? null : coin.rev_image;
+    if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
+    if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
         var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };
@@ -1077,8 +1076,10 @@ function buildCoinRow(coin) {
     if (sub.length) info.appendChild(el("span", {className: "coin-row-sub"}, sub.join(" · ")));
     row.appendChild(info);
 
-    // Show detail toggle always — it's the "more info" chevron indicator
+    // Detail toggle button
     var detailBtn = el("span", {className: "coin-row-detail-toggle", role: "button", tabIndex: 0, dataset: {action: "toggle-detail"}}, "▼ Details");
+    // Only hide if 0 qty AND no historical notes, otherwise they can't open notes
+    // Show detail toggle always — it's the "more info" chevron indicator
     row.appendChild(detailBtn);
 
     // Wishlist Heart Icon
@@ -1604,7 +1605,7 @@ async function handleCatalogClick(e) {
     const imgBtn = target.closest('[data-action="view-img"]');
     if (imgBtn) {
         e.stopPropagation();
-        const { type, side, coinId } = imgBtn.dataset;
+        const { type, side, coinId, section } = imgBtn.dataset;
         // When coinId is present, this is a coin reference image (not inventory item)
         const isCoinRef = !!coinId;
         // Set coin metadata for proper image naming
@@ -1612,7 +1613,7 @@ async function handleCatalogClick(e) {
         import('./images.js').then(m => {
             // Set coin metadata on the images module
             if (m.setCoinMeta) m.setCoinMeta(year ? parseInt(year) : null, mintMark || null);
-            m.openImageInteractionModal(imgBtn, type, side, false, null, coinId);
+            m.openImageInteractionModal(imgBtn, type, side, false, null, coinId, section || '');
         });
         return;
     }
@@ -2147,10 +2148,11 @@ export function openCoinDetailModal(coinId) {
         }
         
         const getDisplayImgSrc = (side) => {
-            const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
-            const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-            const obv = specObv || mainCfg.obv_image;
-            const rev = specRev || mainCfg.rev_image;
+            // Respect explicit deletions at ALL levels — no fallback to mainCfg when specificCfg is deleted
+            const specObv = (specificCfg && specificCfg.obv_image) ? specificCfg.obv_image : null;
+            const specRev = (specificCfg && specificCfg.rev_image) ? specificCfg.rev_image : null;
+            const obv = coin._deleted_obv_image ? null : coin.obv_image;
+            const rev = coin._deleted_rev_image ? null : coin.rev_image;
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
             if (src && !src.includes('?')) src += '';
             return src;
@@ -2175,7 +2177,7 @@ export function openCoinDetailModal(coinId) {
             let side = localStorage.getItem(`cc-flipped-${coinId}`);
             if (!side) side = isSpecialReverse(coin.coin_type) ? 'rev' : 'obv';
             import('./images.js').then(m => {
-                m.openImageInteractionModal(imgEl, coin.coin_type, side, false, null, coinId);
+                m.openImageInteractionModal(imgEl, coin.coin_type, side, false, null, coinId, coin.section || '');
             });
         };
         

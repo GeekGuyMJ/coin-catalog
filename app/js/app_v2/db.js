@@ -210,29 +210,29 @@ export async function initDb() {
             const chunkSize = 200;
             for (let i = 0; i < configs.length; i += chunkSize) {
                 const chunk = configs.slice(i, i + chunkSize);
-                // Only overwrite entries that don't already have a user-uploaded base64 image
+                // Only overwrite entries that don't already have a user-assigned image
                 for (const cfg of chunk) {
                         const existing = await db.coin_type_config.get(cfg.coin_type);
                         if (!existing) {
                             await db.coin_type_config.add(cfg);
                         } else {
-                            // Never overwrite user-uploaded base64 images, but seed master paths if empty
+                            // Never overwrite user-assigned images (base64 or file URLs), but seed master paths if empty
                             const updates = {
                                 base_price: cfg.base_price || existing.base_price || 0,
                                 key_price: cfg.key_price || existing.key_price || 0,
                             };
-                            // Seed master image paths only if no user-uploaded base64 exists
+                            // Seed master image paths only if field is empty
                             // AND only if the field was not explicitly deleted by the user
-                            if (cfg.obv_image !== undefined && (!existing.obv_image || !existing.obv_image.startsWith('data:image')) && !existing._deleted_obv_image) {
+                            if (cfg.obv_image !== undefined && !existing.obv_image && !existing._deleted_obv_image) {
                                 updates.obv_image = cfg.obv_image;
                             }
-                            if (cfg.rev_image !== undefined && (!existing.rev_image || !existing.rev_image.startsWith('data:image')) && !existing._deleted_rev_image) {
+                            if (cfg.rev_image !== undefined && !existing.rev_image && !existing._deleted_rev_image) {
                                 updates.rev_image = cfg.rev_image;
                             }
-                            if (cfg.proof_obv_image !== undefined && (!existing.proof_obv_image || !existing.proof_obv_image.startsWith('data:image')) && !existing._deleted_proof_obv_image) {
+                            if (cfg.proof_obv_image !== undefined && !existing.proof_obv_image && !existing._deleted_proof_obv_image) {
                                 updates.proof_obv_image = cfg.proof_obv_image;
                             }
-                            if (cfg.proof_rev_image !== undefined && (!existing.proof_rev_image || !existing.proof_rev_image.startsWith('data:image')) && !existing._deleted_proof_rev_image) {
+                            if (cfg.proof_rev_image !== undefined && !existing.proof_rev_image && !existing._deleted_proof_rev_image) {
                                 updates.proof_rev_image = cfg.proof_rev_image;
                             }
                             await db.coin_type_config.update(cfg.coin_type, updates);
@@ -524,8 +524,17 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                             const localDeletedObv = _c._deleted_obv_image || false;
                             const localDeletedRev = _c._deleted_rev_image || false;
 
-                            if (localObv !== serverObv || localRev !== serverRev || localDeletedObv !== serverDeletedObv || localDeletedRev !== serverDeletedRev) {
-                                const _upd = { obv_image: serverObv, rev_image: serverRev, _deleted_obv_image: serverDeletedObv, _deleted_rev_image: serverDeletedRev };
+                            // Only sync from server if server has data OR explicitly deleted
+                            // Don't overwrite local per-coin images with server null (which would erase user uploads)
+                            const shouldUpdateObv = (serverObv !== null && serverObv !== localObv) || (serverDeletedObv && !localDeletedObv);
+                            const shouldUpdateRev = (serverRev !== null && serverRev !== localRev) || (serverDeletedRev && !localDeletedRev);
+                            if (shouldUpdateObv || shouldUpdateRev || localDeletedObv !== serverDeletedObv || localDeletedRev !== serverDeletedRev) {
+                                const _upd = { 
+                                    obv_image: shouldUpdateObv ? serverObv : localObv, 
+                                    rev_image: shouldUpdateRev ? serverRev : localRev, 
+                                    _deleted_obv_image: serverDeletedObv, 
+                                    _deleted_rev_image: serverDeletedRev 
+                                };
                                 toUpdate.push({ id: _c.id, changes: _upd });
                                 Object.assign(_c, _upd);
                             }
@@ -789,6 +798,7 @@ export async function fetchTypeConfigsLocal() {
                             const delFlag = '_deleted_' + fld;
                             const jsonVal = jc[fld] || null;
                             const locallyDeleted = cur[delFlag];
+                            // Take JSON value if local is empty AND not deleted
                             if (jsonVal && !cur[fld] && !locallyDeleted) {
                                 merged[fld] = jsonVal;
                             }

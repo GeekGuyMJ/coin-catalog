@@ -23,6 +23,8 @@ import { renderAlbumView } from './album.js';
 import { initSearch } from './search.js';
 import { showToast } from './notifications.js';
 import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal, openVisibilityModal, openCustomThemeDesigner } from './modals.js';
+import { openPublishSectionModal } from './catalog.js';
+import { syncAndApplyPrefs } from './serverPrefs.js';
 import { openStoriesModal } from './stories.js';
 import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDropdown.js';
 import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection, showCloudSyncModal } from './settingsDropdown.js';
@@ -37,6 +39,7 @@ window.closeInfoDropdown = closeInfoDropdown;
 window.toggleSettingsDropdown = toggleSettingsDropdown;
 window.closeSettingsDropdown = closeSettingsDropdown;
 window.openWishlistPanel = openWishlistPanel;
+window.openPublishSectionModal = openPublishSectionModal;
 
 // ============================================================
 // Theme (sync selector with saved value — themes.js owns the logic)
@@ -131,6 +134,9 @@ async function boot() {
         console.warn('[boot] OAuth callback handling failed:', e.message);
     }
     syncThemeSelector();
+    // Cross-device prefs sync: pull server values, seed localStorage, re-apply theme.
+    // Fail-soft (no backend = no-op). Runs in parallel with data load so boot isn't blocked.
+    syncAndApplyPrefs().catch(e => console.debug('[boot] prefs sync skipped:', e.message));
     // Set sticky header offsets after first layout — use rAF to ensure DOM is painted
     requestAnimationFrame(() => updateStickyOffsets());
 

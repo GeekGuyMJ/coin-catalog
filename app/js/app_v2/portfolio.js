@@ -1234,15 +1234,17 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     row1.appendChild(metalSel);
     form.appendChild(row1);
 
-    // Row 2: Weight + Unit
-    var row2 = el('div', { className: 'v1-form-row', style: 'flex-wrap: wrap;' });
+    // Row 2: Weight + Unit (grouped)
+    var row2 = el('div', { className: 'v1-form-row', style: 'flex-wrap: wrap; align-items:flex-end; gap:8px;' });
     var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'be-weight' }, style: 'flex:1; min-width:80px;' });
-    var unitSel = el('select', { className: 'v1-select', style: 'width:76px; flex-shrink:0;', dataset: { field: 'be-unit' } });
+    var unitSel = el('select', { className: 'v1-select', style: 'width:70px; flex-shrink:0;', dataset: { field: 'be-unit' } });
     [['lbs','lbs'],['g','g'],['oz','oz'],['kg','kg']].forEach(function(u) {
         unitSel.appendChild(el('option', { value: u[0] }, u[1]));
     });
-    row2.appendChild(wgtIn);
-    row2.appendChild(unitSel);
+    var wgtWrap3 = el('div', { style: 'display:flex; align-items:flex-end; gap:2px; flex:1; min-width:120px;' });
+    wgtWrap3.appendChild(wgtIn);
+    wgtWrap3.appendChild(unitSel);
+    row2.appendChild(wgtWrap3);
     form.appendChild(row2);
 
     // Notes
@@ -1388,11 +1390,17 @@ async function buildSpotPricesCard(prices) {
     ];
     var activePeriod = localStorage.getItem('cc-spot-period') || '1M';
     
-    // Initialize REAL spot history engine (seed + accumulate live prices, no fabrication)
+    // Initialize REAL spot history engine (seed from backend + accumulate live prices, no fabrication)
     if (!window._spotHistoryStore) {
         try {
             window._spotHistoryStore = await initSpotHistory({
-                getSeed: async () => { try { const r = await fetch('data/spot_history_seed.json?t=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+                getSeed: async () => {
+                    // Prefer the live backend; fall back to the static seed so the
+                    // cards always render real 2000-2026 history even if /api is
+                    // slow, blocked, or served from a stale Service Worker cache.
+                    try { const r = await fetch('/api/spot_history?cb=' + Date.now()); const j = await r.json(); if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; } catch(e){}
+                    try { const r2 = await fetch('/data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
+                },
 getBaseline: async () => { try { const r = await fetch('/data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
                 getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
             });
@@ -1440,7 +1448,7 @@ getBaseline: async () => { try { const r = await fetch('/data/spot_history_basel
         var metalKey = m.key.replace('_oz','').replace('_lb','');
         return bullionVis[metalKey] !== false;
     });
-    // No fabricated seed — only real data. (Engine already appended the live price on init.)
+    // No fabricated seed — only real data. Engine appended live price on init.
     // Track session open price for meaningful change display (resets on tab close)
     var sessionOpen = {};
     try { sessionOpen = JSON.parse(sessionStorage.getItem('cc-spot-session') || '{}'); } catch(e) {}
@@ -1595,10 +1603,10 @@ function buildScrapMetalCard(items, prices) {
 
     var card = el('div', { className: 'card dashboard-card scrap-card', id: 'card-scrap', style: 'display:flex;flex-direction:column;' });
     // Header with title + totals
-    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;' });
-    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, 'Scrap Precious Metals'));
-    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:28px;' });
-    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);">$' + totalVal.toFixed(2) + '</span><br>' + items.length + ' item' + (items.length !== 1 ? 's' : '') + ' · ' + totalWt.toFixed(1) + 'g';
+    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;gap:8px;' });
+    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;min-width:0;' }, 'Scrap Precious Metals'));
+    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:32px;white-space:nowrap;' });
+    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);display:block;">$' + totalVal.toFixed(2) + '</span><span style="font-size:0.8em;">' + items.length + ' item' + (items.length !== 1 ? 's' : '') + ' · ' + totalWt.toFixed(1) + 'g</span>';
     hdr.appendChild(hdrRight);
     card.appendChild(hdr);
 
@@ -1639,8 +1647,8 @@ function buildScrapMetalCard(items, prices) {
     row1.appendChild(metalSel);
     form.appendChild(row1);
 
-    // Row 2: Purity + Weight + Unit
-    var row2 = el('div', { className: 'v1-form-row' });
+    // Row 2: Purity (left) + Weight + Unit (right, grouped)
+    var row2 = el('div', { className: 'v1-form-row', style: 'align-items:flex-end; gap:8px;' });
     var puritSel = el('select', { className: 'v1-select', dataset: { field: 'sm-purity' } });
     var purityPresets = {
         silver: [['0.925','Sterling (92.5%)'],['0.900','Coin Silver (90%)'],['0.999','Fine (99.9%)']],
@@ -1659,14 +1667,17 @@ function buildScrapMetalCard(items, prices) {
     refreshPurityOptions();
     metalSel.addEventListener('change', refreshPurityOptions);
 
-    var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'sm-weight' }, style: 'flex:1;min-width:60px;' });
-    var unitSel = el('select', { className: 'v1-select', style: 'width:76px;', dataset: { field: 'sm-unit' } });
+    // Weight + unit grouped together
+    var wgtWrap = el('div', { style: 'display:flex; align-items:flex-end; gap:2px; flex:1; min-width:120px;' });
+    var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'sm-weight' }, style: 'flex:1; min-width:80px;' });
+    var unitSel = el('select', { className: 'v1-select', style: 'width:70px;', dataset: { field: 'sm-unit' } });
     [['g','g'],['ozt','troy oz'],['oz','oz'],['lbs','lbs'],['gr','grains']].forEach(function(u) {
         unitSel.appendChild(el('option', { value: u[0] }, u[1]));
     });
+    wgtWrap.appendChild(wgtIn);
+    wgtWrap.appendChild(unitSel);
     row2.appendChild(puritSel);
-    row2.appendChild(wgtIn);
-    row2.appendChild(unitSel);
+    row2.appendChild(wgtWrap);
     form.appendChild(row2);
 
     var extraContainer = el('div', { style: 'display:none; flex-direction:column; gap:6px;' });
@@ -1764,10 +1775,10 @@ function buildPaperCurrencyCard(items) {
 
     var card = el('div', { className: 'card dashboard-card paper-card', id: 'card-paper', style: 'display:flex;flex-direction:column;' });
 
-    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;' });
-    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, 'Paper Currency'));
-    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:28px;' });
-    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);">$' + totalVal.toFixed(2) + '</span><br>' + items.length + ' note' + (items.length !== 1 ? 's' : '');
+    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;gap:8px;' });
+    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;min-width:0;' }, 'Paper Currency'));
+    var hdrRight = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);text-align:right;padding-right:32px;white-space:nowrap;' });
+    hdrRight.innerHTML = '<span style="font-size:1.1em;font-weight:700;color:var(--color-accent);display:block;">$' + totalVal.toFixed(2) + '</span><span style="font-size:0.8em;">' + items.length + ' note' + (items.length !== 1 ? 's' : '') + '</span>';
     hdr.appendChild(hdrRight);
     card.appendChild(hdr);
 
@@ -1782,15 +1793,15 @@ function buildPaperCurrencyCard(items) {
         items.forEach(function(item) {
             var row = el('div', { className: 'v1-item-row' });
             
-            // Add thumbnails
-            var thumbs = el('div', { style: 'display: flex; gap: 4px; align-items: center; margin-right: 8px;' });
+            // Front/back thumbnails side by side
+            var thumbs = el('div', { style: 'display: flex; gap: 4px; flex-direction:column; align-items: center; margin-right: 8px; flex-shrink: 0;' });
             if (item.obv_image) {
-                var oImg = el('img', { src: item.obv_image, style: 'width:32px; height:20px; object-fit:cover; border-radius:2px; border:1px solid var(--color-border); cursor:zoom-in;' });
+                var oImg = el('img', { src: item.obv_image, style: 'width:40px; height:24px; object-fit:cover; border-radius:2px; border:1px solid var(--color-border); cursor:zoom-in;' });
                 oImg.addEventListener('click', () => openLocalLightbox(item.obv_image));
                 thumbs.appendChild(oImg);
             }
             if (item.rev_image) {
-                var rImg = el('img', { src: item.rev_image, style: 'width:32px; height:20px; object-fit:cover; border-radius:2px; border:1px solid var(--color-border); cursor:zoom-in;' });
+                var rImg = el('img', { src: item.rev_image, style: 'width:40px; height:24px; object-fit:cover; border-radius:2px; border:1px solid var(--color-border); cursor:zoom-in;' });
                 rImg.addEventListener('click', () => openLocalLightbox(item.rev_image));
                 thumbs.appendChild(rImg);
             }
@@ -1801,7 +1812,7 @@ function buildPaperCurrencyCard(items) {
             var info = el('div', { style: 'flex:1;' });
             var label = fmtDenom(item.denomination) + ' Series ' + (item.series_year || '?');
             info.appendChild(el('span', { style: 'font-weight:600;font-size:0.9em;' }, label));
-            if (item.is_star_note) info.appendChild(el('span', { style: 'margin-left:4px;color:gold;' }, '★'));
+            if (item.is_star_note) info.appendChild(el('span', { style: 'margin-left:4px;color:gold;font-weight:700;font-size:1em;' }, '★'));
             var sub = [];
             if (item.serial_number) sub.push('Serial: ' + item.serial_number);
             if (item.friedberg) sub.push('Fr# ' + item.friedberg);
@@ -1821,26 +1832,26 @@ function buildPaperCurrencyCard(items) {
     // Add form
     var form = el('div', { className: 'v1-form', style: 'flex-shrink:0;' });
 
-    // Row 1: Denomination + Series
-    var row1 = el('div', { className: 'v1-form-row' });
+    // Row 1: Denomination + Star Note + Series
+    var row1 = el('div', { className: 'v1-form-row', style: 'align-items:flex-end; gap:8px;' });
     var denomSel = el('select', { className: 'v1-select', dataset: { field: 'pc-denom' } });
     [1,2,5,10,20,50,100,500,1000].forEach(function(d) {
         denomSel.appendChild(el('option', { value: String(d) }, fmtDenom(d)));
     });
-    var seriesIn = el('input', { className: 'v1-input', placeholder: 'Series (e.g. 1957A)', dataset: { field: 'pc-series' } });
+    var starLbl = el('label', { style: 'display:flex;align-items:center;gap:4px;font-size:0.8em;white-space:nowrap;cursor:pointer;margin-bottom:2px;' });
+    var starCb = el('input', { type: 'checkbox', dataset: { field: 'pc-star' } });
+    starLbl.appendChild(starCb);
+    starLbl.appendChild(document.createTextNode('★ Star'));
+    var seriesIn = el('input', { className: 'v1-input', placeholder: 'Series (e.g. 1957A)', dataset: { field: 'pc-series' }, style: 'flex:1; min-width:80px;' });
     row1.appendChild(denomSel);
+    row1.appendChild(starLbl);
     row1.appendChild(seriesIn);
     form.appendChild(row1);
 
-    // Row 2: Serial + Star note
+    // Row 2: Serial Number
     var row2 = el('div', { className: 'v1-form-row' });
     var serialIn = el('input', { className: 'v1-input', placeholder: 'Serial Number', dataset: { field: 'pc-serial' }, style: 'flex:1;' });
-    var starLbl = el('label', { style: 'display:flex;align-items:center;gap:4px;font-size:0.85em;white-space:nowrap;cursor:pointer;' });
-    var starCb = el('input', { type: 'checkbox', dataset: { field: 'pc-star' } });
-    starLbl.appendChild(starCb);
-    starLbl.appendChild(document.createTextNode('Star Note ★'));
     row2.appendChild(serialIn);
-    row2.appendChild(starLbl);
     form.appendChild(row2);
 
     // Row 3: Est. Value + Notes
@@ -1859,14 +1870,14 @@ function buildPaperCurrencyCard(items) {
     row4.appendChild(signaturesIn);
     form.appendChild(row4);
 
-    // Row 5: Obverse / Reverse file pickers
-    var row5 = el('div', { className: 'v1-form-row', style: 'align-items:center; gap:8px;' });
+    // Row 5: Obverse / Reverse file pickers (side by side)
+    var row5 = el('div', { className: 'v1-form-row', style: 'align-items:flex-end; gap:8px;' });
     
     var obvContainer = el('div', { style: 'flex:1; display:flex; align-items:center; gap:6px;' });
     var obvFile = el('input', { type: 'file', accept: 'image/*', style: 'display:none;' });
-    var obvBtn = el('button', { className: 'btn-secondary', style: 'padding:4px 8px; font-size:0.8em; display:flex; align-items:center; gap:4px; margin:0;' });
+    var obvBtn = el('button', { className: 'btn-secondary', style: 'padding:6px 10px; font-size:0.8em; display:flex; align-items:center; gap:4px; margin:0;' });
     obvBtn.innerHTML = ' Front';
-    var obvPreview = el('img', { style: 'width:28px; height:20px; border-radius:2px; object-fit:cover; display:none;' });
+    var obvPreview = el('img', { style: 'width:36px; height:24px; border-radius:2px; object-fit:cover; display:none;' });
     obvBtn.addEventListener('click', (e) => { e.preventDefault(); obvFile.click(); });
     
     let obvBase64 = null;
@@ -1883,9 +1894,9 @@ function buildPaperCurrencyCard(items) {
     
     var revContainer = el('div', { style: 'flex:1; display:flex; align-items:center; gap:6px;' });
     var revFile = el('input', { type: 'file', accept: 'image/*', style: 'display:none;' });
-    var revBtn = el('button', { className: 'btn-secondary', style: 'padding:4px 8px; font-size:0.8em; display:flex; align-items:center; gap:4px; margin:0;' });
+    var revBtn = el('button', { className: 'btn-secondary', style: 'padding:6px 10px; font-size:0.8em; display:flex; align-items:center; gap:4px; margin:0;' });
     revBtn.innerHTML = ' Back';
-    var revPreview = el('img', { style: 'width:28px; height:20px; border-radius:2px; object-fit:cover; display:none;' });
+    var revPreview = el('img', { style: 'width:36px; height:24px; border-radius:2px; object-fit:cover; display:none;' });
     revBtn.addEventListener('click', (e) => { e.preventDefault(); revFile.click(); });
     
     let revBase64 = null;
