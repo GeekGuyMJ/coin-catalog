@@ -98,9 +98,7 @@ async function serverFetch(path, init) {
 // ============================================================
 
 // Core catalog APIs
-export const fetchCoinsForSection = isSelfHosted
-    ? async (sectionName) => serverFetch('/api/coins?section=' + encodeURIComponent(sectionName))
-    : wrap(fetchCoinsForSectionLocal);
+export const fetchCoinsForSection = wrap(fetchCoinsForSectionLocal);
 
 export const fetchCoin = isSelfHosted
     ? async (coinId) => serverFetch('/api/coins/' + coinId)
@@ -163,23 +161,47 @@ export const fetchCoinBankImages = isSelfHosted
 
 // Local-only features (no server equivalent) - always use local DB
 export const fetchSpotPrices       = wrap(fetchSpotPricesLocal);
-export const fetchRawBullion       = wrap(fetchRawBullionLocal);
-export const saveRawBullion        = wrap(saveRawBullionLocal);
-export const deleteRawBullion      = wrap(deleteRawBullionLocal);
+export const fetchRawBullion       = isSelfHosted
+    ? async () => serverFetch('/api/raw_bullion')
+    : wrap(fetchRawBullionLocal);
+export const saveRawBullion        = isSelfHosted
+    ? async (data) => serverFetch('/api/raw_bullion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(saveRawBullionLocal);
+export const deleteRawBullion      = isSelfHosted
+    ? async (id) => serverFetch('/api/raw_bullion/' + id, { method: 'DELETE' })
+    : wrap(deleteRawBullionLocal);
 export const fetchScrap            = wrap(fetchScrapLocal);
 export const saveScrap             = wrap(saveScrapLocal);
 export const deleteScrap           = wrap(deleteScrapLocal);
 export const fetchPortfolioHistory = wrap(fetchPortfolioHistoryLocal);
 export const fetchPortfolio        = wrap(fetchPortfolioLocal);
-export const fetchPaperCurrency    = wrap(fetchPaperCurrencyLocal);
-export const savePaperCurrency     = wrap(savePaperCurrencyLocal);
-export const deletePaperCurrency   = wrap(deletePaperCurrencyLocal);
-export const fetchCustomCategories = wrap(fetchCustomCategoriesLocal);
-export const saveCustomCategory    = wrap(saveCustomCategoryLocal);
-export const deleteCustomCategory  = wrap(deleteCustomCategoryLocal);
-export const fetchOtherCollectables= wrap(fetchOtherCollectablesLocal);
-export const saveOtherCollectables = wrap(saveOtherCollectablesLocal);
-export const deleteOtherCollectable= wrap(deleteOtherCollectableLocal);
+export const fetchPaperCurrency    = isSelfHosted
+    ? async () => serverFetch('/api/paper_currency')
+    : wrap(fetchPaperCurrencyLocal);
+export const savePaperCurrency     = isSelfHosted
+    ? async (data) => serverFetch('/api/paper_currency', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(savePaperCurrencyLocal);
+export const deletePaperCurrency   = isSelfHosted
+    ? async (id) => serverFetch('/api/paper_currency/' + id, { method: 'DELETE' })
+    : wrap(deletePaperCurrencyLocal);
+export const fetchCustomCategories = isSelfHosted
+    ? async () => serverFetch('/api/custom_categories')
+    : wrap(fetchCustomCategoriesLocal);
+export const saveCustomCategory    = isSelfHosted
+    ? async (data) => serverFetch('/api/custom_categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(saveCustomCategoryLocal);
+export const deleteCustomCategory  = isSelfHosted
+    ? async (name) => serverFetch('/api/custom_categories/' + encodeURIComponent(name), { method: 'DELETE' })
+    : wrap(deleteCustomCategoryLocal);
+export const fetchOtherCollectables= isSelfHosted
+    ? async () => serverFetch('/api/other_collectables')
+    : wrap(fetchOtherCollectablesLocal);
+export const saveOtherCollectables = isSelfHosted
+    ? async (data) => serverFetch('/api/other_collectables', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(saveOtherCollectablesLocal);
+export const deleteOtherCollectable= isSelfHosted
+    ? async (id) => serverFetch('/api/other_collectables/' + id, { method: 'DELETE' })
+    : wrap(deleteOtherCollectableLocal);
 export const fetchWishlist         = wrap(fetchWishlistLocal);
 export const saveWishlist          = wrap(saveWishlistLocal);
 export const addToWishlist         = wrap(addToWishlistLocal);
@@ -206,7 +228,7 @@ export const resetImageToMaster    = wrap(resetImageToMasterLocal);
 export const checkMaster           = wrap(checkMasterLocal);
 export const promoteToDefault      = wrap(promoteToDefaultLocal);
 export const deleteCoinBankImage = isSelfHosted
-    ? async (filename) => serverFetch('/api/coin_bank_images/' + encodeURIComponent(filename), {
+    ? async (filename) => serverFetch('/api/coin_bank_images/' + filename.replace(/^\//, ''), {
         method: 'DELETE'
     })
     : wrap(deleteCoinBankImageLocal);
