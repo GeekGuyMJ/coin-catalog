@@ -829,33 +829,16 @@ export async function executeImageAssignment(overrideParams = null) {
                     const newInv = await fetchInventory();
                     setInventory(newInv);
                 } else if (scope === 'all' || scope === 'empty_only') {
-                    const targetMainType = getMainType(activeContext.typeStr);
-                    const newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] || imageB64;
-                    // specific_coin without targetItemId is a programming error - log and skip
-                    if (scope === 'specific_coin' && !targetItemId) {
-                        console.error('[images] specific_coin scope without targetItemId - this should not happen');
+                    // Batch assign now writes per-coin images, not type config.
+                    // Re-fetch the section coins to get updated per-coin images and sync to IndexedDB.
+                    try {
+                        const coins = await fetchCoinsForSection(activeContext.section);
+                        // fetchCoinsForSection already syncs to IndexedDB and updates in-memory cache
+                        // Re-render will happen via cc-inventory-updated event below
+                        console.log('[images] Batch assign complete, section coins refreshed');
+                    } catch (e) {
+                        console.warn('[images] Could not refresh section after batch assign:', e);
                     }
-                                       
-                    // Update all matching IMG elements in the DOM immediately (section-qualified)
-                    const imgElements = document.querySelectorAll('img[data-action="view-img"]');
-                    imgElements.forEach(img => {
-                        const imgType = img.dataset.type;
-                        const imgSide = img.dataset.side;
-                        const imgSection = img.dataset.section || '';
-                        if (imgSide !== activeContext.side) return;
-                        if (!shouldUpdateCoinType(imgType, imgSection, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side)) return;
-                        if (scope === 'empty_only' && img.src && !img.classList.contains('placeholder') && !img.src.includes('data:image/svg')) return;
-                            
-                        if (newImageUrl) {
-                            img.src = newImageUrl;
-                            img.classList.remove('placeholder');
-                        } else {
-                            import('./utils.js').then(m => {
-                                img.src = m.placeholderCoinSvg();
-                                img.classList.add('placeholder');
-                            });
-                        }
-                    });
                 }
             } catch (cfgErr) {
                 console.warn('[images] Could not refresh type configs:', cfgErr);
