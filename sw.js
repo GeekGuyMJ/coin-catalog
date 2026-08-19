@@ -1,5 +1,6 @@
-// Coin Catalog — Self-Hosted Service Worker
-const CACHE = 'coin-catalog-v51';
+// Coin Catalog — Public Service Worker
+// NETWORK-FIRST for JS and images so fixes deploy immediately
+const CACHE = 'coin-catalog-v96';
 const ASSETS = [
   '/',
   '/index.html',
@@ -50,43 +51,64 @@ self.addEventListener('activate', (event) => {
   })());
 });
 
+// Network-first: always try network; fall back to cache only if offline
+async function networkFirst(request, cacheable) {
+  const cache = await caches.open(CACHE);
+  try {
+    const network = await fetch(request);
+    if (cacheable && network.ok && (new URL(request.url)).origin === self.location.origin) {
+      cache.put(request, network.clone());
+    }
+    return network;
+  } catch (err) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // For images, return 404 instead of throwing
+    const url = new URL(request.url);
+    if (request.destination === 'image' || url.pathname.startsWith('/data/images/') || url.pathname.match(/\.(webp|png|jpg|jpeg|gif|svg)$/i)) {
+      return new Response('', { status: 404, statusText: 'Not Found' });
+    }
+    throw err;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
-  // Navigation: network-first (fresh HTML always)
-  if (event.request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        return await fetch(event.request);
-      } catch (err) {
-        const cached = await caches.match(event.request);
-        return cached || caches.match('/index.html');
-      }
-    })());
+  const _u = new URL(event.request.url);
+  // Never cache API calls
+  if (event.request.method !== 'GET' || _u.pathname.startsWith('/api/')) {
     return;
   }
-  // Static assets: network-first for JS (so fixes take effect immediately)
-  const url = new URL(event.request.url);
-  if (url.pathname.endsWith('.js')) {
-    event.respondWith((async () => {
-      try {
-        const network = await fetch(event.request);
-        const cache = await caches.open(CACHE);
-        cache.put(event.request, network.clone());
-        return network;
-      } catch (err) {
-        return caches.match(event.request);
-      }
-    })());
+  // Navigation: network-first
+  if (event.request.mode === 'navigate') {
+    event.respondWith(networkFirst(event.request, false));
+    return;
+  }
+  // Static JS: network-first
+  if (_u.pathname.endsWith('.js')) {
+    event.respondWith(networkFirst(event.request, true));
+    return;
+  }
+  // IMAGES: network-first
+  if (_u.pathname.startsWith('/data/images/')) {
+    event.respondWith(networkFirst(event.request, false));
     return;
   }
   // Everything else: cache-first
   event.respondWith((async () => {
     const cached = await caches.match(event.request);
     if (cached) return cached;
-    const network = await fetch(event.request);
-    if (network.ok && url.origin === self.location.origin) {
-      const cache = await caches.open(CACHE);
-      cache.put(event.request, network.clone());
+    try {
+      const network = await fetch(event.request);
+      if (network.ok && _u.origin === self.location.origin) {
+        const cache = await caches.open(CACHE);
+        cache.put(event.request, network.clone());
+      }
+      return network;
+    } catch (e) {
+      if (event.request.destination === 'image') {
+        return new Response('', { status: 404, statusText: 'Not Found' });
+      }
+      throw e;
     }
-    return network;
   })());
 });
