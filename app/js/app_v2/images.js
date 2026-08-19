@@ -15,7 +15,7 @@ import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
 import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
-import { setCoinsForSection, getCoinsForSection } from './state.js';
+import { setCoinsForSection } from './state.js';
 
 // ============================================================
 // State
@@ -739,8 +739,11 @@ export async function promoteToDefaultHandler() {
  * catalog in-place — no page reload, no lost accordion/scroll state.
  */
 export async function executeImageAssignment(overrideParams = null) {
+    // Always read the currently checked radio — it reflects the user's choice
     const scopeEle = document.querySelector('input[name="img_scope"]:checked');
-    const isScopeModalOpen = document.getElementById('modal-replace-scope')?.classList.contains('open');
+    // Check if scope modal box is visible (display:block means user chose a scope)
+    const scopeBox = document.getElementById('scope-selection-box');
+    const isScopeModalOpen = scopeBox && scopeBox.style.display === 'block';
     let scope = (overrideParams && overrideParams.scope) 
         || ((isScopeModalOpen && scopeEle) ? scopeEle.value : (activeContext.scope || 'all'));
 
@@ -838,14 +841,14 @@ export async function executeImageAssignment(overrideParams = null) {
                         setCoinsForSection(activeContext.section, coins);
                         // Re-render the section immediately with updated image URLs
                         const sectionId = 'section-' + activeContext.section.replace(/[^a-zA-Z0-9]/g, '');
-                        const sectionCard = document.getElementById(sectionId);
-                        if (sectionCard) {
-                            const content = sectionCard.querySelector('.section-content');
-                            if (content) {
-                                // Use dynamic import to avoid circular dependency
-                                const { renderTypeAccordions } = await import('./catalog.js');
-                                renderTypeAccordions(content, coins);
-                            }
+                        // Section content element has ID: sectionId + '-content'
+                        const content = document.getElementById(sectionId + '-content');
+                        if (content) {
+                            // Use dynamic import to avoid circular dependency
+                            const { renderTypeAccordions } = await import('./catalog.js');
+                            renderTypeAccordions(content, coins);
+                        } else {
+                            console.warn('[images] Section content not found for', sectionId);
                         }
                     } catch (e) {
                         console.warn('[images] Could not refresh section after batch assign:', e);
@@ -1167,8 +1170,16 @@ async function editCoinBankImage(img) {
 // ============================================================
 
 function showScopeSelection() {
-    document.getElementById('scope-selection-box').style.display = 'block';
-    document.getElementById('btn-execute-assign').style.display = 'block';
+    const scopeBox = document.getElementById('scope-selection-box');
+    const applyBtn = document.getElementById('btn-execute-assign');
+    if (scopeBox) scopeBox.style.display = 'block';
+    if (applyBtn) applyBtn.style.display = 'block';
+    
+    // Ensure the modal is actually open — showScopeSelection may be called
+    // from saveCrop() which already opened it, but if it was called from
+    // an unexpected context, make sure the user can see and interact with the
+    // scope options before Save & Apply.
+    openModalLegacy('modal-replace-scope');
 }
 
 // Inject premium drag-and-drop stylesheet
