@@ -15,6 +15,7 @@ import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
 import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
+import { setCoinsForSection, getCoinsForSection } from './state.js';
 
 // ============================================================
 // State
@@ -833,9 +834,19 @@ export async function executeImageAssignment(overrideParams = null) {
                     // Re-fetch the section coins to get updated per-coin images and sync to IndexedDB.
                     try {
                         const coins = await fetchCoinsForSection(activeContext.section);
-                        // fetchCoinsForSection already syncs to IndexedDB and updates in-memory cache
-                        // Re-render will happen via cc-inventory-updated event below
-                        console.log('[images] Batch assign complete, section coins refreshed');
+                        // Update the in-memory state so re-render uses fresh data
+                        setCoinsForSection(activeContext.section, coins);
+                        // Re-render the section immediately with updated image URLs
+                        const sectionId = 'section-' + activeContext.section.replace(/[^a-zA-Z0-9]/g, '');
+                        const sectionCard = document.getElementById(sectionId);
+                        if (sectionCard) {
+                            const content = sectionCard.querySelector('.section-content');
+                            if (content) {
+                                // Use dynamic import to avoid circular dependency
+                                const { renderTypeAccordions } = await import('./catalog.js');
+                                renderTypeAccordions(content, coins);
+                            }
+                        }
                     } catch (e) {
                         console.warn('[images] Could not refresh section after batch assign:', e);
                     }
