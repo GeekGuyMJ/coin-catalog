@@ -138,6 +138,19 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
 
     preview.src = src;
     if (removeBtn) removeBtn.style.display = 'block';
+    
+    // Check if there's a master/default image for this type/side to show reset/promote
+    const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
+    const typeConfig = getTypeConfig(activeContext.typeStr, activeContext.section);
+    const hasMaster = typeConfig && typeConfig[field];
+    const isUserTier = src.includes('/types/user/');
+    
+    if (resetBtn) {
+        resetBtn.style.display = hasMaster && isUserTier ? 'inline-flex' : 'none';
+    }
+    if (promoteBtn) {
+        promoteBtn.style.display = hasMaster && isUserTier ? 'inline-flex' : 'none';
+    }
     saveBtn.style.display = 'none'; // Hide save button initially
     
     openModalLegacy('modal-image-interaction');
@@ -746,6 +759,18 @@ export async function executeImageAssignment(overrideParams = null) {
     const isScopeModalOpen = scopeBox && scopeBox.style.display === 'block';
     let scope = (overrideParams && overrideParams.scope) 
         || ((isScopeModalOpen && scopeEle) ? scopeEle.value : (activeContext.scope || 'all'));
+    
+    // Debug logging
+    console.log('[images] executeImageAssignment:', {
+        overrideScope: overrideParams?.scope,
+        isScopeModalOpen,
+        scopeEleValue: scopeEle?.value,
+        activeContextScope: activeContext.scope,
+        activeContextSection: activeContext.section,
+        elDatasetSection: activeContext.el?.dataset?.section,
+        resolvedScope: scope,
+        resolvedSection: section
+    });
 
     if (scope === 'specific_item' && activeContext.side !== 'personal') {
         scope = 'specific_coin';
@@ -764,7 +789,9 @@ export async function executeImageAssignment(overrideParams = null) {
     const imageB64 = (overrideParams && overrideParams.image !== undefined) ? overrideParams.image : (activeContext.b64 || '');
     const coinType = (overrideParams && overrideParams.coin_type) || activeContext.typeStr;
     const side = (overrideParams && overrideParams.side) || activeContext.side;
-    const section = (overrideParams && overrideParams.section !== undefined) ? overrideParams.section : (activeContext.section || '');
+    const section = (overrideParams && overrideParams.section !== undefined) 
+        ? overrideParams.section 
+        : (activeContext.section || activeContext.el?.dataset?.section || '');
 
     try {
         const result = await assignImage({

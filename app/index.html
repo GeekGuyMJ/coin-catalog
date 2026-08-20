@@ -1,7 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-    <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      if (reg && reg.update) { try { reg.update(); } catch (e) {} }
+    }).catch(function (e) { console.warn('[SW] register failed', e); });
+  });
+}
+</script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -20,10 +28,10 @@
     <meta name="description" content="Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.">
 
     <!-- Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
     <!-- Google Font — Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,9 +39,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/base.css?v=1786636458">
-    <link rel="stylesheet" href="css/themes.css?v=1786636458">
-    <link rel="stylesheet" href="css/components.v2.css?v=1786636458">
+    <link rel="stylesheet" href="/css/base.css?v=1786636458">
+    <link rel="stylesheet" href="/css/themes.css?v=1786636458">
+    <link rel="stylesheet" href="/css/components.v2.css?v=1786636458">
 
     <!--
         Theme is applied BEFORE paint to prevent a flash of the wrong theme.
@@ -64,29 +72,28 @@
         };
     </script>
 
-
     <script>
-        // Cycle through coin images on each page load (public build: relative paths)
+        // Cycle through coin images on each page load
         (function() {
             var coins = [
-                'images/coin_gold1.png',
-                'images/coin_gold_proof1.png',
-                'images/coin_silver1.png',
-                'images/coin_copper1.png',
-                'images/coin_copper_proof1.png',
-                'images/coin_copper_green1.png',
-                'images/coin_copper_toned1.png',
-                'images/coin_bronze1.png',
-                'images/coin_bend1.png',
-                'images/coin_bend2.png',
-                'images/coin_bend3.png',
-                'images/coin_chocolate1.png',
-                'images/coin_chocolate2.png',
-                'images/coin_dirty1.png',
-                'images/coin_dirty2.png',
-                'images/coin_dirty3.png',
-                'images/coin_dirty4.png',
-                'images/coin_dirty5.png'
+                '/images/coin_gold1.png',
+                '/images/coin_gold_proof1.png',
+                '/images/coin_silver1.png',
+                '/images/coin_copper1.png',
+                '/images/coin_copper_proof1.png',
+                '/images/coin_copper_green1.png',
+                '/images/coin_copper_toned1.png',
+                '/images/coin_bronze1.png',
+                '/images/coin_bend1.png',
+                '/images/coin_bend2.png',
+                '/images/coin_bend3.png',
+                '/images/coin_chocolate1.png',
+                '/images/coin_chocolate2.png',
+                '/images/coin_dirty1.png',
+                '/images/coin_dirty2.png',
+                '/images/coin_dirty3.png',
+                '/images/coin_dirty4.png',
+                '/images/coin_dirty5.png'
             ];
             var pick = coins[Math.floor(Math.random() * coins.length)];
             function setCoinImages() {
@@ -108,7 +115,7 @@
          Splash screen — shown while JS loads and data fetches
     ================================================================ -->
     <div id="app-splash" aria-hidden="true" aria-live="polite">
-        <img class="splash-coin" id="splash-coin-anim" src="icons/icon-512.png" alt="" aria-hidden="true">
+        <img class="splash-coin" id="splash-coin-anim" src="/icons/icon-512.png" alt="" aria-hidden="true">
         <p class="splash-label">Loading...</p>
     </div>
 
@@ -118,99 +125,100 @@
     ================================================================ -->
     <header id="app-header" role="banner">
         <div class="header-inner">
-            <!-- App title -->
-            <img src="" alt="" class="header-logo" aria-hidden="true" width="75" height="75" id="header-coin-img">
-            <div class="header-left">
-                <h1 class="app-title">
-                    Coin &amp; Collectable Catalog
-                </h1>
-            </div>
+        <!-- App title -->
+        <img src="" alt="" class="header-logo" aria-hidden="true" width="75" height="75" id="header-coin-img">
+        <div class="header-left">
+            <h1 class="app-title">
+                Coin &amp; Collectable Catalog
+            </h1>
+        </div>
 
-            <div class="header-right">
-                <button id="btn-install" class="btn-header" style="display:none" onclick="triggerPWAInstall()" aria-label="Install app">
-                    <!-- Download/install icon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    <span>Install</span>
-                </button>
+        <div class="header-right">
+            <button id="btn-install" class="btn-header" style="display:none" onclick="triggerPWAInstall()" aria-label="Install app">
+                <!-- Download/install icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <span>Install</span>
+            </button>
 
-                <button id="btn-layout" class="btn-header" aria-label="Cycle Layout">
-                    <!-- Layout/grid icon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
-                        <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-                    </svg>
-                    <span>Layout</span>
-                </button>
+            <button id="btn-layout" class="btn-header" aria-label="Cycle Layout">
+                <!-- Layout/grid icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+                </svg>
+                <span>Layout</span>
+            </button>
 
-                <button id="btn-info" class="btn-header" onclick="toggleInfoDropdown()" aria-label="Help and Info">
-                    <!-- Info circle icon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <span>Info</span>
-                </button>
+            <button id="btn-info" class="btn-header" onclick="toggleInfoDropdown()" aria-label="Help and Info">
+                <!-- Info circle icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span>Info</span>
+            </button>
 
-                <button id="btn-settings" class="btn-header" onclick="toggleSettingsDropdown()" aria-label="Settings">
-                    <!-- Gear icon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                    <span>Settings</span>
-                </button>
+            <button id="btn-settings" class="btn-header" onclick="toggleSettingsDropdown()" aria-label="Settings">
+                <!-- Gear icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                <span>Settings</span>
+            </button>
 
-                <label for="theme-selector" class="sr-only">Color theme</label>
-                <select id="theme-selector" class="theme-select" aria-label="Color theme" onchange="setTheme(this.value)">
-                    <optgroup label="Dark Themes">
-                        <option value="dark">Dark</option>
-                        <option value="midnight">Midnight</option>
-                        <option value="gold">Gold</option>
-                        <option value="copper">Copper</option>
-                        <option value="ocean">Ocean</option>
-                        <option value="forest">Deep Forest</option>
-                        <option value="cyberpunk">Cyberpunk</option>
-                        <option value="neon">Neon</option>
-                        <option value="matrix">Matrix</option>
-                    </optgroup>
-                    <optgroup label="Light Themes">
-                        <option value="light">Light</option>
-                        <option value="silver">Silver</option>
-                        <option value="paper">Aged Paper</option>
-                    </optgroup>
-                    <optgroup label="Custom">
-                        <option value="custom1">Custom 1</option>
-                        <option value="custom2">Custom 2</option>
-                        <option value="custom3">Custom 3</option>
-                        <option value="custom-designer" disabled>────────────</option>
-                        <option value="custom-designer" onclick="event.stopPropagation(); openCustomThemeDesigner(1); this.selectedIndex = 0;">✦ Theme Designer</option>
-                    </optgroup>
-                </select>
-            </div>
+            <label for="theme-selector" class="sr-only">Color theme</label>
+            <select id="theme-selector" class="theme-select" aria-label="Color theme" onchange="setTheme(this.value)">
+                <optgroup label="Dark Themes">
+                    <option value="dark">Dark</option>
+                    <option value="midnight">Midnight</option>
+                    <option value="gold">Gold</option>
+                    <option value="copper">Copper</option>
+                    <option value="ocean">Ocean</option>
+                    <option value="forest">Deep Forest</option>
+                    <option value="cyberpunk">Cyberpunk</option>
+                    <option value="neon">Neon</option>
+                    <option value="matrix">Matrix</option>
+                </optgroup>
+                <optgroup label="Light Themes">
+                    <option value="light">Light</option>
+                    <option value="silver">Silver</option>
+                    <option value="paper">Aged Paper</option>
+                </optgroup>
+                <optgroup label="Custom">
+                    <option value="custom1">Custom 1</option>
+                    <option value="custom2">Custom 2</option>
+                    <option value="custom3">Custom 3</option>
+                    <option value="custom-designer" disabled>────────────</option>
+                    <option value="custom-designer" onclick="event.stopPropagation(); openCustomThemeDesigner(1); this.selectedIndex = 0;">✦ Theme Designer</option>
+                </optgroup>
+            </select>
+        </div>
         </div>
     </header>
 
     <!-- ================================================================
          Main Content
     ================================================================ -->
-    <script type="module" src="js/app_v2/utils.js"></script>
-    <script type="module" src="js/app_v2/state.js"></script>
-    <script type="module" src="js/app_v2/api.js"></script>
-    <script type="module" src="js/app_v2/themes.js"></script>
-    <script type="module" src="js/app_v2/catalog.js"></script>
-    <script type="module" src="js/app_v2/inventory.js"></script>
-    <script type="module" src="js/app_v2/modals.js"></script>
-    <script type="module" src="js/app_v2/search.js"></script>
-    <script type="module" src="js/app_v2/wishlist.js"></script>
-    <script type="module" src="js/app_v2/images.js"></script>
-    <script type="module" src="js/app_v2/album.js"></script>
-    <script type="module" src="js/app_v2/portfolio_history.js"></script>
-    <script type="module" src="js/app_v2/main.js"></script>
+    <script type="module" src="/js/app_v2/utils.js"></script>
+    <script type="module" src="/js/app_v2/state.js"></script>
+    <script type="module" src="/js/app_v2/api.js"></script>
+    <script type="module" src="/js/app_v2/themes.js"></script>
+    <script type="module" src="/js/app_v2/catalog.js"></script>
+    <script type="module" src="/js/app_v2/inventory.js"></script>
+    <script type="module" src="/js/app_v2/modals.js"></script>
+    <script type="module" src="/js/app_v2/search.js"></script>
+    <script type="module" src="/js/app_v2/wishlist.js"></script>
+    <script type="module" src="/js/app_v2/images.js"></script>
+    <script type="module" src="/js/app_v2/album.js"></script>
+    <script type="module" src="/js/app_v2/portfolio_history.js"></script>
+    <script type="module" src="/js/app_v2/serverPrefs.js"></script>
+    <script type="module" src="/js/app_v2/main.js"></script>
 <main id="app-main" class="container" role="main">
 
         <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->
@@ -280,8 +288,10 @@
                         <img id="ii-main-image" src="" alt="Coin preview" style="width:100%; max-width:500px; height:auto; aspect-ratio:1; border-radius:50%; object-fit:cover; background:var(--color-accord-bg); box-shadow:var(--shadow-md);">
                     </div>
                 </div>
-                <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end;">
+                <div class="modal-footer" style="display:flex; gap:var(--space-2); justify-content:flex-end; flex-wrap:wrap;">
                     <button class="btn-danger" id="ii-btn-remove" style="display:none; margin-right:auto;">Remove</button>
+                    <button class="btn-secondary" id="ii-btn-reset-master" style="display:none;">Reset to Master</button>
+                    <button class="btn-secondary" id="ii-btn-promote-default" style="display:none;">Promote to Default</button>
                     <button class="btn-secondary" data-action="ii-crop"> Crop</button>
                     <button class="btn-secondary" data-action="ii-replace"> Replace</button>
                     <button class="btn-primary" id="ii-btn-save" style="display:none;">Save</button>
@@ -343,10 +353,10 @@
                         <span style="font-weight:700; font-size:var(--font-size-sm); display:block; margin-bottom:var(--space-3);">Apply this image to:</span>
                         <div style="display:flex; flex-direction:column; gap:var(--space-2);">
                             <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--font-size-sm); cursor:pointer;" id="scope-lbl-item">
-                                <input type="radio" name="img_scope" value="specific_item"> Fill only this specific coin
+                                <input type="radio" name="img_scope" value="specific_item"> This specific coin
                             </label>
                             <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--font-size-sm); cursor:pointer;">
-                                <input type="radio" name="img_scope" value="all" checked> Fill all of this type
+                                <input type="radio" name="img_scope" value="all" checked> All coins of this type
                             </label>
                             <label style="display:flex; align-items:center; gap:var(--space-2); font-size:var(--font-size-sm); cursor:pointer;">
                                 <input type="radio" name="img_scope" value="empty_only"> Fill empty slots only
@@ -371,13 +381,14 @@
                 </div>
                 <div class="modal-body" style="padding:0; display:flex; flex-direction:column;">
                     <div style="padding:var(--space-4) var(--space-6); border-bottom:1px solid var(--color-border-light); background:var(--color-bg-card); position:sticky; top:0; z-index:10;">
-                        <div style="display:flex; gap:var(--space-2); margin-bottom:var(--space-2);">
-                            <button id="cb-filter-ctx" style="flex:1;" class="btn-primary">Current Type</button>
-                            <button id="cb-filter-all" style="flex:1;" class="btn-secondary">Browse All</button>
+                        <div style="display:flex; flex-direction:column; gap:var(--space-1);">
+                            <div style="display:flex; gap:var(--space-2);">
+                                <button id="cb-filter-ctx" style="flex:1;" class="btn-primary">Current Type</button>
+                                <button id="cb-filter-all" style="flex:1;" class="btn-secondary">Browse All</button>
+                            </div>
+                            <input type="text" id="cb-search-input" class="cb-search-input" placeholder="Search bank...">
+                            <div id="cb-context-label" style="font-size:var(--font-size-xs); color:var(--color-text-muted);"></div>
                         </div>
-                        <div id="cb-context-label" style="font-size:var(--font-size-xs); color:var(--color-text-muted);"></div>
-                        <input id="cb-search-input" type="text" placeholder="Search coin bank..." style="margin-top:6px; width:100%; padding:6px 8px; font-size:0.8rem; border:1px solid var(--color-border); border-radius:4px; background:var(--color-bg-body); color:var(--color-text-main);"
-                               oninput="window._coinBankDoSearch = setTimeout(() => { clearTimeout(window._coinBankDoSearch); const mode = document.getElementById('cb-filter-ctx')?.className.includes('btn-primary') ? 'context' : 'all'; _cbLoadImages(mode); }, 200);" />
                     </div>
                     <div id="coin-bank-grid" style="padding:var(--space-4); display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:var(--space-3);">
                         <!-- Images loaded by JS -->
