@@ -13,7 +13,7 @@ import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegac
 import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault } from './api.js';
 import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
-import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
+import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory, getTypeConfig } from './state.js';
 import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
 import { setCoinsForSection } from './state.js';
 
@@ -143,7 +143,7 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
     const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
     const typeConfig = getTypeConfig(activeContext.typeStr, activeContext.section);
     const hasMaster = typeConfig && typeConfig[field];
-    const isUserTier = src.includes('/types/user/');
+    // isUserTier already declared above at line ~116
     
     if (resetBtn) {
         resetBtn.style.display = hasMaster && isUserTier ? 'inline-flex' : 'none';
