@@ -4,7 +4,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
       if (reg && reg.update) { try { reg.update(); } catch (e) {} }
     }).catch(function (e) { console.warn('[SW] register failed', e); });
   });
@@ -28,10 +28,10 @@ if ('serviceWorker' in navigator) {
     <meta name="description" content="Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.">
 
     <!-- Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 
     <!-- Google Font — Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -39,9 +39,9 @@ if ('serviceWorker' in navigator) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="/css/base.css?v=1786636458">
-    <link rel="stylesheet" href="/css/themes.css?v=1786636458">
-    <link rel="stylesheet" href="/css/components.v2.css?v=1786636458">
+    <link rel="stylesheet" href="css/base.css?v=1786636458">
+    <link rel="stylesheet" href="css/themes.css?v=1786636458">
+    <link rel="stylesheet" href="css/components.v2.css?v=1786636458">
 
     <!--
         Theme is applied BEFORE paint to prevent a flash of the wrong theme.
@@ -115,7 +115,7 @@ if ('serviceWorker' in navigator) {
          Splash screen — shown while JS loads and data fetches
     ================================================================ -->
     <div id="app-splash" aria-hidden="true" aria-live="polite">
-        <img class="splash-coin" id="splash-coin-anim" src="/icons/icon-512.png" alt="" aria-hidden="true">
+        <img class="splash-coin" id="splash-coin-anim" src="icons/icon-512.png" alt="" aria-hidden="true">
         <p class="splash-label">Loading...</p>
     </div>
 
@@ -205,20 +205,20 @@ if ('serviceWorker' in navigator) {
     <!-- ================================================================
          Main Content
     ================================================================ -->
-    <script type="module" src="/js/app_v2/utils.js"></script>
-    <script type="module" src="/js/app_v2/state.js"></script>
-    <script type="module" src="/js/app_v2/api.js"></script>
-    <script type="module" src="/js/app_v2/themes.js"></script>
-    <script type="module" src="/js/app_v2/catalog.js"></script>
-    <script type="module" src="/js/app_v2/inventory.js"></script>
-    <script type="module" src="/js/app_v2/modals.js"></script>
-    <script type="module" src="/js/app_v2/search.js"></script>
-    <script type="module" src="/js/app_v2/wishlist.js"></script>
-    <script type="module" src="/js/app_v2/images.js"></script>
-    <script type="module" src="/js/app_v2/album.js"></script>
-    <script type="module" src="/js/app_v2/portfolio_history.js"></script>
-    <script type="module" src="/js/app_v2/serverPrefs.js"></script>
-    <script type="module" src="/js/app_v2/main.js"></script>
+    <script type="module" src="js/app_v2/utils.js"></script>
+    <script type="module" src="js/app_v2/state.js"></script>
+    <script type="module" src="js/app_v2/api.js"></script>
+    <script type="module" src="js/app_v2/themes.js"></script>
+    <script type="module" src="js/app_v2/catalog.js"></script>
+    <script type="module" src="js/app_v2/inventory.js"></script>
+    <script type="module" src="js/app_v2/modals.js"></script>
+    <script type="module" src="js/app_v2/search.js"></script>
+    <script type="module" src="js/app_v2/wishlist.js"></script>
+    <script type="module" src="js/app_v2/images.js"></script>
+    <script type="module" src="js/app_v2/album.js"></script>
+    <script type="module" src="js/app_v2/portfolio_history.js"></script>
+    <script type="module" src="js/app_v2/serverPrefs.js"></script>
+    <script type="module" src="js/app_v2/main.js"></script>
 <main id="app-main" class="container" role="main">
 
         <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->
