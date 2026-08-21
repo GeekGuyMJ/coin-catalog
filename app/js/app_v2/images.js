@@ -870,18 +870,31 @@ export async function executeImageAssignment(overrideParams = null) {
                     const newInv = await fetchInventory();
                     setInventory(newInv);
                 } else if (scope === 'all' || scope === 'empty_only') {
-                    // Batch assign now writes per-coin images, not type config.
-                    // Re-fetch the section coins to get updated per-coin images and sync to IndexedDB.
+                    // Batch assign writes per-coin images on server.
+                    // Fetch fresh data DIRECTLY from server to avoid stale IndexedDB race.
                     try {
-                        const coins = await fetchCoinsForSection(activeContext.section);
-                        // Update the in-memory state so re-render uses fresh data
+                        const _host = (window.location && window.location.hostname) || '';
+                        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.') || _host === 'localhost';
+                        let coins;
+                        if (_selfHosted) {
+                            // Direct server fetch - bypass IndexedDB-first logic for immediate fresh data
+                            const _native = window.__nativeFetch || window.fetch;
+                            const _res = await _native('/api/coins?section=' + encodeURIComponent(activeContext.section));
+                            if (_res && _res.ok) {
+                                coins = await _res.json();
+                            } else {
+                                throw new Error('Server fetch failed');
+                            }
+                        } else {
+                            // Public: use local (IndexedDB) path
+                            coins = await fetchCoinsForSection(activeContext.section);
+                        }
+                        // Update in-memory state
                         setCoinsForSection(activeContext.section, coins);
-                        // Re-render the section immediately with updated image URLs
+                        // Re-render immediately
                         const sectionId = 'section-' + activeContext.section.replace(/[^a-zA-Z0-9]/g, '');
-                        // Section content element has ID: sectionId + '-content'
                         const content = document.getElementById(sectionId + '-content');
                         if (content) {
-                            // Use dynamic import to avoid circular dependency
                             const { renderTypeAccordions } = await import('./catalog.js');
                             renderTypeAccordions(content, coins);
                         } else {
@@ -889,6 +902,17 @@ export async function executeImageAssignment(overrideParams = null) {
                         }
                     } catch (e) {
                         console.warn('[images] Could not refresh section after batch assign:', e);
+                        // Fallback to standard fetch
+                        try {
+                            const coins = await fetchCoinsForSection(activeContext.section);
+                            setCoinsForSection(activeContext.section, coins);
+                            const sectionId = 'section-' + activeContext.section.replace(/[^a-zA-Z0-9]/g, '');
+                            const content = document.getElementById(sectionId + '-content');
+                            if (content) {
+                                const { renderTypeAccordions } = await import('./catalog.js');
+                                renderTypeAccordions(content, coins);
+                            }
+                        }
                     }
                 }
             } catch (cfgErr) {
