@@ -501,7 +501,7 @@ export async function fetchCoinsForSectionLocal(sectionName) {
     // falls back to the seeded IndexedDB data. Guarded + non-fatal on failure.
     try {
         const _host = (window.location && window.location.hostname) || '';
-        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.');
+        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.') || _host === 'localhost';
         if (_selfHosted) {
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
@@ -693,7 +693,7 @@ export async function fetchTypeConfigsLocal() {
     // Guarded + non-fatal on failure.
     try {
         const _host = (window.location && window.location.hostname) || '';
-        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.');
+        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.') || _host === 'localhost';
         if (_selfHosted) {
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
@@ -781,7 +781,7 @@ export async function fetchTypeConfigsLocal() {
     // a locally deleted field or a user-assigned base64 image.
     try {
         const _host2 = (window.location && window.location.hostname) || '';
-        const _selfHosted2 = _host2.includes('opaleye-bluegill') || _host2.includes('ts.net') || _host2.includes('192.168.');
+        const _selfHosted2 = _host2.includes('opaleye-bluegill') || _host2.includes('ts.net') || _host2.includes('192.168.') || _host2 === 'localhost';
         if (!_selfHosted2) {
             const _native2 = window.__nativeFetch || window.fetch;
             if (typeof _native2 === 'function') {

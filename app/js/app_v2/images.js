@@ -17,6 +17,18 @@ import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, s
 import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
 import { setCoinsForSection } from './state.js';
 
+// Coin metadata for proper image naming (year, mint mark)
+let _coinMeta = { year: null, mintMark: null };
+
+export function setCoinMeta(year, mintMark) {
+    _coinMeta.year = year;
+    _coinMeta.mintMark = mintMark;
+}
+
+export function getCoinMeta() {
+    return { ..._coinMeta };
+}
+
 // ============================================================
 // State
 // ============================================================
@@ -143,7 +155,6 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
     const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
     const typeConfig = getTypeConfig(activeContext.typeStr, activeContext.section);
     const hasMaster = typeConfig && typeConfig[field];
-    // isUserTier already declared above at line ~116
     
     if (resetBtn) {
         resetBtn.style.display = hasMaster && isUserTier ? 'inline-flex' : 'none';
