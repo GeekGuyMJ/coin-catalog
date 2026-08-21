@@ -760,6 +760,11 @@ export async function executeImageAssignment(overrideParams = null) {
     let scope = (overrideParams && overrideParams.scope) 
         || ((isScopeModalOpen && scopeEle) ? scopeEle.value : (activeContext.scope || 'all'));
     
+    // Resolve section BEFORE the debug log to avoid TDZ error
+    const section = (overrideParams && overrideParams.section !== undefined)
+        ? overrideParams.section
+        : (activeContext.section || activeContext.el?.dataset?.section || '');
+
     // Debug logging
     console.log('[images] executeImageAssignment:', {
         overrideScope: overrideParams?.scope,
@@ -789,12 +794,6 @@ export async function executeImageAssignment(overrideParams = null) {
     const imageB64 = (overrideParams && overrideParams.image !== undefined) ? overrideParams.image : (activeContext.b64 || '');
     const coinType = (overrideParams && overrideParams.coin_type) || activeContext.typeStr;
     const side = (overrideParams && overrideParams.side) || activeContext.side;
-    const section = (overrideParams && overrideParams.section !== undefined) 
-        ? overrideParams.section 
-        : (activeContext.section || activeContext.el?.dataset?.section || '');
-
-    try {
-        const result = await assignImage({
             coin_type: coinType,
             side:      side,
             image:     imageB64,
