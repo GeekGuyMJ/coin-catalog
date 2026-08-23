@@ -917,8 +917,6 @@ export async function executeImageAssignment(overrideParams = null) {
                             }
                         } catch (fbErr) {
                             console.warn('[images] Fallback fetch also failed:', fbErr);
-                        } catch (fbErr) {
-                            console.warn('[images] Fallback fetch also failed:', fbErr);
                         }
                     }
                 }
