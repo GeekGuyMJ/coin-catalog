@@ -1026,7 +1026,7 @@ async function loadCoinBankImages(mode, searchQ) {
             ? searchQ
             : (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
         const params = (mode === 'context' && !q)
-            ? { coin_type: activeContext.typeStr, side: activeContext.side }
+            ? { coin_type: activeContext.typeStr, side: activeContext.side, section: activeContext.section }
             : (q ? { q: q } : {});
         const images = await fetchCoinBankImages(params);
 
