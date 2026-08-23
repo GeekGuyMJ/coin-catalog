@@ -805,6 +805,9 @@ export async function executeImageAssignment(overrideParams = null) {
     const imageB64 = (overrideParams && overrideParams.image !== undefined) ? overrideParams.image : (activeContext.b64 || '');
     const coinType = (overrideParams && overrideParams.coin_type) || activeContext.typeStr;
     const side = (overrideParams && overrideParams.side) || activeContext.side;
+
+    try {
+        const result = await assignImage({
             coin_type: coinType,
             side:      side,
             image:     imageB64,
@@ -912,6 +915,8 @@ export async function executeImageAssignment(overrideParams = null) {
                                 const { renderTypeAccordions } = await import('./catalog.js');
                                 renderTypeAccordions(content, coins);
                             }
+                        } catch (fbErr) {
+                            console.warn('[images] Fallback fetch also failed:', fbErr);
                         } catch (fbErr) {
                             console.warn('[images] Fallback fetch also failed:', fbErr);
                         }
