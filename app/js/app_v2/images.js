@@ -912,6 +912,8 @@ export async function executeImageAssignment(overrideParams = null) {
                                 const { renderTypeAccordions } = await import('./catalog.js');
                                 renderTypeAccordions(content, coins);
                             }
+                        } catch (fbErr) {
+                            console.warn('[images] Fallback fetch also failed:', fbErr);
                         }
                     }
                 }
