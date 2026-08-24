@@ -15,7 +15,7 @@
 
 import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
-    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse, cacheBustImageUrl, resolveImageUrl,
+    typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse, cacheBustImageUrl, resolveImageUrl,
 } from './utils.js';
 
 import {

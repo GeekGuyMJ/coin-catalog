@@ -744,8 +744,16 @@ p { color: var(--color-text-muted); }
 
 .screenshots-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /* 2026-08-24: 4 real app screenshots now (was 3 placeholders). */
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-lg);
+}
+
+@media (max-width: 1024px) {
+  .screenshots-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .screenshots-grid { grid-template-columns: 1fr; }
 }
 
 .screenshot {
