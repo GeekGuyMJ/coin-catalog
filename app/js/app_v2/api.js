@@ -354,11 +354,14 @@ if (!isSelfHosted) {
             else if (path === '/api/backup/import_csv') { data = await importCSVLocal(rawBody); }
             else if (path === '/api/backup/zip_restore') { status = 400; data = { error: "ZIP restore is legacy backend only. Please use JSON restore." }; }
             else {
-                try { return await originalFetch(urlStr, init); }
-                catch (netErr) {
-                    console.warn(`Local API Interceptor: Route not matched and backend unreachable: [${method}] ${path}`);
-                    status = 404; data = { error: "Route not found" };
-                }
+                // LOCAL-FIRST FIX (2026-08-24): on the public (local-first) build there is
+                // no backend, so any unmatched /api/* route resolves to a clean local 404
+                // JSON instead of hitting the real network. This removes the spurious 404
+                // console errors for self-hosted-only features such as /api/upload and
+                // /api/pricing_rules while keeping every caller's .then(r => r.json())
+                // error-handling intact.
+                console.debug(`Local API Interceptor: unmatched route on local build: [${method}] ${path}`);
+                status = 404; data = { error: "Route not available in local mode" };
             }
         } catch (err) {
             console.error(`Local API Interceptor Exception at ${path}:`, err);
