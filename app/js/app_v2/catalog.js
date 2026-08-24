@@ -15,7 +15,7 @@
 
 import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
-    typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
+    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse, cacheBustImageUrl, resolveImageUrl,
 } from './utils.js';
 
 import {
@@ -23,7 +23,7 @@ import {
     getTypeConfig,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, deleteInventoryEntry } from './api.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
@@ -246,7 +246,7 @@ function buildSectionCard(sec) {
         const hasObv = cfg?.obv_image;
         const hasRev = cfg?.rev_image;
         if (hasObv) {
-            const img = el('img', { className: 'coin-thumb obv', src: cfg.obv_image, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
+            const img = el('img', { className: 'coin-thumb obv', src: resolveImageUrl(cfg.obv_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
@@ -255,7 +255,7 @@ function buildSectionCard(sec) {
             pair.appendChild(ph);
         }
         if (hasRev) {
-            const img = el('img', { className: 'coin-thumb rev', src: cfg.rev_image, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
+            const img = el('img', { className: 'coin-thumb rev', src: resolveImageUrl(cfg.rev_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
@@ -456,7 +456,7 @@ function buildTypeAccordion(mainType, typeCoins) {
     if (cfg.obv_image) {
         const imgObv = el("img", {
             className: "coin-thumb obv",
-            src: cfg.obv_image,
+            src: resolveImageUrl(cfg.obv_image),
             alt: mainType + " obverse",
                         role: "button",
             tabIndex: 0,
@@ -478,7 +478,7 @@ function buildTypeAccordion(mainType, typeCoins) {
     if (cfg.rev_image) {
         const imgRev = el("img", {
             className: "coin-thumb rev",
-            src: cfg.rev_image,
+            src: resolveImageUrl(cfg.rev_image),
             alt: mainType + " reverse",
                         role: "button",
             tabIndex: 0,
@@ -676,6 +676,10 @@ function buildCoinSlots(coinId, activeIdx = 0) {
                     existingPhoto = '/data/images/types/' + existingPhoto;
                 }
             }
+            // DEPLOYMENT-AGNOSTIC PATH FIX (2026-08-24): re-base any root-absolute
+            // image path under the app directory so it resolves on GitHub Pages
+            // sub-path (/coin-catalog/app/) as well as the self-hosted root (/).
+            existingPhoto = resolveImageUrl(existingPhoto);
             html += '<div class="coin-entry-photo-slot" data-photo-idx="' + p + '" data-slot-idx="' + i + '" style="position:relative;">';
             html += '<div class="coin-entry-photo-circle has-photo" style="cursor:pointer;">';
             html += '<img src="' + existingPhoto + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + i + '" data-photo-idx="' + p + '">';
@@ -932,6 +936,8 @@ function openSlotCoinBankPicker(slotIdx, photoIdx, coinId, dp) {
                         emptyCircle.classList.remove('empty');
                         emptyCircle.classList.add('has-photo');
                         var displayUrl = filename.startsWith('/') ? filename : '/data/images/types/' + filename;
+                        // DEPLOYMENT-AGNOSTIC PATH FIX (2026-08-24)
+                        displayUrl = resolveImageUrl(displayUrl);
                         emptyCircle.innerHTML = '<img src="' + displayUrl + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + slotIdx + '" data-photo-idx="' + photoIdx + '">';
                     }
                     
@@ -1269,7 +1275,11 @@ function buildCoinRow(coin) {
             promise
                 .then(function() {
                     if (deletedEntry.id) {
-                        return fetch('/api/inventory/' + deletedEntry.id, { method: 'DELETE' });
+                        // LOCAL-FIRST FIX (2026-08-24): Previously called
+                        // `fetch('/api/inventory/:id', { method: 'DELETE' })`,
+                        // which 404s on the local-first build. deleteInventoryEntry()
+                        // routes through db.js (IndexedDB) and takes the coin_ref_id.
+                        return deleteInventoryEntry(deletedEntry.id);
                     }
                 })
                 .then(function() { return fetchInventory(); })

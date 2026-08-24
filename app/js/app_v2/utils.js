@@ -37,6 +37,45 @@ export function escHtml(s) {
  * @param {number|string} val - Numeric value.
  * @returns {string} Formatted string.
  */
+/**
+ * Resolve an image URL so it works on BOTH deployments.
+ *
+ * The self-hosted (server-first) app is served from site root "/", while the
+ * public (local-first) app is served from a sub-path "/coin-catalog/app/".
+ * Image references stored in type_configs.json / the DB use root-absolute
+ * paths like "/data/images/types/master/x.webp" or "/types/master/x.webp".
+ * On GitHub Pages those 404 because the real file lives at
+ * "/coin-catalog/app/data/images/types/master/x.webp".
+ *
+ * This helper rewrites any leading-slash path to be relative to the app base
+ * directory (derived from this module's own URL via import.meta.url), so the
+ * exact same code renders images correctly in both environments. Absolute
+ * http(s):// and inline data: URIs are returned unchanged.
+ *
+ * @param {string} url - Raw image URL/path from the DB or config.
+ * @returns {string} Resolved, deployment-agnostic URL.
+ */
+const _APP_BASE = (() => {
+    try {
+        // utils.js lives at <base>/js/app_v2/utils.js → go up two levels.
+        return new URL('../../', import.meta.url).pathname.replace(/\/+$/, '');
+    } catch (_) {
+        // Fallback for non-module/legacy contexts.
+        const p = window.location.pathname.replace(/\/app\/?$/, '');
+        return p.replace(/\/+$/, '');
+    }
+})();
+
+export function resolveImageUrl(url) {
+    if (!url) return url;
+    // Already absolute (http/https/data:) or a correct relative path → leave it.
+    if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:') || !url.startsWith('/')) {
+        return url;
+    }
+    // Root-absolute path → re-base under the app directory.
+    return _APP_BASE + url;
+}
+
 export function formatCurrency(val) {
     const v = parseFloat(val);
     if (!v || isNaN(v)) return '$0.00';

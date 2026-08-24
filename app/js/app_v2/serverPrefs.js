@@ -12,6 +12,16 @@
 // every fetch/put is wrapped in try/catch and silently no-ops. No exceptions
 // bubble up to the caller and boot is never blocked.
 
+// DEPLOYMENT-AGNOSTIC FIX (2026-08-24): this module only makes sense on the
+// server-first self-hosted build. On the local-first public build there is no
+// backend to sync to, so we short-circuit ALL network calls up front — this
+// eliminates the wasted /api/settings requests (and their 404s / console noise)
+// that previously fired on every public-page load.
+const isSelfHosted = location.hostname.includes('opaleye-bluegill.ts.net') ||
+                     location.hostname.includes('ts.net') ||
+                     location.hostname.startsWith('192.168.');
+function serverPrefsEnabled() { return isSelfHosted; }
+
 const SETTINGS_BASE = '/api/settings';
 
 // Keys we mirror to the server. Broad prefix match keeps future keys covered.
@@ -66,6 +76,9 @@ let _installed = false;
 export function installLocalStorageInterceptor() {
   if (_installed) return;
   _installed = true;
+  // Public/local-first build: no backend to sync to — skip the interceptor
+  // entirely so we never fire /api/settings PUTs (and their 404s).
+  if (!serverPrefsEnabled()) return;
   window.localStorage.setItem = function (key, value) {
     _origSetItem(key, value);
     if (isSyncedKey(key)) schedulePush(key, value);
@@ -104,6 +117,12 @@ function applyThemePrefs() {
 // Full boot step: pull from server, seed localStorage, re-apply theme.
 // Never throws — callers can await it directly.
 export async function syncAndApplyPrefs(timeoutMs = 5000) {
+  // Public/local-first build: there is no settings backend. Skip the network
+  // pull completely (no /api/settings GET 404s) and don't install the write
+  // interceptor. Boot stays fast and quiet.
+  if (!serverPrefsEnabled()) {
+    return;
+  }
   const withTimeout = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('timeout')), timeoutMs));
   try {

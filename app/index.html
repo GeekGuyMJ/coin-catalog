@@ -74,26 +74,32 @@ if ('serviceWorker' in navigator) {
 
     <script>
         // Cycle through coin images on each page load
+        // DEPLOYMENT-AGNOSTIC FIX (2026-08-24): the image list used root-absolute
+        // "/images/..." paths which 404 on the GitHub Pages sub-path
+        // (/coin-catalog/app/). Derive the app base from the current pathname and
+        // prepend it so the splash coins load on both self-hosted ("/") and public
+        // ("/coin-catalog/app/") deployments.
         (function() {
+            var APP_BASE = location.pathname.replace(/\/app\/.*$/, '') + '/app';
             var coins = [
-                '/images/coin_gold1.png',
-                '/images/coin_gold_proof1.png',
-                '/images/coin_silver1.png',
-                '/images/coin_copper1.png',
-                '/images/coin_copper_proof1.png',
-                '/images/coin_copper_green1.png',
-                '/images/coin_copper_toned1.png',
-                '/images/coin_bronze1.png',
-                '/images/coin_bend1.png',
-                '/images/coin_bend2.png',
-                '/images/coin_bend3.png',
-                '/images/coin_chocolate1.png',
-                '/images/coin_chocolate2.png',
-                '/images/coin_dirty1.png',
-                '/images/coin_dirty2.png',
-                '/images/coin_dirty3.png',
-                '/images/coin_dirty4.png',
-                '/images/coin_dirty5.png'
+                APP_BASE + '/images/coin_gold1.png',
+                APP_BASE + '/images/coin_gold_proof1.png',
+                APP_BASE + '/images/coin_silver1.png',
+                APP_BASE + '/images/coin_copper1.png',
+                APP_BASE + '/images/coin_copper_proof1.png',
+                APP_BASE + '/images/coin_copper_green1.png',
+                APP_BASE + '/images/coin_copper_toned1.png',
+                APP_BASE + '/images/coin_bronze1.png',
+                APP_BASE + '/images/coin_bend1.png',
+                APP_BASE + '/images/coin_bend2.png',
+                APP_BASE + '/images/coin_bend3.png',
+                APP_BASE + '/images/coin_chocolate1.png',
+                APP_BASE + '/images/coin_chocolate2.png',
+                APP_BASE + '/images/coin_dirty1.png',
+                APP_BASE + '/images/coin_dirty2.png',
+                APP_BASE + '/images/coin_dirty3.png',
+                APP_BASE + '/images/coin_dirty4.png',
+                APP_BASE + '/images/coin_dirty5.png'
             ];
             var pick = coins[Math.floor(Math.random() * coins.length)];
             function setCoinImages() {

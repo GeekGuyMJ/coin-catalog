@@ -12,7 +12,7 @@ import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } fr
 import { initSpotHistory, getSeriesForPeriod } from './spotHistory.js';
 import { openPortfolioHistoryModal } from './portfolio_history.js';
 
-import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
+import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry, fetchPortfolio, fetchSpotHistory } from './api.js';
 
 var _portfolioData = null;
 var _bulkCoinsData = [];
@@ -20,7 +20,11 @@ var _bulkCoinsData = [];
 async function fetchPortfolioAsync() {
     try {
         const [port, bull, rawBull, bulkEntries, scrap, paper, cust, other] = await Promise.all([
-            fetch('/api/portfolio').then(r => r.ok ? r.json() : null).catch(() => null),
+            // LOCAL-FIRST FIX (2026-08-24): previously a raw fetch('/api/portfolio')
+            // which only works on the server-first self-hosted build and 404s on
+            // the local-first public build. fetchPortfolio() routes through the
+            // api.js interceptor → db.js (IndexedDB) on public.
+            fetchPortfolio().catch(() => null),
             fetchBullion().catch(() => []),
             fetchRawBullion().catch(() => []),
             fetchBulkEntries().catch(() => []),
@@ -1395,10 +1399,11 @@ async function buildSpotPricesCard(prices) {
         try {
             window._spotHistoryStore = await initSpotHistory({
                 getSeed: async () => {
-                    // Prefer the live backend; fall back to the static seed so the
-                    // cards always render real 2000-2026 history even if /api is
-                    // slow, blocked, or served from a stale Service Worker cache.
-                    try { const r = await fetch('/api/spot_history?cb=' + Date.now()); const j = await r.json(); if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; } catch(e){}
+                    // LOCAL-FIRST FIX (2026-08-24): prefer the local-first
+                    // fetchSpotHistory() (api.js → db.js) which works on the
+                    // public build; the static /data seed files are a secondary
+                    // fallback. Raw /api/spot_history is server-only and 404s here.
+                    try { const r = await fetchSpotHistory(); if (r && r.gold_oz && r.gold_oz.yearly && r.gold_oz.yearly.length) return r; } catch(e){}
                     try { const r2 = await fetch('/data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
                 },
 getBaseline: async () => { try { const r = await fetch('/data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },

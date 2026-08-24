@@ -6,6 +6,14 @@
 
 import Dexie from './dexie.js';
 
+// DEPLOYMENT-AGNOSTIC HELPER (2026-08-24): returns true when running on the
+// server-first self-hosted build. Used to choose the correct data source for
+// features that only exist on the backend (spot-price proxy, settings sync).
+function getIsSelfHosted() {
+    const host = (location.hostname || '');
+    return host.includes('opaleye-bluegill') || host.includes('ts.net') || host.startsWith('192.168.');
+}
+
 // ============================================================
 // Database Initialization
 // ============================================================
@@ -849,24 +857,40 @@ export async function fetchSpotPricesLocal() {
         const symbol = symbolMap[key];
         const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}`;
         const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol)}`;
-        
+        // PUBLIC FALLBACK (2026-08-24): on the local-first public build there is
+        // no self-hosted /yahoo-finance proxy and allorigins.win is often blocked,
+        // so add a second public CORS proxy as a last resort before falling back
+        // to cached/fallback prices. This keeps live prices working for strangers.
+        const publicProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol)}`;
+
+        let triedUrls = [];
         try {
             let resp;
             let controller = new AbortController();
             let timeoutId = setTimeout(() => controller.abort(), 4000);
-            
-            try {
-                resp = await fetch(primaryUrl, { signal: controller.signal });
-            } catch (e) {
-                resp = null;
+
+            // Only attempt the self-hosted proxy when actually self-hosted.
+            if (getIsSelfHosted()) {
+                triedUrls.push(primaryUrl);
+                try {
+                    resp = await fetch(primaryUrl, { signal: controller.signal });
+                } catch (e) { resp = null; }
+                clearTimeout(timeoutId);
             }
-            clearTimeout(timeoutId);
 
             if (!resp || !resp.ok) {
-                // Try backup
+                // Public builds skip straight to a public CORS proxy.
                 controller = new AbortController();
                 timeoutId = setTimeout(() => controller.abort(), 4000);
-                resp = await fetch(backupUrl, { signal: controller.signal });
+                if (!getIsSelfHosted()) {
+                    triedUrls.push(publicProxyUrl);
+                    try { resp = await fetch(publicProxyUrl, { signal: controller.signal }); }
+                    catch (e) { resp = null; }
+                } else {
+                    triedUrls.push(backupUrl);
+                    try { resp = await fetch(backupUrl, { signal: controller.signal }); }
+                    catch (e) { resp = null; }
+                }
                 clearTimeout(timeoutId);
             }
 
@@ -879,7 +903,10 @@ export async function fetchSpotPricesLocal() {
                 throw new Error("API completely failed for " + symbol);
             }
         } catch (e) {
-            console.warn(`Failed to fetch ${symbol} live spot price, using fallback/cache.`);
+            // Non-fatal: fall back to cached/fallback prices. Downgraded from
+            // console.warn → console.debug so the public build doesn't spam the
+            // console when live prices are unreachable offline.
+            console.debug(`[spot] ${symbol} using fallback/cache (tried: ${triedUrls.join(', ') || 'none'}).`);
         }
     });
 
@@ -939,19 +966,28 @@ export async function fetchSpotHistoryLocal(period) {
         const symbol = symbolMap[key];
         const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
         const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol + '?range=' + range + '&interval=' + interval)}`;
-        
+        // PUBLIC FALLBACK (2026-08-24): mirror fetchSpotPricesLocal — public builds
+        // skip the self-hosted proxy and use a public CORS proxy instead.
+        const publicProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?range=' + range + '&interval=' + interval)}`;
+
         try {
             let resp;
             let controller = new AbortController();
             let timeoutId = setTimeout(() => controller.abort(), 6000);
-            
-            try { resp = await fetch(primaryUrl, { signal: controller.signal }); } catch (e) { resp = null; }
-            clearTimeout(timeoutId);
+
+            if (getIsSelfHosted()) {
+                try { resp = await fetch(primaryUrl, { signal: controller.signal }); } catch (e) { resp = null; }
+                clearTimeout(timeoutId);
+            }
 
             if (!resp || !resp.ok) {
                 controller = new AbortController();
                 timeoutId = setTimeout(() => controller.abort(), 6000);
-                resp = await fetch(backupUrl, { signal: controller.signal });
+                if (!getIsSelfHosted()) {
+                    try { resp = await fetch(publicProxyUrl, { signal: controller.signal }); } catch (e) { resp = null; }
+                } else {
+                    try { resp = await fetch(backupUrl, { signal: controller.signal }); } catch (e) { resp = null; }
+                }
                 clearTimeout(timeoutId);
             }
 

@@ -10,7 +10,7 @@
  */
 
 import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.js';
-import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault } from './api.js';
+import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault, renameCoinBankImage as renameCoinBankImageApi } from './api.js';
 import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory, getTypeConfig } from './state.js';
@@ -69,21 +69,15 @@ function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, 
     const targetHasSub = targetSub !== '';
     const coinHasSub = coinSub !== '';
 
-    if (!targetHasSub) {
-        // Target is the base/main type (no subtype) -> fill the whole main type.
-        return true;
-    }
-    if (!coinHasSub) {
-        // Target has a subtype but this coin is the base type -> base shares the
-        // family design, so fill it too.
-        return true;
-    }
-    // Both have subtypes:
-    if (coinSub === targetSub) return true; // same subtype -> fill all of THIS subtype
-    // Different subtypes: only bleed if it's a composition family (Clad/Silver
-    // share the same obverse/reverse design). Design varieties (e.g. Liberty Cap
-    // Head-Facing-Left vs Head-Facing-Right) must NOT bleed across each other.
-    if (isCompositionSub(targetSub) || isCompositionSub(coinSub)) return true;
+    // EXACT-MATCH RULE (2026-08-24 cleanup): an assignment reaches only coins
+    // with the EXACT same coin_type + subtype. We no longer fan a base-type
+    // target out to the whole main-type family, nor bleed across composition
+    // subtypes (Clad/Silver/Copper/Zinc) or across design varieties
+    // (e.g. Liberty Cap Head-Facing-Left vs Head-Facing-Right). This is what
+    // prevented images from landing on the wrong coins. The legacy
+    // "fill whole main type" behaviour is intentionally removed — correctness
+    // (no wrong-coin bleed) is preferred over silent convenience here.
+    if (targetSub === coinSub) return true; // exact subtype (or both base) matches
     return false;
 }
 
@@ -1188,13 +1182,13 @@ async function renameCoinBankImage(img, newSide) {
     const grid = document.getElementById('coin-bank-grid');
     const scrollPos = grid ? grid.parentElement.scrollTop : 0;
     try {
-        const response = await fetch('/api/coin_bank_images/rename', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename: img.filename, new_side: newSide })
-        });
-        const res = await response.json();
-        if (!response.ok) throw new Error(res.error || 'Failed to rename image');
+        // LOCAL-FIRST FIX (2026-08-24): Previously called
+        // `fetch('/api/coin_bank_images/rename', ...)`, which 404s on the
+        // local-first build. renameCoinBankImageApi() routes through db.js
+        // (IndexedDB) and takes { filename, new_side }. (Aliased import to avoid
+        // colliding with this module's own renameCoinBankImage() wrapper.)
+        const res = await renameCoinBankImageApi({ filename: img.filename, new_side: newSide });
+        if (!res || res.status !== 'renamed') throw new Error('Failed to rename image');
         
         showToast('Image side updated', 'success');
         
