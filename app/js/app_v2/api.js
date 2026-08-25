@@ -188,7 +188,16 @@ export const addUserCoin = isSelfHosted
     })
     : wrap(addUserCoinLocal);
 export const deleteUserCoin = isSelfHosted
-    ? async (id) => serverFetch('/api/user_coins/' + id, { method: 'DELETE' })
+    ? async (id) => {
+        // Delete on server first; if it succeeds, also drop the local IndexedDB
+        // row immediately so the UI updates without waiting for cross-device sync.
+        const result = await serverFetch('/api/user_coins/' + id, { method: 'DELETE' });
+        try {
+            const { deleteUserCoinLocal } = await import('./db.js');
+            await deleteUserCoinLocal(id);
+        } catch (_e) { /* local row may not exist — ignore */ }
+        return result;
+    }
     : wrap(deleteUserCoinLocal);
 
 // Local-only features (no server equivalent) - always use local DB
