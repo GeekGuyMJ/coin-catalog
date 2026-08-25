@@ -2474,7 +2474,12 @@ export async function addUserCoinLocal(coin) {
     // section and filter in JS (small result set per section).
     const siblings = await db.coins_reference.where('section').equals(coin.section).toArray();
     const sibling = siblings.find(s => s.coin_type === coin.coin_type) || null;
+    // coins_reference uses keyPath 'id' (not auto-increment), so we must supply one.
+    // Server rows have positive IDs; use a negative ID for local user coins to avoid
+    // any collision with synced server rows.
+    const localId = -Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 1000);
     const row = {
+        id: localId,
         section: coin.section,
         denomination: coin.denomination || (sibling && sibling.denomination) || '',
         coin_type: coin.coin_type,
@@ -2493,8 +2498,8 @@ export async function addUserCoinLocal(coin) {
         _deleted_rev_image: false,
         user_added: true,
     };
-    const id = await db.coins_reference.add(row);
-    return { ...row, id };
+    await db.coins_reference.add(row);
+    return { ...row, id: localId };
 }
 
 export async function deleteUserCoinLocal(id) {
