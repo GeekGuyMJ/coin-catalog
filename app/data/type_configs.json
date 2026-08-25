@@ -3274,7 +3274,7 @@
     "coin_type": "Capped Head Left",
     "base_price": 2.0,
     "key_price": 50.0,
-    "obv_image": "/data/images/types/capped_head_left_default_obv.webp",
+    "obv_image": null,
     "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -3604,8 +3604,8 @@
     "coin_type": "Draped Bust - Heraldic Eagle",
     "base_price": 2.0,
     "key_price": 50.0,
-    "obv_image": "/data/images/types/Draped_Bust_obv_da386c.webp",
-    "rev_image": "/data/images/types/Draped_Bust_rev_57aa72.webp",
+    "obv_image": "/data/images/types/master/draped-bust-heraldic-eagle.obv.webp",
+    "rev_image": "/data/images/types/master/draped-bust-heraldic-eagle.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -3614,8 +3614,8 @@
     "coin_type": "Draped Bust - Small Eagle",
     "base_price": 2.0,
     "key_price": 50.0,
-    "obv_image": "/data/images/types/Draped_Bust_obv_3caf3c.webp",
-    "rev_image": "/data/images/types/Draped_Bust_rev_7a861c.webp",
+    "obv_image": "/data/images/types/master/draped-bust-small-eagle.obv.webp",
+    "rev_image": "/data/images/types/master/draped-bust-small-eagle.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -4194,7 +4194,7 @@
     "coin_type": "First_Spouse_Gold___Jefferson_s_Liberty_proof",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/first_spouse_gold_jefferson_s_liberty_proof_obv.webp",
+    "obv_image": null,
     "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -4474,7 +4474,7 @@
     "coin_type": "First_Spouse___Jefferson_s_Liberty_proof",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/first_spouse_jefferson_s_liberty_proof_obv.webp",
+    "obv_image": null,
     "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -4564,8 +4564,8 @@
     "coin_type": "Flowing Hair Chain",
     "base_price": 2.0,
     "key_price": 50.0,
-    "obv_image": null,
-    "rev_image": null,
+    "obv_image": "/data/images/types/master/flowing-hair-chain.obv.webp",
+    "rev_image": "/data/images/types/master/flowing-hair-chain.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -4595,7 +4595,7 @@
     "base_price": 2.0,
     "key_price": 50.0,
     "obv_image": "/data/images/types/flowing_hair_default_obv.webp",
-    "rev_image": "/data/images/types/flowing_hair_default_rev.webp",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -4874,7 +4874,7 @@
     "coin_type": "Jefferson__Return_to_Monticello__proof",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/jefferson__return_to_monticello__proof_obv.webp",
+    "obv_image": null,
     "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -5914,7 +5914,7 @@
     "coin_type": "Louisiana_Purchase___Jefferson_Gold_Dollar_proof",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/louisiana_purchase_jefferson_gold_dollar_proof_obv.webp",
+    "obv_image": null,
     "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -8074,7 +8074,7 @@
     "coin_type": "Thomas_Jefferson__1_proof",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/thomas_jefferson__1_proof_obv.webp",
+    "obv_image": null,
     "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -8520,6 +8520,16 @@
     "proof_rev_image": null
   },
   {
+    "id": 853,
+    "coin_type": "Liberty Cap",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": null,
+    "rev_image": null,
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
     "id": 854,
     "coin_type": "Coronet",
     "base_price": 0.0,
@@ -8774,8 +8784,8 @@
     "coin_type": "US Coinage \u2014 Half Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": null,
-    "rev_image": null,
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-half-cent.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-half-cent.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -12786,6 +12796,46 @@
     "key_price": 0.0,
     "obv_image": null,
     "rev_image": null,
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1284,
+    "coin_type": "US Coinage \u2014 Half Cent \u2014 Liberty Cap (Head Facing Left)",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_1_liberty-cap-head-facing-left-1793-obv_816e10.webp",
+    "rev_image": "/data/images/coins/ref_1_liberty-cap-head-facing-left-1793-rev_54cf01.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1285,
+    "coin_type": "US Coinage \u2014 Large & Small Cent \u2014 Liberty Cap",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": null,
+    "rev_image": "/data/images/coins/ref_51_liberty-cap-1796-rev_d9b00d.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1293,
+    "coin_type": "US Coinage \u2014 Half Cent \u2014 Liberty Cap (Head Facing Right)",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_5_liberty-cap-head-facing-right-1797-obv_1febef.webp",
+    "rev_image": null,
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1294,
+    "coin_type": "US Coinage \u2014 Half Cent \u2014 Liberty Cap",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_type_liberty-cap-obv_a3158b.webp",
+    "rev_image": "/data/images/coins/ref_type_liberty-cap-rev_a54c29.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   }
