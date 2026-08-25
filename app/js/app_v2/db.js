@@ -51,6 +51,24 @@ db.version(2).stores({
     pending_defaults: 'coin_type'
 });
 
+// v3: Photos & Documents gallery store (free-form user pictures).
+db.version(3).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key',
+    pending_defaults: 'coin_type',
+    user_photos: '++id, category, title, created_at'
+});
+
 // ============================================================
 // Constants & Fallbacks
 // ============================================================
@@ -2367,4 +2385,32 @@ export async function publishSectionLocal(sectionName) {
         xhr.onerror = () => reject(new Error('Network error calling /api/publish_section'));
         xhr.send(JSON.stringify({ section: sectionName }));
     });
+}
+
+// ============================================================
+// Photos & Documents Gallery — local (IndexedDB) persistence
+// Used by the public build and as the offline cache on self-hosted.
+// ============================================================
+
+export async function fetchUserPhotosLocal() {
+    const rows = await db.user_photos.orderBy('id').reverse().toArray();
+    return rows;
+}
+
+export async function addUserPhotoLocal(photo) {
+    // photo: { title, caption, category, image_data, created_at? }
+    const row = {
+        title: (photo.title || '').toString().slice(0, 200),
+        caption: (photo.caption || '').toString(),
+        category: (photo.category || 'General').toString().slice(0, 100),
+        image_data: photo.image_data || '',
+        created_at: photo.created_at || new Date().toISOString(),
+    };
+    const id = await db.user_photos.add(row);
+    return { ...row, id };
+}
+
+export async function deleteUserPhotoLocal(id) {
+    await db.user_photos.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
 }

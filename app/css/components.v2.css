@@ -3958,3 +3958,102 @@ body.ready-mode-active .ready-badge { display: flex; }
     flex: 0 0 auto;
     white-space: nowrap;
 }
+
+/* =========================================================================
+   Photos & Documents Gallery Card
+   ========================================================================= */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    padding: 2px;
+    align-content: start;
+}
+.gallery-thumb {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-accord-bg, #1e1e1e);
+    border: 1px solid var(--color-border-light, #333);
+    cursor: zoom-in;
+}
+.gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;          /* fills the square; no circle-crop */
+    display: block;
+}
+.gallery-thumb-label {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    font-size: 0.62em;
+    line-height: 1.1;
+    padding: 2px 4px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.75));
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gallery-thumb-del {
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 20px; height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 0.8em;
+    line-height: 1;
+    cursor: pointer;
+    display: none;
+}
+.gallery-thumb:hover .gallery-thumb-del { display: block; }
+.gallery-thumb-del:hover { background: #c0392b; }
+
+/* Gallery full-screen lightbox (self-contained; does not affect other modals) */
+#gallery-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+}
+#gallery-lightbox.is-active { display: flex; }
+#gallery-lightbox .lightbox-inner {
+    position: relative;
+    max-width: 92vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+#gallery-lightbox img {
+    max-width: 92vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+#gallery-lightbox .lightbox-caption {
+    color: #eee;
+    font-size: 0.9em;
+    text-align: center;
+}
+#gallery-lightbox .lightbox-close {
+    position: absolute;
+    top: -38px; right: 0;
+    width: 34px; height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 1.3em;
+    cursor: pointer;
+}
+#gallery-lightbox .lightbox-close:hover { background: rgba(255,255,255,0.3); }

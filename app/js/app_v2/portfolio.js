@@ -4,6 +4,7 @@
  */
 
 import { el } from './utils.js';
+import { renderGalleryCard } from './gallery.js';
 import { onChange, getSpotPrices, getInventory, getSections,
     getScrapMetal, getPaperCurrency, getCustomCategories, getOtherCollectables,
     getBullion, getRawBullion, getCoinWeight, getWishlist
@@ -628,6 +629,10 @@ export async function renderDashboard() {
     var wl = getWishlist() || [];
     var w2 = buildWishlistCard(wl);
     if (w2) { if (vis['card-wishlist'] === false) w2.style.display='none'; addDragHandle(w2); c.appendChild(w2); }
+
+    // Photos & Documents gallery card
+    var g2 = renderGalleryCard();
+    if (g2) { if (vis['card-gallery'] === false) g2.style.display='none'; addDragHandle(g2); c.appendChild(g2); }
 
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();

@@ -68,7 +68,10 @@ import {
     saveToCoinBankLocal,
     importCSVLocal,
     deleteBulkCoinsLocal,
-    fetchSpotHistoryLocal
+    fetchSpotHistoryLocal,
+    fetchUserPhotosLocal,
+    addUserPhotoLocal,
+    deleteUserPhotoLocal
 } from './db.js';
 
 // ============================================================
@@ -158,6 +161,21 @@ export const fetchCoinBankImages = isSelfHosted
         return serverFetch('/api/coin_bank_images?' + search);
     }
     : wrap(fetchCoinBankImagesLocal);
+
+// Photos & Documents Gallery — server on self-hosted, local IndexedDB otherwise.
+export const fetchUserPhotos = isSelfHosted
+    ? async () => serverFetch('/api/user_photos')
+    : wrap(fetchUserPhotosLocal);
+export const addUserPhoto = isSelfHosted
+    ? async (photo) => serverFetch('/api/user_photos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(photo),
+    })
+    : wrap(addUserPhotoLocal);
+export const deleteUserPhoto = isSelfHosted
+    ? async (id) => serverFetch('/api/user_photos/' + id, { method: 'DELETE' })
+    : wrap(deleteUserPhotoLocal);
 
 // Local-only features (no server equivalent) - always use local DB
 export const fetchSpotPrices       = wrap(fetchSpotPricesLocal);
@@ -349,6 +367,11 @@ if (!isSelfHosted) {
             else if (path === '/api/coin_bank_images') { data = await fetchCoinBankImagesLocal(url.searchParams); }
             else if (path === '/api/coin_bank_images/rename') { data = await renameCoinBankImageLocal(body); }
             else if (path.startsWith('/api/coin_bank_images/')) { data = await deleteCoinBankImageLocal(path.substring('/api/coin_bank_images/'.length)); }
+            else if (path === '/api/user_photos') {
+                if (method === 'POST') { status = 201; data = await addUserPhotoLocal(body); }
+                else { data = await fetchUserPhotosLocal(); }
+            }
+            else if (path.startsWith('/api/user_photos/')) { data = await deleteUserPhotoLocal(path.substring('/api/user_photos/'.length)); }
             else if (path === '/api/backup/full') { data = await getFullBackupLocal(); }
             else if (path === '/api/backup/restore') { data = await restoreBackupLocal(body); }
             else if (path === '/api/backup/import_csv') { data = await importCSVLocal(rawBody); }
