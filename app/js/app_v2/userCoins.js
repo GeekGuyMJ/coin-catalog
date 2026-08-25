@@ -119,7 +119,8 @@ export async function openAddCoinModal(sectionName) {
     // ---------- submit ----------
     let running = false;
     const btnAdd = el('button', { className: 'btn-primary' }, 'Add Coin');
-    const btnCancel = el('button', { className: 'btn-secondary', dataset: { action: 'close-modal' } }, 'Cancel');
+    const btnCancel = el('button', { className: 'btn-secondary' }, 'Cancel');
+    btnCancel.addEventListener('click', () => m.closeModal('modal-add-user-coin'));
     const footer = el('div', { style: 'display:flex;gap:var(--space-2);justify-content:flex-end;' }, btnCancel, btnAdd);
 
     btnAdd.addEventListener('click', async () => {
@@ -169,6 +170,9 @@ export async function openAddCoinModal(sectionName) {
 
             // Refresh the open section so the new coins show immediately
             await refreshOpenSection(sectionName);
+
+            // Close the modal so the user sees the updated list (and can delete if needed)
+            m.closeModal('modal-add-user-coin');
 
             btnAdd.textContent = 'Add Another';
             btnAdd.disabled = false;
