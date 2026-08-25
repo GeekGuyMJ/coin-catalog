@@ -596,6 +596,21 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                             return (a.mint_mark || '').localeCompare(b.mint_mark || '');
                         });
                     }
+                    // CLEANUP (2026-08-25): drop LOCAL user_added rows the server no
+                    // longer has (coins deleted on another device). Seeded rows are
+                    // never user_added, so this only ever removes user coins.
+                    const _serverIds = new Set((_server || []).map(_s => _s && _s.id));
+                    const _orphans = coins.filter(_c => _c.user_added && !_serverIds.has(_c.id));
+                    if (_orphans.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const _o of _orphans) {
+                                await db.coins_reference.delete(_o.id);
+                            }
+                        });
+                        const _keep = new Set(_orphans.map(_o => _o.id));
+                        coins = coins.filter(_c => !_keep.has(_c.id));
+                        console.log('[db] removed ' + _orphans.length + ' deleted user coin(s)');
+                    }
                 }
             }
         }

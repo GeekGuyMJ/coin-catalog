@@ -383,7 +383,7 @@ async function expandSection(sectionName) {
 /**
  * Re-fetch a section from the API and re-render it if currently expanded.
  * Used after adding/deleting user coins so changes appear immediately.
- * Also updates the section header owned/total badge.
+ * Force-clears the section cache so a truly fresh fetch+render happens.
  */
 export async function reloadSectionCoins(sectionName) {
     const sectionId = 'section-' + sectionName.replace(/[^a-zA-Z0-9]/g, '');
@@ -391,15 +391,18 @@ export async function reloadSectionCoins(sectionName) {
     if (!card) return;
     const content = card.querySelector('.section-content');
     const isOpen = content && content.classList.contains('open');
-
-    // Always clear the cached coin list so the next fetch is fresh
+    // Clear cached coins so expandSection does a real re-fetch (not a stale render)
     setCoinsForSection(sectionName, null);
+    if (!isOpen) return; // nothing visible to refresh
+    // Re-run the proven open path: show spinner, fetch fresh, render
+    content.innerHTML = '<div class="section-loading">Loading coins…</div>';
     try {
         const coins = await fetchCoinsForSection(sectionName);
         setCoinsForSection(sectionName, coins);
-        if (isOpen) renderTypeAccordions(content, coins);
+        renderTypeAccordions(content, coins);
     } catch (err) {
         console.warn('[catalog] reloadSectionCoins failed:', err.message);
+        content.innerHTML = `<p class="text-muted" style="padding:1rem">Failed to reload: ${escHtml(err.message)}</p>`;
     }
 }
 
