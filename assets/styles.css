@@ -301,11 +301,11 @@ p { color: var(--color-text-muted); }
   box-shadow: 0 2px 8px rgba(0,0,0,.18);
 }
 
-/* Big round coin in the hero, matching the in-app header coin */
+/* Big round coin in the hero/footer, matching the in-app header coin (105px) */
 .hero .logo-icon,
 .footer-brand .logo-icon {
-  width: 84px;
-  height: 84px;
+  width: 105px;
+  height: 105px;
 }
 
 .nav-menu {

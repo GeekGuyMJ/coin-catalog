@@ -19,8 +19,8 @@
 <body>
   <header class="header" role="banner">
     <nav class="nav container" aria-label="Main navigation">
-      <a href="index.html" class="logo" aria-label="Coin & Collectable Catalog Home">
-        <img class="logo-icon" src="images/logo-coin.png" alt="" aria-hidden="true">
+      <a href="index.html" class="logo" aria-label="Coin &amp; Collectable Catalog Home">
+        <img class="logo-icon" id="logo-coin-header" src="" alt="" aria-hidden="true">
         <span class="logo-text">Coin &amp; Collectable Catalog</span>
       </a>
       <button class="nav-toggle" aria-expanded="false" aria-controls="nav-menu" aria-label="Toggle menu">
@@ -262,7 +262,7 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <a href="index.html" class="logo" aria-label="Coin & Collectable Catalog Home">
-            <img class="logo-icon" src="images/logo-coin.png" alt="" aria-hidden="true">
+            <img class="logo-icon" id="logo-coin-footer" src="" alt="" aria-hidden="true">
             <span class="logo-text">Coin &amp; Collectable Catalog</span>
           </a>
           <p>Your collection. Your data. Your rules.</p>
@@ -299,5 +299,48 @@
   </footer>
 
   <script type="module" src="assets/app.js"></script>
+
+  <script>
+    // Cycle the header/footer logo coin on each page load — same behavior and
+    // image set as the app's splash/header coin (app/index.html), plus the app
+    // icon. Paths are relative to the site root, which GitHub Pages serves at
+    // /coin-catalog/; the app copies live under app/.
+    (function () {
+      var APP = 'app';
+      var coins = [
+        APP + '/images/coin_gold1.png',
+        APP + '/images/coin_gold_proof1.png',
+        APP + '/images/coin_silver1.png',
+        APP + '/images/coin_copper1.png',
+        APP + '/images/coin_copper_proof1.png',
+        APP + '/images/coin_copper_green1.png',
+        APP + '/images/coin_copper_toned1.png',
+        APP + '/images/coin_bronze1.png',
+        APP + '/images/coin_bend1.png',
+        APP + '/images/coin_bend2.png',
+        APP + '/images/coin_bend3.png',
+        APP + '/images/coin_chocolate1.png',
+        APP + '/images/coin_chocolate2.png',
+        APP + '/images/coin_dirty1.png',
+        APP + '/images/coin_dirty2.png',
+        APP + '/images/coin_dirty3.png',
+        APP + '/images/coin_dirty4.png',
+        APP + '/images/coin_dirty5.png',
+        APP + '/icons/icon-512.png'
+      ];
+      var pick = coins[Math.floor(Math.random() * coins.length)];
+      function setCoin() {
+        ['logo-coin-header', 'logo-coin-footer'].forEach(function (id) {
+          var img = document.getElementById(id);
+          if (img) img.src = pick;
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setCoin);
+      } else {
+        setCoin();
+      }
+    })();
+  </script>
 </body>
 </html>
