@@ -597,19 +597,28 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                         });
                     }
                     // CLEANUP (2026-08-25): drop LOCAL user_added rows the server no
-                    // longer has (coins deleted on another device). Seeded rows are
-                    // never user_added, so this only ever removes user coins.
+                    // longer has (coins deleted on another device, or just deleted).
+                    // Query IndexedDB directly (not the `coins` array, which was just
+                    // overwritten by _fresh) so we catch stale local rows reliably.
                     const _serverIds = new Set((_server || []).map(_s => _s && _s.id));
-                    const _orphans = coins.filter(_c => _c.user_added && !_serverIds.has(_c.id));
-                    if (_orphans.length > 0) {
+                    const _localUser = await db.coins_reference
+                        .where('section').equals(sectionName)
+                        .filter(_r => _r.user_added && !_serverIds.has(_r.id))
+                        .toArray();
+                    if (_localUser.length > 0) {
                         await db.transaction('rw', db.coins_reference, async () => {
-                            for (const _o of _orphans) {
+                            for (const _o of _localUser) {
                                 await db.coins_reference.delete(_o.id);
                             }
                         });
-                        const _keep = new Set(_orphans.map(_o => _o.id));
-                        coins = coins.filter(_c => !_keep.has(_c.id));
-                        console.log('[db] removed ' + _orphans.length + ' deleted user coin(s)');
+                        // also drop any inventory tied to removed coins
+                        const _removedIds = _localUser.map(_o => _o.id);
+                        await db.user_inventory.where('coin_ref_id').anyOf(_removedIds).delete();
+                        console.log('[db] removed ' + _localUser.length + ' deleted user coin(s)');
+                        // refresh coins from IndexedDB so the returned list is truthful
+                        const _fresh2 = await db.coins_reference.where('section').equals(sectionName).toArray();
+                        coins.length = 0;
+                        coins.push(..._fresh2);
                     }
                 }
             }
