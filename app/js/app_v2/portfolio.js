@@ -1404,9 +1404,9 @@ async function buildSpotPricesCard(prices) {
                     // public build; the static /data seed files are a secondary
                     // fallback. Raw /api/spot_history is server-only and 404s here.
                     try { const r = await fetchSpotHistory(); if (r && r.gold_oz && r.gold_oz.yearly && r.gold_oz.yearly.length) return r; } catch(e){}
-                    try { const r2 = await fetch('/data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
+                    try { const r2 = await fetch('data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
                 },
-getBaseline: async () => { try { const r = await fetch('/data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+getBaseline: async () => { try { const r = await fetch('data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
                 getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
             });
         } catch(e) { window._spotHistoryStore = null; }

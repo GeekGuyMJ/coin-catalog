@@ -8445,7 +8445,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/Lincoln_Memorial_rev_b6039c.webp",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8465,7 +8465,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/Lincoln_Memorial_rev_8aa534.webp",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8485,7 +8485,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/Lincoln_Memorial_rev_f89f10.webp",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8694,8 +8694,8 @@
     "coin_type": "Washington Bicentennial",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/Washington_Bicentennial_obv_54e6b1.webp",
-    "rev_image": "/data/images/types/user/Washington_Bicentennial_rev_5b2371.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8704,8 +8704,8 @@
     "coin_type": "Washington Bicentennial - Clad",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/Washington_Bicentennial_obv_a76501.webp",
-    "rev_image": "/data/images/types/user/Washington_Bicentennial_rev_68d271.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8714,8 +8714,8 @@
     "coin_type": "Mercury",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/Mercury_obv_efa2cc.webp",
-    "rev_image": "/data/images/types/user/Mercury_rev_ccbc3d.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8784,8 +8784,8 @@
     "coin_type": "US Coinage \u2014 Large & Small Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/US_Coinage_\u2014_Large_&_Small_Cent_obv_5852b6.webp",
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Large_&_Small_Cent_rev_0cdb39.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8794,8 +8794,8 @@
     "coin_type": "US Coinage \u2014 Two Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/US_Coinage_\u2014_Two_Cent_obv_18e661.webp",
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Two_Cent_rev_fd9ca2.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8805,7 +8805,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Three_Cent_rev_6405ca.webp",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8814,8 +8814,8 @@
     "coin_type": "US Coinage \u2014 Half Dime",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/US_Coinage_\u2014_Half_Dime_obv_165041.webp",
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Half_Dime_rev_8c6f0a.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8824,8 +8824,8 @@
     "coin_type": "US Coinage \u2014 Five Cent Nickel",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/US_Coinage_\u2014_Five_Cent_Nickel_obv_8fb57c.webp",
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Five_Cent_Nickel_rev_07c60e.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8835,7 +8835,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Dime_rev_d3bfeb.webp",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8844,8 +8844,8 @@
     "coin_type": "US Coinage \u2014 Twenty Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/US_Coinage_\u2014_Twenty_Cent_obv_ff741b.webp",
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Twenty_Cent_rev_6e6013.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8855,7 +8855,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Quarter_Dollar_rev_74ebb8.webp",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8864,8 +8864,8 @@
     "coin_type": "US Coinage \u2014 Half Dollar",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/US_Coinage_\u2014_Half_Dollar_obv_54342f.webp",
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Half_Dollar_rev_4e8fe0.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8874,8 +8874,8 @@
     "coin_type": "US Coinage \u2014 Dollar",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/US_Coinage_\u2014_Dollar_obv_3c5933.webp",
-    "rev_image": "/data/images/types/user/US_Coinage_\u2014_Dollar_rev_b6814c.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8894,7 +8894,7 @@
     "coin_type": "Susan B. Anthony",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/user/Susan_B._Anthony_obv_6d3db0.webp?v=1783694126",
+    "obv_image": null,
     "rev_image": "/data/images/types/susan_b__anthony_default_rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -9955,7 +9955,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Bessie_Coleman_rev_ddfde9.webp?v=1783702073",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -9965,7 +9965,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Celia_Cruz_rev_5fb844.webp?v=1783702139",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -9995,7 +9995,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Eleanor_Roosevelt_rev_2bb9f2.webp?v=1783702112",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -10015,7 +10015,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Jovita_Idar_rev_42a7bc.webp?v=1783702123",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -10025,7 +10025,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Maria_Tallchief_rev_990a49.webp?v=1783702129",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -10035,7 +10035,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Maya_Angelou_rev_6940aa.webp?v=1783702030",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -10045,7 +10045,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Nina_Otero-Warren_rev_33794f.webp?v=1783702045",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -10075,7 +10075,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": null,
-    "rev_image": "/data/images/types/user/American_Women_-_Wilma_Mankiller_rev_af58c5.webp?v=1783702056",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
