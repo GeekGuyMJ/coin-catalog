@@ -8520,16 +8520,6 @@
     "proof_rev_image": null
   },
   {
-    "id": 853,
-    "coin_type": "Liberty Cap",
-    "base_price": 0.0,
-    "key_price": 0.0,
-    "obv_image": "/data/images/types/Liberty_Cap_obv_4c1253.webp",
-    "rev_image": "/data/images/types/Liberty_Cap_rev_90cef6.webp",
-    "proof_obv_image": null,
-    "proof_rev_image": null
-  },
-  {
     "id": 854,
     "coin_type": "Coronet",
     "base_price": 0.0,
@@ -8784,8 +8774,8 @@
     "coin_type": "US Coinage \u2014 Half Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/master/us-coinage-\u2014-half-cent.obv.webp",
-    "rev_image": "/data/images/types/master/us-coinage-\u2014-half-cent.rev.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
