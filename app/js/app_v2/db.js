@@ -2469,8 +2469,11 @@ export async function deleteUserPhotoLocal(id) {
 // ============================================================
 
 export async function addUserCoinLocal(coin) {
-    const sibling = await db.coins_reference
-        .where('[section+coin_type]').equals([coin.section, coin.coin_type]).first();
+    // Find a sibling of the same section+type to inherit denomination/metal/weight.
+    // NOTE: coins_reference has no compound [section+coin_type] index, so query by
+    // section and filter in JS (small result set per section).
+    const siblings = await db.coins_reference.where('section').equals(coin.section).toArray();
+    const sibling = siblings.find(s => s.coin_type === coin.coin_type) || null;
     const row = {
         section: coin.section,
         denomination: coin.denomination || (sibling && sibling.denomination) || '',
