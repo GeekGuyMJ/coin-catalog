@@ -573,6 +573,29 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                             }
                         });
                     }
+                    // USER-COIN PULL (2026-08-25): also insert server rows this device
+                    // has never seen (e.g. a user coin added on another device).
+                    const _known = new Set(coins.map(c => c.id));
+                    const _incoming = (_server || []).filter(_s => _s && _s.id != null && !_known.has(_s.id));
+                    if (_incoming.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const _n of _incoming) {
+                                await db.coins_reference.put({ ..._n, id: _n.id });
+                            }
+                        });
+                        console.log('[db] pulled ' + _incoming.length + ' new coin(s) from server');
+                        const _fresh = await db.coins_reference.where('section').equals(sectionName).toArray();
+                        coins.length = 0;
+                        coins.push(..._fresh);
+                        // re-sort to keep type→year→mint order
+                        coins.sort((a, b) => {
+                            if (a.coin_type !== b.coin_type) return (a.coin_type || '').localeCompare(b.coin_type || '');
+                            const yA = typeof a.year === 'number' ? a.year : (parseInt(String(a.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+                            const yB = typeof b.year === 'number' ? b.year : (parseInt(String(b.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+                            if (yA !== yB) return yA - yB;
+                            return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+                        });
+                    }
                 }
             }
         }
@@ -2412,5 +2435,49 @@ export async function addUserPhotoLocal(photo) {
 
 export async function deleteUserPhotoLocal(id) {
     await db.user_photos.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
+}
+
+// ============================================================
+// User-added catalogue coins — local (IndexedDB) persistence
+// A user coin is a real coins_reference row with user_added=true, so it
+// sorts/counts/images exactly like seeded coins everywhere in the app.
+// ============================================================
+
+export async function addUserCoinLocal(coin) {
+    const sibling = await db.coins_reference
+        .where('[section+coin_type]').equals([coin.section, coin.coin_type]).first();
+    const row = {
+        section: coin.section,
+        denomination: coin.denomination || (sibling && sibling.denomination) || '',
+        coin_type: coin.coin_type,
+        year: Number(coin.year) || 0,
+        mint_mark: (coin.mint_mark || '').toString().slice(0, 10),
+        metal: coin.metal || (sibling && sibling.metal) || '',
+        weight_grams: Number(coin.weight_grams || 0) || (sibling && sibling.weight_grams) || 0,
+        is_key_date: !!coin.is_key_date,
+        is_proof: !!coin.is_proof,
+        is_error: !!coin.is_error,
+        mintage: null,
+        ref_notes: (coin.ref_notes || '').toString(),
+        obv_image: null,
+        rev_image: null,
+        _deleted_obv_image: false,
+        _deleted_rev_image: false,
+        user_added: true,
+    };
+    const id = await db.coins_reference.add(row);
+    return { ...row, id };
+}
+
+export async function deleteUserCoinLocal(id) {
+    const coin = await db.coins_reference.get(Number(id));
+    if (!coin) return { status: 'not_found', id: Number(id) };
+    if (!coin.user_added) {
+        throw new Error('This coin is part of the master catalogue and cannot be deleted');
+    }
+    // Remove inventory rows that point at it so no orphans remain.
+    await db.user_inventory.where('coin_ref_id').equals(Number(id)).delete();
+    await db.coins_reference.delete(Number(id));
     return { status: 'deleted', id: Number(id) };
 }

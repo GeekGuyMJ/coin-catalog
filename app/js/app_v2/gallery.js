@@ -183,7 +183,7 @@ async function handleFiles(fileList, grid, emptyMsg, countBadge) {
             };
             await addUserPhoto(photo);
         } catch (err) {
-            console.error('[gallery] add failed', err);
+        console.error('[gallery] add failed: ' + (err && (err.message || String(err))) + ' | stack: ' + (err && err.stack ? String(err.stack).slice(0,300) : 'n/a'));
             showToast('Could not add ' + (file.name || 'photo') + ': ' + (err.message || 'error'), 'error', 4000);
         }
     }

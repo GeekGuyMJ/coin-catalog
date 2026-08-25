@@ -2,7 +2,7 @@
 // v76: bulletproof auto-update. JS/CSS/HTML/images are all NETWORK-FIRST so any
 // fix deployed to the server takes effect on the next load without a manual
 // unregister. Bumping CACHE purges all previously-cached (possibly stale) assets.
-const CACHE = 'coin-catalog-v106';
+const CACHE = 'coin-catalog-v107';
 const ASSETS = [
   '/coin-catalog/app/',
   '/coin-catalog/app/index.html',
@@ -31,6 +31,7 @@ const ASSETS = [
   '/coin-catalog/app/js/app_v2/db.js',
   '/coin-catalog/app/js/app_v2/portfolio.js',
   '/coin-catalog/app/js/app_v2/gallery.js',
+  '/coin-catalog/app/js/app_v2/userCoins.js',
   '/coin-catalog/app/js/app_v2/stories.js',
   '/coin-catalog/app/data/coins.json',
   '/coin-catalog/app/data/stories.json',

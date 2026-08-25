@@ -4057,3 +4057,41 @@ body.ready-mode-active .ready-badge { display: flex; }
     cursor: pointer;
 }
 #gallery-lightbox .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+
+
+/* =========================================================================
+   User-added catalogue coins (+ Add Coin in section headers)
+   ========================================================================= */
+.btn-section-addcoin {
+    border: 1px dashed var(--color-border-light, #555);
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 0.78em;
+    padding: 3px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: color .15s ease, border-color .15s ease;
+}
+.btn-section-addcoin:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+}
+.user-coin-del {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: rgba(192,57,43,.15);
+    color: #c0392b;
+    font-size: 0.7em;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: .55;
+    vertical-align: middle;
+}
+.user-coin-del:hover { opacity: 1; background: rgba(192,57,43,.35); }

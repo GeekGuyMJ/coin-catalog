@@ -30,6 +30,7 @@ import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDr
 import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection, showCloudSyncModal } from './settingsDropdown.js';
 import { handleOAuthCallback } from './sync.js';
 import { initWishlist, openWishlistPanel } from './wishlist.js';
+import { openAddCoinModal } from './userCoins.js';
 
 export { showToast };
 
@@ -40,6 +41,7 @@ window.toggleSettingsDropdown = toggleSettingsDropdown;
 window.closeSettingsDropdown = closeSettingsDropdown;
 window.openWishlistPanel = openWishlistPanel;
 window.openPublishSectionModal = openPublishSectionModal;
+window.openAddCoinModal = openAddCoinModal;
 
 // ============================================================
 // Theme (sync selector with saved value — themes.js owns the logic)

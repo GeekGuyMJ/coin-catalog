@@ -71,7 +71,9 @@ import {
     fetchSpotHistoryLocal,
     fetchUserPhotosLocal,
     addUserPhotoLocal,
-    deleteUserPhotoLocal
+    deleteUserPhotoLocal,
+    addUserCoinLocal,
+    deleteUserCoinLocal
 } from './db.js';
 
 // ============================================================
@@ -176,6 +178,18 @@ export const addUserPhoto = isSelfHosted
 export const deleteUserPhoto = isSelfHosted
     ? async (id) => serverFetch('/api/user_photos/' + id, { method: 'DELETE' })
     : wrap(deleteUserPhotoLocal);
+
+// User-added catalogue coins — server on self-hosted, local IndexedDB otherwise.
+export const addUserCoin = isSelfHosted
+    ? async (coin) => serverFetch('/api/user_coins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(coin),
+    })
+    : wrap(addUserCoinLocal);
+export const deleteUserCoin = isSelfHosted
+    ? async (id) => serverFetch('/api/user_coins/' + id, { method: 'DELETE' })
+    : wrap(deleteUserCoinLocal);
 
 // Local-only features (no server equivalent) - always use local DB
 export const fetchSpotPrices       = wrap(fetchSpotPricesLocal);
@@ -372,6 +386,11 @@ if (!isSelfHosted) {
                 else { data = await fetchUserPhotosLocal(); }
             }
             else if (path.startsWith('/api/user_photos/')) { data = await deleteUserPhotoLocal(path.substring('/api/user_photos/'.length)); }
+            else if (path === '/api/user_coins') {
+                if (method === 'POST') { status = 201; data = await addUserCoinLocal(body); }
+                else { status = 404; data = { error: 'Route not available in local mode' }; }
+            }
+            else if (path.startsWith('/api/user_coins/')) { data = await deleteUserCoinLocal(path.substring('/api/user_coins/'.length)); }
             else if (path === '/api/backup/full') { data = await getFullBackupLocal(); }
             else if (path === '/api/backup/restore') { data = await restoreBackupLocal(body); }
             else if (path === '/api/backup/import_csv') { data = await importCSVLocal(rawBody); }

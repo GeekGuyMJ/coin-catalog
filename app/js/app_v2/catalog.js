@@ -286,6 +286,14 @@ function buildSectionCard(sec) {
 
     const chevron = el('span', { className: 'section-chevron', 'aria-hidden': 'true' }, '▾');
 
+    // "+ Add Coin" button (every deployment) — add coins the catalogue lacks
+    // (next year's releases, per-mint varieties, unlisted coins).
+    const addCoinBtn = el('button', {
+        className: 'btn-section-addcoin',
+        title: 'Add a coin this catalogue is missing (new year, mint, or variety)',
+        onclick: (e) => { e.stopPropagation(); window.openAddCoinModal(sec.section); },
+    }, '+ Add Coin');
+
     // Self-hosted only: "Publish to public" button in the section header
     const host = window.location.hostname || '';
     const isSelfHosted = host.includes('opaleye-bluegill') || host.includes('ts.net') || host.includes('192.168.');
@@ -295,9 +303,9 @@ function buildSectionCard(sec) {
             title: "Publish this section's images to public app",
             onclick: (e) => { e.stopPropagation(); window.openPublishSectionModal(sec.section); },
         }, '📤 Publish');
-        header.append(left, dragHandle, publishBtn, chevron);
+        header.append(left, dragHandle, addCoinBtn, publishBtn, chevron);
     } else {
-        header.append(left, dragHandle, chevron);
+        header.append(left, dragHandle, addCoinBtn, chevron);
     }
 
     // Content area (initially hidden)
@@ -369,6 +377,29 @@ async function expandSection(sectionName) {
         content.innerHTML = `<p class="text-muted" style="padding:1rem">
             Failed to load coins: ${escHtml(err.message)}
         </p>`;
+    }
+}
+
+/**
+ * Re-fetch a section from the API and re-render it if currently expanded.
+ * Used after adding/deleting user coins so changes appear immediately.
+ * Also updates the section header owned/total badge.
+ */
+export async function reloadSectionCoins(sectionName) {
+    const sectionId = 'section-' + sectionName.replace(/[^a-zA-Z0-9]/g, '');
+    const card = document.getElementById(sectionId);
+    if (!card) return;
+    const content = card.querySelector('.section-content');
+    const isOpen = content && content.classList.contains('open');
+
+    // Always clear the cached coin list so the next fetch is fresh
+    setCoinsForSection(sectionName, null);
+    try {
+        const coins = await fetchCoinsForSection(sectionName);
+        setCoinsForSection(sectionName, coins);
+        if (isOpen) renderTypeAccordions(content, coins);
+    } catch (err) {
+        console.warn('[catalog] reloadSectionCoins failed:', err.message);
     }
 }
 
@@ -1026,6 +1057,30 @@ function buildCoinRow(coin) {
     row.appendChild(thumbWrap);
 
     var info = el("div", {className: "coin-row-info"});
+    // User-added coins get a small ✕ to remove them from the catalogue
+    if (coin.user_added) {
+        var delBtn = el("span", {
+            className: "user-coin-del",
+            title: "Remove this user-added coin from the catalogue",
+            role: "button",
+            tabIndex: 0
+        }, "✕");
+        delBtn.addEventListener("click", async function(ev) {
+            ev.stopPropagation();
+            const userCoins = await import("./userCoins.js");
+            if (window.confirm(`Remove ${coin.coin_type} ${coin.year}${coin.mint_mark || ""} from your catalogue? Any ownership entries for it are removed too.`)) {
+                try {
+                    const { deleteUserCoin } = await import("./api.js");
+                    await deleteUserCoin(coin.id);
+                    showToast("Coin removed from catalogue", "success", 2500);
+                    reloadSectionCoins(coin.section);
+                } catch (err) {
+                    showToast(err.message || String(err), "error", 4000);
+                }
+            }
+        });
+        info.appendChild(delBtn);
+    }
     var tl = el("span", {className: "coin-row-title"});
     var yr = coin.year === 1776 ? "1776-1976" : (coin.year || "\u2014");
     var fm = formatMintMark(coin);
