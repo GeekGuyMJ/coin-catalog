@@ -8784,8 +8784,8 @@
     "coin_type": "US Coinage \u2014 Half Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/US_Coinage_\u2014_Half_Cent_obv_21185f.webp",
-    "rev_image": "/data/images/types/us-coinage-\u2014-half-cent.rev.5f7d.webp",
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-half-cent.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-half-cent.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
