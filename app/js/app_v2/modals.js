@@ -15,6 +15,7 @@ import { el, escHtml } from './utils.js';
 import { showToast } from './notifications.js';
 import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js';
 import { saveCustomTheme } from './themes.js';
+import { factoryResetData } from './api.js';
 
 // ============================================================
 // NEW ORCHESTRATOR — used by cards.js, stories.js, info.js
@@ -1122,11 +1123,80 @@ export async function importCSV(file) {
 }
 
 export async function purgeInventory() {
-    if (!confirm('This will DELETE ALL inventory entries. This cannot be undone. Continue?')) return;
-    if (!confirm('Last chance: Are you absolutely sure?')) return;
+    if (!(await confirmInApp('Purge All Inventory',
+        'This permanently deletes every inventory entry. This cannot be undone.',
+        'Purge Inventory'))) return;
     await purgeUserInventoryTables();
     showToast('All inventory purged', 'success');
     location.reload();
+}
+
+export function openResetDataModal() {
+    const wrap = el('div', { className: 'reset-data-modal' });
+    wrap.appendChild(el('p', { className: 'reset-data-intro' },
+        'Choose how to reset the app. Both options permanently remove your data \u2014 there is no undo.'));
+    const optA = el('div', { className: 'reset-option reset-option-danger' });
+    optA.appendChild(el('h3', {}, '\uD83E\uDEA8 Factory Reset (wipe everything)'));
+    optA.appendChild(el('p', {}, 'Deletes all data AND all uploaded images, then restores the default images that shipped with the app.'));
+    const btnA = el('button', { className: 'btn-danger reset-confirm-btn', type: 'button' }, 'Factory Reset');
+    armTwoStep(btnA, 'Factory Reset', () => runReset('full_reset'));
+    optA.appendChild(btnA);
+    wrap.appendChild(optA);
+    wrap.appendChild(el('hr', { className: 'reset-divider' }));
+    const optB = el('div', { className: 'reset-option' });
+    optB.appendChild(el('h3', {}, '\uD83D\uDCCB Clear Data, Keep Images'));
+    optB.appendChild(el('p', {}, 'Deletes all your data (inventory, wishlist, etc.) but keeps every image you have uploaded and been using.'));
+    const btnB = el('button', { className: 'btn-secondary reset-confirm-btn', type: 'button' }, 'Clear Data');
+    armTwoStep(btnB, 'Clear Data', () => runReset('data_only'));
+    optB.appendChild(btnB);
+    wrap.appendChild(optB);
+    createModal('modal-reset-data', 'Reset / Purge Data', wrap);
+}
+
+async function runReset(mode) {
+    const btnLabel = mode === 'full_reset' ? 'Factory Reset' : 'Clear Data';
+    try {
+        closeModal('modal-reset-data');
+        showToast(btnLabel + ' started\u2026', 'info');
+        await factoryResetData(mode);
+        showToast(btnLabel + ' complete \u2014 reloading', 'success', 4000);
+        setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+        console.error(e);
+        showToast('Reset failed: ' + (e && e.message ? e.message : e), 'error', 6000);
+    }
+}
+
+function armTwoStep(btn, label, onConfirm) {
+    let armed = false;
+    btn.addEventListener('click', () => {
+        if (!armed) {
+            armed = true;
+            btn.textContent = 'Click again to confirm';
+            btn.classList.add('armed');
+            setTimeout(() => { armed = false; btn.textContent = label; btn.classList.remove('armed'); }, 4000);
+            return;
+        }
+        btn.textContent = label + '\u2026';
+        btn.disabled = true;
+        onConfirm();
+    });
+}
+
+async function confirmInApp(title, message, confirmLabel) {
+    return await new Promise((resolve) => {
+        const wrap = el('div', {});
+        wrap.appendChild(el('p', {}, message));
+        const btn = el('button', { className: 'btn-danger', type: 'button' }, confirmLabel);
+        let armed = false;
+        btn.addEventListener('click', () => {
+            if (!armed) { armed = true; btn.textContent = 'Click again to confirm'; btn.classList.add('armed'); return; }
+            closeModal('modal-confirm-' + Date.now());
+            resolve(true);
+        });
+        const m = createModal('modal-confirm-' + Date.now(), title, wrap, btn);
+        m.addEventListener('close', () => resolve(false));
+    });
 }
 
 export function dispatchSettingsChange(key, value) {

@@ -9,7 +9,8 @@ import { el, escHtml } from './utils.js';
 import { getSpotPrices } from './state.js';
 import { showToast } from './notifications.js';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
-import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
+import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults, openResetDataModal } from './modals.js';
+import { openAddCoinModal } from './userCoins.js';
 
 let _dropdownEl = null;
 
@@ -67,6 +68,7 @@ function openSettingsDropdown(btn) {
  // Catalog
  {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
  {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
+{key: 'addCoin', label: '\u002B Add a Coin\u2026', section: 'catalog' },
  
  // Data & Backup
  {key: 'export', label: 'Export & Backup', section: 'data' },
@@ -85,6 +87,7 @@ function openSettingsDropdown(btn) {
  
  // Danger Zone
  {key: 'purgeInventory', label: 'Purge All Inventory', section: 'danger' },
+{key: 'resetData', label: 'Reset / Purge Data\u2026', section: 'danger' },
  ];
 
  // Group by section
@@ -187,6 +190,8 @@ export function openSettingsSection(key) {
  
  // Danger Zone
  case 'purgeInventory': purgeInventory(); break;
+    case 'addCoin': closeSettingsDropdown(); openAddCoinModal(); break;
+    case 'resetData': closeSettingsDropdown(); openResetDataModal(); break;
  }
 }
 

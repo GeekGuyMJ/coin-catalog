@@ -2124,6 +2124,32 @@ export async function factoryResetImagesLocal() {
     return { status: "success" };
 }
 
+export async function factoryResetDataLocal(mode) {
+    const full = (mode === 'full_reset');
+    await db.user_inventory.clear();
+    await db.wishlist_item.clear();
+    await db.raw_bullion.clear();
+    await db.paper_currency.clear();
+    await db.other_collectable.clear();
+    await db.bulk_inventory.clear();
+    await db.portfolio_history.clear();
+    const refs = await db.coins_reference.toArray();
+    for (const r of refs) { if (r.user_added) await db.coins_reference.delete(r.id); }
+    if (full) {
+        await db.user_photos.clear();
+        const cfgs = await db.coin_type_config.toArray();
+        for (const c of cfgs) {
+            await db.coin_type_config.update(c.coin_type, {
+                obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null,
+                _deleted_obv_image: true, _deleted_rev_image: true,
+            });
+        }
+        const inv = await db.user_inventory.toArray();
+        for (const it of inv) { if (it.personal_photo) await db.user_inventory.update(it.id, { personal_photo: null }); }
+    }
+    return { status: 'success', mode };
+}
+
 // ============================================================
 // Portfolio History
 // ============================================================

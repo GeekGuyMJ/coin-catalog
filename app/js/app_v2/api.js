@@ -200,6 +200,14 @@ export const deleteUserCoin = isSelfHosted
     }
     : wrap(deleteUserCoinLocal);
 
+export const factoryResetData = isSelfHosted
+    ? async (mode) => serverFetch('/api/backup/factory_reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: mode || 'data_only' }),
+    })
+    : wrap(factoryResetDataLocal);
+
 // Local-only features (no server equivalent) - always use local DB
 export const fetchSpotPrices       = wrap(fetchSpotPricesLocal);
 export const fetchRawBullion       = isSelfHosted
