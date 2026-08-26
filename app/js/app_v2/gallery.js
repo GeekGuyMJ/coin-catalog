@@ -2,17 +2,24 @@
  * gallery.js — Photos & Documents card for Coin Catalog v2
  *
  * A dedicated dashboard card where the user can capture or upload free-form
- * pictures (coin folders, slabs, receipts, documents) and browse them in a
- * thumbnail grid with a full-screen lightbox. No circle-crop — these are raw
- * pictures the user documents their collection with.
+ * pictures (coin folders, slabs, receipts, documents) and browse them as
+ * thumbnails. Two categories — Pictures and Documents — are kept in separate
+ * tabs so the user can scroll thumbnails per type and tap one to open it
+ * full-screen in a lightbox. No circle-crop — these are raw pictures the user
+ * documents their collection with.
  *
  * Persistence:
  *   - Self-hosted  -> /api/user_photos (Flask backend, base64 in DB)
  *   - Public       -> IndexedDB user_photos store (via api.js interceptor)
+ *
+ * The user_photos row shape: { id, category: 'Pictures'|'Documents', title,
+ * caption, image_data (data URL), created_at }.
  */
 import { el } from './utils.js';
 import { fetchUserPhotos, addUserPhoto, deleteUserPhoto } from './api.js';
 import { showToast } from './notifications.js';
+
+const CATEGORIES = ['Pictures', 'Documents'];
 
 // Reusable camera/file -> compressed base64 (mirrors portfolio.js' helper,
 // kept local so this module is self-contained).
@@ -68,56 +75,6 @@ function openGalleryLightbox(src, caption) {
     lb.classList.add('is-active');
 }
 
-async function loadPhotos(gridEl, emptyEl, countEl) {
-    let photos = [];
-    try {
-        photos = await fetchUserPhotos();
-    } catch (e) {
-        console.error('[gallery] load failed', e);
-        photos = [];
-    }
-    if (countEl) countEl.textContent = photos.length + ' item' + (photos.length !== 1 ? 's' : '');
-
-    if (!photos.length) {
-        if (emptyEl) emptyEl.style.display = '';
-        if (gridEl) gridEl.innerHTML = '';
-        return;
-    }
-    if (emptyEl) emptyEl.style.display = 'none';
-    if (!gridEl) return;
-    gridEl.innerHTML = '';
-    photos.forEach((p) => {
-        const thumb = el('div', { className: 'gallery-thumb', title: p.title || p.caption || 'Photo' });
-        const img = el('img', { src: p.image_data, alt: p.title || 'Photo', loading: 'lazy' });
-        img.addEventListener('click', () => openGalleryLightbox(p.image_data, [p.title, p.caption].filter(Boolean).join(' — ')));
-        thumb.appendChild(img);
-
-        const del = el('button', { className: 'gallery-thumb-del', title: 'Delete', dataset: { photoId: String(p.id) } }, '✕');
-        del.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const id = p.id;
-            del.disabled = true;
-            try {
-                await deleteUserPhoto(id);
-                showToast('Photo deleted', 'success', 2000);
-                // refresh grid
-                loadPhotos(gridEl, emptyEl, countEl);
-            } catch (err) {
-                console.error('[gallery] delete failed', err);
-                showToast('Delete failed: ' + (err.message || 'error'), 'error', 4000);
-                del.disabled = false;
-            }
-        });
-        thumb.appendChild(del);
-
-        if (p.title || p.caption) {
-            const label = el('div', { className: 'gallery-thumb-label' }, (p.title || p.caption).slice(0, 40));
-            thumb.appendChild(label);
-        }
-        gridEl.appendChild(thumb);
-    });
-}
-
 export function renderGalleryCard() {
     const card = el('div', {
         className: 'card dashboard-card gallery-card',
@@ -134,12 +91,31 @@ export function renderGalleryCard() {
     hdr.appendChild(countBadge);
     card.appendChild(hdr);
 
-    // Grid
-    const grid = el('div', { className: 'gallery-grid', style: 'flex:1;overflow-y:auto;min-height:90px;margin-bottom:10px;' });
+    // Category tab bar (Pictures / Documents)
+    let activeCategory = 'Pictures';
+    const tabBar = el('div', { className: 'gallery-tabs', style: 'display:flex;gap:6px;margin-bottom:10px;flex-shrink:0;' });
+    const tabButtons = {};
+    CATEGORIES.forEach((cat) => {
+        const btn = el('button', {
+            className: 'gallery-tab' + (cat === activeCategory ? ' active' : ''),
+            onclick: () => {
+                activeCategory = cat;
+                Object.entries(tabButtons).forEach(([c, b]) => b.classList.toggle('active', c === cat));
+                loadPhotos();
+            },
+        }, cat);
+        tabButtons[cat] = btn;
+        tabBar.appendChild(btn);
+    });
+    card.appendChild(tabBar);
+
+    // Grid (only renders the active category's thumbnails).
+    // Sizes to content (no forced stretch), scrolls only when it gets tall.
+    const grid = el('div', { className: 'gallery-grid', style: 'flex:0 1 auto;max-height:340px;overflow-y:auto;min-height:0;margin-bottom:10px;' });
     card.appendChild(grid);
 
-    const emptyMsg = el('p', { style: 'font-size:0.82em;color:var(--color-text-muted);margin:0;padding:10px 0;text-align:center;' },
-        'No photos yet. Capture or upload pictures of your coin folders, slabs, or anything you want to document.');
+    const emptyMsg = el('p', { className: 'gallery-empty', style: 'font-size:0.82em;color:var(--color-text-muted);margin:0;padding:6px 0;text-align:center;' },
+        'No pictures yet. Capture or upload photos of your coin folders, slabs, or anything you want to document.');
     card.appendChild(emptyMsg);
 
     // Capture / Upload controls
@@ -154,8 +130,8 @@ export function renderGalleryCard() {
     captureBtn.addEventListener('click', () => fileInput.click());
     uploadBtn.addEventListener('click', () => fileInputPlain.click());
 
-    fileInput.addEventListener('change', () => handleFiles(fileInput.files, grid, emptyMsg, countBadge));
-    fileInputPlain.addEventListener('change', () => handleFiles(fileInputPlain.files, grid, emptyMsg, countBadge));
+    fileInput.addEventListener('change', () => handleFiles(fileInput.files, activeCategory));
+    fileInputPlain.addEventListener('change', () => handleFiles(fileInputPlain.files, activeCategory));
 
     controls.appendChild(captureBtn);
     controls.appendChild(uploadBtn);
@@ -163,13 +139,73 @@ export function renderGalleryCard() {
     card.appendChild(fileInput);
     card.appendChild(fileInputPlain);
 
+    // loadPhotos renders only the active category and toggles the empty state
+    async function loadPhotos() {
+        let photos = [];
+        try {
+            photos = await fetchUserPhotos();
+        } catch (e) {
+            console.error('[gallery] load failed', e);
+            photos = [];
+        }
+        const inCat = photos.filter((p) => (p.category || 'Pictures') === activeCategory);
+        const total = photos.length;
+        countBadge.textContent = total + ' item' + (total !== 1 ? 's' : '');
+
+        // Compact when empty: hide the grid (no wasted middle space)
+        if (!inCat.length) {
+            grid.style.display = 'none';
+            grid.innerHTML = '';
+            emptyMsg.style.display = '';
+            emptyMsg.textContent = activeCategory === 'Pictures'
+                ? 'No pictures yet. Capture or upload photos of your coin folders, slabs, or anything you want to document.'
+                : 'No documents yet. Upload receipts, certificates, or any paperwork you want to keep with your collection.';
+            return;
+        }
+        grid.style.display = '';
+        emptyMsg.style.display = 'none';
+        grid.innerHTML = '';
+        inCat.forEach((p) => {
+            const thumb = el('div', { className: 'gallery-thumb', title: p.title || p.caption || 'Photo' });
+            const img = el('img', { src: p.image_data, alt: p.title || 'Photo', loading: 'lazy' });
+            img.addEventListener('click', () => openGalleryLightbox(p.image_data, [p.title, p.caption].filter(Boolean).join(' — ')));
+            thumb.appendChild(img);
+
+            const del = el('button', { className: 'gallery-thumb-del', title: 'Delete', dataset: { photoId: String(p.id) } }, '✕');
+            del.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = p.id;
+                del.disabled = true;
+                try {
+                    await deleteUserPhoto(id);
+                    showToast('Photo deleted', 'success', 2000);
+                    loadPhotos();
+                } catch (err) {
+                    console.error('[gallery] delete failed', err);
+                    showToast('Delete failed: ' + (err.message || 'error'), 'error', 4000);
+                    del.disabled = false;
+                }
+            });
+            thumb.appendChild(del);
+
+            if (p.title || p.caption) {
+                const label = el('div', { className: 'gallery-thumb-label' }, (p.title || p.caption).slice(0, 40));
+                thumb.appendChild(label);
+            }
+            grid.appendChild(thumb);
+        });
+    }
+
     // Initial load
-    loadPhotos(grid, emptyMsg, countBadge);
+    loadPhotos();
+
+    // Expose reload so the file handler (defined outside this closure) can refresh
+    card.__loadPhotos = loadPhotos;
 
     return card;
 }
 
-async function handleFiles(fileList, grid, emptyMsg, countBadge) {
+async function handleFiles(fileList, category) {
     const files = Array.from(fileList || []);
     if (!files.length) return;
     for (const file of files) {
@@ -178,15 +214,17 @@ async function handleFiles(fileList, grid, emptyMsg, countBadge) {
             const photo = {
                 title: file.name ? file.name.replace(/\.[^.]+$/, '').slice(0, 200) : '',
                 caption: '',
-                category: 'General',
+                category: category || 'Pictures',
                 image_data: dataUrl,
             };
             await addUserPhoto(photo);
         } catch (err) {
-        console.error('[gallery] add failed: ' + (err && (err.message || String(err))) + ' | stack: ' + (err && err.stack ? String(err.stack).slice(0,300) : 'n/a'));
+            console.error('[gallery] add failed: ' + (err && (err.message || String(err))) + ' | stack: ' + (err && err.stack ? String(err.stack).slice(0, 300) : 'n/a'));
             showToast('Could not add ' + (file.name || 'photo') + ': ' + (err.message || 'error'), 'error', 4000);
         }
     }
-    showToast('Photo' + (files.length > 1 ? 's' : '') + ' added', 'success', 2000);
-    loadPhotos(grid, emptyMsg, countBadge);
+    showToast('Photo' + (files.length > 1 ? 's' : '') + ' added to ' + (category || 'Pictures'), 'success', 2000);
+    // reload the gallery grid via the closure exposed on the card element
+    const cardEl = document.getElementById('card-gallery');
+    if (cardEl && typeof cardEl.__loadPhotos === 'function') cardEl.__loadPhotos();
 }

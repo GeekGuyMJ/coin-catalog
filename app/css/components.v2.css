@@ -4058,6 +4058,32 @@ body.ready-mode-active .ready-badge { display: flex; }
 }
 #gallery-lightbox .lightbox-close:hover { background: rgba(255,255,255,0.3); }
 
+/* Photos & Documents — category tabs (Pictures / Documents) */
+.gallery-tabs {
+    display: flex;
+    gap: 6px;
+}
+.gallery-tab {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 0.82em;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-light, #333);
+    background: var(--color-accord-bg, #1e1e1e);
+    color: var(--color-text-muted, #aaa);
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.gallery-tab:hover { border-color: var(--color-accent, #4a90d9); }
+.gallery-tab.active {
+    background: var(--color-accent, #4a90d9);
+    color: #fff;
+    border-color: var(--color-accent, #4a90d9);
+}
+/* Compact empty state — no wasted middle space */
+.gallery-empty { font-size: 0.82em; color: var(--color-text-muted, #aaa); margin: 0; padding: 6px 2px; text-align: center; }
+
 
 /* =========================================================================
    User-added catalogue coins (delete chip on user-added rows)
