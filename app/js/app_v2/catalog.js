@@ -286,14 +286,6 @@ function buildSectionCard(sec) {
 
     const chevron = el('span', { className: 'section-chevron', 'aria-hidden': 'true' }, '▾');
 
-    // "+ Add Coin" button (every deployment) — add coins the catalogue lacks
-    // (next year's releases, per-mint varieties, unlisted coins).
-    const addCoinBtn = el('button', {
-        className: 'btn-section-addcoin',
-        title: 'Add a coin this catalogue is missing (new year, mint, or variety)',
-        onclick: (e) => { e.stopPropagation(); window.openAddCoinModal(sec.section); },
-    }, '+ Add Coin');
-
     // Self-hosted only: "Publish to public" button in the section header
     const host = window.location.hostname || '';
     const isSelfHosted = host.includes('opaleye-bluegill') || host.includes('ts.net') || host.includes('192.168.');
@@ -303,9 +295,9 @@ function buildSectionCard(sec) {
             title: "Publish this section's images to public app",
             onclick: (e) => { e.stopPropagation(); window.openPublishSectionModal(sec.section); },
         }, '📤 Publish');
-        header.append(left, dragHandle, addCoinBtn, publishBtn, chevron);
+        header.append(left, dragHandle, publishBtn, chevron);
     } else {
-        header.append(left, dragHandle, addCoinBtn, chevron);
+        header.append(left, dragHandle, chevron);
     }
 
     // Content area (initially hidden)

@@ -446,6 +446,15 @@ export function openSettingsModal() {
     }
 
     function buildCatalogTab(panel) {
+        // --- Add Your Own Coins (moved here from the crowded section headers) ---
+        panel.appendChild(el('div', { className: 'settings-section', style: 'border-top:2px solid var(--color-accent);margin-top:16px;padding-top:16px;' }, ...[
+            el('h3', { className: 'settings-section-title' }, 'Add Your Own Coins'),
+            el('p', { className: 'settings-section-desc' }, 'Catalogue entries the master list is missing — a new year, a per-mint variety, or a coin you own that isn’t listed. Pick a section in the modal; the coin sorts into place by type → year → mint and shows up everywhere (albums, totals, wishlist, images).'),
+            buildActionRow([
+                { label: '＋ Add a Coin…', onclick: () => { closeModal('modal-settings'); setTimeout(() => (window.openAddCoinModal ? window.openAddCoinModal() : null), 150); }, className: 'btn-primary' },
+            ]),
+        ]));
+
         panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Display Filters'),
             el('p', { className: 'settings-section-desc' }, 'Control which coins appear in the catalog. Changes apply on next load.'),

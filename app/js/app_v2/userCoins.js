@@ -17,6 +17,10 @@
  * Persistence: self-hosted → POST/DELETE /api/user_coins (server DB, syncs to
  * every device via the fetchCoinsForSection pull). Public → IndexedDB via the
  * api.js interceptor.
+ *
+ * Entry point: openAddCoinModal(sectionName?) — opened from the Settings →
+ * Catalog tab. If no section is passed, the modal shows a section picker so
+ * the user can choose where the coin belongs.
  */
 import { el } from './utils.js';
 import { addUserCoin, deleteUserCoin } from './api.js';
@@ -38,81 +42,97 @@ const MINTS = [
 ];
 
 /**
- * Open the Add Coin modal for a section.
- * @param {string} sectionName full section name, e.g. "US Coinage — Quarter Dollar"
+ * Open the Add Coin modal.
+ * @param {string} [sectionName] full section name (e.g. "US Coinage — Quarter
+ *   Dollar"). If omitted, the modal shows a section picker so the user chooses.
  */
 export async function openAddCoinModal(sectionName) {
     const m = await modals();
     const sections = getSections();
-    const secMeta = sections.find(s => s.section === sectionName);
+    const maxYear = new Date().getFullYear() + 1;
 
     // ---------- form state ----------
     let mode = 'existing'; // 'existing' | 'newtype'
     let selectedType = null;
 
-    const knownTypes = [];
-    (secMeta ? secMeta.types : []).forEach(t => knownTypes.push(t));
-    const maxYear = new Date().getFullYear() + 1;
-
-    // ---------- build UI ----------
     const bodyWrap = el('div', { style: 'padding: var(--space-2) 0;' });
 
     bodyWrap.appendChild(el('p', {
         style: 'font-size: var(--font-size-xs); color: var(--color-text-muted); line-height:1.5; margin-bottom: var(--space-2);'
-    }, `Add a coin to "${sectionName}" that the catalogue is missing — a brand-new year, an extra design, or something unlisted. It will sort into place with its type.`));
+    }, 'Add a coin the catalogue is missing — a brand-new year, an extra design (state/ATB/park quarters), or something unlisted. It becomes a real, sortable catalogue entry. Pick the section it belongs to first.'));
 
-    // Section display (read-only; this modal always targets one section)
-    bodyWrap.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);margin-bottom:4px;' }, 'Section'));
-    bodyWrap.appendChild(el('div', {
-        style: 'font-weight:700;margin-bottom:var(--space-3);color:var(--color-accent);'
-    }, sectionName));
+    // ---------- section picker (only when no fixed section) ----------
+    let sectionSel = null;
+    if (!sectionName) {
+        bodyWrap.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);margin-bottom:4px;' }, 'Section'));
+        sectionSel = el('select', { className: 'v1-select', style: 'width:100%;margin-bottom:var(--space-2);' },
+            el('option', { value: '' }, '-- Choose section --'),
+            ...sections.map(s => el('option', { value: s.section }, s.section)));
+        bodyWrap.appendChild(sectionSel);
+    } else {
+        bodyWrap.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);margin-bottom:4px;' }, 'Section'));
+        bodyWrap.appendChild(el('div', {
+            style: 'font-weight:700;margin-bottom:var(--space-3);color:var(--color-accent);'
+        }, sectionName));
+    }
 
-    // Type chooser: existing types dropdown OR new type name
+    const currentTypes = () => {
+        const sn = sectionName || (sectionSel && sectionSel.value) || '';
+        const sm = sections.find(s => s.section === sn);
+        return sm ? (sm.types || []) : [];
+    };
+
+    // ---------- type chooser (dynamic per section) ----------
     bodyWrap.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);margin-bottom:4px;' }, 'Type'));
 
     const typeRow = el('div', { style: 'display:flex;gap:var(--space-2);margin-bottom:var(--space-2);' });
     const typeSel = el('select', { className: 'v1-select', style: 'flex:1;' },
-        el('option', { value: '' }, '-- Choose type --'),
-        ...knownTypes.map(t => el('option', { value: t }, t)));
+        el('option', { value: '' }, '-- Choose type --'));
     const newTypeToggle = el('button', { className: 'btn-secondary', style: 'white-space:nowrap;font-size:0.82em;' }, '+ New type');
     typeRow.append(typeSel, newTypeToggle);
     bodyWrap.appendChild(typeRow);
+
+    const repopulateTypes = () => {
+        const keep = typeSel.value;
+        typeSel.innerHTML = '';
+        typeSel.appendChild(el('option', { value: '' }, '-- Choose type --'));
+        currentTypes().forEach(t => typeSel.appendChild(el('option', { value: t }, t)));
+        if ([...typeSel.options].some(o => o.value === keep)) typeSel.value = keep;
+    };
+    repopulateTypes();
+    if (sectionSel) sectionSel.addEventListener('change', repopulateTypes);
 
     const newTypeRow = el('div', { style: 'display:none;margin-bottom:var(--space-2);' });
     const newTypeIn = el('input', { className: 'v1-input', placeholder: 'e.g. American Women Quarter', style: 'width:100%;' });
     newTypeRow.appendChild(newTypeIn);
     bodyWrap.appendChild(newTypeRow);
 
-    typeSel.addEventListener('change', () => { mode = 'existing'; selectedType = typeSel.value || null; newTypeIn.value=''; });
-    newTypeIn.addEventListener('input', () => { if (newTypeIn.value.trim()) { mode = 'newtype'; typeSel.value=''; selectedType = null; } });
+    typeSel.addEventListener('change', () => { mode = 'existing'; selectedType = typeSel.value || null; newTypeIn.value = ''; });
+    newTypeIn.addEventListener('input', () => { if (newTypeIn.value.trim()) { mode = 'newtype'; typeSel.value = ''; selectedType = null; } });
     newTypeToggle.addEventListener('click', () => {
         mode = 'newtype'; typeSel.value = ''; selectedType = null;
         newTypeRow.style.display = '';
         newTypeIn.focus();
     });
 
-    // Year + mint row
+    // ---------- year + mint ----------
     const ymRow = el('div', { style: 'display:flex;gap:var(--space-2);margin-bottom:var(--space-2);' });
     const yearIn = el('input', { className: 'v1-input', type: 'number', min: '1792', max: String(maxYear), step: '1', placeholder: 'Year (e.g. ' + maxYear + ')', style: 'flex:1;' });
-    const mintSel = el('select', { className: 'v1-select' }, ...MINTS.map(m => el('option', { value: m.mark }, m.label)));
+    const mintSel = el('select', { className: 'v1-select' }, ...MINTS.map(mk => el('option', { value: mk.mark }, mk.label)));
     ymRow.append(yearIn, mintSel);
     bodyWrap.appendChild(ymRow);
 
-    // Multi-mint helper: also create D/S/W clones of this same design
+    // ---------- multi-mint helper ----------
     const multiRow = el('label', { style: 'display:flex;align-items:center;gap:8px;font-size:0.85em;margin-bottom:var(--space-2);cursor:pointer;' });
     const multiChk = el('input', { type: 'checkbox', style: 'width:16px;height:16px;' });
     multiRow.append(multiChk, el('span', {}, 'Also add other mints of the same design (P/D/S/W where missing)'));
     bodyWrap.appendChild(multiRow);
 
-    // Optional details
+    // ---------- optional notes ----------
     const optRow = el('div', { style: 'display:flex;gap:var(--space-2);margin-bottom:var(--space-2);' });
     const notesIn = el('input', { className: 'v1-input', placeholder: 'Notes (optional) — e.g. design name', style: 'flex:1;' });
     optRow.appendChild(notesIn);
     bodyWrap.appendChild(optRow);
-
-    // Design-name-as-type shortcut for multi-design years (e.g. quarters):
-    // typing a note like "Celia Cruz" while type is "…Quarter" keeps it inside
-    // the same type family; use "+ New type" only for genuinely new series.
 
     const resultBox = el('div', {});
 
@@ -125,6 +145,9 @@ export async function openAddCoinModal(sectionName) {
 
     btnAdd.addEventListener('click', async () => {
         if (running) return;
+        const secName = sectionName || (sectionSel && sectionSel.value) || '';
+        if (!secName) { showToast('Choose a section first', 'error', 3000); return; }
+
         const coinType = mode === 'newtype'
             ? (newTypeIn.value || '').trim()
             : (typeSel.value || '').trim();
@@ -139,13 +162,13 @@ export async function openAddCoinModal(sectionName) {
 
         const baseMint = mintSel.value;
         const mintsToAdd = multiChk.checked
-            ? MINTS.map(m => m.mark).filter(mk => mk !== baseMint)
+            ? MINTS.map(mk => mk.mark).filter(mk => mk !== baseMint)
             : [];
 
         try {
             const created = [];
             await addUserCoin({
-                section: sectionName,
+                section: secName,
                 coin_type: coinType,
                 year: yearVal,
                 mint_mark: baseMint,
@@ -155,7 +178,7 @@ export async function openAddCoinModal(sectionName) {
             for (const mk of mintsToAdd) {
                 try {
                     await addUserCoin({
-                        section: sectionName,
+                        section: secName,
                         coin_type: coinType,
                         year: yearVal,
                         mint_mark: mk,
@@ -164,12 +187,12 @@ export async function openAddCoinModal(sectionName) {
                 } catch (e) { /* duplicate mint — skip */ }
             }
 
-            showToast(created.length + ' coin' + (created.length !== 1 ? 's' : '') + ' added to ' + sectionName, 'success', 3000);
+            showToast(created.length + ' coin' + (created.length !== 1 ? 's' : '') + ' added to ' + secName, 'success', 3000);
             resultBox.appendChild(el('p', { style: 'color: var(--color-success, #2e7d32); font-weight:600;' },
                 `✓ Added ${created.length} coin${created.length !== 1 ? 's' : ''}. They now appear in the list in year order.`));
 
             // Refresh the open section so the new coins show immediately
-            await refreshOpenSection(sectionName);
+            await refreshOpenSection(secName);
 
             // Close the modal so the user sees the updated list (and can delete if needed)
             m.closeModal('modal-add-user-coin');

@@ -4060,24 +4060,8 @@ body.ready-mode-active .ready-badge { display: flex; }
 
 
 /* =========================================================================
-   User-added catalogue coins (+ Add Coin in section headers)
+   User-added catalogue coins (delete chip on user-added rows)
    ========================================================================= */
-.btn-section-addcoin {
-    border: 1px dashed var(--color-border-light, #555);
-    background: transparent;
-    color: var(--color-text-muted);
-    font-size: 0.78em;
-    padding: 3px 10px;
-    border-radius: 999px;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: color .15s ease, border-color .15s ease;
-}
-.btn-section-addcoin:hover {
-    color: var(--color-accent);
-    border-color: var(--color-accent);
-}
 .user-coin-del {
     display: inline-flex;
     align-items: center;
