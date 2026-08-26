@@ -8784,8 +8784,8 @@
     "coin_type": "US Coinage \u2014 Half Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/master/us-coinage-\u2014-half-cent.obv.webp",
-    "rev_image": "/data/images/types/master/us-coinage-\u2014-half-cent.rev.webp",
+    "obv_image": "/data/images/types/US_Coinage_\u2014_Half_Cent_obv_21185f.webp",
+    "rev_image": "/data/images/types/us-coinage-\u2014-half-cent.rev.5f7d.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -12814,7 +12814,7 @@
     "coin_type": "US Coinage \u2014 Large & Small Cent \u2014 Liberty Cap",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": null,
+    "obv_image": "/data/images/coins/ref_51_liberty-cap-1796-obv_e8bd8e.webp",
     "rev_image": "/data/images/coins/ref_51_liberty-cap-1796-rev_d9b00d.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
@@ -12834,8 +12834,48 @@
     "coin_type": "US Coinage \u2014 Half Cent \u2014 Liberty Cap",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_type_liberty-cap-obv_a3158b.webp",
-    "rev_image": "/data/images/coins/ref_type_liberty-cap-rev_a54c29.webp",
+    "obv_image": "/data/images/coins/ref_type_liberty-cap-obv_366b87.webp",
+    "rev_image": "/data/images/coins/ref_type_liberty-cap-rev_99482e.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1295,
+    "coin_type": "US Coinage \u2014 Half Cent \u2014 Draped Bust",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_13_draped-bust-1808-obv_5a5eb1.webp",
+    "rev_image": "/data/images/types/Draped_Bust_rev_1a30df.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1296,
+    "coin_type": "US Coinage \u2014 Half Cent \u2014 Braided Hair",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/types/Braided_Hair_obv_f0784e.webp",
+    "rev_image": "/data/images/coins/ref_45_braided-hair-1857-rev_861a71.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1297,
+    "coin_type": "US Coinage \u2014 Half Cent \u2014 Classic Head",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_26_classic-head-1836-obv_1a2b31.webp",
+    "rev_image": "/data/images/coins/ref_26_classic-head-1836-rev_42d931.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1298,
+    "coin_type": "US Coinage \u2014 Half Cent \u2014 US Coinage \u2014 Half Cent",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": null,
+    "rev_image": "/data/images/coins/ref_type_us-coinage-\u2014-half-cent-rev_4e48f3.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   }
