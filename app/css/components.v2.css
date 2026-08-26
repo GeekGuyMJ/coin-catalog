@@ -3844,17 +3844,8 @@ body.ready-mode-active .ready-badge { display: flex; }
     justify-content: flex-end;
 }
 
-@media (max-width: 768px) {
-    #btn-install {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) and (orientation: portrait) {
-    #btn-layout {
-        display: none !important;
-    }
-}
+/* Header buttons are shown by default; fitHeader() (main.js) hides them
+   only when they would collide with the coin logo / title. No fixed-width hiding. */
 
 /* Phone: short title bar; large coin logo spans bar + next row, spills past bottom edge */
 @media (max-width: 480px) {

@@ -451,3 +451,79 @@ window.APP_VERSION = "2.0.3-fix-input-clearing";
 // NOTE: Module scripts are deferred - they execute AFTER DOM is parsed
 // BUT BEFORE DOMContentLoaded fires. Call boot() directly.
 boot();
+
+// ============================================================
+// Header fit — keep Install / Layout / Info buttons, but hide them
+// only when they would actually collide with the coin logo + title.
+// Hides from the leftmost extra inward (Install, then Layout, then Info),
+// always keeping Settings. Re-runs on resize / logo load / fonts ready.
+// ============================================================
+function fitHeader() {
+    const header = document.getElementById('app-header');
+    if (!header) return;
+    const left = header.querySelector('.header-left');
+    const right = header.querySelector('.header-right');
+    if (!left || !right) return;
+
+    // Buttons we may hide, in collision order (leftmost extra first).
+    const hideable = ['btn-install', 'btn-layout', 'btn-info'];
+    const installVisible = !!window._installPrompt;
+
+    // Reset to natural visibility (respect PWA install availability).
+    for (const id of hideable) {
+        const b = document.getElementById(id);
+        if (!b) continue;
+        if (id === 'btn-install') b.style.display = installVisible ? '' : 'none';
+        else b.style.display = '';
+    }
+
+    const inner = header.querySelector('.header-inner') || header;
+    let leftRect = left.getBoundingClientRect();
+    let rightRect = right.getBoundingClientRect();
+    const innerRect = inner.getBoundingClientRect();
+    const gap = 8;
+
+    // Only relevant when right block is on the SAME ROW as the left block.
+    // In the two-row (grid) header the nav row sits below the logo, so no
+    // horizontal collision is possible.
+    const sameRow = rightRect.bottom > leftRect.top + 4 && rightRect.top < leftRect.bottom - 4;
+    if (!sameRow) return;
+
+    const leftEnd = leftRect.right;
+    let guard = 0;
+    while (rightRect.left < leftEnd + gap && guard < hideable.length) {
+        const id = hideable[guard++];
+        const b = document.getElementById(id);
+        if (!b) continue;
+        if (id === 'btn-install' && !installVisible) continue; // already hidden
+        if (b.style.display === 'none') continue;
+        b.style.display = 'none';
+        rightRect = right.getBoundingClientRect();
+        if (rightRect.left >= leftEnd + gap) break;
+    }
+}
+
+let _fitRAF = null;
+function scheduleFitHeader() {
+    if (_fitRAF) cancelAnimationFrame(_fitRAF);
+    _fitRAF = requestAnimationFrame(() => { _fitRAF = null; fitHeader(); });
+}
+
+// Debounced resize
+let _fitT = null;
+window.addEventListener('resize', () => {
+    if (_fitT) clearTimeout(_fitT);
+    _fitT = setTimeout(fitHeader, 120);
+});
+
+// Re-fit once the logo image and web fonts are ready (sizes can shift)
+window.addEventListener('load', scheduleFitHeader);
+document.addEventListener('DOMContentLoaded', scheduleFitHeader);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleFitHeader);
+const _hdrLogo = document.getElementById('header-coin-img');
+if (_hdrLogo) {
+    _hdrLogo.addEventListener('load', scheduleFitHeader);
+    if (_hdrLogo.complete) scheduleFitHeader();
+}
+// Run once now in case the DOM is already parsed
+scheduleFitHeader();

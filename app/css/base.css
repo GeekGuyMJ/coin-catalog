@@ -462,16 +462,6 @@ button {
     }
 }
 
-/* Hide the Layout (list/grid/compact) toggle on phones in portrait —
-   it has no effect in the single-column portrait layout, and freeing the
-   space lets the other buttons + theme selector fit. Shown again in
-   landscape / wider viewports where the toggle is useful. */
-@media (max-width: 480px) and (orientation: portrait) {
-    #btn-layout {
-        display: none !important;
-    }
-}
-
 /* Logo Zoom Lightbox */
 .logo-lightbox-overlay {
     position: fixed;
