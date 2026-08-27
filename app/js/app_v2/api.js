@@ -145,18 +145,14 @@ export const fetchStatus = isSelfHosted
     ? async () => serverFetch('/api/status')
     : wrap(fetchStatusLocal);
 
-// Image APIs — assignImage already uses originalFetch (server-backed)
-export const assignImage = async (data) => {
-    const res = await originalFetch('/api/assign_image', {
+// Image APIs — assignImage uses server on self-hosted, local IndexedDB on public
+export const assignImage = isSelfHosted
+    ? async (data) => serverFetch('/api/assign_image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data || {}),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) return { status: 'error', error: body.error || ('HTTP ' + res.status) };
-    try { await assignImageLocal(data); } catch (_) { /* non-fatal */ }
-    return { status: body.status || 'success', message: body.message, updated: body.updated };
-};
+    })
+    : wrap(assignImageLocal);
 
 export const fetchCoinBankImages = isSelfHosted
     ? async (params = {}) => {
