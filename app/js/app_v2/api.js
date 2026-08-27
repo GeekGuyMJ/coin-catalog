@@ -73,7 +73,8 @@ import {
     addUserPhotoLocal,
     deleteUserPhotoLocal,
     addUserCoinLocal,
-    deleteUserCoinLocal
+    deleteUserCoinLocal,
+    factoryResetDataLocal
 } from './db.js';
 
 // ============================================================
