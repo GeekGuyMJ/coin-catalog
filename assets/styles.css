@@ -293,8 +293,8 @@ p { color: var(--color-text-muted); }
 }
 
 .logo-icon {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   flex-shrink: 0;
@@ -304,8 +304,8 @@ p { color: var(--color-text-muted); }
 /* Big round coin in the hero/footer, matching the in-app header coin (105px) */
 .hero .logo-icon,
 .footer-brand .logo-icon {
-  width: 105px;
-  height: 105px;
+  width: 131px;
+  height: 131px;
 }
 
 .nav-menu {
