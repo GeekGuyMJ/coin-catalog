@@ -3,9 +3,34 @@
 <head>
 <script>
 if ('serviceWorker' in navigator) {
+  // Reload the page once a new service worker takes control, so deployed
+  // fixes actually apply to already-open tabs (otherwise the old JS keeps
+  // running in memory and the app appears "stuck" after an update).
+  var _ccReloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (_ccReloading) return;
+    _ccReloading = true;
+    location.reload();
+  });
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
-      if (reg && reg.update) { try { reg.update(); } catch (e) {} }
+      if (!reg) return;
+      // If a new worker is already waiting, activate it now and reload.
+      if (reg.waiting) {
+        reg.waiting.postMessage('skipWaiting');
+        // controllerchange handler above will reload.
+        return;
+      }
+      reg.addEventListener('updatefound', function () {
+        var installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', function () {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            installing.postMessage('skipWaiting');
+          }
+        });
+      });
+      if (reg.update) { try { reg.update(); } catch (e) {} }
     }).catch(function (e) { console.warn('[SW] register failed', e); });
   });
 }
