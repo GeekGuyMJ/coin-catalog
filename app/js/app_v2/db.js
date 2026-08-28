@@ -1711,21 +1711,37 @@ function _extractBaseName(coinType) {
  * @param {string} side 'obv' or 'rev'
  * @returns {Promise<string[]>} Array of coin_type values to update together.
  */
+/**
+ * Find all coin types that share the same image as the given coin_type
+ * for a specific side (obv/rev).
+ * 
+ * For obverse: groups by series (all sub-types of a series share the obverse).
+ * For reverse: groups by BASE NAME (e.g., all Michigan variants share the same
+ * reverse: P mint, D mint, S proof, silver proof — all under "Michigan").
+ * 
+ * @param {string} coinType The coin_type to look up.
+ * @param {string} side 'obv' or 'rev'
+ * @param {string} [section] Optional section to qualify colliding types (e.g., "US Coinage — Half Cent")
+ * @returns {Promise<string[]>} Array of coin_type values to update together (section-qualified for colliding types).
+ */
 // Coin-type names shared by MORE THAN ONE section. These are section-scoped:
 // a config row for one of these must live under '<section> — <coin_type>' so
 // Half Cent images can never bleed into Large & Small Cent (e.g. "Braided Hair").
 export const _COLLIDING_TYPES = new Set(["Barber", "Braided Hair", "Capped Bust", "Classic Head", "Draped Bust", "Draped Bust - Heraldic Eagle", "Draped Bust - Small Eagle", "Flowing Hair", "Seated Liberty", "Trade Dollar"]);
 
-export async function _getCoimageGroupMembers(coinType, side) {
+export async function _getCoimageGroupMembers(coinType, side, section) {
     const allConfigs = await db.coin_type_config.toArray();
     const isRev = (side === 'rev' || side === 'proof_rev');
+
+    // Helper: qualify a coin_type if it's a colliding type
+    const qualify = (t) => (section && _COLLIDING_TYPES.has(t)) ? (section + ' — ' + t) : t;
 
     // === REVERSE: group by base name ===
     if (isRev) {
         const base = _extractBaseName(coinType);
         if (base) {
             // Find all configs that share this base name — no series prefix match needed
-        // since base names (state/entity names) are unique within context
+            // since base names (state/entity names) are unique within context
             const members = [coinType];
             for (const cfg of allConfigs) {
                 if (cfg.coin_type === coinType) continue;
@@ -1734,7 +1750,7 @@ export async function _getCoimageGroupMembers(coinType, side) {
                     members.push(cfg.coin_type);
                 }
             }
-            if (members.length > 0) return [...new Set(members)];
+            if (members.length > 0) return [...new Set(members)].map(qualify);
         }
         // where ALL variants share the same reverse
         // Look for other configs that share the same "root" name
@@ -1748,11 +1764,11 @@ export async function _getCoimageGroupMembers(coinType, side) {
                     members.push(cfg.coin_type);
                 }
             }
-            if (members.length > 1) return [...new Set(members)];
+            if (members.length > 1) return [...new Set(members)].map(qualify);
         }
 
         // Default: just this one entry
-        return [coinType];
+        return [qualify(coinType)];
     }
 
     // === OBVERSE: group by series ===
@@ -1770,7 +1786,7 @@ export async function _getCoimageGroupMembers(coinType, side) {
                 }
             }
         }
-        return members;
+        return members.map(qualify);
     }
 
     // Check if this coin_type is a sub-type of a known series
@@ -1812,7 +1828,7 @@ export async function _getCoimageGroupMembers(coinType, side) {
                     }
                 }
             }
-            return [...new Set(members)];
+            return [...new Set(members)].map(qualify);
         }
     }
 
@@ -1829,10 +1845,10 @@ export async function _getCoimageGroupMembers(coinType, side) {
                 members.push(cfg.coin_type);
             }
         }
-        if (members.length > 1) return members;
+        if (members.length > 1) return members.map(qualify);
     }
 
-    return [coinType];
+    return [qualify(coinType)];
 }
 
 export async function assignImageLocal(data) {
@@ -1840,7 +1856,7 @@ export async function assignImageLocal(data) {
     // For offline-first, images are saved directly as base64 strings in the DB
     if (scope === "all" || scope === "empty_only") {
         // Determine which coin types should be updated together
-        const members = await _getCoimageGroupMembers(coin_type, side);
+        const members = await _getCoimageGroupMembers(coin_type, side, section);
         const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
         const sideKey = sideMap[side] || "obv_image";
         const qualify = (t) => (section && _COLLIDING_TYPES.has(t)) ? (section + ' — ' + t) : t;
@@ -1964,7 +1980,7 @@ export async function saveToCoinBankLocal(data) {
                     (side === "obv" ? "obv_image" : "rev_image");
     
     // Use group-aware logic: determine which members share this image
-    const members = await _getCoimageGroupMembers(coin_type, side);
+    const members = await _getCoimageGroupMembers(coin_type, side, section);
     for (const memberType of members) {
         let cfg = await db.coin_type_config.get(memberType);
         if (!cfg) {
