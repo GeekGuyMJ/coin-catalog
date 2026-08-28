@@ -1584,10 +1584,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Modal action buttons
+    // Modal action buttons.
+    // 2026-08-28 MOBILE FIX: resolve the clickable through closest() so taps that land on a
+    // child node (svg, span, label text) inside a modal button still register. Previously a
+    // tap on a child made target.dataset.action/target.id undefined -> button 'did nothing'
+    // (reported on the public site's image modal: From Device / Browse Coin Bank dead).
     document.addEventListener('click', e => {
-        const target = e.target;
-        
+        const target = e.target instanceof Element
+            ? (e.target.closest('[data-action], button[id]') || e.target)
+            : e.target;
+        if (!target || !target.dataset) return;
+
         if (target.dataset.action === 'ii-crop') openCropTool();
         if (target.dataset.action === 'ii-replace') openReplaceWorkflow();
         if (target.id === 'btn-save-crop') saveCrop();
@@ -1599,13 +1606,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.id === 'ii-btn-save') saveCurrentImage();
         if (target.id === 'ii-btn-reset-master') resetToMaster();
         if (target.id === 'ii-btn-promote-default') promoteToDefaultHandler();
-        
+
         // Navigation back buttons
         if (target.dataset.action === 'close-crop') { closeModalLegacy('modal-crop'); openModalLegacy('modal-replace-scope'); }
-        if (target.dataset.action === 'close-replace') { 
-            closeModalLegacy('modal-replace-scope'); 
+        if (target.dataset.action === 'close-replace') {
+            closeModalLegacy('modal-replace-scope');
             if (!activeContext.isGeneric) {
-                openModalLegacy('modal-image-interaction'); 
+                openModalLegacy('modal-image-interaction');
             }
         }
         if (target.dataset.action === 'close-bank') { closeModalLegacy('modal-coin-bank'); openModalLegacy('modal-replace-scope'); }
