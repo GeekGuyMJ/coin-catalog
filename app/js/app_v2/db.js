@@ -579,6 +579,21 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                                 toUpdate.push({ id: _c.id, changes: _upd });
                                 Object.assign(_c, _upd);
                             }
+                            // FIELD RE-SYNC: server is authoritative for descriptive fields.
+                            // Fixes stale local copies keeping old year/type after a data fix
+                            // (e.g. Bicentennial double-date merge) — the row id exists on both
+                            // sides but its year/type drifted.
+                            const _fields = ['coin_type', 'year', 'mint_mark', 'is_proof', 'denomination', 'metal', 'mintage'];
+                            const _fieldUpd = {};
+                            for (const _f of _fields) {
+                                if (_s[_f] !== undefined && String(_c[_f]) !== String(_s[_f])) {
+                                    _fieldUpd[_f] = _s[_f];
+                                }
+                            }
+                            if (Object.keys(_fieldUpd).length > 0) {
+                                toUpdate.push({ id: _c.id, changes: _fieldUpd });
+                                Object.assign(_c, _fieldUpd);
+                            }
                         }
                     }
                     if (toUpdate.length > 0) {
