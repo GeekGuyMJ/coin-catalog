@@ -26190,36 +26190,6 @@
   "ref_notes": "Proof only; fewer than 600 struck; last year"
  },
  {
-  "id": 1741,
-  "section": "US Coinage — Quarter Dollar",
-  "denomination": "25 Cents",
-  "coin_type": "Washington - Clad",
-  "year": 1776,
-  "mint_mark": "D",
-  "metal": "75% Copper, 25% Nickel clad Copper",
-  "weight_grams": 5.67,
-  "is_key_date": false,
-  "is_proof": false,
-  "is_error": false,
-  "mintage": null,
-  "ref_notes": "Bicentennial - 40% Silver 3-coin set - dated 1776-1976"
- },
- {
-  "id": 1742,
-  "section": "US Coinage — Quarter Dollar",
-  "denomination": "25 Cents",
-  "coin_type": "Washington - Clad",
-  "year": 1776,
-  "mint_mark": "S",
-  "metal": "75% Copper, 25% Nickel clad Copper",
-  "weight_grams": 5.67,
-  "is_key_date": false,
-  "is_proof": false,
-  "is_error": false,
-  "mintage": null,
-  "ref_notes": "Clad Proof. Bicentennial - clad Proof - dated 1776-1976"
- },
- {
   "id": 1743,
   "section": "US Coinage — Quarter Dollar",
   "denomination": "25 Cents",
