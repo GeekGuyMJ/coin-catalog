@@ -652,12 +652,18 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                     }
                     // STALE-ROW PURGE: delete local rows that no longer exist on the server
                     // (matched by identity key, not just id) so renamed/merged coins never dup.
-                    const _srvKeys = new Set((_server || []).map(_s =>
-                        [(_s.coin_type || ''), String(_s.year), (_s.mint_mark || ''), (_s.is_proof ? 1 : 0)].join('|')));
+                    const _srvKeys = new Map((_server || []).map(_s =>
+                        [[(_s.coin_type || ''), String(_s.year), (_s.mint_mark || ''), (_s.is_proof ? 1 : 0)].join('|'), _s.id]));
                     const _staleRows = await db.coins_reference
                         .where('section').equals(sectionName)
-                        .filter(_r => !_serverIds.has(_r.id) &&
-                                      !_srvKeys.has([(_r.coin_type || ''), String(_r.year), (_r.mint_mark || ''), (_r.is_proof ? 1 : 0)].join('|')))
+                        .filter(_r => {
+                            if (_serverIds.has(_r.id)) return false;
+                            const _k = [(_r.coin_type || ''), String(_r.year), (_r.mint_mark || ''), (_r.is_proof ? 1 : 0)].join('|');
+                            const srvId = _srvKeys.get(_k);
+                            // keep only true orphans; if a server row with a DIFFERENT id owns
+                            // this identity, the local row is a cross-id duplicate -> purge
+                            return srvId === undefined;
+                        })
                         .toArray();
                     if (_staleRows.length > 0) {
                         await db.transaction('rw', db.coins_reference, async () => {
