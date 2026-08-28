@@ -1030,6 +1030,9 @@ function buildCoinRow(coin) {
     // section header examples and type reference, NOT for year coin fallback.
     // Respect explicit per-coin deletions: if the coin itself deleted a side,
     // show placeholder (do NOT fall back to type/section config).
+    if (window.__diagRows !== false && (coin.id === 1 || coin.id === 2 || coin.id === 3)) {
+        console.log('[diag] buildCoinRow id=' + coin.id + ' obv=' + coin.obv_image + ' del=' + coin._deleted_obv_image + ' keys=' + Object.keys(coin).slice(0,20).join(','));
+    }
     var obvSrc = coin._deleted_obv_image ? null : coin.obv_image;
     var revSrc = coin._deleted_rev_image ? null : coin.rev_image;
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
