@@ -1,14 +1,14 @@
 /**
- * userCoins.js — "Add Coin" for coins the master catalogue lacks.
+ * userCoins.js — "Add Coin" for coins the master catalog lacks.
  *
  * Use cases:
- *  - A new year passes and the shipped catalogue has no entry for it yet
+ *  - A new year passes and the shipped catalog has no entry for it yet
  *    (e.g. next year's quarters/dimes).
  *  - A year has multiple different designs (state/ATB/park quarters,
  *  - commemoratives) — add one entry per design.
- *  - The user owns a coin the catalogue simply doesn't list.
+ *  - The user owns a coin the catalog simply doesn't list.
  *
- * A user coin is a REAL catalogue row (coins_reference / coin_reference)
+ * A user coin is a REAL catalog row (coins_reference / coin_reference)
  * flagged user_added=true, so it sorts in order with its type (type → year →
  * mint), counts toward section totals/completion, can be owned, wishlisted,
  * given images, published — everything a seeded coin can do. Only user_added
@@ -59,7 +59,7 @@ export async function openAddCoinModal(sectionName) {
 
     bodyWrap.appendChild(el('p', {
         style: 'font-size: var(--font-size-xs); color: var(--color-text-muted); line-height:1.5; margin-bottom: var(--space-2);'
-    }, 'Add a coin the catalogue is missing — a brand-new year, an extra design (state/ATB/park quarters), or something unlisted. It becomes a real, sortable catalogue entry. Pick the section it belongs to first.'));
+    }, 'Add a coin the catalog is missing — a brand-new year, an extra design (state/ATB/park quarters), or something unlisted. It becomes a real, sortable catalog entry. Pick the section it belongs to first.'));
 
     // ---------- section picker (only when no fixed section) ----------
     let sectionSel = null;

@@ -207,7 +207,7 @@ async function boot() {
         // Init dashboard
         import('./portfolio.js').then(m => m.initPortfolio());
 
-        // Render the catalogue
+        // Render the catalog
         renderSections();
         initViewToggle();
         initLayoutToggle();

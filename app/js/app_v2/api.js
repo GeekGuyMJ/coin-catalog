@@ -176,7 +176,7 @@ export const deleteUserPhoto = isSelfHosted
     ? async (id) => serverFetch('/api/user_photos/' + id, { method: 'DELETE' })
     : wrap(deleteUserPhotoLocal);
 
-// User-added catalogue coins — server on self-hosted, local IndexedDB otherwise.
+// User-added catalog coins — server on self-hosted, local IndexedDB otherwise.
 export const addUserCoin = isSelfHosted
     ? async (coin) => serverFetch('/api/user_coins', {
         method: 'POST',

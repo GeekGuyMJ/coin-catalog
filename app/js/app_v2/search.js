@@ -1,7 +1,7 @@
 /**
  * search.js — Coin Catalog v2
  *
- * Search, filter, and sort for the coin catalogue.
+ * Search, filter, and sort for the coin catalog.
  * Provides real-time search across all coin fields, toggleable filter pills,
  * and sort mode switching.
  *
@@ -161,7 +161,7 @@ export async function triggerSearch() {
     const container = document.getElementById('catalog-container');
     if (!container) return;
 
-    // No active search/filters — show full catalogue
+    // No active search/filters — show full catalog
     if (!isActive) {
         renderSections();
         return;

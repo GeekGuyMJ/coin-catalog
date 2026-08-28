@@ -1,7 +1,7 @@
 /**
  * catalog.js — Coin Catalog v2
  *
- * Renders the coin catalogue: section cards with lazy-loaded type accordions.
+ * Renders the coin catalog: section cards with lazy-loaded type accordions.
  * Uses event delegation — one listener per container, never per-row.
  *
  * Flow:
@@ -54,7 +54,7 @@ export function renderSections() {
 
     const sections = getSections();
     if (!sections.length) {
-        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalogue.</p>';
+        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalog.</p>';
         return;
     }
 
@@ -104,7 +104,7 @@ export function renderSections() {
     container.style.setProperty('--folder-color', fcVal);
     container.style.setProperty('--folder-header-text', ftVal);
 
-    // Single event listener for ALL stepper clicks across the entire catalogue
+    // Single event listener for ALL stepper clicks across the entire catalog
     // Guard against duplicate attachment (renderSections can be called on search/filter)
     if (!container.dataset.clickHandler) {
         container.addEventListener('click', handleCatalogClick);
@@ -1052,22 +1052,22 @@ function buildCoinRow(coin) {
     row.appendChild(thumbWrap);
 
     var info = el("div", {className: "coin-row-info"});
-    // User-added coins get a small ✕ to remove them from the catalogue
+    // User-added coins get a small ✕ to remove them from the catalog
     if (coin.user_added) {
         var delBtn = el("span", {
             className: "user-coin-del",
-            title: "Remove this user-added coin from the catalogue",
+            title: "Remove this user-added coin from the catalog",
             role: "button",
             tabIndex: 0
         }, "✕");
         delBtn.addEventListener("click", async function(ev) {
             ev.stopPropagation();
             const userCoins = await import("./userCoins.js");
-            if (window.confirm(`Remove ${coin.coin_type} ${coin.year}${coin.mint_mark || ""} from your catalogue? Any ownership entries for it are removed too.`)) {
+            if (window.confirm(`Remove ${coin.coin_type} ${coin.year}${coin.mint_mark || ""} from your catalog? Any ownership entries for it are removed too.`)) {
                 try {
                     const { deleteUserCoin } = await import("./api.js");
                     await deleteUserCoin(coin.id);
-                    showToast("Coin removed from catalogue", "success", 2500);
+                    showToast("Coin removed from catalog", "success", 2500);
                     reloadSectionCoins(coin.section);
                 } catch (err) {
                     showToast(err.message || String(err), "error", 4000);

@@ -207,7 +207,7 @@ export async function initDb() {
     // Check if database needs seeding
     const refCount = await db.coins_reference.count();
     if (refCount === 0) {
-        console.log('IndexedDB empty. Fetching master coins catalogue from JSON...');
+        console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
         const response = await fetch(new URL('data/coins.json', document.baseURI).href);
         if (!response.ok) {
             throw new Error(`Failed to load coins.json: HTTP ${response.status}`);
@@ -2505,7 +2505,7 @@ export async function deleteUserPhotoLocal(id) {
 }
 
 // ============================================================
-// User-added catalogue coins — local (IndexedDB) persistence
+// User-added catalog coins — local (IndexedDB) persistence
 // A user coin is a real coins_reference row with user_added=true, so it
 // sorts/counts/images exactly like seeded coins everywhere in the app.
 // ============================================================
@@ -2548,7 +2548,7 @@ export async function deleteUserCoinLocal(id) {
     const coin = await db.coins_reference.get(Number(id));
     if (!coin) return { status: 'not_found', id: Number(id) };
     if (!coin.user_added) {
-        throw new Error('This coin is part of the master catalogue and cannot be deleted');
+        throw new Error('This coin is part of the master catalog and cannot be deleted');
     }
     // Remove inventory rows that point at it so no orphans remain.
     await db.user_inventory.where('coin_ref_id').equals(Number(id)).delete();
