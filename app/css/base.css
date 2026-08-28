@@ -494,3 +494,10 @@ button {
 body.cc-color-dragging * {
     transition: none !important;
 }
+/* On very narrow screens (≤480px), hide Install and Layout buttons to save space */
+@media (max-width: 480px) {
+    #btn-install,
+    #btn-layout {
+        display: none !important;
+    }
+}
