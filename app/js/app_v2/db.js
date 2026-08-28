@@ -281,7 +281,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 7;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 8;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -426,15 +426,48 @@ export async function runMigrations() {
         console.log(`  Migration 4→5: created ${created} section-qualified rows, cleared ${cleared} legacy rows.`);
     }
 
-    // Migration 5 → 6: Clean up any stale per-coin black circles (1793, 1840, 1847) from local IndexedDB
-    // so client browsers immediately purge corrupted local rows without needing a manual DB wipe.
-    if (storedVersion < 6) {
-        for (const coinId of [1, 27, 34]) {
-            const coin = await db.coins_reference.get(coinId);
-            if (coin && (coin.obv_image || coin.rev_image)) {
-                await db.coins_reference.update(coinId, { obv_image: null, rev_image: null });
-                console.log(`  Migration 5→6: Cleared stale image on coin id=${coinId}`);
+    // Migration 5 → 6: RETIRED 2026-08-28. It wiped obv/rev images on coin ids [1,27,34] to
+    // clear old corrupted 'black circle' uploads — but those ids now hold REAL curated images
+    // (1793 half cent, 1840/1847 Braided Hair). On the public app (no server) the wipe was
+    // permanent, so those coins rendered placeholders forever. Migration 7→8 below restores them.
+
+    // Migration 6 → 7: purge 'Washington Bicentennial*' rows (merged into Washington types 2026-08-28).
+    if (storedVersion < 7) {
+        const bic = await db.coins_reference
+            .filter(c => (c.coin_type || '').startsWith('Washington Bicentennial'))
+            .toArray();
+        if (bic.length > 0) {
+            await db.transaction('rw', db.coins_reference, async () => {
+                for (const _o of bic) {
+                    await db.coins_reference.delete(_o.id);
+                }
+            });
+            console.log(`  Migration 6->7: purged ${bic.length} Washington Bicentennial row(s).`);
+        }
+    }
+
+    // Migration 7 → 8: restore images on ids 1/27/34 that the retired 5→6 wipe cleared,
+    // re-seeding them from the shipped coins.json (which has the correct curated URLs).
+    if (storedVersion < 8) {
+        try {
+            const _res = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res.ok) {
+                const _seed = await _res.json();
+                const _byId = new Map(_seed.map(_s => [_s.id, _s]));
+                for (const coinId of [1, 27, 34]) {
+                    const _s = _byId.get(coinId);
+                    const _loc = await db.coins_reference.get(coinId);
+                    if (_s && _loc && !_loc._deleted_obv_image && !_loc._deleted_rev_image) {
+                        await db.coins_reference.update(coinId, {
+                            obv_image: _s.obv_image || null,
+                            rev_image: _s.rev_image || null
+                        });
+                        console.log(`  Migration 7→8: restored images on coin id=${coinId}`);
+                    }
+                }
             }
+        } catch (_e) {
+            console.warn('  Migration 7→8: seed restore skipped:', _e && _e.message);
         }
     }
 
