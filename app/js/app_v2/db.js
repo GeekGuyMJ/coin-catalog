@@ -281,7 +281,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 6;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 7;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -435,6 +435,21 @@ export async function runMigrations() {
                 await db.coins_reference.update(coinId, { obv_image: null, rev_image: null });
                 console.log(`  Migration 5→6: Cleared stale image on coin id=${coinId}`);
             }
+        }
+    }
+
+    // Migration 6 -> 7: purge 'Washington Bicentennial*' rows (merged into Washington types 2026-08-28).
+    if (storedVersion < 7) {
+        const bic = await db.coins_reference
+            .filter(c => (c.coin_type || '').startsWith('Washington Bicentennial'))
+            .toArray();
+        if (bic.length > 0) {
+            await db.transaction('rw', db.coins_reference, async () => {
+                for (const _o of bic) {
+                    await db.coins_reference.delete(_o.id);
+                }
+            });
+            console.log(`  Migration 6->7: purged ${bic.length} Washington Bicentennial row(s).`);
         }
     }
 
@@ -619,6 +634,26 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                         const _fresh2 = await db.coins_reference.where('section').equals(sectionName).toArray();
                         coins.length = 0;
                         coins.push(..._fresh2);
+                    }
+                    // STALE-ROW PURGE: delete local rows that no longer exist on the server
+                    // (matched by identity key, not just id) so renamed/merged coins never dup.
+                    const _srvKeys = new Set((_server || []).map(_s =>
+                        [(_s.coin_type || ''), String(_s.year), (_s.mint_mark || ''), (_s.is_proof ? 1 : 0)].join('|')));
+                    const _staleRows = await db.coins_reference
+                        .where('section').equals(sectionName)
+                        .filter(_r => !_serverIds.has(_r.id) &&
+                                      !_srvKeys.has([(_r.coin_type || ''), String(_r.year), (_r.mint_mark || ''), (_r.is_proof ? 1 : 0)].join('|')))
+                        .toArray();
+                    if (_staleRows.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const _o of _staleRows) {
+                                await db.coins_reference.delete(_o.id);
+                            }
+                        });
+                        console.log('[db] purged ' + _staleRows.length + ' stale coin row(s) no longer on server');
+                        const _fresh3 = await db.coins_reference.where('section').equals(sectionName).toArray();
+                        coins.length = 0;
+                        coins.push(..._fresh3);
                     }
                 }
             }
