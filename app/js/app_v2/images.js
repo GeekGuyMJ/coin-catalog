@@ -872,6 +872,21 @@ export async function executeImageAssignment(overrideParams = null) {
                     try {
                         const _host = (window.location && window.location.hostname) || '';
                         const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.') || _host === 'localhost';
+                        // Resolve target section: context -> state scan (same as self-hosted)
+                        let secName = activeContext.section || '';
+                        if (!secName && activeContext.typeStr) {
+                            const t = activeContext.typeStr;
+                            const main = t.includes(' - ') ? t.split(' - ')[0].trim()
+                                       : (t.includes(' (') ? t.split(' (')[0].trim() : t);
+                            for (const s of getSections()) {
+                                const cs = getCoinsForSection(s.section);
+                                if (cs && cs.some(c => c.coin_type === t ||
+                                        c.coin_type && c.coin_type.split(' - ')[0].trim() === main)) {
+                                    secName = s.section;
+                                    break;
+                                }
+                            }
+                        }
                         let coins;
                         if (_selfHosted) {
                             // Direct server fetch - bypass IndexedDB-first logic for immediate fresh data
@@ -884,12 +899,12 @@ export async function executeImageAssignment(overrideParams = null) {
                             }
                         } else {
                             // Public: use local (IndexedDB) path
-                            coins = await fetchCoinsForSection(activeContext.section);
+                            coins = await fetchCoinsForSection(secName);
                         }
                         // Update in-memory state
-                        setCoinsForSection(activeContext.section, coins);
+                        setCoinsForSection(secName, coins);
                         // Re-render immediately
-                        const sectionId = 'section-' + activeContext.section.replace(/[^a-zA-Z0-9]/g, '');
+                        const sectionId = 'section-' + secName.replace(/[^a-zA-Z0-9]/g, '');
                         const content = document.getElementById(sectionId + '-content');
                         if (content) {
                             const { renderTypeAccordions } = await import('./catalog.js');
@@ -1043,7 +1058,13 @@ async function loadCoinBankImages(mode, searchQ) {
             grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-text-muted);">No images match your search.</div>';
             return;
         }
-        filtered.forEach(img => {
+        // Render in chunks so 'show all' (6000+ images) paints fast instead of freezing.
+        const CHUNK = 120;
+        let _renderIdx = 0;
+        function _renderChunk() {
+            const slice = filtered.slice(_renderIdx, _renderIdx + CHUNK);
+            _renderIdx += slice.length;
+            slice.forEach(img => {
             const card = el('div', {
                 'data-bank-card': '',
                 'data-coin-type': img.coin_type || '',
@@ -1100,7 +1121,17 @@ async function loadCoinBankImages(mode, searchQ) {
                 )
             );
             grid.appendChild(card);
-        });
+            });
+            if (_renderIdx < filtered.length) {
+                const moreBtn = el('button', {
+                    className: 'btn-secondary',
+                    style: 'grid-column:1/-1; margin:0.5rem auto; display:block; padding:6px 18px; cursor:pointer;',
+                    onclick: () => { moreBtn.remove(); _renderChunk(); }
+                }, 'Show more (' + (filtered.length - _renderIdx) + ' remaining)');
+                grid.appendChild(moreBtn);
+            }
+        }
+        _renderChunk();
     } catch (err) {
         grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-danger);">Error: ${err.message}</div>`;
     }
@@ -1597,7 +1628,13 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(_t);
         const v = cbSearch.value;
         _t = setTimeout(() => {
-          loadCoinBankImages(_currentBankMode, v).catch(() => _applyBankSearchFilter());
+          if (_currentBankMode === 'context') {
+            // Current-type view: filter ONLY what is already loaded (instant).
+            _applyBankSearchFilter();
+          } else {
+            // Show-all view: re-query the whole bank server-side.
+            loadCoinBankImages(_currentBankMode, v).catch(() => _applyBankSearchFilter());
+          }
         }, 200);
       });
     }
