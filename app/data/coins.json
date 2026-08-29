@@ -1649,7 +1649,7 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 39233714,
-  "ref_notes": "Indian Head cent 1864; designed by James B. Longacre. These were America's penny for 50 years (1859–1909) and remain widely collected today."
+  "ref_notes": "1864 Indian Head cent, Bronze (No \"L\") — minted later in the year after a composition change to 95% copper and 5% tin/zinc, featuring a rounded bust and a plain ribbon tail."
  },
  {
   "id": 105,
@@ -7760,9 +7760,9 @@
   "id": 512,
   "section": "US Coinage — Large & Small Cent",
   "denomination": "1 Cent",
-  "coin_type": "Indian Head (Oak Wreath w/ Shield)",
-  "year": 1864,
-  "mint_mark": "P",
+  "coin_type": "Lincoln Memorial (Zinc)",
+  "year": 1982,
+  "mint_mark": "D",
   "metal": "88% Copper / 12% Nickel",
   "weight_grams": 4.67,
   "is_key_date": false,
@@ -7776,8 +7776,8 @@
   "section": "US Coinage — Large & Small Cent",
   "denomination": "1 Cent",
   "coin_type": "Lincoln Memorial (Zinc)",
-  "year": 1864,
-  "mint_mark": "P",
+  "year": 1982,
+  "mint_mark": "D",
   "metal": "95% Copper / 5% Tin & Zinc",
   "weight_grams": 3.11,
   "is_key_date": true,
@@ -7820,8 +7820,8 @@
   "id": 516,
   "section": "US Coinage — Large & Small Cent",
   "denomination": "1 Cent",
-  "coin_type": "Lincoln Memorial (Copper)",
-  "year": 1982,
+  "coin_type": "Indian Head Cent (Copper-Nickel)",
+  "year": 1864,
   "mint_mark": "P",
   "metal": "95% Copper / 5% Tin & Zinc",
   "weight_grams": 3.11,
@@ -7829,14 +7829,14 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 0,
-  "ref_notes": "Large Date. Lincoln Memorial cent 0; Frank Gasparro's Memorial reverse ran 1959–2008. Despite billions minted, condition rarities exist in MS65 Red and above."
+  "ref_notes": "1864 Indian Head cent, Copper-Nickel (No \"L\") — minted early in the year with an 88% copper and 12% nickel composition, featuring a rounded bust and no designer initial."
  },
  {
   "id": 517,
   "section": "US Coinage — Large & Small Cent",
   "denomination": "1 Cent",
-  "coin_type": "Lincoln Memorial (Copper)",
-  "year": 1982,
+  "coin_type": "Indian Head Cent (L on Ribbon)",
+  "year": 1864,
   "mint_mark": "P",
   "metal": "95% Copper / 5% Tin & Zinc",
   "weight_grams": 3.11,
@@ -7844,7 +7844,7 @@
   "is_proof": false,
   "is_error": false,
   "mintage": null,
-  "ref_notes": "Small Date. Lincoln Memorial cent 0; Frank Gasparro's Memorial reverse ran 1959–2008. Despite billions minted, condition rarities exist in MS65 Red and above."
+  "ref_notes": "1864 Indian Head cent, Bronze (With \"L\") — minted in the bronze composition, featuring a pointed bust and the letter \"L\" (for designer James Longacre) on the ribbon behind the Indian's head."
  },
  {
   "id": 518,
