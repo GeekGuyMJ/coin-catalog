@@ -984,6 +984,29 @@ export async function fetchTypeConfigsLocal() {
 // Spot Prices (CORS Proxy Yahoo Finance)
 // ============================================================
 
+
+// 2026-08-30: gold-api.com fallback (CORS-open, no key, all 5 metals). On the public app the
+// /yahoo-finance/ nginx proxy does not exist and public CORS proxies are dead (allorigins blocked,
+// corsproxy 401), so this is what keeps live spot prices updating outside self-hosted.
+async function _fetchGoldApiSpot(key) {
+    const symbolMap = { gold_oz: "XAU", silver_oz: "XAG", platinum_oz: "XPT", palladium_oz: "XPD", copper_lb: "HG" };
+    const sym = symbolMap[key];
+    if (!sym) return null;
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 8000);
+    try {
+        const resp = await fetch("https://api.gold-api.com/price/" + sym, { signal: ctl.signal });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        const price = parseFloat(data.price);
+        return isFinite(price) && price > 0 ? parseFloat(price.toFixed(2)) : null;
+    } catch (e) {
+        return null;
+    } finally {
+        clearTimeout(to);
+    }
+}
+
 export async function fetchSpotPricesLocal() {
     const symbolMap = {
         gold_oz: "GC=F",
@@ -1057,10 +1080,15 @@ export async function fetchSpotPricesLocal() {
                 throw new Error("API completely failed for " + symbol);
             }
         } catch (e) {
-            // Non-fatal: fall back to cached/fallback prices. Downgraded from
-            // console.warn → console.debug so the public build doesn't spam the
-            // console when live prices are unreachable offline.
-            console.debug(`[spot] ${symbol} using fallback/cache (tried: ${triedUrls.join(', ') || 'none'}).`);
+            // Yahoo chain failed (always on public — no nginx proxy; public CORS proxies dead).
+            // Try gold-api.com before giving up (2026-08-30).
+            const ga = await _fetchGoldApiSpot(key);
+            if (ga !== null) {
+                prices[key] = ga;
+                successCount++;
+            } else {
+                console.debug(`[spot] ${symbol} using fallback/cache (tried: ${triedUrls.join(', ') || 'none'}).`);
+            }
         }
     });
 
