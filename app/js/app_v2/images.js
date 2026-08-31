@@ -1492,7 +1492,12 @@ async function handleDroppedImage(file, dropZone) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// 2026-08-31 CRITICAL FIX: this block was wrapped in DOMContentLoaded, but ES modules
+    // execute AFTER that event has fired — the callback never ran, so NONE of the modal
+    // button/file-input/bank listeners were ever attached (modal buttons did nothing on
+    // every device; From Device file selection went nowhere). Execute immediately —
+    // module scripts are DOM-ready by definition.
+    (() => {
     if (window.__cc_images_events_bound) return;
     window.__cc_images_events_bound = true;
 
@@ -1729,7 +1734,7 @@ document.addEventListener('DOMContentLoaded', () => {
             import('./notifications.js').then(m => m.showToast('Please drop a valid image file.', 'error'));
         }
     });
-});
+})();
 
 // ============================================================
 // Helper Functions
