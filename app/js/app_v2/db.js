@@ -203,6 +203,40 @@ const FALLBACK_SPOT_PRICES = {
 // Master Catalog Seeding
 // ============================================================
 
+
+// 2026-08-31 RUNTIME IMAGE HEAL: browsers that wiped + re-seeded from a stale cached coins.json
+// (or pre-image seed) keep empty year-row images forever, because migrations only run once.
+// This runs at every boot (throttled to 6h) and fills EMPTY obv/rev fields from the current
+// served seed. Never overwrites local uploads; respects _deleted_* flags.
+export async function healImagesFromSeed() {
+    try {
+        const last = parseInt(localStorage.getItem('_cc_img_heal_at') || '0', 10);
+        if (Date.now() - last < 6 * 3600 * 1000) return;
+        const res = await fetch(new URL('data/coins.json', document.baseURI).href);
+        if (!res || !res.ok) return;
+        const seed = await res.json();
+        let healed = 0;
+        await db.transaction('rw', db.coins_reference, async () => {
+            for (const s of seed) {
+                if (!s.obv_image && !s.rev_image) continue;
+                const loc = await db.coins_reference.get(s.id);
+                if (!loc) continue;
+                const upd = {};
+                if (s.obv_image && !loc.obv_image && !loc._deleted_obv_image) upd.obv_image = s.obv_image;
+                if (s.rev_image && !loc.rev_image && !loc._deleted_rev_image) upd.rev_image = s.rev_image;
+                if (Object.keys(upd).length) {
+                    await db.coins_reference.update(s.id, upd);
+                    healed++;
+                }
+            }
+        });
+        localStorage.setItem('_cc_img_heal_at', String(Date.now()));
+        if (healed > 0) console.log(`[db] image heal: filled ${healed} empty row(s) from seed.`);
+    } catch (e) {
+        console.warn('[db] image heal skipped:', e && e.message);
+    }
+}
+
 export async function initDb() {
     // Check if database needs seeding
     const refCount = await db.coins_reference.count();
@@ -273,6 +307,7 @@ export async function initDb() {
 
     // Run data migrations (update existing IndexedDB data when coins.json has changed)
     await runMigrations();
+    try { healImagesFromSeed(); } catch (e) { console.warn('[db] heal error:', e); }
 }
 
 // ============================================================
