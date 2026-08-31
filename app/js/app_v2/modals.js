@@ -101,6 +101,36 @@ function updateBodyScrollLock() {
     }
 }
 
+
+// 2026-08-31 DIRECT TAP FIX: on some mobile/PWA browsers, delegated document-level click
+// handlers never fire for buttons inside legacy modals (highlight works, click does nothing).
+// After opening a modal, bind direct pointerup/touchend/click listeners on every clickable
+// descendant; each synthesizes a genuine bubbling click from the button itself, guarded
+// against double-fire. Existing delegated handlers keep working unchanged.
+function _ccDirectTapBind(modal) {
+    if (!modal || modal.dataset.ccDirectTap === '1') return;
+    modal.dataset.ccDirectTap = '1';
+    const selector = 'button, [data-action], [role="button"], input[type="button"], input[type="submit"], .user-coin-del';
+    modal.querySelectorAll(selector).forEach(el => {
+        let lastFire = 0;
+        const fire = (ev) => {
+            const now = Date.now();
+            if (now - lastFire < 500) return; // de-dupe touchend->click
+            lastFire = now;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const click = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
+            el.dispatchEvent(click);
+        };
+        el.addEventListener('touchend', fire, { passive: false });
+        el.addEventListener('pointerup', (ev) => { if (ev.pointerType !== 'touch') fire(ev); });
+        el.addEventListener('click', (ev) => {
+            // If this click came from our synthetic dispatch, let it bubble normally.
+            if (ev.isTrusted && Date.now() - lastFire < 500) { ev.preventDefault(); ev.stopPropagation(); }
+        });
+    });
+}
+
 export function openModalLegacy(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) { console.error('[modals] Modal not found:', modalId); return; }
@@ -126,6 +156,7 @@ export function openModalLegacy(modalId) {
     modal.classList.add('open');
     openModalsStack.push(modalId);
     updateBodyScrollLock();
+    try { _ccDirectTapBind(modal); } catch (e) { console.warn('[modals] direct-tap bind failed:', e); }
 }
 
 export function closeModalLegacy(modalId) {
