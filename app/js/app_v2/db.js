@@ -249,11 +249,26 @@ export async function initDb() {
         const coins = await response.json();
         console.log(`Seeding ${coins.length} coins into IndexedDB...`);
         
-        // Seed in chunks to prevent transaction overload
+        // Seed in chunks to prevent transaction overload.
+        // 2026-08-31 RESILIENCE: one bad row (e.g. null in an indexed field = invalid IndexedDB
+        // key) used to abort the WHOLE seed mid-way, silently truncating the catalog to the
+        // first N chunks (the 'coin list stops at Dime' bug). Per-chunk catch + row-level
+        // fallback keeps the rest of the catalog alive and surfaces the bad row.
         const chunkSize = 500;
         for (let i = 0; i < coins.length; i += chunkSize) {
             const chunk = coins.slice(i, i + chunkSize);
-            await db.coins_reference.bulkAdd(chunk);
+            try {
+                await db.coins_reference.bulkAdd(chunk);
+            } catch (chunkErr) {
+                console.error(`[db] seed chunk ${i}-${i + chunk.length} failed:`, chunkErr);
+                for (const coin of chunk) {
+                    try {
+                        await db.coins_reference.add(coin);
+                    } catch (rowErr) {
+                        console.error(`[db] seed row skipped id=${coin && coin.id}:`, rowErr && rowErr.message);
+                    }
+                }
+            }
         }
         console.log('Seeding completed successfully!');
     }
