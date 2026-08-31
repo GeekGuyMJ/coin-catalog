@@ -1950,11 +1950,19 @@ function _ccBindDirectModalButtons() {
     // data-action buttons are created dynamically — delegate directly on document with
     // pointerup+click pair but WITHOUT preventDefault/stopPropagation:
     document.addEventListener('click', (ev) => {
-        const el = ev.target instanceof Element ? ev.target.closest('[data-action="ii-crop"], [data-action="ii-replace"]') : null;
+        const el = ev.target instanceof Element
+            ? ev.target.closest('[data-action="ii-crop"], [data-action="ii-replace"], [data-action="close-bank"], [data-action="close-crop"], [data-action="close-replace"]')
+            : null;
         if (!el) return;
         console.log('[tap-diag] direct delegated:', el.dataset.action);
         if (el.dataset.action === 'ii-crop') openCropTool();
         if (el.dataset.action === 'ii-replace') openReplaceWorkflow();
+        if (el.dataset.action === 'close-bank') { closeModalLegacy('modal-coin-bank'); openModalLegacy('modal-replace-scope'); }
+        if (el.dataset.action === 'close-crop') { closeModalLegacy('modal-crop'); openModalLegacy('modal-replace-scope'); }
+        if (el.dataset.action === 'close-replace') {
+            closeModalLegacy('modal-replace-scope');
+            if (!activeContext.isGeneric) openModalLegacy('modal-image-interaction');
+        }
     });
 }
 try { _ccBindDirectModalButtons(); } catch (e) { console.warn('[modals] direct bind failed:', e); }
