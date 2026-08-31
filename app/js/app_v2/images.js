@@ -12,7 +12,7 @@
 import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.js';
 import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault, renameCoinBankImage as renameCoinBankImageApi } from './api.js';
 import { showToast } from './notifications.js';
-import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
+import { resolveImageUrl, el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory, getTypeConfig } from './state.js';
 import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
 import { setCoinsForSection } from './state.js';
@@ -1077,7 +1077,7 @@ async function loadCoinBankImages(mode, searchQ) {
                 }
             },
                 el('img', {
-                    src: img.filename,
+                    src: resolveImageUrl(img.filename),
                     style: 'width:100%; height:100px; object-fit:contain;',
                     onerror: function() {
                         // Hide broken type-default images that were never published

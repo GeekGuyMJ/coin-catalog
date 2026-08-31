@@ -204,9 +204,16 @@ document.addEventListener('click', function(e) {
 });
 
 document.addEventListener('click', (e) => {
-    if (e.target.dataset.action === 'close-modal') {
-        const modal = e.target.closest('.modal-overlay');
+    // 2026-08-31: closest() so clicks landing on child nodes of the close button still work
+    const closeEl = e.target instanceof Element ? e.target.closest('[data-action="close-modal"]') : null;
+    if (closeEl) {
+        const modal = closeEl.closest('.modal-overlay');
         if (modal) { closeModalLegacy(modal.id); }
+        return;
+    }
+    // Click on the dim backdrop itself also closes
+    if (e.target instanceof Element && e.target.classList.contains('modal-overlay')) {
+        closeModalLegacy(e.target.id);
     }
 });
 
