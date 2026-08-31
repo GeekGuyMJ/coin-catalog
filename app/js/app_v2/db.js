@@ -240,7 +240,7 @@ export async function healImagesFromSeed() {
 export async function initDb() {
     // Check if database needs seeding
     const refCount = await db.coins_reference.count();
-    if (refCount === 0) {
+    {
         console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
         const response = await fetch(new URL('data/coins.json', document.baseURI).href);
         if (!response.ok) {
@@ -249,23 +249,28 @@ export async function initDb() {
         const coins = await response.json();
         console.log(`Seeding ${coins.length} coins into IndexedDB...`);
         
-        // Seed in chunks to prevent transaction overload.
-        // 2026-08-31 RESILIENCE: one bad row (e.g. null in an indexed field = invalid IndexedDB
-        // key) used to abort the WHOLE seed mid-way, silently truncating the catalog to the
-        // first N chunks (the 'coin list stops at Dime' bug). Per-chunk catch + row-level
-        // fallback keeps the rest of the catalog alive and surfaces the bad row.
-        const chunkSize = 500;
-        for (let i = 0; i < coins.length; i += chunkSize) {
-            const chunk = coins.slice(i, i + chunkSize);
-            try {
-                await db.coins_reference.bulkAdd(chunk);
-            } catch (chunkErr) {
-                console.error(`[db] seed chunk ${i}-${i + chunk.length} failed:`, chunkErr);
-                for (const coin of chunk) {
-                    try {
-                        await db.coins_reference.add(coin);
-                    } catch (rowErr) {
-                        console.error(`[db] seed row skipped id=${coin && coin.id}:`, rowErr && rowErr.message);
+        // 2026-08-31 TOP-UP SEEDING: the old gate (refCount === 0) made seeding all-or-nothing.
+        // A page reload during the multi-second seed (service-worker controllerchange reload)
+        // aborted it mid-way and, because refCount was then > 0, the catalog stayed truncated
+        // forever (the 'coin list stops at Dime' bug). Now: fetch the seed every boot and add
+        // only MISSING ids — idempotent, cheap when complete, self-healing when truncated.
+        const existingIds = new Set(await db.coins_reference.toCollection().primaryKeys());
+        const missing = coins.filter(c => !existingIds.has(c.id));
+        if (missing.length > 0) {
+            console.log(`[db] top-up seeding: ${missing.length} of ${coins.length} coins missing.`);
+            const chunkSize = 500;
+            for (let i = 0; i < missing.length; i += chunkSize) {
+                const chunk = missing.slice(i, i + chunkSize);
+                try {
+                    await db.coins_reference.bulkAdd(chunk);
+                } catch (chunkErr) {
+                    console.error(`[db] seed chunk ${i}-${i + chunk.length} failed:`, chunkErr);
+                    for (const coin of chunk) {
+                        try {
+                            await db.coins_reference.add(coin);
+                        } catch (rowErr) {
+                            console.error(`[db] seed row skipped id=${coin && coin.id}:`, rowErr && rowErr.message);
+                        }
                     }
                 }
             }
