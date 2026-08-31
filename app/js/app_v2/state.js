@@ -225,10 +225,23 @@ export function getTypeConfigs()             { return _state.typeConfigs; }
  * @param {string} [section] - Optional section name for qualified lookup
  * @returns {Object|null}
  */
+// Types whose plain config row must NEVER bleed across sections (exist in 2+ sections with
+// different designs). If a section-qualified lookup misses, returning the plain row would show
+// ANOTHER section's image (e.g. Half Dime 'Draped Bust - Heraldic Eagle' header showing the
+// cent's Draped Bust photo). 2026-08-31.
+const _COLLIDING_PLAIN_TYPES = new Set([
+    'Barber', 'Braided Hair', 'Capped Bust', 'Classic Head', 'Draped Bust',
+    'Draped Bust - Heraldic Eagle', 'Draped Bust - Small Eagle', 'Flowing Hair',
+    'Seated Liberty', 'Trade Dollar',
+]);
+
 export function getTypeConfig(coinType, section) {
     if (section) {
         const qualifiedKey = section + ' — ' + coinType;
         if (_state.typeConfigs[qualifiedKey]) return _state.typeConfigs[qualifiedKey];
+        // No section-qualified row: if this is a known cross-section type, do NOT fall back
+        // to the plain key (that belongs to a different section's design).
+        if (_COLLIDING_PLAIN_TYPES.has(coinType)) return null;
     }
     return _state.typeConfigs[coinType] ?? null;
 }

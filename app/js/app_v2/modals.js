@@ -124,6 +124,14 @@ function _ccDirectTapBind(modal) {
         };
         el.addEventListener('touchend', fire, { passive: false });
         el.addEventListener('pointerup', (ev) => { if (ev.pointerType !== 'touch') fire(ev); });
+        // DIAG (2026-08-31): mark bound buttons + log every direct-tap fire so we can see
+        // whether the tap path executes on devices where modals appear dead.
+        el.dataset.ccTapBound = '1';
+        el.addEventListener('click', (ev) => {
+            if (ev.isTrusted) {
+                console.log('[tap-diag] trusted click on', el.textContent.trim().slice(0, 24) || el.id || el.dataset.action, '| bound:', el.dataset.ccTapBound);
+            }
+        }, true);
         el.addEventListener('click', (ev) => {
             // If this click came from our synthetic dispatch, let it bubble normally.
             if (ev.isTrusted && Date.now() - lastFire < 500) { ev.preventDefault(); ev.stopPropagation(); }
