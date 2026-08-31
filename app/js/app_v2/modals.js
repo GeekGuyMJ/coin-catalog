@@ -112,30 +112,16 @@ function _ccDirectTapBind(modal) {
     modal.dataset.ccDirectTap = '1';
     const selector = 'button, [data-action], [role="button"], input[type="button"], input[type="submit"], .user-coin-del';
     modal.querySelectorAll(selector).forEach(el => {
-        let lastFire = 0;
-        const fire = (ev) => {
-            const now = Date.now();
-            if (now - lastFire < 500) return; // de-dupe touchend->click
-            lastFire = now;
-            ev.preventDefault();
-            ev.stopPropagation();
-            const click = new MouseEvent('click', { bubbles: true, cancelable: true, view: window });
-            el.dispatchEvent(click);
-        };
-        el.addEventListener('touchend', fire, { passive: false });
-        el.addEventListener('pointerup', (ev) => { if (ev.pointerType !== 'touch') fire(ev); });
-        // DIAG (2026-08-31): mark bound buttons + log every direct-tap fire so we can see
-        // whether the tap path executes on devices where modals appear dead.
+        // 2026-08-31 v142: the v137 synthetic-tap layer (touchend/pointerup -> synthetic click
+        // + trusted-click swallow) BLOCKED real clicks on desktop: preventDefault on pointerup
+        // cancels the browser's own click, and the stopPropagation guard swallowed it. Removed.
+        // What remains: passive diagnostics + the delegated handlers in images.js (unchanged).
         el.dataset.ccTapBound = '1';
         el.addEventListener('click', (ev) => {
             if (ev.isTrusted) {
                 console.log('[tap-diag] trusted click on', el.textContent.trim().slice(0, 24) || el.id || el.dataset.action, '| bound:', el.dataset.ccTapBound);
             }
         }, true);
-        el.addEventListener('click', (ev) => {
-            // If this click came from our synthetic dispatch, let it bubble normally.
-            if (ev.isTrusted && Date.now() - lastFire < 500) { ev.preventDefault(); ev.stopPropagation(); }
-        });
     });
 }
 

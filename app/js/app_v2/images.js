@@ -1917,3 +1917,44 @@ function handleZoom(val) {
     cropOffY = cy - (cy - cropOffY) * (newH / oldH);
     drawCropCanvas();
 }
+// 2026-08-31 v142: direct onclick bindings for the core image-modal buttons. These are the
+// primitive, non-delegated mechanism — immune to any delegation/interception issue. The
+// delegated document handler below remains as backup (idempotent: both call the same fns).
+function _ccBindDirectModalButtons() {
+    const map = {
+        'btn-upload-file': () => triggerFileUpload(),
+        'btn-open-bank': () => openCoinBankModal(),
+        'btn-take-photo': () => { const el = document.getElementById('ii-camera-input'); if (el) el.click(); },
+        'btn-execute-assign': () => executeImageAssignment(),
+        'ii-btn-remove': () => removeCurrentImage(),
+        'ii-btn-save': () => saveCurrentImage(),
+        'ii-btn-reset-master': () => resetToMaster(),
+        'ii-btn-promote-default': () => promoteToDefaultHandler(),
+    };
+    for (const [id, fn] of Object.entries(map)) {
+        const bind = () => {
+            const el = document.getElementById(id);
+            if (el && !el.dataset.ccDirect) {
+                el.dataset.ccDirect = '1';
+                el.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    console.log('[tap-diag] direct handler:', id);
+                    fn();
+                });
+            }
+        };
+        bind();
+        // Re-bind when the element appears later (modals are static in index.html, but be safe)
+        setTimeout(bind, 1500);
+    }
+    // data-action buttons are created dynamically — delegate directly on document with
+    // pointerup+click pair but WITHOUT preventDefault/stopPropagation:
+    document.addEventListener('click', (ev) => {
+        const el = ev.target instanceof Element ? ev.target.closest('[data-action="ii-crop"], [data-action="ii-replace"]') : null;
+        if (!el) return;
+        console.log('[tap-diag] direct delegated:', el.dataset.action);
+        if (el.dataset.action === 'ii-crop') openCropTool();
+        if (el.dataset.action === 'ii-replace') openReplaceWorkflow();
+    });
+}
+try { _ccBindDirectModalButtons(); } catch (e) { console.warn('[modals] direct bind failed:', e); }
