@@ -281,7 +281,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 8;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 9;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -483,6 +483,38 @@ export async function runMigrations() {
                 }
             });
             console.log(`  Migration 6->7: purged ${bic.length} Washington Bicentennial row(s).`);
+        }
+    }
+
+
+    // Migration 8 → 9 (2026-08-30): heal stale local rows whose obv/rev images exist in the
+    // shipped coins.json but are empty locally (public browsers seeded before images were
+    // uploaded/published never re-read the seed). Fill EMPTY fields only — never overwrite
+    // a local upload or an explicit deletion.
+    if (storedVersion < 9) {
+        try {
+            const _res9 = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res9 && _res9.ok) {
+                const _seed9 = await _res9.json();
+                let _healed = 0;
+                await db.transaction('rw', db.coins_reference, async () => {
+                    for (const _s of _seed9) {
+                        if (!_s.obv_image && !_s.rev_image) continue;
+                        const _loc = await db.coins_reference.get(_s.id);
+                        if (!_loc) continue;
+                        const upd = {};
+                        if (_s.obv_image && !_loc.obv_image && !_loc._deleted_obv_image) upd.obv_image = _s.obv_image;
+                        if (_s.rev_image && !_loc.rev_image && !_loc._deleted_rev_image) upd.rev_image = _s.rev_image;
+                        if (Object.keys(upd).length) {
+                            await db.coins_reference.update(_s.id, upd);
+                            _healed++;
+                        }
+                    }
+                });
+                console.log(`  Migration 8→9: healed images on ${_healed} coin row(s).`);
+            }
+        } catch (_e) {
+            console.warn('  Migration 8→9 skipped:', _e && _e.message);
         }
     }
 
