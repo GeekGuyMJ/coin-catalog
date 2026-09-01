@@ -18,7 +18,7 @@
  * @module album
  */
 
-import {
+import { resolveImageUrl,
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
     typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark,
     formatMintage, isSpecialReverse
@@ -358,7 +358,7 @@ function renderAlbumGrid(container, sectionName, coins) {
         const thumbWrap = el('div', { className: 'album-type-thumb' });
         if (cfg.obv_image) {
             const img = el('img', {
-                src: cfg.obv_image,
+                src: resolveImageUrl(cfg.obv_image),
                 alt: mainType,
                 loading: 'lazy',
                 dataset: { action: 'view-img', type: mainType, side: 'obv' },
@@ -427,8 +427,8 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
     }
     
     // Prefer the coin's own uploaded image (per-coin), then fall back to the type-config default.
-    const obvImg = coin.obv_image || (specificCfg && specificCfg.obv_image) || mainCfg.obv_image;
-    const revImg = coin.rev_image || (specificCfg && specificCfg.rev_image) || mainCfg.rev_image;
+    const obvImg = resolveImageUrl(coin.obv_image || (specificCfg && specificCfg.obv_image) || mainCfg.obv_image);
+    const revImg = resolveImageUrl(coin.rev_image || (specificCfg && specificCfg.rev_image) || mainCfg.rev_image);
     let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
     if (displayImg && !displayImg.includes('?')) {
         displayImg += '?v=2';

@@ -1147,9 +1147,9 @@ export async function fetchSpotPricesLocal() {
                 controller = new AbortController();
                 timeoutId = setTimeout(() => controller.abort(), 4000);
                 if (!getIsSelfHosted()) {
-                    triedUrls.push(publicProxyUrl);
-                    try { resp = await fetch(publicProxyUrl, { signal: controller.signal }); }
-                    catch (e) { resp = null; }
+                    // 2026-08-31: corsproxy.io 401s (needs API key) — skip it; gold-api.com
+                    // fallback below covers public live prices. Avoids 5x 401 console spam.
+                    triedUrls.push('gold-api-fallback');
                 } else {
                     triedUrls.push(backupUrl);
                     try { resp = await fetch(backupUrl, { signal: controller.signal }); }
@@ -1198,6 +1198,25 @@ export async function fetchSpotPricesLocal() {
             }));
         } catch(e) {}
     }
+
+
+    // 2026-08-31 SELF-RECORDED HISTORY: persist a daily snapshot so the spot-history chart
+    // can fall back to our OWN records when the live upstream is unreachable (public build).
+    try {
+        const hist = JSON.parse(localStorage.getItem('cc-spot-history') || '{}');
+        const today = new Date().toISOString().slice(0, 10);
+        hist[today] = {
+            gold_oz: prices.gold_oz,
+            silver_oz: prices.silver_oz,
+            copper_lb: prices.copper_lb,
+            platinum_oz: prices.platinum_oz,
+            palladium_oz: prices.palladium_oz,
+        };
+        // keep ~400 days
+        const keys = Object.keys(hist).sort();
+        while (keys.length > 400) delete hist[keys.shift()];
+        localStorage.setItem('cc-spot-history', JSON.stringify(hist));
+    } catch (e) {}
 
     return prices;
 }
@@ -1287,8 +1306,27 @@ export async function fetchSpotHistoryLocal(period) {
         }
     }
     
-    // Fallback to cache entirely if fetch failed
-    return cached ? cached.data : {};
+    // Fallback 1: cache. Fallback 2 (2026-08-31): our OWN self-recorded daily snapshots
+    // (cc-spot-history) — so the chart still shows real recorded data when the live upstream
+    // and the response cache are both unavailable (public build).
+    if (cached && cached.data) return cached.data;
+    try {
+        const hist = JSON.parse(localStorage.getItem('cc-spot-history') || '{}');
+        const keys = Object.keys(hist).sort();
+        if (keys.length >= 2) {
+            const series = {};
+            for (const key of Object.keys(symbolMap)) {
+                series[key] = keys
+                    .map(d => ({ t: new Date(d + 'T00:00:00Z').getTime(), v: hist[d][key] }))
+                    .filter(pt => pt.v != null && isFinite(pt.v));
+            }
+            if (Object.values(series).some(arr => arr.length >= 2)) {
+                console.log('[spot] history: using self-recorded daily snapshots.');
+                return series;
+            }
+        }
+    } catch (e) {}
+    return {};
 }
 
 // ============================================================
