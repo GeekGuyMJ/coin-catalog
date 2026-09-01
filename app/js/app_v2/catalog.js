@@ -2366,3 +2366,6 @@ export async function openPublishSectionModal(sectionName) {
         }
     });
 }
+
+// 2026-08-31: registry for circular-import-safe access
+window.__ccCatalog = { renderTypeAccordions };

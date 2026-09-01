@@ -907,7 +907,9 @@ export async function executeImageAssignment(overrideParams = null) {
                         const sectionId = 'section-' + secName.replace(/[^a-zA-Z0-9]/g, '');
                         const content = document.getElementById(sectionId + '-content');
                         if (content) {
-                            const { renderTypeAccordions } = await import('./catalog.js');
+                            // 2026-08-31: circular-import-safe access (catalog<->images cycle)
+                            const _wcc = window.__ccCatalog || {};
+                            const _rta = _wcc.renderTypeAccordions;
                             renderTypeAccordions(content, coins);
                         } else {
                             console.warn('[images] Section content not found for', sectionId);
@@ -921,7 +923,9 @@ export async function executeImageAssignment(overrideParams = null) {
                             const sectionId = 'section-' + activeContext.section.replace(/[^a-zA-Z0-9]/g, '');
                             const content = document.getElementById(sectionId + '-content');
                             if (content) {
-                                const { renderTypeAccordions } = await import('./catalog.js');
+                                // 2026-08-31: circular-import-safe access (catalog<->images cycle)
+                                const _wcc = window.__ccCatalog || {};
+                                const _rta = _wcc.renderTypeAccordions;
                                 renderTypeAccordions(content, coins);
                             }
                         } catch (fbErr) {

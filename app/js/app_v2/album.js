@@ -705,7 +705,7 @@ window.addEventListener('cc-inventory-updated', async () => {
     // Preserve scroll position to prevent page jump
     const scrollY = window.scrollY;
 
-    if (_activeContainer && _activeSection) {
+    if (typeof _activeContainer !== 'undefined' && _activeContainer && _activeSection) {
         await renderAlbum(_activeSection);
     }
 
