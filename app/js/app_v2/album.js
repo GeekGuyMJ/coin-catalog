@@ -117,8 +117,8 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
         if (!_repRev && _c.rev_image) _repRev = _c.rev_image;
         if (_repObv && _repRev) break;
     }
-    const _exObv = cfg.obv_image || _repObv;
-    const _exRev = cfg.rev_image || _repRev;
+    const _exObv = resolveImageUrl(cfg.obv_image || _repObv);
+    const _exRev = resolveImageUrl(cfg.rev_image || _repRev);
 
     // Obv Example
     const obvHole = el('div', { className: 'album-hole owned example-hole' });
@@ -701,6 +701,32 @@ function _coinTooltip(coin, qty) {
 // Dynamic updates — keep album grid in sync with inventory/image changes
 // ============================================================
 
+
+// 2026-09-01 JUMP FIX: update a single coin's album hole(s) in place instead of re-rendering
+// the whole grid (full re-render shifts layout → the page visibly jumps on every click).
+async function _ccUpdateHoleInPlace(coinId) {
+    if (coinId == null) return false;
+    let updated = false;
+    const coinStr = String(coinId);
+    document.querySelectorAll('.album-hole[data-coin-id="' + coinStr + '"]').forEach(hole => {
+        const typeWrapper = hole.closest('.type-wrapper');
+        const sectionCard = hole.closest('.section-card');
+        const container = hole.closest('.type-content');
+        if (!typeWrapper || !sectionCard || !container) return;
+        const secName = sectionCard.dataset.section;
+        const header = typeWrapper.querySelector('.type-header');
+        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
+        const coins = getCoinsForSection(secName) || [];
+        const coin = coins.find(c => String(c.id) === coinStr);
+        if (!coin) return;
+        const cfg = getTypeConfig(coin.coin_type, secName) || {};
+        const fresh = buildCoinHole(coin, cfg);
+        hole.replaceWith(fresh);
+        updated = true;
+    });
+    return updated;
+}
+
 window.addEventListener('cc-inventory-updated', async () => {
     // Preserve scroll position to prevent page jump
     const scrollY = window.scrollY;
@@ -796,9 +822,10 @@ window.addEventListener('cc-settings-changed', (e) => {
     }
 });
 
-window.addEventListener('cc-inventory-updated', (e) => {
+window.addEventListener('cc-inventory-updated', async (e) => {
     const detail = (e && e.detail) || {};
     const changedId = detail.coinId;
+    if (await _ccUpdateHoleInPlace(changedId)) return;
     const gridArea = document.getElementById('album-grid-area');
     if (gridArea && _activeSection) {
         const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);

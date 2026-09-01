@@ -994,13 +994,11 @@ function buildBullionCard(items, p, prices) {
     [['oz','oz'],['ozt','troy oz'],['g','g'],['lbs','lbs'],['kg','kg']].forEach(function(u) {
         unitSel.appendChild(el('option', { value: u[0] }, u[1]));
     });
-    var purityIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', min: '0.01', max: '1', value: '1.0', placeholder: 'Purity', dataset: { field: 'rb-purity' }, style: 'width:60px;' });
     // Group weight + unit
     var wgtWrap2 = el('div', { style: 'display:flex; align-items:flex-end; gap:2px; flex:1; min-width:120px;' });
     wgtWrap2.appendChild(wgtIn);
     wgtWrap2.appendChild(unitSel);
     row2.appendChild(wgtWrap2);
-    row2.appendChild(purityIn);
     form.appendChild(row2);
 
     // Notes
@@ -1013,7 +1011,7 @@ function buildBullionCard(items, p, prices) {
     addBtn._metalSel = metalSel;
     addBtn._wgtIn = wgtIn;
     addBtn._unitSel = unitSel;
-    addBtn._purityIn = purityIn;
+    addBtn._purityIn = null;
     addBtn._notesIn = notesIn;
     addBtn._prices = prices;
     form.appendChild(addBtn);
@@ -2174,7 +2172,7 @@ document.addEventListener('click', async function(e) {
                 metal_type: rbMetalSel.value,
                 weight: w,
                 weight_unit: unit,
-                purity: parseFloat(rbPurityIn.value) || 1.0,
+                purity: 1.0,
                 notes: (rbNotesIn.value || '').trim()
             });
             var freshRb = await fetchRawBullion();
