@@ -117,8 +117,10 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
         if (!_repRev && _c.rev_image) _repRev = _c.rev_image;
         if (_repObv && _repRev) break;
     }
-    const _exObv = resolveImageUrl(cfg.obv_image || _repObv);
-    const _exRev = resolveImageUrl(cfg.rev_image || _repRev);
+    // 2026-09-01 GHOST FIX: after a type-level deletion (_deleted flags), do NOT fall back
+    // to per-coin example images — that made deleted images reappear ("keep coming back").
+    const _exObv = cfg._deleted_obv_image ? null : resolveImageUrl(cfg.obv_image || _repObv);
+    const _exRev = cfg._deleted_rev_image ? null : resolveImageUrl(cfg.rev_image || _repRev);
 
     // Obv Example
     const obvHole = el('div', { className: 'album-hole owned example-hole' });
