@@ -1272,7 +1272,7 @@ export async function fetchSpotHistoryLocal(period) {
                 controller = new AbortController();
                 timeoutId = setTimeout(() => controller.abort(), 6000);
                 if (!getIsSelfHosted()) {
-                    try { resp = await fetch(publicProxyUrl, { signal: controller.signal }); } catch (e) { resp = null; }
+                    // 2026-09-01: corsproxy 401s; skip — self-recorded history covers public.
                 } else {
                     try { resp = await fetch(backupUrl, { signal: controller.signal }); } catch (e) { resp = null; }
                 }
@@ -2240,9 +2240,12 @@ export async function fetchCoinBankImagesLocal(params = {}) {
     var q = params.get ? params.get('q') : (params.q || null);
 
     // On self-hosted: try fetching the server-authoritative Coin Bank list (scans filesystem + DB)
+    // 2026-09-01: gate on self-hosted — on GitHub Pages this raw /api call always 404s.
+    const _hostBank = (window.location && window.location.hostname) || '';
+    const _selfHostedBank = _hostBank.includes('opaleye-bluegill') || _hostBank.includes('ts.net') || _hostBank.includes('192.168.') || _hostBank === 'localhost';
     try {
         const _native = window.__nativeFetch || window.fetch;
-        if (typeof _native === 'function') {
+        if (_selfHostedBank && typeof _native === 'function') {
             const search = new URLSearchParams();
             if (coin_type) search.set('coin_type', coin_type);
             if (side) search.set('side', side);

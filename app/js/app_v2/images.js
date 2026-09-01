@@ -910,7 +910,7 @@ export async function executeImageAssignment(overrideParams = null) {
                             // 2026-08-31: circular-import-safe access (catalog<->images cycle)
                             const _wcc = window.__ccCatalog || {};
                             const _rta = _wcc.renderTypeAccordions;
-                            renderTypeAccordions(content, coins);
+                            if (typeof _rta === 'function') _rta(content, coins); else console.warn('[images] RTA unavailable, skipping re-render');
                         } else {
                             console.warn('[images] Section content not found for', sectionId);
                         }
@@ -926,7 +926,7 @@ export async function executeImageAssignment(overrideParams = null) {
                                 // 2026-08-31: circular-import-safe access (catalog<->images cycle)
                                 const _wcc = window.__ccCatalog || {};
                                 const _rta = _wcc.renderTypeAccordions;
-                                renderTypeAccordions(content, coins);
+                                if (typeof _rta === 'function') _rta(content, coins); else console.warn('[images] RTA unavailable, skipping re-render');
                             }
                         } catch (fbErr) {
                             console.warn('[images] Fallback fetch also failed:', fbErr);
