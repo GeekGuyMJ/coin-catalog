@@ -459,16 +459,25 @@ function showPrivacy() {
 function showDonate() {
     const body = el('div', { className: 'info-content' });
     body.appendChild(el('h2', { className: 'info-title' }, 'Support This App'));
-    body.appendChild(el('p', { className: 'info-sub' }, 'This app is completely free. If you find it useful and want to support its development, donations are greatly appreciated.'));
+    body.appendChild(el('p', { className: 'info-sub' }, 'This web app is completely free. If you find it useful and want to support its development, you can grab the paid app on the Google Play Store or send a donation.'));
     
     const donateUrl = localStorage.getItem('cc-donate-url') || 'https://paypal.me/mattejenkins';
+    const playStoreUrl = 'https://play.google.com/store/apps/details?id=com.geekguymj.coincatalog';
     const buttons = el('div', { style: 'display:flex; flex-direction:column; gap:12px; margin-top: var(--space-4);' });
+    
+    buttons.appendChild(el('a', { 
+        href: playStoreUrl, 
+        target: '_blank', 
+        rel: 'noopener',
+        className: 'btn-primary',
+        style: 'display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 24px; text-decoration:none; font-size:1rem;'
+    }, 'Get the App on Google Play'));
     
     buttons.appendChild(el('a', { 
         href: donateUrl, 
         target: '_blank', 
         rel: 'noopener',
-        className: 'btn-primary',
+        className: 'btn-secondary',
         style: 'display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 24px; text-decoration:none; font-size:1rem;'
     }, 'Donate with PayPal'));
     
