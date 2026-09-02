@@ -291,6 +291,44 @@ export async function initDb() {
         } catch (purgeErr) {
             console.warn('[db] stale purge skipped:', purgeErr && purgeErr.message);
         }
+        // 2026-09-02 IDENTITY-DRIFT REPAIR (public): rows whose id EXISTS but whose
+        // type/year/mint no longer match the seed are stale remnants of older seeds (they
+        // render in wrong spots with wrong images). For those rows only, take the seed's
+        // identity AND images (they were never user-assigned content — the row itself is
+        // wrong). Rows matching the seed identity are left untouched (user assignments safe).
+        try {
+            const seedMap = new Map(coins.map(c => [c.id, c]));
+            const drifted = [];
+            for (const r of allRows) {
+                if (r.user_added) continue;
+                const sc = seedMap.get(r.id);
+                if (!sc) continue;
+                if ((r.coin_type || '') !== (sc.coin_type || '') ||
+                    String(r.year ?? '') !== String(sc.year ?? '') ||
+                    (r.mint_mark || '') !== (sc.mint_mark || '')) {
+                    drifted.push({ stale: r, seed: sc });
+                }
+            }
+            if (drifted.length > 0) {
+                await db.transaction('rw', db.coins_reference, async () => {
+                    for (const d0 of drifted) {
+                        await db.coins_reference.put({
+                            ...d0.stale,
+                            coin_type: d0.seed.coin_type,
+                            year: d0.seed.year,
+                            mint_mark: d0.seed.mint_mark,
+                            obv_image: d0.seed.obv_image || null,
+                            rev_image: d0.seed.rev_image || null,
+                            _deleted_obv_image: false,
+                            _deleted_rev_image: false
+                        });
+                    }
+                });
+                console.log(`[db] identity-drift repair: corrected ${drifted.length} stale row(s) from seed.`);
+            }
+        } catch (driftErr) {
+            console.warn('[db] drift repair skipped:', driftErr && driftErr.message);
+        }
         console.log('Seeding completed successfully!');
     }
 
