@@ -329,6 +329,51 @@ export async function initDb() {
         } catch (driftErr) {
             console.warn('[db] drift repair skipped:', driftErr && driftErr.message);
         }
+        // 2026-09-02 FULL RECONCILIATION (public): even when identity matches, older seeds
+        // left rows with stale image pointers (files that no longer exist) and stale
+        // sections. Rebuild every non-user_added row from the current seed, preserving only
+        // genuine user uploads (data: base64 images) and user deletions... user deletions
+        // are honored by the merge/heal elsewhere; here seed is authoritative because on
+        // public the seed IS the published truth from self-hosted.
+        try {
+            const seedMap2 = new Map(coins.map(c => [c.id, c]));
+            const rebuilds = [];
+            for (const r of allRows) {
+                if (r.user_added) continue;
+                const sc = seedMap2.get(r.id);
+                if (!sc) continue;
+                const keepObv = typeof r.obv_image === 'string' && r.obv_image.startsWith('data:') ? r.obv_image : (sc.obv_image || null);
+                const keepRev = typeof r.rev_image === 'string' && r.rev_image.startsWith('data:') ? r.rev_image : (sc.rev_image || null);
+                if ((r.coin_type || '') !== (sc.coin_type || '') ||
+                    String(r.year ?? '') !== String(sc.year ?? '') ||
+                    (r.mint_mark || '') !== (sc.mint_mark || '') ||
+                    (r.section || '') !== (sc.section || '') ||
+                    (r.obv_image || '') !== (keepObv || '') ||
+                    (r.rev_image || '') !== (keepRev || '')) {
+                    rebuilds.push({ id: r.id, sc, keepObv, keepRev });
+                }
+            }
+            if (rebuilds.length > 0) {
+                await db.transaction('rw', db.coins_reference, async () => {
+                    for (const rb of rebuilds) {
+                        await db.coins_reference.update(rb.id, {
+                            coin_type: rb.sc.coin_type,
+                            year: rb.sc.year,
+                            mint_mark: rb.sc.mint_mark,
+                            section: rb.sc.section,
+                            denomination: rb.sc.denomination,
+                            obv_image: rb.keepObv,
+                            rev_image: rb.keepRev,
+                            _deleted_obv_image: false,
+                            _deleted_rev_image: false
+                        });
+                    }
+                });
+                console.log(`[db] data reconciliation: rebuilt ${rebuilds.length} row(s) from published seed.`);
+            }
+        } catch (reconErr) {
+            console.warn('[db] reconciliation skipped:', reconErr && reconErr.message);
+        }
         console.log('Seeding completed successfully!');
     }
 
