@@ -8084,8 +8084,8 @@
     "coin_type": "Three Cent Nickel",
     "base_price": 20.0,
     "key_price": 90.0,
-    "obv_image": "/data/images/types/three-cent-nickel.obv.recovered.jpg",
-    "rev_image": "/data/images/types/three-cent-nickel.rev.recovered.jpg",
+    "obv_image": "/data/images/types/master/three-cent-nickel.obv.jpg",
+    "rev_image": "/data/images/types/master/three-cent-nickel.rev.jpg",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -8154,8 +8154,8 @@
     "coin_type": "Two Cent Piece",
     "base_price": 25.0,
     "key_price": 120.0,
-    "obv_image": "/data/images/types/master/two-cent-piece.obv.jpg",
-    "rev_image": "/data/images/types/master/two-cent-piece.rev.jpg",
+    "obv_image": "/data/images/types/two-cent-piece.obv.recovered.jpg",
+    "rev_image": "/data/images/types/two-cent-piece.rev.recovered.jpg",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -12004,8 +12004,8 @@
     "coin_type": "Three Cent Silver (Trime)",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": null,
-    "rev_image": "/data/images/types/three-cent-silver-trime.rev.recovered.jpg",
+    "obv_image": "/data/images/types/master/three-cent-silver-trime.obv.webp",
+    "rev_image": "/data/images/types/master/three-cent-silver-trime.rev.jpg",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13714,8 +13714,8 @@
     "coin_type": "US Coinage \u2014 Two Cent \u2014 Two Cent Piece",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/master/us-coinage-\u2014-two-cent-\u2014-two-cent-piece.obv.jpg",
-    "rev_image": "/data/images/types/master/us-coinage-\u2014-two-cent-\u2014-two-cent-piece.rev.jpg",
+    "obv_image": "/data/images/coins/ref_545_two-cent-piece-1873-obv-proof_c2dbfd.jpg",
+    "rev_image": "/data/images/coins/ref_545_two-cent-piece-1873-rev-proof_997413.jpg",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13724,8 +13724,48 @@
     "coin_type": "US Coinage \u2014 Two Cent \u2014 US Coinage \u2014 Two Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/types/master/us-coinage-\u2014-two-cent-\u2014-us-coinage-\u2014-two-cent.obv.jpg",
-    "rev_image": "/data/images/types/master/us-coinage-\u2014-two-cent-\u2014-us-coinage-\u2014-two-cent.rev.jpg",
+    "obv_image": "/data/images/coins/ref_type_us-coinage-\u2014-two-cent-obv_d927f9.jpg",
+    "rev_image": "/data/images/coins/ref_type_us-coinage-\u2014-two-cent-rev_078413.jpg",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1391,
+    "coin_type": "US Coinage \u2014 Three Cent \u2014 US Coinage \u2014 Three Cent",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-us-coinage-\u2014-three-cent.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-us-coinage-\u2014-three-cent.rev.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1392,
+    "coin_type": "US Coinage \u2014 Three Cent \u2014 Three Cent Nickel",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-three-cent-nickel.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-three-cent-nickel.rev.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1393,
+    "coin_type": "US Coinage \u2014 Three Cent \u2014 Three Cent Silver",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-three-cent-silver.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-three-cent-silver.rev.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1394,
+    "coin_type": "US Coinage \u2014 Three Cent \u2014 Three Cent Silver (Trime)",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-three-cent-silver-trime.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-three-cent-silver-trime.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   }

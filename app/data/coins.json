@@ -9260,7 +9260,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 11400000,
-  "ref_notes": "Type I"
+  "ref_notes": "Type I",
+  "obv_image": "/data/images/coins/ref_546_three-cent-silver-trime-1851-obv_41458c.webp",
+  "rev_image": "/data/images/coins/ref_546_three-cent-silver-trime-1851-rev_53e2c5.webp"
  },
  {
   "id": 547,
@@ -9275,7 +9277,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 671000,
-  "ref_notes": "Type II; 90% silver; low mintage"
+  "ref_notes": "Type II; 90% silver; low mintage",
+  "obv_image": "/data/images/coins/ref_547_three-cent-silver-trime-1851-obv-O_910604.webp",
+  "rev_image": "/data/images/coins/ref_547_three-cent-silver-trime-1851-rev-O_b5aeb3.webp"
  },
  {
   "id": 548,
@@ -9290,7 +9294,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 139000,
-  "ref_notes": "Type II; very low mintage; key date"
+  "ref_notes": "Type II; very low mintage; key date",
+  "obv_image": "/data/images/coins/ref_548_three-cent-silver-trime-1852-obv_cc45ba.webp",
+  "rev_image": "/data/images/coins/ref_548_three-cent-silver-trime-1852-rev_bd44a7.webp"
  },
  {
   "id": 549,
@@ -9305,7 +9311,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1458000,
-  "ref_notes": "Type II"
+  "ref_notes": "Type II",
+  "obv_image": "/data/images/coins/ref_549_three-cent-silver-trime-1853-obv_6ec265.webp",
+  "rev_image": "/data/images/coins/ref_549_three-cent-silver-trime-1853-rev_627ea7.webp"
  },
  {
   "id": 550,
@@ -9320,7 +9328,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1042000,
-  "ref_notes": "Type II"
+  "ref_notes": "Type II",
+  "obv_image": "/data/images/coins/ref_550_three-cent-silver-trime-1854-obv_7c6399.webp",
+  "rev_image": "/data/images/coins/ref_550_three-cent-silver-trime-1854-rev_dd04dc.webp"
  },
  {
   "id": 551,
@@ -9335,7 +9345,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1603700,
-  "ref_notes": "Type II"
+  "ref_notes": "Type II",
+  "obv_image": "/data/images/coins/ref_551_three-cent-silver-trime-1855-obv_676075.webp",
+  "rev_image": "/data/images/coins/ref_551_three-cent-silver-trime-1855-rev_f095ac.webp"
  },
  {
   "id": 552,
@@ -9350,7 +9362,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 364200,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_552_three-cent-silver-trime-1856-obv_868abb.webp",
+  "rev_image": "/data/images/coins/ref_552_three-cent-silver-trime-1856-rev_3a7a7a.webp"
  },
  {
   "id": 553,
@@ -9365,7 +9379,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 286000,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_553_three-cent-silver-trime-1857-obv_327031.webp",
+  "rev_image": "/data/images/coins/ref_553_three-cent-silver-trime-1857-rev_703106.webp"
  },
  {
   "id": 554,
@@ -9380,7 +9396,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 497000,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_554_three-cent-silver-trime-1858-obv_2d97f1.webp",
+  "rev_image": "/data/images/coins/ref_554_three-cent-silver-trime-1858-rev_3a414f.webp"
  },
  {
   "id": 555,
@@ -9395,7 +9413,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 361000,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_555_three-cent-silver-trime-1859-obv_5a132a.webp",
+  "rev_image": "/data/images/coins/ref_555_three-cent-silver-trime-1859-rev_3b5495.webp"
  },
  {
   "id": 556,
@@ -9410,7 +9430,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 21000,
-  "ref_notes": "Type III; low mintage; mostly proofs"
+  "ref_notes": "Type III; low mintage; mostly proofs",
+  "obv_image": "/data/images/coins/ref_556_three-cent-silver-trime-1860-obv_8907f4.webp",
+  "rev_image": "/data/images/coins/ref_556_three-cent-silver-trime-1860-rev_54714d.webp"
  },
  {
   "id": 557,
@@ -9425,7 +9447,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 12000,
-  "ref_notes": "Type III; low mintage"
+  "ref_notes": "Type III; low mintage",
+  "obv_image": "/data/images/coins/ref_557_three-cent-silver-trime-1861-obv_33cbd0.webp",
+  "rev_image": "/data/images/coins/ref_557_three-cent-silver-trime-1861-rev_9bb5e4.webp"
  },
  {
   "id": 558,
@@ -9440,7 +9464,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 8000,
-  "ref_notes": "Type III; very low mintage"
+  "ref_notes": "Type III; very low mintage",
+  "obv_image": "/data/images/coins/ref_558_three-cent-silver-trime-1862-obv_3981c8.webp",
+  "rev_image": "/data/images/coins/ref_558_three-cent-silver-trime-1862-rev_aef77f.webp"
  },
  {
   "id": 559,
@@ -9455,7 +9481,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 11382000,
-  "ref_notes": "The three-cent nickel was introduced to replace the silver trime, which had been hoarded. It's also notable as the first US coin to not contain any precious metal \u2014 75% copper / 25% nickel. The design by James B. Longacre features a simple Liberty head with no stars."
+  "ref_notes": "The three-cent nickel was introduced to replace the silver trime, which had been hoarded. It's also notable as the first US coin to not contain any precious metal \u2014 75% copper / 25% nickel. The design by James B. Longacre features a simple Liberty head with no stars.",
+  "obv_image": "/data/images/coins/ref_559_three-cent-silver-trime-1863-obv_059acd.webp",
+  "rev_image": "/data/images/coins/ref_559_three-cent-silver-trime-1863-rev_0b53e9.webp"
  },
  {
   "id": 560,
@@ -9470,7 +9498,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 22000,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_560_three-cent-silver-trime-1864-obv_4ca297.webp",
+  "rev_image": "/data/images/coins/ref_560_three-cent-silver-trime-1864-rev_332d98.webp"
  },
  {
   "id": 561,
@@ -9485,7 +9515,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 4801000,
-  "ref_notes": "Three-cent coin 1866; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1866; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_561_three-cent-silver-trime-1865-obv_7fe0fd.webp",
+  "rev_image": "/data/images/coins/ref_561_three-cent-silver-trime-1865-rev_83e6cf.webp"
  },
  {
   "id": 562,
@@ -9500,7 +9532,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 4000,
-  "ref_notes": "Type III; very rare"
+  "ref_notes": "Type III; very rare",
+  "obv_image": "/data/images/coins/ref_562_three-cent-nickel-1865-obv_060482.webp",
+  "rev_image": "/data/images/coins/ref_562_three-cent-nickel-1865-rev_c92b22.webp"
  },
  {
   "id": 563,
@@ -9515,7 +9549,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 3915000,
-  "ref_notes": "Three-cent coin 1867; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1867; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_563_three-cent-silver-trime-1866-obv_8d4622.webp",
+  "rev_image": "/data/images/coins/ref_563_three-cent-silver-trime-1866-rev_8d89d5.webp"
  },
  {
   "id": 564,
@@ -9530,7 +9566,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 4000,
-  "ref_notes": "Type III; very rare"
+  "ref_notes": "Type III; very rare",
+  "obv_image": "/data/images/coins/ref_564_three-cent-nickel-1866-obv_b4973a.webp",
+  "rev_image": "/data/images/coins/ref_564_three-cent-nickel-1866-rev_069777.webp"
  },
  {
   "id": 565,
@@ -9545,7 +9583,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 3252000,
-  "ref_notes": "Three-cent coin 1868; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1868; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_565_three-cent-silver-trime-1867-obv_020721.webp",
+  "rev_image": "/data/images/coins/ref_565_three-cent-silver-trime-1867-rev_f0289e.webp"
  },
  {
   "id": 566,
@@ -9560,7 +9600,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 5000,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_566_three-cent-nickel-1867-obv_9b0d53.webp",
+  "rev_image": "/data/images/coins/ref_566_three-cent-nickel-1867-rev_fba02d.webp"
  },
  {
   "id": 567,
@@ -9575,7 +9617,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1604000,
-  "ref_notes": "Three-cent coin 1869; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1869; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_567_three-cent-silver-trime-1868-obv_9d5011.webp",
+  "rev_image": "/data/images/coins/ref_567_three-cent-silver-trime-1868-rev_a839eb.webp"
  },
  {
   "id": 568,
@@ -9590,7 +9634,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 4000,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_568_three-cent-nickel-1868-obv_dbdcee.webp",
+  "rev_image": "/data/images/coins/ref_568_three-cent-nickel-1868-rev_87eb94.webp"
  },
  {
   "id": 569,
@@ -9605,7 +9651,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1335000,
-  "ref_notes": "Three-cent coin 1870; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1870; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_569_three-cent-silver-trime-1869-obv_e5e412.webp",
+  "rev_image": "/data/images/coins/ref_569_three-cent-silver-trime-1869-rev_f5b88f.webp"
  },
  {
   "id": 570,
@@ -9620,7 +9668,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 4260,
-  "ref_notes": "Type III"
+  "ref_notes": "Type III",
+  "obv_image": "/data/images/coins/ref_570_three-cent-nickel-1869-obv_4466ac.webp",
+  "rev_image": "/data/images/coins/ref_570_three-cent-nickel-1869-rev_71ca6a.webp"
  },
  {
   "id": 571,
@@ -9635,7 +9685,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 604000,
-  "ref_notes": "Three-cent coin 1871; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1871; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_571_three-cent-silver-trime-1870-obv_98cf7b.webp",
+  "rev_image": "/data/images/coins/ref_571_three-cent-silver-trime-1870-rev_9ed160.webp"
  },
  {
   "id": 572,
@@ -9650,7 +9702,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1000,
-  "ref_notes": "Type III; extremely rare; proof only"
+  "ref_notes": "Type III; extremely rare; proof only",
+  "obv_image": "/data/images/coins/ref_572_three-cent-nickel-1870-obv_792c7d.webp",
+  "rev_image": "/data/images/coins/ref_572_three-cent-nickel-1870-rev_cfad01.webp"
  },
  {
   "id": 573,
@@ -9665,7 +9719,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 862000,
-  "ref_notes": "Three-cent coin 1872; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1872; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_573_three-cent-silver-trime-1871-obv_f3d250.webp",
+  "rev_image": "/data/images/coins/ref_573_three-cent-silver-trime-1871-rev_ac698e.webp"
  },
  {
   "id": 574,
@@ -9680,7 +9736,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 600,
-  "ref_notes": "Last year of the trime \u2014 proof only, fewer than 600 struck. The three-cent silver's 22-year run ended as the nickel three-cent piece took over. Today ultra-rare in any grade."
+  "ref_notes": "Last year of the trime \u2014 proof only, fewer than 600 struck. The three-cent silver's 22-year run ended as the nickel three-cent piece took over. Today ultra-rare in any grade.",
+  "obv_image": "/data/images/coins/ref_574_three-cent-nickel-1871-obv_347e51.webp",
+  "rev_image": "/data/images/coins/ref_574_three-cent-nickel-1871-rev_7a5bbb.webp"
  },
  {
   "id": 575,
@@ -9695,7 +9753,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1173000,
-  "ref_notes": "Three-cent coin 1873; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1873; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_575_three-cent-silver-trime-1872-obv_85a58b.webp",
+  "rev_image": "/data/images/coins/ref_575_three-cent-silver-trime-1872-rev_96924f.webp"
  },
  {
   "id": 576,
@@ -9710,7 +9770,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 790000,
-  "ref_notes": "Three-cent coin 1874; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1874; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_576_three-cent-nickel-1872-obv_80ec16.webp",
+  "rev_image": "/data/images/coins/ref_576_three-cent-nickel-1872-rev_8d729e.webp"
  },
  {
   "id": 577,
@@ -9725,7 +9787,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 228000,
-  "ref_notes": "Low mintage"
+  "ref_notes": "Low mintage",
+  "obv_image": "/data/images/coins/ref_577_three-cent-silver-trime-1873-obv_04278b.webp",
+  "rev_image": "/data/images/coins/ref_577_three-cent-silver-trime-1873-rev_55d464.webp"
  },
  {
   "id": 578,
@@ -9740,7 +9804,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 162000,
-  "ref_notes": "Low mintage"
+  "ref_notes": "Low mintage",
+  "obv_image": "/data/images/coins/ref_578_three-cent-nickel-1873-obv_d77b65.webp",
+  "rev_image": "/data/images/coins/ref_578_three-cent-nickel-1873-rev_effcfc.webp"
  },
  {
   "id": 579,
@@ -9755,7 +9821,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": null,
-  "ref_notes": "1877 three-cent nickel \u2014 proof only; one of several years where only proof strikes were made. Very rare. The denomination was abolished in 1889 as redundant."
+  "ref_notes": "1877 three-cent nickel \u2014 proof only; one of several years where only proof strikes were made. Very rare. The denomination was abolished in 1889 as redundant.",
+  "obv_image": "/data/images/coins/ref_579_three-cent-nickel-1874-obv_3bef2b.webp",
+  "rev_image": "/data/images/coins/ref_579_three-cent-nickel-1874-rev_46b596.webp"
  },
  {
   "id": 580,
@@ -9770,7 +9838,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": null,
-  "ref_notes": "Proof only"
+  "ref_notes": "Proof only",
+  "obv_image": "/data/images/coins/ref_580_three-cent-nickel-1875-obv_aae4b3.webp",
+  "rev_image": "/data/images/coins/ref_580_three-cent-nickel-1875-rev_8369d6.webp"
  },
  {
   "id": 581,
@@ -9785,7 +9855,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 41200,
-  "ref_notes": "Three-cent coin 1879; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1879; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_581_three-cent-nickel-1876-obv_32c485.webp",
+  "rev_image": "/data/images/coins/ref_581_three-cent-nickel-1876-rev_a0748e.webp"
  },
  {
   "id": 582,
@@ -9800,7 +9872,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 21600,
-  "ref_notes": "Three-cent coin 1880; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1880; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_582_three-cent-nickel-1877-obv_547936.webp",
+  "rev_image": "/data/images/coins/ref_582_three-cent-nickel-1877-rev_29a9bc.webp"
  },
  {
   "id": 583,
@@ -9815,7 +9889,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 1077000,
-  "ref_notes": "Three-cent coin 1881; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1881; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_583_three-cent-nickel-1878-obv_bee6dc.webp",
+  "rev_image": "/data/images/coins/ref_583_three-cent-nickel-1878-rev_b1d36d.webp"
  },
  {
   "id": 584,
@@ -9830,7 +9906,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 22200,
-  "ref_notes": "Low mintage"
+  "ref_notes": "Low mintage",
+  "obv_image": "/data/images/coins/ref_584_three-cent-nickel-1879-obv_ed361f.webp",
+  "rev_image": "/data/images/coins/ref_584_three-cent-nickel-1879-rev_daa680.webp"
  },
  {
   "id": 585,
@@ -9845,7 +9923,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 10609,
-  "ref_notes": "Low mintage"
+  "ref_notes": "Low mintage",
+  "obv_image": "/data/images/coins/ref_585_three-cent-nickel-1880-obv_c37395.webp",
+  "rev_image": "/data/images/coins/ref_585_three-cent-nickel-1880-rev_cc9b79.webp"
  },
  {
   "id": 586,
@@ -9860,7 +9940,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 5642,
-  "ref_notes": "Very rare"
+  "ref_notes": "Very rare",
+  "obv_image": "/data/images/coins/ref_586_three-cent-nickel-1881-obv_59006e.webp",
+  "rev_image": "/data/images/coins/ref_586_three-cent-nickel-1881-rev_7fb487.webp"
  },
  {
   "id": 587,
@@ -9875,7 +9957,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 3790,
-  "ref_notes": "Extremely rare"
+  "ref_notes": "Extremely rare",
+  "obv_image": "/data/images/coins/ref_587_three-cent-nickel-1882-obv_53503c.webp",
+  "rev_image": "/data/images/coins/ref_587_three-cent-nickel-1882-rev_bffb26.webp"
  },
  {
   "id": 588,
@@ -9890,7 +9974,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": null,
-  "ref_notes": "Proof only; extreme rarity"
+  "ref_notes": "Proof only; extreme rarity",
+  "obv_image": "/data/images/coins/ref_588_three-cent-nickel-1883-obv_692858.webp",
+  "rev_image": "/data/images/coins/ref_588_three-cent-nickel-1883-rev_5187bd.webp"
  },
  {
   "id": 589,
@@ -9905,7 +9991,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 7961,
-  "ref_notes": "Three-cent coin 1887; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1887; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_589_three-cent-nickel-1884-obv_6b2bcc.webp",
+  "rev_image": "/data/images/coins/ref_589_three-cent-nickel-1884-rev_b694c4.webp"
  },
  {
   "id": 590,
@@ -9920,7 +10008,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 36501,
-  "ref_notes": "Three-cent coin 1888; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target."
+  "ref_notes": "Three-cent coin 1888; one of the shortest-lived US denominations. The series is completable in circulated grades without breaking the bank \u2014 an underrated collecting target.",
+  "obv_image": "/data/images/coins/ref_590_three-cent-nickel-1885-obv_28f465.webp",
+  "rev_image": "/data/images/coins/ref_590_three-cent-nickel-1885-rev_857303.webp"
  },
  {
   "id": 591,
@@ -9935,7 +10025,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 18125,
-  "ref_notes": "Last year"
+  "ref_notes": "Last year",
+  "obv_image": "/data/images/coins/ref_591_three-cent-nickel-1886-obv_fcbf28.webp",
+  "rev_image": "/data/images/coins/ref_591_three-cent-nickel-1886-rev_7f6122.webp"
  },
  {
   "id": 592,
@@ -9950,7 +10042,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 7756,
-  "ref_notes": "Rarest of the Flowing Hair series; believed to be among the very first silver coins struck by the US Mint \u2014 same day as the 1794 dollar. Only ~300 survive in all grades."
+  "ref_notes": "Rarest of the Flowing Hair series; believed to be among the very first silver coins struck by the US Mint \u2014 same day as the 1794 dollar. Only ~300 survive in all grades.",
+  "obv_image": "/data/images/coins/ref_592_three-cent-nickel-1887-obv_86ad16.webp",
+  "rev_image": "/data/images/coins/ref_592_three-cent-nickel-1887-rev_1786a5.webp"
  },
  {
   "id": 593,
@@ -9965,7 +10059,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 78660,
-  "ref_notes": "Second and final year; several die varieties known. The Flowing Hair design by Robert Scot was quickly replaced."
+  "ref_notes": "Second and final year; several die varieties known. The Flowing Hair design by Robert Scot was quickly replaced.",
+  "obv_image": "/data/images/coins/ref_593_three-cent-nickel-1888-obv_006d82.webp",
+  "rev_image": "/data/images/coins/ref_593_three-cent-nickel-1888-rev_72ccca.webp"
  },
  {
   "id": 594,
@@ -9980,7 +10076,9 @@
   "is_proof": false,
   "is_error": false,
   "mintage": 10230,
-  "ref_notes": "Small Eagle; only two years of this reverse. The 1796 is a genuine key date \u2014 fewer than 10,000 struck and far fewer survive."
+  "ref_notes": "Small Eagle; only two years of this reverse. The 1796 is a genuine key date \u2014 fewer than 10,000 struck and far fewer survive.",
+  "obv_image": "/data/images/coins/ref_594_three-cent-nickel-1889-obv_0fc259.webp",
+  "rev_image": "/data/images/coins/ref_594_three-cent-nickel-1889-rev_a3a9b2.webp"
  },
  {
   "id": 595,
