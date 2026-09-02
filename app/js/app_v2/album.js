@@ -488,7 +488,7 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
     const label = el('div', { className: 'album-hole-label' });
     // Silver proof label badge — placed in label area so it doesn't overlap the coin
     const isSilverProof = showProofs && coin.is_proof && coin.metal && coin.metal.toLowerCase().includes('silver');
-    const yearText = coin.year === 1776 ? '76-76' : _yearAbbr(coin.year);
+    const yearText = (coin.year === 2026 && (coin.coin_type || '').includes('Semiquincentennial')) ? '1776-2026' : (coin.year === 1776 ? '76-76' : _yearAbbr(coin.year));
     const mintText = formatMintMark(coin);
     const mintageText = coin.mintage ? ` (${formatMintage(coin.mintage)})` : '';
     label.textContent = `${yearText}${mintText}${mintageText}`;
