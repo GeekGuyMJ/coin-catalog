@@ -13,7 +13,7 @@ import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } fr
 import { initSpotHistory, getSeriesForPeriod } from './spotHistory.js';
 import { openPortfolioHistoryModal } from './portfolio_history.js';
 
-import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry, fetchPortfolio, fetchSpotHistory } from './api.js';
+import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
 
 var _portfolioData = null;
 var _bulkCoinsData = [];
@@ -21,11 +21,7 @@ var _bulkCoinsData = [];
 async function fetchPortfolioAsync() {
     try {
         const [port, bull, rawBull, bulkEntries, scrap, paper, cust, other] = await Promise.all([
-            // LOCAL-FIRST FIX (2026-08-24): previously a raw fetch('/api/portfolio')
-            // which only works on the server-first self-hosted build and 404s on
-            // the local-first public build. fetchPortfolio() routes through the
-            // api.js interceptor → db.js (IndexedDB) on public.
-            fetchPortfolio().catch(() => null),
+            fetch('/api/portfolio').then(r => r.ok ? r.json() : null).catch(() => null),
             fetchBullion().catch(() => []),
             fetchRawBullion().catch(() => []),
             fetchBulkEntries().catch(() => []),
@@ -634,6 +630,10 @@ export async function renderDashboard() {
     var g2 = renderGalleryCard();
     if (g2) { if (vis['card-gallery'] === false) g2.style.display='none'; addDragHandle(g2); c.appendChild(g2); }
 
+    // Support card - always render, respects visibility toggle
+    var sup = buildSupportCard();
+    if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup); }
+
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
     applyDashboardSizes();
@@ -725,6 +725,30 @@ function buildWishlistCard(wishlist) {
     };
     card.appendChild(manageBtn);
     
+    return card;
+}
+
+function buildSupportCard() {
+    const card = el('div', { className: 'card dashboard-card support-card', id: 'card-support', style: 'display:flex;flex-direction:column;' });
+    const hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-right:28px;flex-shrink:0;' });
+    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, '♥ Support This App'));
+    card.appendChild(hdr);
+
+    const p = el('p', { style: 'font-size:0.85em;color:var(--color-text-muted);margin:0 0 10px;line-height:1.45;' },
+        'Coin Catalog is free to use. If it helps you, consider supporting development with a donation.');
+    card.appendChild(p);
+
+    const donateUrl = localStorage.getItem('cc-donate-url') || 'https://paypal.me/mattejenkins';
+    const btn = el('a', {
+        href: donateUrl,
+        target: '_blank',
+        rel: 'noopener',
+        className: 'btn-primary',
+        style: 'display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;text-decoration:none;font-size:0.9rem;'
+    }, '♥ Donate with PayPal');
+    btn.onclick = (e) => { e.stopPropagation(); };
+    card.appendChild(btn);
+
     return card;
 }
 
@@ -945,7 +969,7 @@ function buildBullionCard(items, p, prices) {
                 var iUnit = (item.weight_unit || 'oz').toLowerCase();
                 var iW = item.weight || 0;
                 subParts.push(iW.toFixed(2) + ' ' + iUnit);
-                if (item.purity && item.purity < 1) subParts.push(Math.round(item.purity * 100) + '%');
+                if (item.purity && item.purity < 1) subParts.push(((item.purity * 100) % 1 === 0) ? (item.purity * 100).toFixed(0) + '%' : (item.purity * 100).toFixed(1) + '%');
                 // Value for this item (convert to standard valuation unit)
                 var convW = iW;
                 if (m === 'copper') {
@@ -1402,14 +1426,13 @@ async function buildSpotPricesCard(prices) {
         try {
             window._spotHistoryStore = await initSpotHistory({
                 getSeed: async () => {
-                    // LOCAL-FIRST FIX (2026-08-24): prefer the local-first
-                    // fetchSpotHistory() (api.js → db.js) which works on the
-                    // public build; the static /data seed files are a secondary
-                    // fallback. Raw /api/spot_history is server-only and 404s here.
-                    try { const r = await fetchSpotHistory(); if (r && r.gold_oz && r.gold_oz.yearly && r.gold_oz.yearly.length) return r; } catch(e){}
-                    try { const r2 = await fetch('data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
+                    // Prefer the live backend; fall back to the static seed so the
+                    // cards always render real 2000-2026 history even if /api is
+                    // slow, blocked, or served from a stale Service Worker cache.
+                    try { const r = await fetch('/api/spot_history?cb=' + Date.now()); const j = await r.json(); if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; } catch(e){}
+                    try { const r2 = await fetch('/data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
                 },
-getBaseline: async () => { try { const r = await fetch('data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+getBaseline: async () => { try { const r = await fetch('/data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
                 getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
             });
         } catch(e) { window._spotHistoryStore = null; }
@@ -1630,7 +1653,7 @@ function buildScrapMetalCard(items, prices) {
             var row = el('div', { className: 'v1-item-row' });
             var info = el('div', { style: 'flex:1;' });
             info.appendChild(el('span', { style: 'font-weight:600;font-size:0.9em;' }, item.name));
-            info.appendChild(el('span', { style: 'color:var(--color-text-muted);font-size:0.8em;margin-left:6px;' }, '(' + (item.weight_grams||0).toFixed(1) + 'g ' + (item.metal_type||'') + ((item.purity && item.purity < 1) ? ' ' + Math.round(item.purity * 100) + '%' : '') + ')'));
+            info.appendChild(el('span', { style: 'color:var(--color-text-muted);font-size:0.8em;margin-left:6px;' }, '(' + (item.weight_grams||0).toFixed(1) + 'g ' + (item.metal_type||'') + ((item.purity && item.purity < 1) ? ' ' + (((item.purity * 100) % 1 === 0) ? (item.purity * 100).toFixed(0) : (item.purity * 100).toFixed(1)) + '%' : '') + ')'));
             if (meltVal > 0) info.appendChild(el('span', { style: 'color:var(--color-accent);font-weight:700;margin-left:6px;font-size:0.85em;' }, '$' + meltVal.toFixed(2)));
             if (item.notes) info.appendChild(el('div', { style: 'font-size:0.75em;color:var(--color-text-muted);font-style:italic;' }, item.notes));
             row.appendChild(info);

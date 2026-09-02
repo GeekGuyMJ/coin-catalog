@@ -53,6 +53,13 @@ const CREDENTIALS = {
 
 const PROVIDERS = [
   {
+    id: 'webdav',
+    name: 'WebDAV',
+    icon: '\u{1F5C2}',
+    description: 'Self-hosted WebDAV-compatible storage (Nextcloud, ownCloud, Synology). Add your server URL and credentials below.',
+    requiresAuth: false,
+  },
+  {
     id: 'googleDrive',
     name: 'Google Drive',
     icon: '\u{1F310}',
@@ -512,6 +519,99 @@ export async function syncFromCloud() {
     console.error('Cloud restore failed:', err);
     showToast('Restore failed: ' + err.message, 'error');
   }
+}
+
+// ============================================================
+// Auto Backup — periodic cloud backups
+// ============================================================
+
+/**
+ * Auto-backup configuration stored in localStorage.
+ *   cc-autobackup-enabled : "1" | "0"  (default off)
+ *   cc-autobackup-hours   : number of hours between backups (default 24)
+ */
+export const AUTO_BACKUP_KEY = 'cc-autobackup-enabled';
+export const AUTO_BACKUP_HOURS_KEY = 'cc-autobackup-hours';
+const AUTO_BACKUP_STORE = 'cc-autobackup-store'; // last successful auto-backup ISO timestamps per provider
+
+export function isAutoBackupEnabled() {
+  return localStorage.getItem(AUTO_BACKUP_KEY) === '1';
+}
+
+export function getAutoBackupHours() {
+  const h = parseInt(localStorage.getItem(AUTO_BACKUP_HOURS_KEY) || '24', 10);
+  return (h >= 1 && h <= 168) ? h : 24;
+}
+
+export function setAutoBackupEnabled(on) {
+  localStorage.setItem(AUTO_BACKUP_KEY, on ? '1' : '0');
+}
+
+export function setAutoBackupHours(hours) {
+  const clamped = Math.min(168, Math.max(1, parseInt(hours, 10) || 24));
+  localStorage.setItem(AUTO_BACKUP_HOURS_KEY, String(clamped));
+}
+
+function _getLastAutoBackup(providerId) {
+  try {
+    const store = JSON.parse(localStorage.getItem(AUTO_BACKUP_STORE) || '{}');
+    return store[providerId] || null;
+  } catch (e) { return null; }
+}
+
+function _setLastAutoBackup(providerId) {
+  try {
+    const store = JSON.parse(localStorage.getItem(AUTO_BACKUP_STORE) || '{}');
+    store[providerId] = new Date().toISOString();
+    localStorage.setItem(AUTO_BACKUP_STORE, JSON.stringify(store));
+  } catch (e) { /* ignore */ }
+}
+
+/**
+ * Run an auto-backup now IF it is enabled, a provider is configured+authed, and
+ * the interval (hours) has elapsed since the last one. Silent on all "skip"
+ * conditions — only the per-backup result toast from syncToCloud shows on success.
+ */
+export async function runAutoBackupIfDue() {
+  if (!isAutoBackupEnabled()) return false;
+
+  const provider = getCurrentProvider();
+  if (!provider) return false;
+
+  const auth = getProviderAuthState(provider.id);
+  if (provider.requiresAuth && !auth.authenticated) return false;
+
+  const hours = getAutoBackupHours();
+  const last = _getLastAutoBackup(provider.id);
+  if (last) {
+    const elapsedMs = Date.now() - new Date(last).getTime();
+    const dueMs = hours * 3600 * 1000;
+    if (elapsedMs < dueMs) return false;
+  }
+
+  try {
+    await syncToCloud();
+    _setLastAutoBackup(provider.id);
+    return true;
+  } catch (err) {
+    console.error('[autobackup] Failed:', err);
+    return false;
+  }
+}
+
+/**
+ * Start the auto-backup scheduler. Should be called once at app boot.
+ * Checks every 10 minutes whether a backup is due and runs it if so.
+ */
+export function startAutoBackupScheduler() {
+  if (window.__ccAutoBackupStarted) return;
+  window.__ccAutoBackupStarted = true;
+
+  // Run on boot if due (e.g. after a reload within the interval window).
+  setTimeout(() => { runAutoBackupIfDue(); }, 5000);
+
+  // Recurring check every 10 minutes.
+  setInterval(() => { runAutoBackupIfDue(); }, 10 * 60 * 1000);
 }
 
 // ============================================================

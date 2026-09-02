@@ -13,9 +13,9 @@
  * @module catalog
  */
 
-import {
+import { resolveImageUrl,
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
-    typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse, cacheBustImageUrl, resolveImageUrl,
+    typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
 } from './utils.js';
 
 import {
@@ -23,7 +23,7 @@ import {
     getTypeConfig,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, deleteInventoryEntry } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist } from './api.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
@@ -246,20 +246,20 @@ function buildSectionCard(sec) {
         const hasObv = cfg?.obv_image;
         const hasRev = cfg?.rev_image;
         if (hasObv) {
-            const img = el('img', { className: 'coin-thumb obv', src: resolveImageUrl(cfg.obv_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
+            const img = el('img', { className: 'coin-thumb obv', src: resolveImageUrl(cfg.obv_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv', section: sec.section } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
-            const ph = el('img', { className: 'coin-thumb obv placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
+            const ph = el('img', { className: 'coin-thumb obv placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'obv', section: sec.section } });
             ph.onerror = () => { ph.src = placeholderCoinSvg(); ph.classList.add('placeholder'); };
             pair.appendChild(ph);
         }
         if (hasRev) {
-            const img = el('img', { className: 'coin-thumb rev', src: resolveImageUrl(cfg.rev_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
+            const img = el('img', { className: 'coin-thumb rev', src: resolveImageUrl(cfg.rev_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev', section: sec.section } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
-            const ph = el('img', { className: 'coin-thumb rev placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
+            const ph = el('img', { className: 'coin-thumb rev placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'rev', section: sec.section } });
             ph.onerror = () => { ph.src = placeholderCoinSvg(); ph.classList.add('placeholder'); };
             pair.appendChild(ph);
         }
@@ -289,6 +289,7 @@ function buildSectionCard(sec) {
     // Self-hosted only: "Publish to public" button in the section header
     const host = window.location.hostname || '';
     const isSelfHosted = host.includes('opaleye-bluegill') || host.includes('ts.net') || host.includes('192.168.');
+    // "+ Add Coin" button (every deployment)
     if (isSelfHosted) {
         const publishBtn = el('button', {
             className: 'btn-section-publish',
@@ -375,7 +376,6 @@ async function expandSection(sectionName) {
 /**
  * Re-fetch a section from the API and re-render it if currently expanded.
  * Used after adding/deleting user coins so changes appear immediately.
- * Force-clears the section cache so a truly fresh fetch+render happens.
  */
 export async function reloadSectionCoins(sectionName) {
     const sectionId = 'section-' + sectionName.replace(/[^a-zA-Z0-9]/g, '');
@@ -383,10 +383,8 @@ export async function reloadSectionCoins(sectionName) {
     if (!card) return;
     const content = card.querySelector('.section-content');
     const isOpen = content && content.classList.contains('open');
-    // Clear cached coins so expandSection does a real re-fetch (not a stale render)
     setCoinsForSection(sectionName, null);
-    if (!isOpen) return; // nothing visible to refresh
-    // Re-run the proven open path: show spinner, fetch fresh, render
+    if (!isOpen) return;
     content.innerHTML = '<div class="section-loading">Loading coins…</div>';
     try {
         const coins = await fetchCoinsForSection(sectionName);
@@ -408,7 +406,7 @@ export async function reloadSectionCoins(sectionName) {
  * @param {HTMLElement} container - The section's content element.
  * @param {Array}       coins     - Coins for this section.
  */
-function renderTypeAccordions(container, coins) {
+export function renderTypeAccordions(container, coins) {
     container.innerHTML = '';
 
     // Deduplicate by coin ID (outer join with inventory can produce duplicates)
@@ -486,7 +484,7 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: mainType + " obverse",
                         role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "obv" },
+            dataset: { action: "view-img", type: mainType, side: "obv", section: firstCoinSection },
         });
         imgObv.onerror = function() { imgObv.src = placeholderCoinSvg(); };
         pair.appendChild(imgObv);
@@ -497,7 +495,7 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: "Upload " + mainType + " obverse",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "obv" },
+            dataset: { action: "view-img", type: mainType, side: "obv", section: firstCoinSection },
         });
         pair.appendChild(placeholderObv);
     }
@@ -508,7 +506,7 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: mainType + " reverse",
                         role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "rev" },
+            dataset: { action: "view-img", type: mainType, side: "rev", section: firstCoinSection },
         });
         imgRev.onerror = function() { imgRev.src = placeholderCoinSvg(); };
         pair.appendChild(imgRev);
@@ -519,7 +517,7 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: "Upload " + mainType + " reverse",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "rev" },
+            dataset: { action: "view-img", type: mainType, side: "rev", section: firstCoinSection },
         });
         pair.appendChild(placeholderRev);
     }
@@ -710,10 +708,6 @@ function buildCoinSlots(coinId, activeIdx = 0) {
                     existingPhoto = '/data/images/types/' + existingPhoto;
                 }
             }
-            // DEPLOYMENT-AGNOSTIC PATH FIX (2026-08-24): re-base any root-absolute
-            // image path under the app directory so it resolves on GitHub Pages
-            // sub-path (/coin-catalog/app/) as well as the self-hosted root (/).
-            existingPhoto = resolveImageUrl(existingPhoto);
             html += '<div class="coin-entry-photo-slot" data-photo-idx="' + p + '" data-slot-idx="' + i + '" style="position:relative;">';
             html += '<div class="coin-entry-photo-circle has-photo" style="cursor:pointer;">';
             html += '<img src="' + existingPhoto + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + i + '" data-photo-idx="' + p + '">';
@@ -970,8 +964,6 @@ function openSlotCoinBankPicker(slotIdx, photoIdx, coinId, dp) {
                         emptyCircle.classList.remove('empty');
                         emptyCircle.classList.add('has-photo');
                         var displayUrl = filename.startsWith('/') ? filename : '/data/images/types/' + filename;
-                        // DEPLOYMENT-AGNOSTIC PATH FIX (2026-08-24)
-                        displayUrl = resolveImageUrl(displayUrl);
                         emptyCircle.innerHTML = '<img src="' + displayUrl + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + slotIdx + '" data-photo-idx="' + photoIdx + '">';
                     }
                     
@@ -1038,30 +1030,28 @@ function buildCoinRow(coin) {
     // section header examples and type reference, NOT for year coin fallback.
     // Respect explicit per-coin deletions: if the coin itself deleted a side,
     // show placeholder (do NOT fall back to type/section config).
-    // Resolve image URLs: seed paths are absolute (/data/images/...), which breaks under
-    // GitHub Pages subpath hosting (/coin-catalog/app/). resolveImageUrl rewrites them to
-    // app-relative (2026-08-28 half-cent placeholder fix).
     var obvSrc = coin._deleted_obv_image ? null : resolveImageUrl(coin.obv_image);
     var revSrc = coin._deleted_rev_image ? null : resolveImageUrl(coin.rev_image);
+    if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
+    if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
         var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };
         thumbWrap.appendChild(img);
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv"}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}}));
     }
     if (revSrc) {
         var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img2.onerror = function() { img2.src = placeholderCoinSvg(); img2.classList.add("placeholder"); };
         thumbWrap.appendChild(img2);
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev"}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}}));
     }
 
     row.appendChild(thumbWrap);
 
     var info = el("div", {className: "coin-row-info"});
-    // User-added coins get a small ✕ to remove them from the catalog
     if (coin.user_added) {
         var delBtn = el("span", {
             className: "user-coin-del",
@@ -1071,7 +1061,6 @@ function buildCoinRow(coin) {
         }, "✕");
         delBtn.addEventListener("click", async function(ev) {
             ev.stopPropagation();
-            const userCoins = await import("./userCoins.js");
             if (window.confirm(`Remove ${coin.coin_type} ${coin.year}${coin.mint_mark || ""} from your catalog? Any ownership entries for it are removed too.`)) {
                 try {
                     const { deleteUserCoin } = await import("./api.js");
@@ -1334,11 +1323,7 @@ function buildCoinRow(coin) {
             promise
                 .then(function() {
                     if (deletedEntry.id) {
-                        // LOCAL-FIRST FIX (2026-08-24): Previously called
-                        // `fetch('/api/inventory/:id', { method: 'DELETE' })`,
-                        // which 404s on the local-first build. deleteInventoryEntry()
-                        // routes through db.js (IndexedDB) and takes the coin_ref_id.
-                        return deleteInventoryEntry(deletedEntry.id);
+                        return fetch('/api/inventory/' + deletedEntry.id, { method: 'DELETE' });
                     }
                 })
                 .then(function() { return fetchInventory(); })
@@ -2375,5 +2360,5 @@ export async function openPublishSectionModal(sectionName) {
     });
 }
 
-// 2026-08-31: registry for circular-import-safe access
+// 2026-08-31: registry for circular-import-safe access (images.js batch refresh)
 window.__ccCatalog = { renderTypeAccordions };

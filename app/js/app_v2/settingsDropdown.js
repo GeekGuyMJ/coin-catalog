@@ -9,8 +9,7 @@ import { el, escHtml } from './utils.js';
 import { getSpotPrices } from './state.js';
 import { showToast } from './notifications.js';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
-import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults, openResetDataModal } from './modals.js';
-import { openAddCoinModal } from './userCoins.js';
+import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
 
 let _dropdownEl = null;
 
@@ -68,7 +67,6 @@ function openSettingsDropdown(btn) {
  // Catalog
  {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
  {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
-{key: 'addCoin', label: '\u002B Add a Coin\u2026', section: 'catalog' },
  
  // Data & Backup
  {key: 'export', label: 'Export & Backup', section: 'data' },
@@ -87,7 +85,6 @@ function openSettingsDropdown(btn) {
  
  // Danger Zone
  {key: 'purgeInventory', label: 'Purge All Inventory', section: 'danger' },
-{key: 'resetData', label: 'Reset / Purge Data\u2026', section: 'danger' },
  ];
 
  // Group by section
@@ -129,7 +126,7 @@ function openSettingsDropdown(btn) {
  onclick: () => { closeSettingsDropdown(); openSettingsSection(it.key); },
  });
  item.appendChild(el('span', { className: 'settings-menu-icon' }, it.icon));
- const _labelSpan = el('span', { className: 'settings-menu-label' }); _labelSpan.textContent = _safeText(it.label); item.appendChild(_labelSpan);
+ item.appendChild(el('span', { className: 'settings-menu-label' })); item.lastChild.textContent = _safeText(it.label);
  menu.appendChild(item);
  });
  });
@@ -190,8 +187,6 @@ export function openSettingsSection(key) {
  
  // Danger Zone
  case 'purgeInventory': purgeInventory(); break;
-    case 'addCoin': closeSettingsDropdown(); openAddCoinModal(); break;
-    case 'resetData': closeSettingsDropdown(); openResetDataModal(); break;
  }
 }
 
@@ -201,14 +196,7 @@ export function openSettingsSection(key) {
 
 function _safeText(val) {
  if (val == null) return '';
- // Never stringify a DOM node (would render "[object HTMLDivElement]" etc).
- if (val instanceof Node) {
-   if (val.nodeType === 3) return val.nodeValue || '';
-   if (typeof val.textContent === 'string' && val.textContent.trim() !== '') return val.textContent;
-   if (typeof val.innerText === 'string' && val.innerText.trim() !== '') return val.innerText;
-   return '';
- }
- return String(val);
+ return (val instanceof Node) ? (val.textContent || String(val)) : String(val);
 }
 
 function _sectionBody(title, intro, blocks) {
@@ -322,7 +310,7 @@ function showFolderColorModal() {
  id: 'settings-folder-color',
  className: 'settings-select',
  onchange: (e) => applyFolderColor(e.target.value)
- }, ...[
+ }, [
  { value: 'green', label: 'Green' },
  { value: 'blue', label: 'Blue' },
  { value: 'brown', label: 'Brown' },
@@ -356,7 +344,7 @@ function showCardVisibilityModal() {
  
  const controls = cards.map(c => {
  const checked = localStorage.getItem(c.key) !== 'false';
- return el('div', { className: 'settings-toggle-row' }, ...[
+ return el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: c.key, checked, onchange: (e) => {
  localStorage.setItem(c.key, e.target.checked);
  dispatchSettingsChange(c.key, e.target.checked);
@@ -384,7 +372,7 @@ function showDisplayFiltersModal() {
  {key: 'cc-hide-errors', label: 'Hide error/variety coins', checked: hideErrors },
  {key: 'cc-key-dates-only', label: 'Key dates only', checked: keyDatesOnly },
  ].map(c => 
- el('div', { className: 'settings-toggle-row' }, ...[
+ el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: c.key, checked: c.checked, onchange: (e) => {
  localStorage.setItem(c.key, e.target.checked);
  dispatchSettingsChange(c.key, e.target.checked);
@@ -414,7 +402,7 @@ function showBullionVisibilityModal() {
  
  const controls = metals.map(m => {
  const checked = localStorage.getItem(`cc-bullion-vis-${m.key}`) !== 'false';
- return el('div', { className: 'settings-toggle-row' }, ...[
+ return el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: `cc-bullion-vis-${m.key}`, checked, onchange: (e) => {
  localStorage.setItem(`cc-bullion-vis-${m.key}`, e.target.checked);
  dispatchSettingsChange('cc-bullion-vis', { [m.key]: e.target.checked });
@@ -433,7 +421,7 @@ function showBullionVisibilityModal() {
 
 // Export
 function showExportModal() {
-    const control = el('div', { className: 'settings-action-group' }, ...[
+    const control = el('div', { className: 'settings-action-group' }, [
  el('button', { className: 'btn-primary', onclick: () => window.location.href = '/api/backup/zip' }, 'Download Full Backup (ZIP)'),
  el('button', { className: 'btn-secondary', onclick: () => window.location.href = '/api/backup/full' }, 'Export All (CSV)'),
  el('button', { className: 'btn-secondary', onclick: backupJSON }, 'Backup JSON'),
@@ -464,7 +452,7 @@ function showImportModal() {
  const restoreInput = createFileInput('.json', restoreJSON);
  const importInput = createFileInput('.csv', importCSV);
  
- const control = el('div', { className: 'settings-action-group' }, ...[
+ const control = el('div', { className: 'settings-action-group' }, [
  el('button', { className: 'btn-primary', onclick: () => restoreZipInput.click() }, 'Restore Full Backup (ZIP)'),
  el('button', { className: 'btn-secondary', onclick: () => restoreInput.click() }, 'Restore JSON'),
  el('button', { className: 'btn-secondary', onclick: () => importInput.click() }, 'Import CSV'),
@@ -484,6 +472,7 @@ export async function showCloudSyncModal() {
         getAllProviders, getCurrentProvider, setCurrentProvider,
         getProviderAuthState, setProviderAuthState,
         syncToCloud, syncFromCloud,
+        isAutoBackupEnabled, setAutoBackupEnabled, getAutoBackupHours, setAutoBackupHours,
         authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox
     } = await import('./sync.js');
 
@@ -506,7 +495,7 @@ export async function showCloudSyncModal() {
         window.__refreshCloudSyncPanel = refreshCloudSyncPanel;
 
         // Provider Selection
-        panel.appendChild(el('div', { className: 'settings-section' }, ...[
+        panel.appendChild(el('div', { className: 'settings-section' }, [
             el('h4', { className: 'settings-subhead' }, 'Cloud Provider'),
             el('p', { className: 'settings-text' }, 'Choose a cloud provider to automatically backup and sync your collection data.'),
             el('div', { style: 'display:flex; flex-direction:column; gap:8px;' },
@@ -534,12 +523,12 @@ export async function showCloudSyncModal() {
             const provider = providers.find(p => p.id === currentProviderId);
             const authState = getProviderAuthState(currentProviderId);
 
-            panel.appendChild(el('div', { className: 'settings-section' }, ...[
+            panel.appendChild(el('div', { className: 'settings-section' }, [
                 el('h4', { className: 'settings-subhead' }, `${provider.name} Configuration`),
                 el('p', { className: 'settings-text' }, _safeText(provider.description)),
 
-                currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, ...[
-                    el('div', { className: 'form-group' }, ...[
+                currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, [
+                    el('div', { className: 'form-group' }, [
                         el('label', {}, 'WebDAV Server URL'),
                         el('input', {
                             type: 'text',
@@ -548,7 +537,7 @@ export async function showCloudSyncModal() {
                             onchange: (e) => setProviderAuthState('webdav', { ...authState, url: e.target.value }),
                         })
                     ]),
-                    el('div', { className: 'form-group' }, ...[
+                    el('div', { className: 'form-group' }, [
                         el('label', {}, 'Username'),
                         el('input', {
                             type: 'text',
@@ -556,7 +545,7 @@ export async function showCloudSyncModal() {
                             onchange: (e) => setProviderAuthState('webdav', { ...authState, username: e.target.value }),
                         })
                     ]),
-                    el('div', { className: 'form-group' }, ...[
+                    el('div', { className: 'form-group' }, [
                         el('label', {}, 'Password'),
                         el('input', {
                             type: 'password',
@@ -564,7 +553,7 @@ export async function showCloudSyncModal() {
                             onchange: (e) => setProviderAuthState('webdav', { ...authState, password: e.target.value }),
                         })
                     ]),
-                ]) : el('div', { style: 'display:flex; flex-direction:column; gap:12px;' }, ...[
+                ]) : el('div', { style: 'display:flex; flex-direction:column; gap:12px;' }, [
                     el('p', { className: 'settings-text' }, 'Sign in with ' + provider.name + ' to back up and restore your collection. Uses a secure browser OAuth flow — no server required.'),
                     el('button', {
                         className: 'btn-primary',
@@ -581,14 +570,46 @@ export async function showCloudSyncModal() {
             // Sync Actions — WebDAV always; OAuth only after authentication
             const canSync = currentProviderId === 'webdav' || authState.authenticated;
             if (canSync) {
-                panel.appendChild(el('div', { className: 'settings-section' }, ...[
+                panel.appendChild(el('div', { className: 'settings-section' }, [
                     el('h4', { className: 'settings-subhead' }, 'Sync Actions'),
                     el('p', { className: 'settings-text' }, currentProviderId === 'webdav'
                         ? 'Enter your server details above, then click Backup. This sends your full collection backup as a JSON file to the WebDAV server.'
-                        : 'Click Backup to save your collection to ' + _safeText(provider.name) + ', or Restore to load a previous backup.'),
-                    el('div', { className: 'settings-action-group' }, ...[
+                        : 'Click Backup to save your collection to ' + provider.name + ', or Restore to load a previous backup.'),
+                    el('div', { className: 'settings-action-group' }, [
                         el('button', { className: 'btn-primary', onclick: syncToCloud }, 'Backup to ' + provider.name),
                         el('button', { className: 'btn-secondary', onclick: syncFromCloud }, 'Restore from ' + provider.name),
+                    ]),
+                    // Auto backup toggle + interval
+                    el('div', { className: 'form-group', style: 'margin-top:16px; border-top:1px solid var(--color-border-light); padding-top:14px;' }, ...[
+                        el('div', { style: 'display:flex; align-items:center; gap:10px;' }, ...[
+                            el('input', {
+                                type: 'checkbox',
+                                id: 'autobackup-toggle',
+                                checked: isAutoBackupEnabled(),
+                                onchange: (e) => {
+                                    setAutoBackupEnabled(e.target.checked);
+                                    refreshCloudSyncPanel();
+                                }
+                            }),
+                            el('label', { style: 'flex:1;' }, 'Automatic cloud backup'),
+                        ]),
+                        el('p', { className: 'settings-text', style: 'font-size:0.9em; margin-top:8px;' },
+                            'Periodically back up your collection to ' + provider.name + ' while this app is open. Runs on load and every 10 minutes if the interval has elapsed.'),
+                        el('div', { className: 'form-group', style: 'display:flex; align-items:center; gap:10px; margin-top:10px;' }, ...[
+                            el('label', {}, 'Back up every'),
+                            el('select', {
+                                style: 'max-width:150px;',
+                                onchange: (e) => { setAutoBackupHours(parseInt(e.target.value, 10)); },
+                                value: String(getAutoBackupHours()),
+                            }, ...[
+                                el('option', { value: '6' }, '6 hours'),
+                                el('option', { value: '12' }, '12 hours'),
+                                el('option', { value: '24' }, 'Daily (24 hours)'),
+                                el('option', { value: '48' }, 'Every 2 days'),
+                                el('option', { value: '72' }, 'Every 3 days'),
+                                el('option', { value: '168' }, 'Weekly'),
+                            ]),
+                        ]),
                     ])
                 ]));
             }
@@ -646,12 +667,12 @@ function showCustomCardModal() {
  { id: 'trend', label: 'Trend Arrow + Value' },
  ];
  
- const body = el('div', { className: 'custom-card-form' }, ...[
+ const body = el('div', { className: 'custom-card-form' }, [
  // List existing custom cards
- customCards.length > 0 ? el('div', { className: 'custom-cards-list' }, ...[
+ customCards.length > 0 ? el('div', { className: 'custom-cards-list' }, [
  el('h4', { className: 'settings-subhead' }, 'Your Custom Cards'),
- ...customCards.map((card, idx) => el('div', { className: 'custom-card-item' }, ...[
- el('div', { className: 'custom-card-info' }, ...[
+ ...customCards.map((card, idx) => el('div', { className: 'custom-card-item' }, [
+ el('div', { className: 'custom-card-info' }, [
  el('strong', {}, card.title),
  el('span', { className: 'custom-card-meta' }, `${card.dataSource} • ${card.displayStyle}`),
  ]),
@@ -672,7 +693,7 @@ function showCustomCardModal() {
  el('h4', { className: 'settings-subhead' }, 'Create New Custom Card'),
  
  // Title
- el('div', { className: 'form-group' }, ...[
+ el('div', { className: 'form-group' }, [
  el('label', {}, 'Card Title'),
  el('input', { 
  type: 'text', 
@@ -683,23 +704,23 @@ function showCustomCardModal() {
  ]),
  
  // Data Source
- el('div', { className: 'form-group' }, ...[
+ el('div', { className: 'form-group' }, [
  el('label', {}, 'Data Source'),
- el('select', { id: 'custom-card-source' }, ...[
+ el('select', { id: 'custom-card-source' }, [
  ...dataSources.map(ds => el('option', { value: ds.id }, ds.label))
  ])
  ]),
  
  // Display Style
- el('div', { className: 'form-group' }, ...[
+ el('div', { className: 'form-group' }, [
  el('label', {}, 'Display Style'),
- el('select', { id: 'custom-card-style' }, ...[
+ el('select', { id: 'custom-card-style' }, [
  ...displayStyles.map(ds => el('option', { value: ds.id }, ds.label))
  ])
  ]),
  
  // Optional: Custom value (for custom text/number)
- el('div', { className: 'form-group', id: 'custom-card-custom-group', style: 'display: none;' }, ...[
+ el('div', { className: 'form-group', id: 'custom-card-custom-group', style: 'display: none;' }, [
  el('label', {}, 'Custom Value'),
  el('input', { 
  type: 'text', 
@@ -709,7 +730,7 @@ function showCustomCardModal() {
  ]),
  
  // Optional: Background color
- el('div', { className: 'form-group' }, ...[
+ el('div', { className: 'form-group' }, [
  el('label', {}, 'Background Color'),
  el('input', { 
  type: 'color', 
@@ -719,7 +740,7 @@ function showCustomCardModal() {
  ]),
  
  // Optional: Text color
- el('div', { className: 'form-group' }, ...[
+ el('div', { className: 'form-group' }, [
  el('label', {}, 'Text Color'),
  el('input', { 
  type: 'color', 
@@ -730,7 +751,7 @@ function showCustomCardModal() {
  ]);
  
  const modalId = 'modal-custom-card';
- const footer = el('div', { className: 'modal-footer' }, ...[
+ const footer = el('div', { className: 'modal-footer' }, [
  el('button', { className: 'btn-secondary', onclick: () => closeModal(modalId) }, 'Cancel'),
  el('button', { 
  className: 'btn-primary', 
@@ -772,16 +793,13 @@ function showCustomCardModal() {
  ]);
  
  createModal(modalId, 'Custom Dashboard Card', body, footer);
-
+ 
  // Show/hide custom value field based on data source
- const sourceEl = document.getElementById('custom-card-source');
- if (sourceEl) {
-     sourceEl.addEventListener('change', (e) => {
-         const group = document.getElementById('custom-card-custom-group');
-         if (group) group.style.display = e.target.value === 'custom' ? 'block' : 'none';
-     });
- }
- }
+ document.getElementById('custom-card-source').addEventListener('change', (e) => {
+ const group = document.getElementById('custom-card-custom-group');
+ group.style.display = e.target.value === 'custom' ? 'block' : 'none';
+ });
+}
 
 function renderCustomCardsOnDashboard() {
  let customCards = [];
@@ -883,4 +901,3 @@ function renderCustomCardsOnDashboard() {
 window.toggleSettingsDropdown = toggleSettingsDropdown;
 window.closeSettingsDropdown = closeSettingsDropdown;
 window.openSettingsSection = openSettingsSection;
-
