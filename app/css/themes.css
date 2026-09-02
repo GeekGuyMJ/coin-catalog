@@ -282,6 +282,25 @@
     --color-finance-bg:   #221209;
 }
 
+
+/* =========================================================================
+   Film Noir (new)
+   ========================================================================= */
+[data-theme="noir"] {
+    --color-bg-body:      #0d0d0d;
+    --color-bg-card:      #171717;
+    --color-text-main:    #e8e4da;
+    --color-text-muted:   #9e968a;
+    --color-border:       #8a7a5a;
+    --color-border-light: #2a2823;
+    --color-accent:       #d8b46a;
+    --color-accent-text:  #14100a;
+    --color-header-bg:    #060606;
+    --color-header-text:  #e8e4da;
+    --color-accord-bg:    #1f1d19;
+    --color-finance-bg:   #131210;
+}
+
 [data-theme="custom1"] {
     --color-bg-body:      var(--custom1-bg-body,      #1a1a2e);
     --color-bg-card:      var(--custom1-bg-card,      #16213e);
