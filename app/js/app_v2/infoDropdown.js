@@ -208,32 +208,2005 @@ function showValues() {
  createModal('modal-info-values', 'How Values Work', body, null);
 }
 
-// --- Coin Collecting Tips -------------------------------------------------
+// --- Coin Collecting Guide (full master guide, 2026-09-02) -------------------
+const COLLECTING_GUIDE_HTML = `<style>
+.cc-guide { line-height: 1.55; font-size: 0.92em; color: var(--color-text-main); }
+.cc-guide h1 { font-size: 1.35em; margin: 0.6em 0 0.4em; color: var(--color-accent); }
+.cc-guide h2, .cc-guide h3 { font-size: 1.1em; margin: 1.1em 0 0.4em; color: var(--color-accent); border-bottom: 1px solid var(--color-border-light); padding-bottom: 2px; }
+.cc-guide table { border-collapse: collapse; margin: 0.6em 0; width: 100%; }
+.cc-guide th, .cc-guide td { border: 1px solid var(--color-border-light); padding: 4px 8px; font-size: 0.9em; text-align: left; }
+.cc-guide th { background: var(--color-bg-card); }
+.cc-guide code { background: var(--color-bg-body); padding: 1px 4px; border-radius: 3px; }
+.cc-guide hr { border: none; border-top: 1px solid var(--color-border-light); margin: 1.2em 0; }
+.cc-guide blockquote { border-left: 3px solid var(--color-accent); margin: 0.6em 0; padding: 2px 12px; color: var(--color-text-muted); }
+</style><div class="cc-guide"><h1>U.S. Coin Collecting: A Complete Beginner&#39;s Guide</h1>
+<h2>Identification, Varieties, Errors, Grading, Buying, Selling, Storage, Research, and Building a Collection</h2>
+<hr>
+<h1>Table of Contents</h1>
+<ol>
+<li><a href="#1-introduction">Introduction</a></li>
+<li><a href="#2-what-is-numismatics">What Is Numismatics?</a></li>
+<li><a href="#3-how-to-identify-a-us-coin">How to Identify a U.S. Coin</a></li>
+<li><a href="#4-basic-coin-anatomy">Basic Coin Anatomy</a></li>
+<li><a href="#5-us-mintmarks">U.S. Mintmarks</a></li>
+<li><a href="#6-mintage-vs-rarity">Mintage vs. Rarity</a></li>
+<li><a href="#7-key-dates-semi-key-dates-and-better-dates">Key Dates, Semi-Key Dates, and Better Dates</a></li>
+<li><a href="#8-coin-types-and-type-designations">Coin Types and Type Designations</a></li>
+<li><a href="#9-small-date-large-date-close-date-wide-date-and-other-date-styles">Small Date, Large Date, Close Date, Wide Date, and Other Date Styles</a></li>
+<li><a href="#10-die-varieties">Die Varieties</a></li>
+<li><a href="#11-doubled-dies">Doubled Dies</a></li>
+<li><a href="#12-machine-doubling">Machine Doubling</a></li>
+<li><a href="#13-repunched-mintmarks">Repunched Mintmarks</a></li>
+<li><a href="#14-over-mintmarks">Over-Mintmarks</a></li>
+<li><a href="#15-die-cracks">Die Cracks</a></li>
+<li><a href="#16-cuds">Cuds</a></li>
+<li><a href="#17-die-chips">Die Chips</a></li>
+<li><a href="#18-die-clashes">Die Clashes</a></li>
+<li><a href="#19-die-polish-lines">Die Polish Lines</a></li>
+<li><a href="#20-die-states">Die States</a></li>
+<li><a href="#21-mint-errors">Mint Errors</a></li>
+<li><a href="#22-wrong-planchet-errors">Wrong-Planchet Errors</a></li>
+<li><a href="#23-off-center-strikes">Off-Center Strikes</a></li>
+<li><a href="#24-broadstrikes">Broadstrikes</a></li>
+<li><a href="#25-clipped-planchets">Clipped Planchets</a></li>
+<li><a href="#26-struck-through-errors">Struck-Through Errors</a></li>
+<li><a href="#27-brockages">Brockages</a></li>
+<li><a href="#28-multiple-strikes">Multiple Strikes</a></li>
+<li><a href="#29-rotated-dies">Rotated Dies</a></li>
+<li><a href="#30-transitional-errors">Transitional Errors</a></li>
+<li><a href="#31-post-mint-damage">Post-Mint Damage</a></li>
+<li><a href="#32-coin-weight">Coin Weight</a></li>
+<li><a href="#33-coin-diameter-and-thickness">Coin Diameter and Thickness</a></li>
+<li><a href="#34-us-coin-metal-compositions">U.S. Coin Metal Compositions</a></li>
+<li><a href="#35-silver-coins">Silver Coins</a></li>
+<li><a href="#36-gold-coins">Gold Coins</a></li>
+<li><a href="#37-copper-coins">Copper Coins</a></li>
+<li><a href="#38-nickel-and-nickel-alloy-coins">Nickel and Nickel-Alloy Coins</a></li>
+<li><a href="#39-clad-coins">Clad Coins</a></li>
+<li><a href="#40-proof-coins">Proof Coins</a></li>
+<li><a href="#41-reverse-proof-coins">Reverse Proof Coins</a></li>
+<li><a href="#42-mint-state-and-circulated-grades">Mint State and Circulated Grades</a></li>
+<li><a href="#43-understanding-the-sheldon-grading-scale">Understanding the Sheldon Grading Scale</a></li>
+<li><a href="#44-details-grades-and-problem-coins">Details Grades and Problem Coins</a></li>
+<li><a href="#45-wear-vs-damage">Wear vs. Damage</a></li>
+<li><a href="#46-cleaning-coins">Cleaning Coins</a></li>
+<li><a href="#47-toning">Toning</a></li>
+<li><a href="#48-luster">Luster</a></li>
+<li><a href="#49-strike-quality">Strike Quality</a></li>
+<li><a href="#50-eye-appeal">Eye Appeal</a></li>
+<li><a href="#51-contact-marks-and-bag-marks">Contact Marks and Bag Marks</a></li>
+<li><a href="#52-authenticating-a-coin">Authenticating a Coin</a></li>
+<li><a href="#53-counterfeit-warning-signs">Counterfeit Warning Signs</a></li>
+<li><a href="#54-using-a-scale">Using a Scale</a></li>
+<li><a href="#55-using-magnification">Using Magnification</a></li>
+<li><a href="#56-using-lighting">Using Lighting</a></li>
+<li><a href="#57-using-a-magnet">Using a Magnet</a></li>
+<li><a href="#58-inspecting-the-edge">Inspecting the Edge</a></li>
+<li><a href="#59-researching-a-coin">Researching a Coin</a></li>
+<li><a href="#60-coin-price-guides">Coin Price Guides</a></li>
+<li><a href="#61-auction-prices-vs-asking-prices">Auction Prices vs. Asking Prices</a></li>
+<li><a href="#62-population-reports">Population Reports</a></li>
+<li><a href="#63-buying-coins">Buying Coins</a></li>
+<li><a href="#64-buying-from-coin-dealers">Buying From Coin Dealers</a></li>
+<li><a href="#65-buying-at-coin-shows">Buying at Coin Shows</a></li>
+<li><a href="#66-buying-online">Buying Online</a></li>
+<li><a href="#67-buying-from-auctions">Buying From Auctions</a></li>
+<li><a href="#68-selling-coins">Selling Coins</a></li>
+<li><a href="#69-getting-multiple-opinions">Getting Multiple Opinions</a></li>
+<li><a href="#70-professional-authentication-and-grading">Professional Authentication and Grading</a></li>
+<li><a href="#71-when-should-you-have-a-coin-graded">When Should You Have a Coin Graded?</a></li>
+<li><a href="#72-coin-storage">Coin Storage</a></li>
+<li><a href="#73-pvc-and-plastic-holders">PVC and Plastic Holders</a></li>
+<li><a href="#74-handling-coins">Handling Coins</a></li>
+<li><a href="#75-photographing-coins">Photographing Coins</a></li>
+<li><a href="#76-keeping-a-collection-inventory">Keeping a Collection Inventory</a></li>
+<li><a href="#77-provenance-and-documentation">Provenance and Documentation</a></li>
+<li><a href="#78-insurance">Insurance</a></li>
+<li><a href="#79-building-a-collection">Building a Collection</a></li>
+<li><a href="#80-collecting-by-type">Collecting by Type</a></li>
+<li><a href="#81-collecting-by-date">Collecting by Date</a></li>
+<li><a href="#82-collecting-by-mintmark">Collecting by Mintmark</a></li>
+<li><a href="#83-collecting-errors">Collecting Errors</a></li>
+<li><a href="#84-collecting-die-varieties">Collecting Die Varieties</a></li>
+<li><a href="#85-collecting-silver">Collecting Silver</a></li>
+<li><a href="#86-collecting-gold">Collecting Gold</a></li>
+<li><a href="#87-collecting-modern-coins">Collecting Modern Coins</a></li>
+<li><a href="#88-roll-hunting">Roll Hunting</a></li>
+<li><a href="#89-pocket-change-hunting">Pocket Change Hunting</a></li>
+<li><a href="#90-estate-and-inherited-collections">Estate and Inherited Collections</a></li>
+<li><a href="#91-coin-clubs-and-communities">Coin Clubs and Communities</a></li>
+<li><a href="#92-beginner-equipment">Beginner Equipment</a></li>
+<li><a href="#93-advanced-equipment">Advanced Equipment</a></li>
+<li><a href="#94-how-to-study-a-coin-series">How to Study a Coin Series</a></li>
+<li><a href="#95-the-normal-first-rule">The Normal-First Rule</a></li>
+<li><a href="#96-the-did-the-mint-make-it-rule">The &quot;Did the Mint Make It?&quot; Rule</a></li>
+<li><a href="#97-the-why-is-it-valuable-rule">The &quot;Why Is It Valuable?&quot; Rule</a></li>
+<li><a href="#98-common-beginner-mistakes">Common Beginner Mistakes</a></li>
+<li><a href="#99-master-coin-identification-workflow">Master Coin Identification Workflow</a></li>
+<li><a href="#100-master-is-this-coin-special-checklist">Master &quot;Is This Coin Special?&quot; Checklist</a></li>
+<li><a href="#101-final-advice">Final Advice</a></li>
+</ol>
+<hr>
+<h1>1. Introduction</h1>
+<p>Coin collecting is one of the easiest hobbies to begin and one of the deepest hobbies to master.</p>
+<p>You can start by looking through pocket change, searching bank rolls, examining coins inherited from family, or building a collection of historically important pieces.</p>
+<p>The important thing to understand is that <strong>valuable coins are not valuable simply because they are old</strong>.</p>
+<p>A coin can be valuable because it is:</p>
+<ul>
+<li>Rare</li>
+<li>Historically important</li>
+<li>Difficult to find in high grade</li>
+<li>A scarce date or mintmark</li>
+<li>A major die variety</li>
+<li>A genuine Mint error</li>
+<li>Made from precious metal</li>
+<li>An unusual die state</li>
+<li>An important transitional issue</li>
+<li>Exceptionally attractive</li>
+<li>In demand among collectors</li>
+</ul>
+<p>The goal of this guide is to teach you how to determine <strong>what you actually have before deciding what it is worth</strong>.</p>
+<hr>
+<h1>2. What Is Numismatics?</h1>
+<p><strong>Numismatics</strong> is the study and collection of coins, paper money, medals, tokens, and related objects.</p>
+<p>A person who collects or studies coins is commonly called a:</p>
+<p><strong>Numismatist</strong></p>
+<p>You do not have to be an expert to be a numismatist.</p>
+<p>The moment you begin learning why coins were made, how they were produced, and why some are more desirable than others, you are studying numismatics.</p>
+<hr>
+<h1>3. How to Identify a U.S. Coin</h1>
+<p>When you find an unfamiliar coin, do not immediately search for its value.</p>
+<p>Identify it first.</p>
+<p>Use this order:</p>
+<ol>
+<li>Country</li>
+<li>Denomination</li>
+<li>Date</li>
+<li>Mintmark</li>
+<li>Design/type</li>
+<li>Composition</li>
+<li>Weight</li>
+<li>Diameter</li>
+<li>Edge</li>
+<li>Variety</li>
+<li>Error status</li>
+<li>Condition</li>
+<li>Authenticity</li>
+<li>Market value</li>
+</ol>
+<p>This sequence prevents many identification mistakes.</p>
+<hr>
+<h1>4. Basic Coin Anatomy</h1>
+<h2>Obverse</h2>
+<p>The obverse is commonly called the &quot;heads&quot; side.</p>
+<h2>Reverse</h2>
+<p>The reverse is commonly called the &quot;tails&quot; side.</p>
+<h2>Edge</h2>
+<p>The edge is the surface around the outside of the coin.</p>
+<p>It can be:</p>
+<ul>
+<li>Plain</li>
+<li>Reeded</li>
+<li>Lettered</li>
+<li>Decorated</li>
+</ul>
+<h2>Rim</h2>
+<p>The rim is the raised border around the coin.</p>
+<h2>Field</h2>
+<p>The field is the relatively flat background area surrounding the main design.</p>
+<h2>Relief</h2>
+<p>Relief refers to the raised portions of the design.</p>
+<h2>Devices</h2>
+<p>The individual design elements are commonly called devices.</p>
+<h2>Mintmark</h2>
+<p>A mintmark identifies the Mint facility that produced the coin.</p>
+<h2>Date</h2>
+<p>The date normally identifies the year of the coin&#39;s issue, although certain historical varieties and restrikes require more investigation.</p>
+<hr>
+<h1>5. U.S. Mintmarks</h1>
+<p>Modern and historical U.S. coins can have different mintmarks.</p>
+<p>Common modern mintmarks include:</p>
+<table>
+<thead>
+<tr>
+<th>Mintmark</th>
+<th>Mint</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>P</td>
+<td>Philadelphia</td>
+</tr>
+<tr>
+<td>D</td>
+<td>Denver</td>
+</tr>
+<tr>
+<td>S</td>
+<td>San Francisco</td>
+</tr>
+<tr>
+<td>W</td>
+<td>West Point</td>
+</tr>
+</tbody></table>
+<p>Historical mintmarks include:</p>
+<table>
+<thead>
+<tr>
+<th>Mintmark</th>
+<th>Mint</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C</td>
+<td>Charlotte</td>
+</tr>
+<tr>
+<td>CC</td>
+<td>Carson City</td>
+</tr>
+<tr>
+<td>D</td>
+<td>Dahlonega</td>
+</tr>
+<tr>
+<td>O</td>
+<td>New Orleans</td>
+</tr>
+</tbody></table>
+<p>Some Philadelphia coins have no mintmark.</p>
+<h2>Important</h2>
+<p>The same letter can represent different historical mints.</p>
+<p>For example:</p>
+<p><strong>D</strong></p>
+<p>can mean:</p>
+<ul>
+<li>Denver</li>
+<li>Dahlonega</li>
+</ul>
+<p>The date and coin type determine which one is possible.</p>
+<hr>
+<h1>6. Mintage vs. Rarity</h1>
+<p><strong>Mintage</strong> means the number of coins produced.</p>
+<p>It does <strong>not</strong> mean the number of coins surviving today.</p>
+<p>For example:</p>
+<p>A coin may have had a large mintage but very few survivors because:</p>
+<ul>
+<li>It was melted</li>
+<li>It circulated heavily</li>
+<li>It was exported</li>
+<li>It was lost</li>
+<li>It was damaged</li>
+<li>It was destroyed</li>
+<li>Collectors did not save it</li>
+<li>Precious-metal content encouraged melting</li>
+</ul>
+<p>Conversely, a low-mintage coin can sometimes have a relatively large surviving population because collectors saved most examples.</p>
+<p>Therefore:</p>
+<p><strong>Mintage ≠ surviving population ≠ rarity in a particular grade</strong></p>
+<hr>
+<h1>7. Key Dates, Semi-Key Dates, and Better Dates</h1>
+<p>These terms are usually used within a particular coin series.</p>
+<h2>Key Date</h2>
+<p>A key date is one of the most difficult issues to obtain for a series.</p>
+<h2>Semi-Key Date</h2>
+<p>A semi-key is scarce enough to be notably more difficult to find than common issues, but generally not as difficult as the major keys.</p>
+<h2>Better Date</h2>
+<p>A better date is a somewhat informal term for a date that is scarcer or more desirable than common dates.</p>
+<h2>Important</h2>
+<p>These classifications can vary by reference and market.</p>
+<p>A date should not be called a &quot;key&quot; merely because an internet listing says it is rare.</p>
+<hr>
+<h1>8. Coin Types and Type Designations</h1>
+<p>A <strong>type</strong> is a particular design or major design variation.</p>
+<p>For example, the United States has produced multiple types of:</p>
+<ul>
+<li>Cents</li>
+<li>Nickels</li>
+<li>Dimes</li>
+<li>Quarters</li>
+<li>Half dollars</li>
+<li>Dollars</li>
+</ul>
+<p>Type numbers are <strong>not universal</strong>.</p>
+<p>If a reference says:</p>
+<p><strong>Type 1</strong></p>
+<p>that does not mean the same thing for every series.</p>
+<p>The exact series must always be identified first.</p>
+<hr>
+<h1>9. Small Date, Large Date, Close Date, Wide Date, and Other Date Styles</h1>
+<p>One of the most confusing areas for beginners is terminology involving dates.</p>
+<p>Terms such as:</p>
+<ul>
+<li>Small Date</li>
+<li>Large Date</li>
+<li>Close Date</li>
+<li>Wide Date</li>
+<li>High Date</li>
+<li>Low Date</li>
+<li>Near Date</li>
+<li>Far Date</li>
+</ul>
+<p>are generally <strong>series-specific descriptions</strong>.</p>
+<p>They do not have one universal measurement that applies to every U.S. coin.</p>
+<p>Differences can involve:</p>
+<ul>
+<li>Numeral height</li>
+<li>Numeral width</li>
+<li>Spacing</li>
+<li>Shape</li>
+<li>Position</li>
+<li>Alignment</li>
+<li>Relationship to the rim</li>
+<li>Relationship between individual digits</li>
+<li>Relationship to nearby design elements</li>
+</ul>
+<h2>Example</h2>
+<p>A &quot;Small Date&quot; variety may have:</p>
+<ul>
+<li>Shorter numerals</li>
+<li>Narrower numerals</li>
+<li>Different spacing</li>
+<li>Different placement</li>
+</ul>
+<p>while the &quot;Large Date&quot; may have taller or wider numerals.</p>
+<p>The exact diagnostic depends on the coin.</p>
+<h2>Critical Rule</h2>
+<p>Never identify a Small Date or Large Date simply because the date &quot;looks smaller.&quot;</p>
+<p>Compare the coin against known examples and the published diagnostics for that exact issue.</p>
+<hr>
+<h1>10. Die Varieties</h1>
+<p>A <strong>die variety</strong> is a repeatable difference caused by the creation or modification of a particular die.</p>
+<p>The important concept is:</p>
+<p><strong>The difference originates from the die.</strong></p>
+<p>That means multiple coins struck by the same die can show the same characteristic.</p>
+<p>Examples include:</p>
+<ul>
+<li>Doubled dies</li>
+<li>Repunched mintmarks</li>
+<li>Over-mintmarks</li>
+<li>Different date punches</li>
+<li>Hub changes</li>
+<li>Die chips</li>
+<li>Die cracks</li>
+<li>Die clashes</li>
+<li>Other die markers</li>
+</ul>
+<hr>
+<h1>11. Doubled Dies</h1>
+<p>A doubled die is created during the die-making process.</p>
+<p>The design is accidentally impressed into the die more than once in different positions.</p>
+<p>Coins struck by that die can show the resulting doubling.</p>
+<h2>DDO</h2>
+<p><strong>DDO = Doubled Die Obverse</strong></p>
+<p>The doubling is on the obverse.</p>
+<h2>DDR</h2>
+<p><strong>DDR = Doubled Die Reverse</strong></p>
+<p>The doubling is on the reverse.</p>
+<h2>What to Look For</h2>
+<p>Potential doubled-die characteristics include:</p>
+<ul>
+<li>Split serifs</li>
+<li>Extra outlines</li>
+<li>Extra lettering</li>
+<li>Extra date elements</li>
+<li>Distinct separation</li>
+<li>Doubling in design elements</li>
+</ul>
+<p>The exact appearance depends on the coin.</p>
+<hr>
+<h1>12. Machine Doubling</h1>
+<p>Machine doubling is often confused with a doubled die.</p>
+<p>Machine doubling occurs during the striking process rather than being created as a doubled die variety.</p>
+<p>It often appears:</p>
+<ul>
+<li>Flat</li>
+<li>Shelf-like</li>
+<li>Abraded</li>
+<li>One-sided</li>
+<li>Blunt</li>
+</ul>
+<p>A genuine doubled die usually has more distinct separation or secondary design characteristics.</p>
+<h2>Important</h2>
+<p>Not every coin showing something that looks like doubling is valuable.</p>
+<p>Always compare the feature with known examples.</p>
+<hr>
+<h1>13. Repunched Mintmarks</h1>
+<p>A <strong>Repunched Mintmark</strong>, or <strong>RPM</strong>, occurs when a mintmark was punched into a die more than once in different positions.</p>
+<p>This is especially important on older U.S. coins.</p>
+<p>The earlier punch can leave remnants visible next to or underneath the final mintmark.</p>
+<p>RPM varieties are highly series-specific.</p>
+<hr>
+<h1>14. Over-Mintmarks</h1>
+<p>An <strong>Over-Mintmark</strong>, commonly abbreviated OMM, occurs when one mintmark was punched over another.</p>
+<p>These are particularly associated with periods when mintmarks were applied manually.</p>
+<p>They can be difficult to identify and should be compared against documented examples.</p>
+<hr>
+<h1>15. Die Cracks</h1>
+<p>A die crack develops when a coin die physically cracks.</p>
+<p>The crack can appear on struck coins as a:</p>
+<p><strong>Raised line</strong></p>
+<p>This distinction is important.</p>
+<p>A crack in the die becomes a raised feature on the coin because the damaged area of the die creates metal displacement during striking.</p>
+<h2>Why They Matter</h2>
+<p>A die can continue producing coins after developing a crack.</p>
+<p>Therefore the same crack can appear on:</p>
+<ul>
+<li>Dozens of coins</li>
+<li>Hundreds of coins</li>
+<li>Thousands of coins</li>
+<li>Potentially many more</li>
+</ul>
+<p>Some die cracks are common and have little premium.</p>
+<p>Others become famous and collectible.</p>
+<hr>
+<h1>16. Cuds</h1>
+<p>A <strong>cud</strong> occurs when part of the die breaks away.</p>
+<p>The missing section of the die can produce a large raised area on the coin.</p>
+<p>A dramatic cud can be much more collectible than a tiny die crack.</p>
+<h2>General Rule</h2>
+<p>The larger, clearer, and more dramatic the cud, the more likely it is to attract collector interest.</p>
+<hr>
+<h1>17. Die Chips</h1>
+<p>A die chip occurs when a small piece of the die breaks away.</p>
+<p>This can produce a raised blob or lump on the coin.</p>
+<p>Small die chips are common.</p>
+<p>Large, unusual, or well-known die chips can be collectible.</p>
+<p>Do not assume every tiny raised bump is a valuable die chip.</p>
+<hr>
+<h1>18. Die Clashes</h1>
+<p>A die clash occurs when the obverse and reverse dies come together without a planchet properly between them.</p>
+<p>Parts of one die can leave impressions on the opposing die.</p>
+<p>Coins struck afterward can show unusual transferred design elements.</p>
+<p>Clashes can be highly collectible depending on the series and severity.</p>
+<hr>
+<h1>19. Die Polish Lines</h1>
+<p>Dies are sometimes polished to remove damage or imperfections.</p>
+<p>Polishing can leave lines in the die.</p>
+<p>Those lines may transfer to coins.</p>
+<p>Because the die feature is recessed, die polish lines are generally:</p>
+<p><strong>Raised on the coin</strong></p>
+<p>This is an important diagnostic distinction.</p>
+<hr>
+<h1>20. Die States</h1>
+<p>A die can change throughout its useful life.</p>
+<p>A coin struck early in the life of a die can look different from one struck after the die develops:</p>
+<ul>
+<li>Cracks</li>
+<li>Chips</li>
+<li>Clash marks</li>
+<li>Polishing</li>
+<li>Wear</li>
+<li>Other damage</li>
+</ul>
+<p>These stages are called <strong>die states</strong>.</p>
+<p>Collectors sometimes specialize in tracking the progression of a die.</p>
+<hr>
+<h1>21. Mint Errors</h1>
+<p>A Mint error is a manufacturing mistake that occurred during production and escaped normal quality control.</p>
+<p>Major categories include:</p>
+<ul>
+<li>Wrong planchet</li>
+<li>Off-center</li>
+<li>Broadstrike</li>
+<li>Clipped planchet</li>
+<li>Struck-through</li>
+<li>Brockage</li>
+<li>Multiple strike</li>
+<li>Rotated die</li>
+<li>Transitional error</li>
+<li>Other striking or planchet errors</li>
+</ul>
+<h2>Important</h2>
+<p>A coin being damaged after leaving the Mint does <strong>not</strong> make it a Mint error.</p>
+<hr>
+<h1>22. Wrong-Planchet Errors</h1>
+<p>A planchet is the prepared metal blank that is struck into a coin.</p>
+<p>A wrong-planchet error occurs when a coin is struck on a planchet intended for a different coin.</p>
+<p>Potential clues include:</p>
+<ul>
+<li>Incorrect weight</li>
+<li>Incorrect diameter</li>
+<li>Incorrect thickness</li>
+<li>Wrong metal</li>
+<li>Wrong edge characteristics</li>
+<li>Design that does not fit the planchet properly</li>
+</ul>
+<h2>Example Concept</h2>
+<p>If a dime design is found struck on a planchet intended for another denomination, the resulting coin can be a major error.</p>
+<h2>Important</h2>
+<p>Weight alone is never sufficient proof.</p>
+<hr>
+<h1>23. Off-Center Strikes</h1>
+<p>An off-center strike occurs when the planchet is not properly positioned beneath the dies.</p>
+<p>The resulting coin may have:</p>
+<ul>
+<li>Missing design</li>
+<li>A large blank crescent</li>
+<li>Partial rim</li>
+<li>Distorted positioning</li>
+</ul>
+<p>The amount of off-center striking can vary dramatically.</p>
+<p>Large, dramatic off-center errors are generally more desirable than tiny deviations.</p>
+<hr>
+<h1>24. Broadstrikes</h1>
+<p>A broadstrike occurs when the collar does not properly contain the planchet during striking.</p>
+<p>The coin can expand outward.</p>
+<p>Typical characteristics include:</p>
+<ul>
+<li>Enlarged diameter</li>
+<li>Flattened or expanded shape</li>
+<li>Missing normal edge characteristics</li>
+<li>Design spread outward</li>
+</ul>
+<hr>
+<h1>25. Clipped Planchets</h1>
+<p>A clipped planchet occurs when part of the blank is missing before the coin is struck.</p>
+<p>Types can include:</p>
+<ul>
+<li>Curved clips</li>
+<li>Straight clips</li>
+<li>Ragged clips</li>
+</ul>
+<p>Authentic clips have recognizable physical characteristics.</p>
+<h2>Important</h2>
+<p>Post-mint damage can imitate a clip.</p>
+<p>Do not assume a curved missing section automatically means a clipped planchet.</p>
+<hr>
+<h1>26. Struck-Through Errors</h1>
+<p>A struck-through error occurs when foreign material interferes with the striking process.</p>
+<p>Possible results include:</p>
+<ul>
+<li>Weak design</li>
+<li>Missing design</li>
+<li>Distorted design</li>
+<li>Incuse impressions</li>
+<li>Strange surface texture</li>
+</ul>
+<p>The appearance depends on what was between the die and planchet.</p>
+<hr>
+<h1>27. Brockages</h1>
+<p>A brockage can occur when a struck coin sticks to a die.</p>
+<p>That coin can then transfer part of its design to another planchet.</p>
+<p>Brockages can create:</p>
+<ul>
+<li>Incuse design</li>
+<li>Mirror-image design</li>
+<li>Partial transferred designs</li>
+</ul>
+<p>They can be dramatic and highly collectible.</p>
+<hr>
+<h1>28. Multiple Strikes</h1>
+<p>A coin can occasionally be struck more than once.</p>
+<p>Potential clues include:</p>
+<ul>
+<li>Duplicated design</li>
+<li>Overlapping impressions</li>
+<li>Multiple rims</li>
+<li>Displaced lettering</li>
+<li>Rotated secondary strikes</li>
+</ul>
+<p>Do not confuse a true multiple strike with:</p>
+<ul>
+<li>Machine doubling</li>
+<li>Die doubling</li>
+<li>Die deterioration</li>
+</ul>
+<hr>
+<h1>29. Rotated Dies</h1>
+<p>The obverse and reverse of a coin have an intended orientation.</p>
+<p>A significant deviation from the intended orientation can be collectible.</p>
+<p>Small deviations can occur and may not be significant depending on the issue.</p>
+<p>When checking a rotated die:</p>
+<ol>
+<li>Hold the coin upright by the obverse.</li>
+<li>Rotate it vertically.</li>
+<li>Observe the reverse.</li>
+<li>Compare the orientation to the expected standard.</li>
+</ol>
+<hr>
+<h1>30. Transitional Errors</h1>
+<p>A transitional error occurs around a change in coin composition or design.</p>
+<p>The Mint changes specifications, but an old planchet or old composition can sometimes be struck with a new design.</p>
+<p>These errors can be extremely valuable.</p>
+<p>Because transitional errors are frequently counterfeited or misidentified, authentication is especially important.</p>
+<hr>
+<h1>31. Post-Mint Damage</h1>
+<p>One of the most important skills in collecting is recognizing damage that happened <strong>after the coin left the Mint</strong>.</p>
+<p>Common examples include:</p>
+<ul>
+<li>Scratches</li>
+<li>Bends</li>
+<li>Gouges</li>
+<li>Filing</li>
+<li>Drilling</li>
+<li>Grinding</li>
+<li>Polishing</li>
+<li>Chemical damage</li>
+<li>Heat damage</li>
+<li>Road damage</li>
+<li>Plating</li>
+<li>Artificial toning</li>
+</ul>
+<h2>The Key Question</h2>
+<blockquote>
+<p>Could this feature realistically have been created during Mint production?</p>
+</blockquote>
+<p>If not, it is probably post-Mint damage.</p>
+<hr>
+<h1>32. Coin Weight</h1>
+<p>Weight is one of the most useful diagnostic tools available to a collector.</p>
+<p>A digital scale accurate to:</p>
+<p><strong>0.01 gram</strong></p>
+<p>is an excellent basic tool.</p>
+<p>Weight can help identify:</p>
+<ul>
+<li>Silver coins</li>
+<li>Wrong-planchet errors</li>
+<li>Counterfeits</li>
+<li>Composition changes</li>
+<li>Altered coins</li>
+<li>Clipped planchets</li>
+</ul>
+<h2>Important</h2>
+<p>Weight is evidence, not proof.</p>
+<p>A counterfeit can be made to the correct weight.</p>
+<p>A genuine damaged coin can also weigh incorrectly.</p>
+<hr>
+<h1>33. Coin Diameter and Thickness</h1>
+<p>When investigating an unusual coin, measure:</p>
+<ul>
+<li>Weight</li>
+<li>Diameter</li>
+<li>Thickness</li>
+</ul>
+<p>Then compare those measurements with a reliable reference.</p>
+<p>The combination is much more useful than any individual measurement.</p>
+<hr>
+<h1>34. U.S. Coin Metal Compositions</h1>
+<p>Coin specifications have changed repeatedly throughout U.S. history.</p>
+<p>Common examples include:</p>
+<table>
+<thead>
+<tr>
+<th>Coin / Period</th>
+<th>Approximate Composition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Early U.S. cents</td>
+<td>Various copper-based alloys</td>
+</tr>
+<tr>
+<td>Indian Head cents</td>
+<td>Bronze for most later issues</td>
+</tr>
+<tr>
+<td>Lincoln cents before 1982</td>
+<td>Mostly copper</td>
+</tr>
+<tr>
+<td>1943 cent</td>
+<td>Zinc-coated steel</td>
+</tr>
+<tr>
+<td>Lincoln cents after 1982</td>
+<td>Copper-plated zinc, with some exceptions and special issues</td>
+</tr>
+<tr>
+<td>Jefferson nickel</td>
+<td>Copper-nickel</td>
+</tr>
+<tr>
+<td>Wartime Jefferson nickel</td>
+<td>35% silver, 56% copper, 9% manganese</td>
+</tr>
+<tr>
+<td>Roosevelt dime through 1964</td>
+<td>90% silver</td>
+</tr>
+<tr>
+<td>Washington quarter through 1964</td>
+<td>90% silver</td>
+</tr>
+<tr>
+<td>Kennedy half, 1964</td>
+<td>90% silver</td>
+</tr>
+<tr>
+<td>Kennedy half, 1965-1970</td>
+<td>40% silver</td>
+</tr>
+<tr>
+<td>Modern clad coins</td>
+<td>Copper-nickel over copper core</td>
+</tr>
+<tr>
+<td>Morgan dollar</td>
+<td>90% silver</td>
+</tr>
+<tr>
+<td>Peace dollar</td>
+<td>90% silver</td>
+</tr>
+</tbody></table>
+<p>Always verify the exact issue.</p>
+<hr>
+<h1>35. Silver Coins</h1>
+<p>Many U.S. coins contain silver.</p>
+<p>Major circulation silver milestones include:</p>
+<h2>Dimes</h2>
+<p>U.S. dimes dated:</p>
+<p><strong>1964 and earlier</strong></p>
+<p>are generally 90% silver.</p>
+<h2>Quarters</h2>
+<p>U.S. quarters dated:</p>
+<p><strong>1964 and earlier</strong></p>
+<p>are generally 90% silver.</p>
+<h2>Half Dollars</h2>
+<p>Half dollars dated:</p>
+<p><strong>1964 and earlier</strong></p>
+<p>are generally 90% silver.</p>
+<p>Kennedy halves dated:</p>
+<p><strong>1965-1970</strong></p>
+<p>are generally 40% silver.</p>
+<h2>Wartime Nickels</h2>
+<p>Certain Jefferson nickels dated:</p>
+<p><strong>1942-1945</strong></p>
+<p>contain 35% silver.</p>
+<p>These are identifiable by the large mintmark above Monticello on the reverse.</p>
+<hr>
+<h1>36. Gold Coins</h1>
+<p>U.S. gold coins have been produced in many denominations.</p>
+<p>Historic denominations include:</p>
+<ul>
+<li>$1</li>
+<li>$2.50</li>
+<li>$3</li>
+<li>$5</li>
+<li>$10</li>
+<li>$20</li>
+</ul>
+<p>Modern bullion and commemorative gold coins also exist.</p>
+<p>When evaluating gold coins determine:</p>
+<ul>
+<li>Gross weight</li>
+<li>Fineness</li>
+<li>Actual gold weight</li>
+<li>Date</li>
+<li>Mintmark</li>
+<li>Type</li>
+<li>Condition</li>
+<li>Rarity</li>
+<li>Authenticity</li>
+</ul>
+<p>Do not assume the total weight equals the amount of gold.</p>
+<hr>
+<h1>37. Copper Coins</h1>
+<p>Copper and bronze cents can be especially interesting because composition changed over time.</p>
+<p>Important examples include:</p>
+<ul>
+<li>Large cents</li>
+<li>Flying Eagle cents</li>
+<li>Indian Head cents</li>
+<li>Early Lincoln cents</li>
+<li>1943 steel cents</li>
+<li>Modern copper-plated zinc cents</li>
+</ul>
+<p>Some dates can be valuable because of rarity or varieties rather than metal content.</p>
+<hr>
+<h1>38. Nickel and Nickel-Alloy Coins</h1>
+<p>The U.S. five-cent coin has historically used several compositions.</p>
+<p>The standard Jefferson nickel composition is generally:</p>
+<p><strong>75% copper / 25% nickel</strong></p>
+<p>The major exception is the wartime alloy:</p>
+<p><strong>35% silver / 56% copper / 9% manganese</strong></p>
+<p>These wartime nickels were made during:</p>
+<p><strong>1942-1945</strong></p>
+<p>and have a large mintmark above Monticello.</p>
+<hr>
+<h1>39. Clad Coins</h1>
+<p>Modern U.S. dimes, quarters, and many half dollars use clad construction.</p>
+<p>Clad means the coin is composed of layers of different metals.</p>
+<p>Modern clad coins generally have:</p>
+<ul>
+<li>Copper-nickel outer layers</li>
+<li>Copper core</li>
+</ul>
+<p>The edge can reveal the layered construction.</p>
+<p>A coin showing an unusual edge color or layer can deserve additional investigation.</p>
+<hr>
+<h1>40. Proof Coins</h1>
+<p>Proof describes a special manufacturing process.</p>
+<p>Proof coins commonly have:</p>
+<ul>
+<li>Mirrorlike fields</li>
+<li>Sharp details</li>
+<li>Frosted design elements</li>
+</ul>
+<p>A coin being shiny does not automatically make it a proof.</p>
+<p>Proofs are generally made specifically for collectors rather than ordinary circulation.</p>
+<hr>
+<h1>41. Reverse Proof Coins</h1>
+<p>A reverse proof uses the opposite visual contrast from a conventional proof.</p>
+<p>Generally:</p>
+<ul>
+<li>Fields appear frosted</li>
+<li>Design elements appear mirrorlike</li>
+</ul>
+<p>Reverse proofs are modern collector issues and are often produced for special sets.</p>
+<hr>
+<h1>42. Mint State and Circulated Grades</h1>
+<p><strong>Mint State</strong> generally means a coin that has not experienced circulation wear.</p>
+<p>Circulated coins show varying amounts of wear.</p>
+<p>Common circulated grades include:</p>
+<ul>
+<li>Good</li>
+<li>Very Good</li>
+<li>Fine</li>
+<li>Very Fine</li>
+<li>Extremely Fine</li>
+<li>About Uncirculated</li>
+</ul>
+<p>Uncirculated grades include:</p>
+<ul>
+<li>MS-60</li>
+<li>MS-61</li>
+<li>MS-62</li>
+<li>MS-63</li>
+<li>MS-64</li>
+<li>MS-65</li>
+<li>MS-66</li>
+<li>MS-67</li>
+<li>MS-68</li>
+<li>MS-69</li>
+<li>MS-70</li>
+</ul>
+<p>Not every coin can realistically exist at every grade.</p>
+<hr>
+<h1>43. Understanding the Sheldon Grading Scale</h1>
+<p>The Sheldon scale runs from:</p>
+<p><strong>1 to 70</strong></p>
+<p>with:</p>
+<ul>
+<li>1 representing extremely poor condition</li>
+<li>70 representing a theoretically perfect coin</li>
+</ul>
+<p>The scale is now widely used for certified U.S. coins.</p>
+<p>Examples:</p>
+<p><strong>G-4</strong><br>Very heavily worn but identifiable.</p>
+<p><strong>VG-8</strong><br>More detail remains.</p>
+<p><strong>F-12</strong><br>Moderate circulation wear.</p>
+<p><strong>VF-20</strong><br>Considerable detail remains.</p>
+<p><strong>XF-40</strong><br>Light wear.</p>
+<p><strong>AU-50</strong><br>About Uncirculated.</p>
+<p><strong>MS-60+</strong><br>Uncirculated.</p>
+<hr>
+<h1>44. Details Grades and Problem Coins</h1>
+<p>A coin can be genuine but have a problem preventing a normal numerical grade.</p>
+<p>Examples:</p>
+<ul>
+<li>Cleaning</li>
+<li>Scratches</li>
+<li>Environmental damage</li>
+<li>Corrosion</li>
+<li>Mounting</li>
+<li>Alteration</li>
+</ul>
+<p>A grading service may therefore assign a:</p>
+<p><strong>Details grade</strong></p>
+<p>rather than a normal numeric grade.</p>
+<p>A genuine coin with a Details grade can still be valuable.</p>
+<hr>
+<h1>45. Wear vs. Damage</h1>
+<p>Wear is primarily caused by circulation.</p>
+<p>Damage is caused by something abnormal happening to the coin.</p>
+<h2>Wear</h2>
+<p>Usually produces gradual loss of detail.</p>
+<h2>Damage</h2>
+<p>Can include:</p>
+<ul>
+<li>Sharp scratches</li>
+<li>Gouges</li>
+<li>Chemical discoloration</li>
+<li>Dents</li>
+<li>Bends</li>
+<li>Filing</li>
+<li>Polishing</li>
+</ul>
+<p>Learning this distinction is essential for grading.</p>
+<hr>
+<h1>46. Cleaning Coins</h1>
+<h2>Do Not Clean Valuable Coins</h2>
+<p>Avoid:</p>
+<ul>
+<li>Metal polish</li>
+<li>Toothpaste</li>
+<li>Baking soda</li>
+<li>Abrasive cloth</li>
+<li>Jewelry cleaner</li>
+<li>Tarnish remover</li>
+<li>Erasers</li>
+<li>Dremels</li>
+<li>Sandpaper</li>
+</ul>
+<p>Cleaning can leave permanent hairlines and change the surface.</p>
+<p>A cleaned coin can be worth substantially less than an otherwise similar uncleaned coin.</p>
+<hr>
+<h1>47. Toning</h1>
+<p>Toning is a chemical change to the coin&#39;s surface.</p>
+<p>It can occur naturally over time.</p>
+<p>Toning can be:</p>
+<ul>
+<li>Attractive</li>
+<li>Neutral</li>
+<li>Unattractive</li>
+<li>Artificial</li>
+<li>Damaging</li>
+</ul>
+<p>Some collectors strongly value attractive natural toning.</p>
+<p>Others prefer brilliant untoned coins.</p>
+<p>Color alone does not determine value.</p>
+<hr>
+<h1>48. Luster</h1>
+<p>Mint luster is the characteristic reflective appearance created by the striking process and movement of metal across the die.</p>
+<p>It is different from:</p>
+<p><strong>Shine caused by polishing.</strong></p>
+<p>Strong original luster can be an important factor in determining the quality and desirability of an uncirculated coin.</p>
+<hr>
+<h1>49. Strike Quality</h1>
+<p>Strike refers to how strongly the dies impressed the design.</p>
+<p>Some coin series are notorious for weak strikes in specific areas.</p>
+<p>A weak strike does not necessarily mean the coin is damaged.</p>
+<p>A sharply struck coin can be more desirable than another coin of the same numerical grade.</p>
+<hr>
+<h1>50. Eye Appeal</h1>
+<p>Eye appeal is the overall visual attractiveness of a coin.</p>
+<p>It can involve:</p>
+<ul>
+<li>Color</li>
+<li>Toning</li>
+<li>Luster</li>
+<li>Strike</li>
+<li>Surfaces</li>
+<li>Marks</li>
+<li>Centering</li>
+<li>Overall appearance</li>
+</ul>
+<p>Two coins with identical grades can have very different eye appeal and market values.</p>
+<hr>
+<h1>51. Contact Marks and Bag Marks</h1>
+<p>Coins can hit one another during:</p>
+<ul>
+<li>Mint transport</li>
+<li>Bagging</li>
+<li>Storage</li>
+<li>Handling</li>
+</ul>
+<p>These marks are commonly called:</p>
+<ul>
+<li>Contact marks</li>
+<li>Bag marks</li>
+</ul>
+<p>They are particularly noticeable on large silver dollars.</p>
+<hr>
+<h1>52. Authenticating a Coin</h1>
+<p>For an important coin, evaluate:</p>
+<ul>
+<li>Weight</li>
+<li>Diameter</li>
+<li>Thickness</li>
+<li>Edge</li>
+<li>Metal</li>
+<li>Design</li>
+<li>Lettering</li>
+<li>Date</li>
+<li>Mintmark</li>
+<li>Surface texture</li>
+<li>Strike</li>
+<li>Die characteristics</li>
+</ul>
+<p>Compare the coin with known genuine examples.</p>
+<p>For expensive coins, professional authentication is strongly recommended.</p>
+<hr>
+<h1>53. Counterfeit Warning Signs</h1>
+<p>Potential warning signs include:</p>
+<ul>
+<li>Incorrect weight</li>
+<li>Incorrect dimensions</li>
+<li>Incorrect edge</li>
+<li>Wrong lettering</li>
+<li>Incorrect mintmark</li>
+<li>Casting bubbles</li>
+<li>Seams</li>
+<li>Soft details</li>
+<li>Unusual luster</li>
+<li>Incorrect color</li>
+<li>Wrong metal</li>
+<li>Unusual surface texture</li>
+<li>Suspicious tooling</li>
+</ul>
+<h2>Important</h2>
+<p>No single characteristic proves a coin is counterfeit.</p>
+<p>Use multiple diagnostics.</p>
+<hr>
+<h1>54. Using a Scale</h1>
+<p>A collector&#39;s digital scale should ideally read to:</p>
+<p><strong>0.01 gram</strong></p>
+<p>Place the coin directly on the scale.</p>
+<p>Record the result.</p>
+<p>Then compare it with a trusted specification.</p>
+<p>For particularly important coins, repeat the measurement using another scale if possible.</p>
+<hr>
+<h1>55. Using Magnification</h1>
+<p>A:</p>
+<p><strong>5x-10x loupe</strong></p>
+<p>is an excellent starting point.</p>
+<p>Use magnification for:</p>
+<ul>
+<li>Mintmarks</li>
+<li>Date varieties</li>
+<li>Doubled dies</li>
+<li>Die chips</li>
+<li>Die cracks</li>
+<li>Small scratches</li>
+<li>Surface problems</li>
+</ul>
+<p>Do not assume something is valuable merely because it can be seen under extreme magnification.</p>
+<hr>
+<h1>56. Using Lighting</h1>
+<p>Good lighting is one of the most important tools for coin examination.</p>
+<p>Move the coin under the light.</p>
+<p>Change the angle.</p>
+<p>Look for:</p>
+<ul>
+<li>Hairlines</li>
+<li>Cleaning</li>
+<li>Luster</li>
+<li>Scratches</li>
+<li>Toning</li>
+<li>Die cracks</li>
+<li>Surface damage</li>
+</ul>
+<p>A coin can look completely different under different lighting.</p>
+<hr>
+<h1>57. Using a Magnet</h1>
+<p>A magnet can be useful as a screening tool.</p>
+<p>For example:</p>
+<p><strong>1943 steel cents are magnetic.</strong></p>
+<p>Most ordinary copper cents are not.</p>
+<p>However:</p>
+<p><strong>Magnetism does not prove authenticity.</strong></p>
+<p>Use magnetic behavior together with:</p>
+<ul>
+<li>Weight</li>
+<li>Dimensions</li>
+<li>Appearance</li>
+<li>Edge</li>
+<li>Composition</li>
+</ul>
+<hr>
+<h1>58. Inspecting the Edge</h1>
+<p>The edge is one of the most useful and overlooked parts of a coin.</p>
+<p>Check for:</p>
+<ul>
+<li>Reeded edge</li>
+<li>Plain edge</li>
+<li>Lettered edge</li>
+<li>Missing reeds</li>
+<li>Partial reeds</li>
+<li>Double reeding</li>
+<li>Filing</li>
+<li>Seams</li>
+<li>Casting evidence</li>
+<li>Edge lettering errors</li>
+<li>Layering</li>
+</ul>
+<p>Always check the edge of an expensive or unusual coin.</p>
+<hr>
+<h1>59. Researching a Coin</h1>
+<p>Good research should answer:</p>
+<ol>
+<li>What coin is it?</li>
+<li>What is its normal specification?</li>
+<li>How many were produced?</li>
+<li>How many are believed to survive?</li>
+<li>Are there recognized varieties?</li>
+<li>Are there recognized errors?</li>
+<li>What grades are common?</li>
+<li>What grades are rare?</li>
+<li>What have comparable coins sold for recently?</li>
+</ol>
+<hr>
+<h1>60. Coin Price Guides</h1>
+<p>Price guides can be useful for learning approximate market ranges.</p>
+<p>However, price-guide values should not automatically be treated as actual selling prices.</p>
+<p>Prices vary according to:</p>
+<ul>
+<li>Grade</li>
+<li>Variety</li>
+<li>Eye appeal</li>
+<li>Market conditions</li>
+<li>Dealer markup</li>
+<li>Auction fees</li>
+<li>Certification</li>
+<li>Demand</li>
+</ul>
+<hr>
+<h1>61. Auction Prices vs. Asking Prices</h1>
+<p>This is one of the most important valuation lessons.</p>
+<p>An online listing is:</p>
+<p><strong>An asking price</strong></p>
+<p>An auction result is:</p>
+<p><strong>A realized price</strong></p>
+<p>A seller can ask $5,000 for a coin.</p>
+<p>That does not mean anyone will pay $5,000.</p>
+<p>When determining value, look for multiple recent sales of comparable coins.</p>
+<hr>
+<h1>62. Population Reports</h1>
+<p>A grading-service population report shows how many coins the service has graded at various levels.</p>
+<p>For example:</p>
+<ul>
+<li>MS-63</li>
+<li>MS-64</li>
+<li>MS-65</li>
+<li>MS-66</li>
+</ul>
+<p>Population reports are useful but imperfect.</p>
+<p>Coins can be:</p>
+<ul>
+<li>Resubmitted</li>
+<li>Crossed to another service</li>
+<li>Removed from holders</li>
+<li>Regraded</li>
+</ul>
+<p>Therefore:</p>
+<p><strong>Population is not the same thing as total surviving population.</strong></p>
+<hr>
+<h1>63. Buying Coins</h1>
+<p>Possible sources include:</p>
+<ul>
+<li>Coin shops</li>
+<li>Coin shows</li>
+<li>Auctions</li>
+<li>Established online dealers</li>
+<li>Collector-to-collector sales</li>
+<li>Estate collections</li>
+<li>Bank rolls</li>
+<li>U.S. Mint products</li>
+</ul>
+<p>Before spending significant money, research both:</p>
+<p><strong>The coin</strong></p>
+<p>and</p>
+<p><strong>The seller</strong></p>
+<hr>
+<h1>64. Buying From Coin Dealers</h1>
+<p>A good dealer should be willing to explain:</p>
+<ul>
+<li>What the coin is</li>
+<li>Why it is valuable</li>
+<li>The grade</li>
+<li>The variety</li>
+<li>The price</li>
+</ul>
+<p>Do not be afraid to say:</p>
+<blockquote>
+<p>&quot;I am still learning.&quot;</p>
+</blockquote>
+<p>A reputable dealer should not be offended by questions.</p>
+<hr>
+<h1>65. Buying at Coin Shows</h1>
+<p>Coin shows are excellent places to learn.</p>
+<p>Tips:</p>
+<ul>
+<li>Ask before handling coins.</li>
+<li>Use trays when provided.</li>
+<li>Keep coins over the table.</li>
+<li>Do not mix coins between dealers.</li>
+<li>Take notes.</li>
+<li>Compare prices.</li>
+<li>Examine multiple examples.</li>
+</ul>
+<p>Do not feel pressured to buy immediately.</p>
+<hr>
+<h1>66. Buying Online</h1>
+<p>Online marketplaces can be useful but require caution.</p>
+<p>Potential problems include:</p>
+<ul>
+<li>Misidentified coins</li>
+<li>Artificially inflated prices</li>
+<li>Counterfeits</li>
+<li>Altered coins</li>
+<li>Misrepresented grades</li>
+<li>Fake errors</li>
+<li>Stock photographs</li>
+<li>Old photographs</li>
+<li>Edited photographs</li>
+</ul>
+<p>Always verify important purchases independently.</p>
+<hr>
+<h1>67. Buying From Auctions</h1>
+<p>Auction prices can be excellent research tools.</p>
+<p>Before bidding:</p>
+<ol>
+<li>Identify the exact coin.</li>
+<li>Determine the grade.</li>
+<li>Check comparable sales.</li>
+<li>Add buyer&#39;s premium.</li>
+<li>Add shipping and taxes where applicable.</li>
+<li>Set a maximum price.</li>
+<li>Do not chase the coin emotionally.</li>
+</ol>
+<hr>
+<h1>68. Selling Coins</h1>
+<p>Before selling:</p>
+<ol>
+<li>Identify the coins.</li>
+<li>Separate valuable dates.</li>
+<li>Separate silver and gold.</li>
+<li>Look for major varieties.</li>
+<li>Look for errors.</li>
+<li>Determine approximate grades.</li>
+<li>Research recent sales.</li>
+<li>Get multiple opinions for expensive pieces.</li>
+</ol>
+<p>Never assume the first offer is the best offer.</p>
+<hr>
+<h1>69. Getting Multiple Opinions</h1>
+<p>Get another opinion when:</p>
+<ul>
+<li>Dealers disagree</li>
+<li>You suspect a major variety</li>
+<li>You suspect a major error</li>
+<li>A coin might be counterfeit</li>
+<li>The coin is expensive</li>
+<li>The grade is disputed</li>
+<li>Someone makes an extraordinary claim</li>
+</ul>
+<p>A second opinion can prevent an expensive mistake.</p>
+<hr>
+<h1>70. Professional Authentication and Grading</h1>
+<p>Professional grading can provide:</p>
+<ul>
+<li>Authentication</li>
+<li>Numerical grade</li>
+<li>Encapsulation</li>
+<li>Variety attribution when offered</li>
+<li>Market recognition</li>
+</ul>
+<p>Professional grading is not necessary for every coin.</p>
+<p>It becomes more useful as:</p>
+<ul>
+<li>Value increases</li>
+<li>Rarity increases</li>
+<li>Authenticity becomes more important</li>
+<li>Grade has a large effect on price</li>
+</ul>
+<hr>
+<h1>71. When Should You Have a Coin Graded?</h1>
+<p>Consider professional grading when:</p>
+<ul>
+<li>The coin is valuable.</li>
+<li>It is a major key date.</li>
+<li>It may be a major variety.</li>
+<li>It may be a major error.</li>
+<li>Authenticity is uncertain.</li>
+<li>Grade strongly affects value.</li>
+<li>You intend to sell it.</li>
+<li>You want long-term protection.</li>
+</ul>
+<p>Do not spend $50-$100 or more grading a coin worth $5 unless there is another compelling reason.</p>
+<hr>
+<h1>72. Coin Storage</h1>
+<p>Good storage should protect coins from:</p>
+<ul>
+<li>Moisture</li>
+<li>Chemicals</li>
+<li>PVC</li>
+<li>Scratching</li>
+<li>Excessive handling</li>
+<li>Temperature extremes</li>
+</ul>
+<p>Useful storage methods include:</p>
+<ul>
+<li>Coin flips</li>
+<li>2x2 holders</li>
+<li>Capsules</li>
+<li>Albums</li>
+<li>Hard holders</li>
+<li>Certified holders</li>
+</ul>
+<hr>
+<h1>73. PVC and Plastic Holders</h1>
+<p>Avoid soft plastic holders containing PVC.</p>
+<p>PVC can eventually leave a greenish or oily residue on coins.</p>
+<p>Long-term PVC exposure can damage surfaces.</p>
+<p>Look for:</p>
+<p><strong>PVC-free</strong></p>
+<p>coin storage products.</p>
+<hr>
+<h1>74. Handling Coins</h1>
+<p>Handle coins by their edges.</p>
+<p>Avoid touching the faces of coins whenever possible.</p>
+<p>Fingerprints contain oils and contaminants that can permanently stain surfaces.</p>
+<p>For proof coins and high-grade coins, handling precautions are especially important.</p>
+<hr>
+<h1>75. Photographing Coins</h1>
+<p>For important coins photograph:</p>
+<ul>
+<li>Obverse</li>
+<li>Reverse</li>
+<li>Edge</li>
+<li>Date</li>
+<li>Mintmark</li>
+<li>Variety diagnostics</li>
+<li>Problem areas</li>
+</ul>
+<p>Use consistent lighting and camera settings.</p>
+<p>Photographs are useful for:</p>
+<ul>
+<li>Insurance</li>
+<li>Inventory</li>
+<li>Comparison</li>
+<li>Selling</li>
+<li>Documentation</li>
+</ul>
+<hr>
+<h1>76. Keeping a Collection Inventory</h1>
+<p>A good inventory should record:</p>
+<ul>
+<li>Inventory number</li>
+<li>Date</li>
+<li>Denomination</li>
+<li>Mintmark</li>
+<li>Variety</li>
+<li>Grade</li>
+<li>Certification number</li>
+<li>Purchase price</li>
+<li>Purchase date</li>
+<li>Seller</li>
+<li>Estimated value</li>
+<li>Storage location</li>
+<li>Photograph filename</li>
+<li>Notes</li>
+</ul>
+<p>A spreadsheet is an excellent way to manage a collection.</p>
+<hr>
+<h1>77. Provenance and Documentation</h1>
+<p><strong>Provenance</strong> means the documented history of ownership of an item.</p>
+<p>Keep:</p>
+<ul>
+<li>Receipts</li>
+<li>Auction invoices</li>
+<li>Certificates</li>
+<li>Dealer information</li>
+<li>Previous photographs</li>
+<li>Family history</li>
+<li>Appraisals</li>
+</ul>
+<p>Provenance can be especially useful for important or historically significant coins.</p>
+<hr>
+<h1>78. Insurance</h1>
+<p>If your collection becomes valuable, check whether your current insurance adequately covers it.</p>
+<p>Maintain:</p>
+<ul>
+<li>Inventory</li>
+<li>Photographs</li>
+<li>Receipts</li>
+<li>Appraisals</li>
+<li>Certification information</li>
+</ul>
+<p>Do not assume a normal household policy provides sufficient coverage for a valuable collection.</p>
+<hr>
+<h1>79. Building a Collection</h1>
+<p>There are many ways to build a collection.</p>
+<p>You can collect by:</p>
+<ul>
+<li>Date</li>
+<li>Mintmark</li>
+<li>Type</li>
+<li>Variety</li>
+<li>Error</li>
+<li>Metal</li>
+<li>Historical period</li>
+<li>Grade</li>
+<li>Theme</li>
+<li>Denomination</li>
+</ul>
+<p>There is no single correct method.</p>
+<hr>
+<h1>80. Collecting by Type</h1>
+<p>A type set attempts to obtain one example of each major coin design/type.</p>
+<p>For example, a collector might have:</p>
+<ul>
+<li>One Indian Head cent</li>
+<li>One Lincoln cent</li>
+<li>One Buffalo nickel</li>
+<li>One Jefferson nickel</li>
+<li>One Mercury dime</li>
+<li>One Roosevelt dime</li>
+<li>One Standing Liberty quarter</li>
+<li>One Washington quarter</li>
+<li>One Walking Liberty half</li>
+<li>One Franklin half</li>
+<li>One Kennedy half</li>
+<li>One Morgan dollar</li>
+<li>One Peace dollar</li>
+</ul>
+<p>Type collecting is excellent for beginners because it introduces many areas of U.S. numismatics without requiring every date.</p>
+<hr>
+<h1>81. Collecting by Date</h1>
+<p>A date collection attempts to obtain examples from different years.</p>
+<p>This can range from:</p>
+<p><strong>Every year</strong></p>
+<p>to:</p>
+<p><strong>Every year and mintmark</strong></p>
+<p>The second approach is much more difficult.</p>
+<hr>
+<h1>82. Collecting by Mintmark</h1>
+<p>A collector can build sets organized around different U.S. Mint facilities.</p>
+<p>This can be especially interesting for historical series.</p>
+<p>A coin&#39;s mintmark can sometimes make an otherwise common date significantly more valuable.</p>
+<hr>
+<h1>83. Collecting Errors</h1>
+<p>Error collectors may specialize in:</p>
+<ul>
+<li>Wrong planchets</li>
+<li>Off-centers</li>
+<li>Clips</li>
+<li>Broadstrikes</li>
+<li>Brockages</li>
+<li>Struck-throughs</li>
+<li>Multiple strikes</li>
+<li>Transitional errors</li>
+</ul>
+<p>Major authenticated errors can be extremely valuable.</p>
+<hr>
+<h1>84. Collecting Die Varieties</h1>
+<p>Variety collectors study:</p>
+<ul>
+<li>DDOs</li>
+<li>DDRs</li>
+<li>RPMs</li>
+<li>OMMs</li>
+<li>Die cracks</li>
+<li>Die clashes</li>
+<li>Die chips</li>
+<li>Date varieties</li>
+<li>Hub varieties</li>
+</ul>
+<p>Variety collecting rewards careful observation and research.</p>
+<hr>
+<h1>85. Collecting Silver</h1>
+<p>Silver collecting can range from inexpensive circulated coins to extremely rare numismatic pieces.</p>
+<p>A beginner can start with:</p>
+<ul>
+<li>90% silver dimes</li>
+<li>90% silver quarters</li>
+<li>90% silver half dollars</li>
+<li>40% silver Kennedy halves</li>
+<li>Wartime nickels</li>
+<li>Silver dollars</li>
+</ul>
+<p>Remember:</p>
+<p><strong>Silver value and collector value are different things.</strong></p>
+<hr>
+<h1>86. Collecting Gold</h1>
+<p>Gold collecting can involve:</p>
+<ul>
+<li>Historic U.S. gold</li>
+<li>Modern bullion</li>
+<li>Commemoratives</li>
+<li>Proofs</li>
+<li>Type sets</li>
+<li>Rare dates</li>
+<li>High-grade coins</li>
+</ul>
+<p>Authentication is especially important because valuable gold coins are frequent counterfeit targets.</p>
+<hr>
+<h1>87. Collecting Modern Coins</h1>
+<p>Do not ignore modern coins.</p>
+<p>Modern collecting opportunities include:</p>
+<ul>
+<li>Proofs</li>
+<li>Mint errors</li>
+<li>Die varieties</li>
+<li>Low-mintage issues</li>
+<li>Special finishes</li>
+<li>Commemoratives</li>
+<li>High-grade condition rarities</li>
+<li>Limited releases</li>
+</ul>
+<p>Some major modern varieties are discovered long after the coins were produced.</p>
+<hr>
+<h1>88. Roll Hunting</h1>
+<p>Roll hunting involves obtaining rolls of coins and searching them for desirable examples.</p>
+<p>Possible finds include:</p>
+<ul>
+<li>Silver</li>
+<li>Wheat cents</li>
+<li>Older dates</li>
+<li>Better dates</li>
+<li>Varieties</li>
+<li>Errors</li>
+<li>Foreign coins</li>
+<li>Tokens</li>
+<li>Interesting die states</li>
+</ul>
+<p>Roll hunting is inexpensive compared with buying rare coins individually and can be an excellent way to train your eye.</p>
+<hr>
+<h1>89. Pocket Change Hunting</h1>
+<p>Search pocket change for:</p>
+<ul>
+<li>Older dates</li>
+<li>Key dates</li>
+<li>Varieties</li>
+<li>Errors</li>
+<li>Unusual mintmarks</li>
+<li>Foreign coins</li>
+<li>Silver</li>
+<li>Missing-clad errors</li>
+<li>Off-centers</li>
+<li>Other unusual characteristics</li>
+</ul>
+<p>Most coins will be ordinary.</p>
+<p>That is completely normal.</p>
+<p>The skill is learning to recognize the exceptions.</p>
+<hr>
+<h1>90. Estate and Inherited Collections</h1>
+<p>Never assume a collection is valuable simply because someone spent decades collecting it.</p>
+<p>An inherited collection can contain:</p>
+<ul>
+<li>Valuable coins</li>
+<li>Common coins</li>
+<li>World coins</li>
+<li>Tokens</li>
+<li>Damaged coins</li>
+<li>Counterfeits</li>
+<li>Sentimental pieces</li>
+</ul>
+<p>Before selling:</p>
+<ol>
+<li>Photograph everything.</li>
+<li>Inventory everything.</li>
+<li>Separate precious-metal coins.</li>
+<li>Identify key dates.</li>
+<li>Look for major varieties.</li>
+<li>Do not clean anything.</li>
+<li>Get opinions on important pieces.</li>
+<li>Preserve family history.</li>
+</ol>
+<hr>
+<h1>91. Coin Clubs and Communities</h1>
+<p>Coin clubs can provide:</p>
+<ul>
+<li>Mentoring</li>
+<li>Grading practice</li>
+<li>Variety attribution help</li>
+<li>Error identification</li>
+<li>Research assistance</li>
+<li>Coin shows</li>
+<li>Buying opportunities</li>
+<li>Friendships</li>
+</ul>
+<p>One experienced collector can sometimes teach more in an hour than weeks of random internet searching.</p>
+<hr>
+<h1>92. Beginner Equipment</h1>
+<p>A good beginner setup includes:</p>
+<ul>
+<li>5x-10x loupe</li>
+<li>0.01 g digital scale</li>
+<li>Good lamp</li>
+<li>Digital calipers or ruler</li>
+<li>PVC-free flips</li>
+<li>2x2 holders</li>
+<li>Album</li>
+<li>Notebook</li>
+<li>Spreadsheet</li>
+<li>Basic reference book</li>
+</ul>
+<p>You do not need expensive equipment to begin.</p>
+<hr>
+<h1>93. Advanced Equipment</h1>
+<p>As your interests develop, you might consider:</p>
+<ul>
+<li>Stereo microscope</li>
+<li>Precision scale</li>
+<li>Digital calipers</li>
+<li>Macro camera</li>
+<li>UV light</li>
+<li>Magnet</li>
+<li>Coin microscope</li>
+<li>Specialized reference books</li>
+<li>Metal-testing equipment</li>
+</ul>
+<p>Buy equipment because it solves a problem you actually have.</p>
+<hr>
+<h1>94. How to Study a Coin Series</h1>
+<p>Instead of trying to learn every U.S. coin at once, choose one series.</p>
+<p>For example:</p>
+<p><strong>Lincoln cents</strong></p>
+<p>Learn:</p>
+<ul>
+<li>Complete date range</li>
+<li>Mintmarks</li>
+<li>Key dates</li>
+<li>Semi-key dates</li>
+<li>Better dates</li>
+<li>Composition changes</li>
+<li>Major varieties</li>
+<li>Major errors</li>
+<li>Important die markers</li>
+<li>Grading characteristics</li>
+<li>Counterfeit warnings</li>
+</ul>
+<p>Then move to another series.</p>
+<p>This is one of the fastest ways to become knowledgeable.</p>
+<hr>
+<h1>95. The Normal-First Rule</h1>
+<p>The best way to recognize something abnormal is to know what normal looks like.</p>
+<p>Study:</p>
+<ul>
+<li>Normal lettering</li>
+<li>Normal dates</li>
+<li>Normal mintmarks</li>
+<li>Normal rims</li>
+<li>Normal edges</li>
+<li>Normal weight</li>
+<li>Normal strike</li>
+<li>Normal color</li>
+<li>Normal luster</li>
+</ul>
+<p>Then unusual examples become much easier to identify.</p>
+<hr>
+<h1>96. The &quot;Did the Mint Make It?&quot; Rule</h1>
+<p>When you find something strange, ask:</p>
+<blockquote>
+<p>Could the Mint have created this during production?</p>
+</blockquote>
+<p>Think about the production process:</p>
+<p><strong>Metal preparation</strong></p>
+<p>↓</p>
+<p><strong>Blanking</strong></p>
+<p>↓</p>
+<p><strong>Annealing</strong></p>
+<p>↓</p>
+<p><strong>Cleaning</strong></p>
+<p>↓</p>
+<p><strong>Upsetting</strong></p>
+<p>↓</p>
+<p><strong>Die preparation</strong></p>
+<p>↓</p>
+<p><strong>Striking</strong></p>
+<p>↓</p>
+<p><strong>Inspection</strong></p>
+<p>↓</p>
+<p><strong>Counting</strong></p>
+<p>↓</p>
+<p><strong>Bagging</strong></p>
+<p>If the feature could only have happened after the coin left the Mint, it is probably post-Mint damage.</p>
+<hr>
+<h1>97. The &quot;Why Is It Valuable?&quot; Rule</h1>
+<p>Whenever someone says:</p>
+<blockquote>
+<p>&quot;This coin is worth $500!&quot;</p>
+</blockquote>
+<p>ask:</p>
+<blockquote>
+<p>&quot;Why?&quot;</p>
+</blockquote>
+<p>There should be a specific reason.</p>
+<p>Possible reasons include:</p>
+<ul>
+<li>Key date</li>
+<li>Scarce mintmark</li>
+<li>Major variety</li>
+<li>Major error</li>
+<li>High grade</li>
+<li>Condition rarity</li>
+<li>Precious metal</li>
+<li>Historical significance</li>
+<li>Exceptional eye appeal</li>
+</ul>
+<p>If nobody can explain the reason, investigate before believing the valuation.</p>
+<hr>
+<h1>98. Common Beginner Mistakes</h1>
+<h2>Mistake 1: Assuming Old Means Valuable</h2>
+<p>It doesn&#39;t.</p>
+<h2>Mistake 2: Believing Every Doubled-Looking Coin Is a Doubled Die</h2>
+<p>Many are machine doubling.</p>
+<h2>Mistake 3: Cleaning Coins</h2>
+<p>Cleaning can permanently reduce value.</p>
+<h2>Mistake 4: Trusting Internet Listings</h2>
+<p>A seller&#39;s description is not proof.</p>
+<h2>Mistake 5: Ignoring the Edge</h2>
+<p>The edge can reveal major clues.</p>
+<h2>Mistake 6: Ignoring Weight</h2>
+<p>Weight can quickly reveal inconsistencies.</p>
+<h2>Mistake 7: Looking Only at the Date</h2>
+<p>Mintmark, variety, composition, and condition can completely change value.</p>
+<h2>Mistake 8: Assuming Low Mintage Means Rare</h2>
+<p>Survival matters.</p>
+<h2>Mistake 9: Assuming Rare Means Expensive</h2>
+<p>Demand matters too.</p>
+<h2>Mistake 10: Spending Too Much Too Soon</h2>
+<p>Learn first.</p>
+<p>Buy later.</p>
+<hr>
+<h1>99. Master Coin Identification Workflow</h1>
+<p>Use this procedure whenever you find an interesting coin.</p>
+<h2>Step 1 — Identify the Country</h2>
+<p>Confirm that it is actually a U.S. coin.</p>
+<h2>Step 2 — Identify the Denomination</h2>
+<p>Determine whether it is:</p>
+<ul>
+<li>Cent</li>
+<li>Nickel</li>
+<li>Dime</li>
+<li>Quarter</li>
+<li>Half dollar</li>
+<li>Dollar</li>
+<li>Gold denomination</li>
+<li>Commemorative</li>
+<li>Other</li>
+</ul>
+<h2>Step 3 — Identify the Date</h2>
+<p>Record the exact date.</p>
+<h2>Step 4 — Identify the Mintmark</h2>
+<p>Look carefully for the mintmark.</p>
+<h2>Step 5 — Identify the Type</h2>
+<p>Determine the exact design.</p>
+<h2>Step 6 — Determine Composition</h2>
+<p>Ask what metal the coin should contain.</p>
+<h2>Step 7 — Weigh It</h2>
+<p>Use a 0.01 g scale when practical.</p>
+<h2>Step 8 — Measure It</h2>
+<p>Check diameter and thickness when necessary.</p>
+<h2>Step 9 — Inspect the Edge</h2>
+<p>Look for unusual characteristics.</p>
+<h2>Step 10 — Look for Varieties</h2>
+<p>Check:</p>
+<ul>
+<li>DDO</li>
+<li>DDR</li>
+<li>RPM</li>
+<li>OMM</li>
+<li>Date varieties</li>
+<li>Die markers</li>
+<li>Die cracks</li>
+<li>Die chips</li>
+<li>Die clashes</li>
+</ul>
+<h2>Step 11 — Look for Errors</h2>
+<p>Check for:</p>
+<ul>
+<li>Wrong planchet</li>
+<li>Off-center</li>
+<li>Broadstrike</li>
+<li>Clip</li>
+<li>Struck-through</li>
+<li>Brockage</li>
+<li>Multiple strike</li>
+<li>Rotated die</li>
+<li>Transitional composition</li>
+</ul>
+<h2>Step 12 — Assess Condition</h2>
+<p>Determine:</p>
+<ul>
+<li>Circulated</li>
+<li>About Uncirculated</li>
+<li>Mint State</li>
+<li>Proof</li>
+<li>Details/problem</li>
+</ul>
+<h2>Step 13 — Authenticate</h2>
+<p>If valuable or questionable, verify authenticity.</p>
+<h2>Step 14 — Research Value</h2>
+<p>Use:</p>
+<ul>
+<li>Auction results</li>
+<li>Dealer prices</li>
+<li>Price guides</li>
+<li>Certified examples</li>
+<li>Comparable sales</li>
+</ul>
+<h2>Step 15 — Record It</h2>
+<p>Add the coin to your collection inventory.</p>
+<h2>Step 16 — Store It Correctly</h2>
+<p>Use appropriate PVC-free storage.</p>
+<hr>
+<h1>100. Master &quot;Is This Coin Special?&quot; Checklist</h1>
+<p>When examining a coin, ask whether it has any of these characteristics:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Key date</li>
+<li><input disabled="" type="checkbox"> Semi-key date</li>
+<li><input disabled="" type="checkbox"> Better date</li>
+<li><input disabled="" type="checkbox"> Scarce mintmark</li>
+<li><input disabled="" type="checkbox"> Major variety</li>
+<li><input disabled="" type="checkbox"> DDO</li>
+<li><input disabled="" type="checkbox"> DDR</li>
+<li><input disabled="" type="checkbox"> RPM</li>
+<li><input disabled="" type="checkbox"> OMM</li>
+<li><input disabled="" type="checkbox"> Small Date</li>
+<li><input disabled="" type="checkbox"> Large Date</li>
+<li><input disabled="" type="checkbox"> Close Date</li>
+<li><input disabled="" type="checkbox"> Wide Date</li>
+<li><input disabled="" type="checkbox"> Major type</li>
+<li><input disabled="" type="checkbox"> Die crack</li>
+<li><input disabled="" type="checkbox"> Die chip</li>
+<li><input disabled="" type="checkbox"> Cud</li>
+<li><input disabled="" type="checkbox"> Die clash</li>
+<li><input disabled="" type="checkbox"> Die state</li>
+<li><input disabled="" type="checkbox"> Wrong planchet</li>
+<li><input disabled="" type="checkbox"> Off-center strike</li>
+<li><input disabled="" type="checkbox"> Broadstrike</li>
+<li><input disabled="" type="checkbox"> Clipped planchet</li>
+<li><input disabled="" type="checkbox"> Struck-through</li>
+<li><input disabled="" type="checkbox"> Brockage</li>
+<li><input disabled="" type="checkbox"> Multiple strike</li>
+<li><input disabled="" type="checkbox"> Rotated die</li>
+<li><input disabled="" type="checkbox"> Transitional composition</li>
+<li><input disabled="" type="checkbox"> Proof</li>
+<li><input disabled="" type="checkbox"> Reverse proof</li>
+<li><input disabled="" type="checkbox"> High grade</li>
+<li><input disabled="" type="checkbox"> Condition rarity</li>
+<li><input disabled="" type="checkbox"> Attractive toning</li>
+<li><input disabled="" type="checkbox"> Precious-metal content</li>
+<li><input disabled="" type="checkbox"> Historical significance</li>
+</ul>
+<hr>
+<h1>Master &quot;Do Not Damage It&quot; Checklist</h1>
+<p>Before doing anything to a potentially valuable coin:</p>
+<ul>
+<li><input disabled="" type="checkbox"> Do not polish it.</li>
+<li><input disabled="" type="checkbox"> Do not scrub it.</li>
+<li><input disabled="" type="checkbox"> Do not use metal cleaner.</li>
+<li><input disabled="" type="checkbox"> Do not use toothpaste.</li>
+<li><input disabled="" type="checkbox"> Do not use baking soda.</li>
+<li><input disabled="" type="checkbox"> Do not use an abrasive cloth.</li>
+<li><input disabled="" type="checkbox"> Do not use an eraser.</li>
+<li><input disabled="" type="checkbox"> Do not use a Dremel.</li>
+<li><input disabled="" type="checkbox"> Do not scratch it to test the metal.</li>
+<li><input disabled="" type="checkbox"> Do not bend it.</li>
+<li><input disabled="" type="checkbox"> Do not drill it.</li>
+<li><input disabled="" type="checkbox"> Do not glue it.</li>
+<li><input disabled="" type="checkbox"> Do not strip the toning.</li>
+<li><input disabled="" type="checkbox"> Do not put it in PVC.</li>
+<li><input disabled="" type="checkbox"> Do not perform destructive tests.</li>
+</ul>
+<hr>
+<h1>Quick Reference: The Collector&#39;s Workflow</h1>
+<p><strong>Find coin</strong></p>
+<p>↓</p>
+<p><strong>Identify</strong></p>
+<p>↓</p>
+<p><strong>Date + Mintmark</strong></p>
+<p>↓</p>
+<p><strong>Identify Type</strong></p>
+<p>↓</p>
+<p><strong>Determine Composition</strong></p>
+<p>↓</p>
+<p><strong>Weigh</strong></p>
+<p>↓</p>
+<p><strong>Measure</strong></p>
+<p>↓</p>
+<p><strong>Inspect Edge</strong></p>
+<p>↓</p>
+<p><strong>Look for Varieties</strong></p>
+<p>↓</p>
+<p><strong>Look for Errors</strong></p>
+<p>↓</p>
+<p><strong>Assess Condition</strong></p>
+<p>↓</p>
+<p><strong>Authenticate if Necessary</strong></p>
+<p>↓</p>
+<p><strong>Research Recent Sales</strong></p>
+<p>↓</p>
+<p><strong>Record</strong></p>
+<p>↓</p>
+<p><strong>Store Safely</strong></p>
+<hr>
+<h1>Quick Reference: Before Buying an Expensive Coin</h1>
+<p><strong>STOP</strong></p>
+<p>Ask:</p>
+<ol>
+<li>What exactly is it?</li>
+<li>Is it genuine?</li>
+<li>What grade is it?</li>
+<li>Is the variety/error attribution correct?</li>
+<li>What are comparable coins actually selling for?</li>
+<li>Is the price reasonable?</li>
+<li>What happens if I later decide to sell it?</li>
+</ol>
+<p>Then decide whether to buy.</p>
+<hr>
+<h1>Quick Reference: Before Selling an Expensive Coin</h1>
+<p>Ask:</p>
+<ol>
+<li>Is it correctly identified?</li>
+<li>Is the date correct?</li>
+<li>Is the mintmark correct?</li>
+<li>Is there a major variety?</li>
+<li>Is there a major error?</li>
+<li>Is it silver or gold?</li>
+<li>What is the approximate grade?</li>
+<li>What have comparable coins recently sold for?</li>
+<li>Have I obtained more than one opinion?</li>
+<li>Am I selling through the right market?</li>
+</ol>
+<hr>
+<h1>Quick Reference: Before Cleaning a Coin</h1>
+<h2>STOP.</h2>
+<p>If you think a coin might be valuable:</p>
+<p><strong>Do not clean it.</strong></p>
+<p>Have it evaluated first.</p>
+<hr>
+<h1>Final Advice</h1>
+<p>The best coin collectors are not necessarily the people who spend the most money.</p>
+<p>They are the people who learn to answer:</p>
+<blockquote>
+<p><strong>What exactly is this?</strong></p>
+</blockquote>
+<p>Then:</p>
+<blockquote>
+<p><strong>Why is it different?</strong></p>
+</blockquote>
+<p>Then:</p>
+<blockquote>
+<p><strong>Is that difference recognized?</strong></p>
+</blockquote>
+<p>Then:</p>
+<blockquote>
+<p><strong>How rare is it?</strong></p>
+</blockquote>
+<p>Then:</p>
+<blockquote>
+<p><strong>How much do comparable examples actually sell for?</strong></p>
+</blockquote>
+<p>That mindset will protect you from a huge number of mistakes.</p>
+<p>You do not need to know everything.</p>
+<p>You only need to know enough to recognize when a coin deserves a closer look.</p>
+<p>And when you find something you cannot explain:</p>
+<p><strong>Don&#39;t clean it.</strong></p>
+<p><strong>Don&#39;t alter it.</strong></p>
+<p><strong>Don&#39;t sell it immediately.</strong></p>
+<p><strong>Research it.</strong></p>
+<hr>
+<h1>The Golden Rule of Coin Collecting</h1>
+<h2>Learn first. Handle carefully. Research everything. Buy slowly. Sell intelligently.</h2>
+<p>And most importantly:</p>
+<h1>Have Fun!</h1>
+<p>Coin collecting is not only about finding something worth money.</p>
+<p>Coins are pieces of history.</p>
+<p>They can tell stories about:</p>
+<ul>
+<li>Wars</li>
+<li>Presidents</li>
+<li>Economic crises</li>
+<li>Industrial changes</li>
+<li>Technological advances</li>
+<li>Immigration</li>
+<li>Art</li>
+<li>Politics</li>
+<li>Manufacturing</li>
+<li>Everyday American life</li>
+</ul>
+<p>A common coin with an interesting story is still a great coin.</p>
+<p>The more you learn, the more interesting every coin becomes.</p>
+<hr>
+<h1>Important Reference Note</h1>
+<p>Coin specifications, compositions, mintages, die varieties, error classifications, type designations, key-date classifications, and market values can be issue-specific.</p>
+<p>Terminology such as <strong>Small Date, Large Date, Type 1, Type 2, Type 3, Close Date, Wide Date, DDO, DDR, RPM, OMM, and die state</strong> must always be interpreted in the context of the specific coin series and date.</p>
+<p>For expensive coins, verify information against authoritative references, specialist variety guides, professional grading resources, and recent realized auction prices.</p>
+<p><strong>Never rely on a single photograph, price guide, dealer claim, or internet listing when a substantial amount of money is involved.</strong></p>
+</div>`;
+
 function showCoinTips() {
- const body = _sectionBody(
- 'Coin Collecting Tips',
- 'Practical advice for building and preserving a coin collection.',
- [
- { heading: 'Handling', list: [
- 'Always hold coins by the edge — oils from your skin cause permanent toning and spots',
- 'Never clean a coin. Cleaning destroys numismatic value even if it looks better',
- 'Use soft vinyl-free (Mylar) flips, not PVC holders which leach chemicals',
- 'Store in a cool, dry place; humidity drives corrosion',
- ]},
- { heading: 'Grading & Value', list: [
- 'Learn the Sheldon scale (1–70) basics before buying',
- 'Key date + low mintage + high grade = the coins worth the most',
- 'Check for "full steps" (Jefferson nickels) and "full bands" (Mercury dimes)',
- 'Mint errors and varieties often outvalue the base coin — research yours',
- ]},
- { heading: 'Buying', list: [
- 'Buy the book before the coin — know the series',
- 'Prefer certified (PCGS/NGC) coins for high-value purchases',
- 'Condition rarity matters more than raw rarity for common dates',
- ]},
- ]
- );
- createModal('modal-info-coin', 'Coin Collecting Tips', body, null);
+ const wrap = el('div', { className: 'info-guide-wrap',
+   style: 'max-height:72vh; overflow-y:auto; padding-right:8px;' });
+ wrap.innerHTML = COLLECTING_GUIDE_HTML;
+ createModal('modal-info-coin', 'U.S. Coin Collecting Guide', wrap, null);
 }
 
 // --- Paper Currency Guide (full master field guide) -------------------
