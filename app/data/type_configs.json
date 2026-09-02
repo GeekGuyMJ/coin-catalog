@@ -13725,7 +13725,7 @@
     "base_price": 0.0,
     "key_price": 0.0,
     "obv_image": "/data/images/coins/ref_type_us-coinage-\u2014-two-cent-obv_d927f9.jpg",
-    "rev_image": "/data/images/coins/ref_type_us-coinage-\u2014-two-cent-rev_078413.jpg",
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13734,8 +13734,8 @@
     "coin_type": "US Coinage \u2014 Three Cent \u2014 US Coinage \u2014 Three Cent",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_type_us-coinage-\u2014-three-cent-obv_8ee974.webp",
-    "rev_image": "/data/images/coins/ref_type_us-coinage-\u2014-three-cent-rev_2339fb.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13754,8 +13754,8 @@
     "coin_type": "US Coinage \u2014 Three Cent \u2014 Three Cent Silver",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_type_three-cent-silver-obv_74497c.webp",
-    "rev_image": "/data/images/coins/ref_type_three-cent-silver-rev_71ace9.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13774,8 +13774,8 @@
     "coin_type": "US Coinage \u2014 Half Dime \u2014 Flowing Hair",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_596_flowing-hair-1795-obv_f66b36.webp",
-    "rev_image": "/data/images/coins/ref_596_flowing-hair-1795-rev_3812e4.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13784,8 +13784,8 @@
     "coin_type": "US Coinage \u2014 Half Dime \u2014 Draped Bust",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_type_draped-bust-obv_bd43db.webp",
-    "rev_image": "/data/images/coins/ref_type_draped-bust-rev_920bb9.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13794,8 +13794,8 @@
     "coin_type": "US Coinage \u2014 Half Dime \u2014 Draped Bust - Small Eagle",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_605_draped-bust-heraldic-eagle-1805-obv_24e4a3.webp",
-    "rev_image": "/data/images/coins/ref_599_draped-bust-small-eagle-1797-rev_12335b.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13804,8 +13804,8 @@
     "coin_type": "US Coinage \u2014 Half Dime \u2014 Draped Bust - Heraldic Eagle",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_605_draped-bust-heraldic-eagle-1805-obv_24e4a3.webp",
-    "rev_image": "/data/images/coins/ref_605_draped-bust-heraldic-eagle-1805-rev_f54967.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13814,8 +13814,8 @@
     "coin_type": "US Coinage \u2014 Half Dime \u2014 Capped Bust",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_614_capped-bust-1837-obv_8e0124.webp",
-    "rev_image": "/data/images/coins/ref_614_capped-bust-1837-rev_45bf9f.webp",
+    "obv_image": null,
+    "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
   }
