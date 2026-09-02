@@ -13454,8 +13454,8 @@
     "coin_type": "US Coinage \u2014 Large & Small Cent \u2014 Lincoln Shield",
     "base_price": 0.0,
     "key_price": 0.0,
-    "obv_image": "/data/images/coins/ref_5880_lincoln-shield-2026-obv-S-proof_c9a6ca.webp",
-    "rev_image": "/data/images/coins/ref_5880_lincoln-shield-2026-rev-S-proof_5af8c2.webp",
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-large-&-small-cent-\u2014-lincoln-shield.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-large-&-small-cent-\u2014-lincoln-shield.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   },
@@ -13696,6 +13696,16 @@
     "key_price": 0.0,
     "obv_image": "/data/images/types/master/us-coinage-\u2014-large-&-small-cent-\u2014-lincoln-bicentennial.obv.webp",
     "rev_image": "/data/images/types/master/us-coinage-\u2014-large-&-small-cent-\u2014-lincoln-bicentennial.rev.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1388,
+    "coin_type": "US Coinage \u2014 Large & Small Cent \u2014 Lincoln Shield Semiquincentennial",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/types/master/us-coinage-\u2014-large-&-small-cent-\u2014-lincoln-shield-semiquincentennial.obv.webp",
+    "rev_image": "/data/images/types/master/us-coinage-\u2014-large-&-small-cent-\u2014-lincoln-shield-semiquincentennial.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
   }
