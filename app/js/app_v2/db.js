@@ -278,9 +278,9 @@ export async function initDb() {
         // 2026-09-02 STALE-ROW PURGE (public): remove IDB rows whose ids are not in the
         // current seed — older seeds left duplicate/wrong-image rows on devices (the
         // 'images in wrong spots / duplicate 1960 rows' bug). Keeps user_added coins.
+        const allRows = await db.coins_reference.toArray();
         try {
             const seedIds = new Set(coins.map(c => c.id));
-            const allRows = await db.coins_reference.toArray();
             const stale = allRows.filter(r => !seedIds.has(r.id) && !r.user_added);
             if (stale.length > 0) {
                 await db.transaction('rw', db.coins_reference, async () => {
