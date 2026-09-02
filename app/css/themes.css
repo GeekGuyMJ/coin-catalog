@@ -76,37 +76,23 @@
 /* =========================================================================
    Gold
    ========================================================================= */
-[data-theme="gold"] {
-    --color-bg-body:      #1a1608;
-    --color-bg-card:      #28220c;
-    --color-text-main:    #fff8dc;
-    --color-text-muted:   #d4c494;
-    --color-border:       #9a8540;
-    --color-border-light: #4a4020;
-    --color-accent:       #ffd700;
-    --color-accent-text:  #1a1608;
-    --color-header-bg:    #12100a;
-    --color-header-text:  #fff8dc;
-    --color-accord-bg:    #342c12;
-    --color-finance-bg:   #201c0a;
-}
 
 /* =========================================================================
    Copper
    ========================================================================= */
 [data-theme="copper"] {
-    --color-bg-body:      #1f1612;
-    --color-bg-card:      #2e1f18;
-    --color-text-main:    #f4dbce;
-    --color-text-muted:   #c99a83;
-    --color-border:       #a65d3c;
-    --color-border-light: #523528;
-    --color-accent:       #cd7f32;
-    --color-accent-text:  #000000;
-    --color-header-bg:    #140e0b;
-    --color-header-text:  #f4dbce;
-    --color-accord-bg:    #402b21;
-    --color-finance-bg:   #261913;
+    --color-bg-body:      #241a15;
+    --color-bg-card:      #33251d;
+    --color-text-main:    #f8e6da;
+    --color-text-muted:   #dbb49e;
+    --color-border:       #c07048;
+    --color-border-light: #65402e;
+    --color-accent:       #e08a45;
+    --color-accent-text:  #1a0e08;
+    --color-header-bg:    #170f0b;
+    --color-header-text:  #f8e6da;
+    --color-accord-bg:    #4a3226;
+    --color-finance-bg:   #2c1e16;
 }
 
 /* =========================================================================
@@ -259,6 +245,43 @@
   Each slot has its OWN variable namespace so changing one does NOT
   affect the others.
   ========================================================================= */
+
+/* =========================================================================
+   Violet (new)
+   ========================================================================= */
+[data-theme="violet"] {
+    --color-bg-body:      #120b1a;
+    --color-bg-card:      #1c1228;
+    --color-text-main:    #efe6fb;
+    --color-text-muted:   #b79edd;
+    --color-border:       #6d4fa8;
+    --color-border-light: #33213f;
+    --color-accent:       #b388ff;
+    --color-accent-text:  #160b22;
+    --color-header-bg:    #0c0612;
+    --color-header-text:  #efe6fb;
+    --color-accord-bg:    #271838;
+    --color-finance-bg:   #181022;
+}
+
+/* =========================================================================
+   Sunset (new)
+   ========================================================================= */
+[data-theme="sunset"] {
+    --color-bg-body:      #1a0e0a;
+    --color-bg-card:      #2a1710;
+    --color-text-main:    #ffe9dc;
+    --color-text-muted:   #d9a88e;
+    --color-border:       #c2563a;
+    --color-border-light: #47231a;
+    --color-accent:       #ff8a5c;
+    --color-accent-text:  #1e0c05;
+    --color-header-bg:    #120907;
+    --color-header-text:  #ffe9dc;
+    --color-accord-bg:    #3a2116;
+    --color-finance-bg:   #221209;
+}
+
 [data-theme="custom1"] {
     --color-bg-body:      var(--custom1-bg-body,      #1a1a2e);
     --color-bg-card:      var(--custom1-bg-card,      #16213e);
