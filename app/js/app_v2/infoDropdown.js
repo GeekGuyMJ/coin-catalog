@@ -472,11 +472,7 @@ function showDonate() {
         style: 'display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 24px; text-decoration:none; font-size:1rem;'
     }, 'Donate with PayPal'));
     
-    buttons.appendChild(el('p', { style: 'font-size:0.8em; color:var(--color-text-muted); text-align:center;' },
-        'Or visit the project page for other ways to contribute.'
-    ));
-    
-    body.appendChild(buttons);
+        body.appendChild(buttons);
     closeInfoDropdown();
     const modal = createModal('modal-donate', 'Support This App', body, null);
     return modal;
