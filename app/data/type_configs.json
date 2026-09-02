@@ -13768,5 +13768,55 @@
     "rev_image": "/data/images/types/master/us-coinage-\u2014-three-cent-\u2014-three-cent-silver-trime.rev.webp",
     "proof_obv_image": null,
     "proof_rev_image": null
+  },
+  {
+    "id": 1395,
+    "coin_type": "US Coinage \u2014 Half Dime \u2014 Flowing Hair",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_596_flowing-hair-1795-obv_f66b36.webp",
+    "rev_image": "/data/images/coins/ref_596_flowing-hair-1795-rev_3812e4.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1396,
+    "coin_type": "US Coinage \u2014 Half Dime \u2014 Draped Bust",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_type_draped-bust-obv_bd43db.webp",
+    "rev_image": "/data/images/coins/ref_type_draped-bust-rev_920bb9.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1397,
+    "coin_type": "US Coinage \u2014 Half Dime \u2014 Draped Bust - Small Eagle",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_605_draped-bust-heraldic-eagle-1805-obv_24e4a3.webp",
+    "rev_image": "/data/images/coins/ref_599_draped-bust-small-eagle-1797-rev_12335b.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1398,
+    "coin_type": "US Coinage \u2014 Half Dime \u2014 Draped Bust - Heraldic Eagle",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_605_draped-bust-heraldic-eagle-1805-obv_24e4a3.webp",
+    "rev_image": "/data/images/coins/ref_605_draped-bust-heraldic-eagle-1805-rev_f54967.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
+  },
+  {
+    "id": 1399,
+    "coin_type": "US Coinage \u2014 Half Dime \u2014 Capped Bust",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/ref_614_capped-bust-1837-obv_8e0124.webp",
+    "rev_image": "/data/images/coins/ref_614_capped-bust-1837-rev_45bf9f.webp",
+    "proof_obv_image": null,
+    "proof_rev_image": null
   }
 ]
