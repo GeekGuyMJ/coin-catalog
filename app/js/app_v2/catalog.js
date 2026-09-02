@@ -551,6 +551,14 @@ function buildTypeAccordion(mainType, typeCoins) {
         content.classList.add('open');
         header.setAttribute('aria-expanded', 'true');
         header.querySelector('.section-chevron').style.transform = 'rotate(180deg)';
+        // BUG FIX (2026-09-02): when album mode is active, a re-expanded type must
+        // render its album inline. collapse->re-expand (or any rebuild of the type
+        // accordions via renderSections/expandSection) would otherwise fall back to
+        // the list rows populated above, losing the album view.
+        const _m = getCatalogViewMode();
+        if ((_m === 'album' || _m === 'folder') && firstCoinSection) {
+            renderAlbumType(firstCoinSection, mainType, content, header);
+        }
     }
 
     // Toggle on click/keyboard

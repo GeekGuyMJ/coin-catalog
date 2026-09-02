@@ -10,24 +10,11 @@
  */
 
 import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.js';
-import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault, renameCoinBankImage as renameCoinBankImageApi } from './api.js';
+import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault } from './api.js';
 import { showToast } from './notifications.js';
-import { resolveImageUrl, el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
-import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory, getTypeConfig } from './state.js';
-import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
-import { setCoinsForSection } from './state.js';
-
-// Coin metadata for proper image naming (year, mint mark)
-let _coinMeta = { year: null, mintMark: null };
-
-export function setCoinMeta(year, mintMark) {
-    _coinMeta.year = year;
-    _coinMeta.mintMark = mintMark;
-}
-
-export function getCoinMeta() {
-    return { ..._coinMeta };
-}
+import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
+import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
+import { fetchTypeConfigs, fetchInventory } from './api.js';
 
 // ============================================================
 // State
@@ -59,25 +46,49 @@ let activeContext = {
  */
 function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, targetMainType, side) {
     if (coinSection && targetSection && coinSection !== targetSection) return false;
+    
+    // FIRST: Exact coin_type match always wins - no bleed at all
     if (coinType === targetType) return true;
 
     // Must belong to the same main type family.
     if (getMainType(coinType) !== targetMainType) return false;
+
+    // SPECIAL HANDLING: Coin types with multiple descriptors (e.g., "Seated Liberty - No Stars - Half Dime")
+    // These have embedded descriptors that are part of the specific coin type, not separate sub-types
+    // Check if both have the same "descriptor pattern" (multiple " - " segments)
+    const targetParts = targetType.split(' - ');
+    const coinParts = coinType.split(' - ');
+    
+    // If both coin types have the same structure (same number of " - " segments)
+    // and they match up to the second-to-last segment, they're the same descriptor variant
+    if (targetParts.length >= 3 && coinParts.length >= 3) {
+        // Compare the prefix (everything except the last segment which is the denomination)
+        const targetPrefix = targetParts.slice(0, -1).join(' - ');
+        const coinPrefix = coinParts.slice(0, -1).join(' - ');
+        if (targetPrefix === coinPrefix) {
+            return true; // Same descriptor variant (e.g., both "Seated Liberty - No Stars - Half Dime")
+        }
+    }
 
     const targetSub = getSubType(targetType);
     const coinSub = getSubType(coinType);
     const targetHasSub = targetSub !== '';
     const coinHasSub = coinSub !== '';
 
-    // EXACT-MATCH RULE (2026-08-24 cleanup): an assignment reaches only coins
-    // with the EXACT same coin_type + subtype. We no longer fan a base-type
-    // target out to the whole main-type family, nor bleed across composition
-    // subtypes (Clad/Silver/Copper/Zinc) or across design varieties
-    // (e.g. Liberty Cap Head-Facing-Left vs Head-Facing-Right). This is what
-    // prevented images from landing on the wrong coins. The legacy
-    // "fill whole main type" behaviour is intentionally removed — correctness
-    // (no wrong-coin bleed) is preferred over silent convenience here.
-    if (targetSub === coinSub) return true; // exact subtype (or both base) matches
+    if (!targetHasSub) {
+        // Target is the base/main type (no subtype) -> fill the whole main type.
+        return true;
+    }
+    if (!coinHasSub) {
+        // Target has a subtype but this coin is the base type -> base shares the
+        // family design, so fill it too.
+        return true;
+    }
+    // Both have subtypes:
+    if (coinSub === targetSub) return true; // same subtype -> fill all of THIS subtype
+    // Different subtypes: only bleed if it's a composition family (Clad/Silver
+    // share the same obverse/reverse design). Design varieties must NOT bleed across each other.
+    if (isCompositionSub(targetSub) || isCompositionSub(coinSub)) return true;
     return false;
 }
 
@@ -99,18 +110,16 @@ let initialCropScale = 1;
  * Open the main image interaction modal.
  */
 export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, itemId = null, coinId = null, section = '') {
-    const targetItemId = isItem ? itemId : (itemId || coinId);
-    const targetCoinId = coinId || (isItem ? null : itemId);
     activeContext = { 
         el: imgEl, 
         typeStr, 
         section,
         side, 
         isItem, 
-        itemId: targetItemId, 
-        coinId: targetCoinId,
+        itemId, 
+        coinId,
         b64: '', 
-        scope: isItem ? 'specific_item' : (targetCoinId ? 'specific_coin' : 'all') 
+        scope: isItem ? 'specific_item' : 'all' 
     };
 
     const preview = document.getElementById('ii-main-image');
@@ -144,18 +153,6 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
 
     preview.src = src;
     if (removeBtn) removeBtn.style.display = 'block';
-    
-    // Check if there's a master/default image for this type/side to show reset/promote
-    const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
-    const typeConfig = getTypeConfig(activeContext.typeStr, activeContext.section);
-    const hasMaster = typeConfig && typeConfig[field];
-    
-    if (resetBtn) {
-        resetBtn.style.display = hasMaster && isUserTier ? 'inline-flex' : 'none';
-    }
-    if (promoteBtn) {
-        promoteBtn.style.display = hasMaster && isUserTier ? 'inline-flex' : 'none';
-    }
     saveBtn.style.display = 'none'; // Hide save button initially
     
     openModalLegacy('modal-image-interaction');
@@ -172,12 +169,11 @@ export function openReplaceWorkflow() {
         scopeLabel.style.display = 'flex'; // Always show all three options
     }
     
-    // Reset scope selection: default to 'specific_item' ("This specific coin") if opened for a specific coin
-    const hasCoinAnchor = !!(activeContext.coinId || (activeContext.isItem && activeContext.itemId));
+    // Reset scope selection to default
     const radios = document.querySelectorAll('input[name="img_scope"]');
     if (radios.length) {
-        radios[0].checked = hasCoinAnchor;
-        radios[1].checked = !hasCoinAnchor;
+        radios[0].checked = false;
+        radios[1].checked = true; // Default to "all"
         radios[2].checked = false;
     }
     
@@ -250,8 +246,7 @@ async function handleNewUpload(e) {
     try {
         const resized = await resizeToWebP(file);
         activeContext.b64 = resized;
-        // DON'T overwrite scope here - preserve the scope set when modal opened
-        // (specific_coin for coin references, specific_item for inventory, all for type-level)
+        activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
         openCropTool(resized);
 
     } catch (err) {
@@ -486,9 +481,8 @@ export function removeCurrentImage() {
     removeBtn.dataset.confirming = '';
     activeContext.b64 = '';
     
-    // Determine scope from activeContext (use 'specific_coin' if coinId is present)
-    const targetItemId = activeContext.itemId || activeContext.coinId;
-    const scope = (targetItemId && activeContext.side !== 'personal') ? 'specific_coin' : (activeContext.scope || 'all');
+    // Determine scope from activeContext (default to 'all' for type-level removal)
+    const scope = activeContext.scope || 'all';
     
     // Call assignImage with empty image to delete
     executeImageAssignment({
@@ -496,7 +490,7 @@ export function removeCurrentImage() {
         side: activeContext.side,
         image: '',  // Empty string for removal
         scope: scope,
-        item_id: targetItemId,
+        item_id: activeContext.itemId,
         section: activeContext.section || ''
     });
 }
@@ -568,7 +562,8 @@ export async function resetToMaster() {
                 // Update the detail panel image and all view-img elements
                 const targetMainType = getMainType(activeContext.typeStr);
                 const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
-                let newImageUrl = updatedConfigs[activeContext.typeStr]?.[field];
+                let newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] ||
+                                   updatedConfigs[targetMainType]?.[field];
                 if (newImageUrl && !newImageUrl.includes('?')) newImageUrl += '?v=2';
                 
                 if (newImageUrl) {
@@ -703,7 +698,8 @@ export async function promoteToDefaultHandler() {
             const targetMainType = getMainType(activeContext.typeStr);
             const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
             const newImageUrl = result.promoted_url ||
-                               updatedConfigs[activeContext.typeStr]?.[field];
+                               updatedConfigs[activeContext.typeStr]?.[field] ||
+                               updatedConfigs[targetMainType]?.[field];
             
             if (newImageUrl) {
                 const preview = document.getElementById('ii-main-image');
@@ -756,182 +752,101 @@ export async function promoteToDefaultHandler() {
  * On success: closes all modals, refetches type configs, and re-renders the
  * catalog in-place — no page reload, no lost accordion/scroll state.
  */
-export async function executeImageAssignment(overrideParams = null) {
-    // Always read the currently checked radio — it reflects the user's choice
+export async function executeImageAssignment() {
     const scopeEle = document.querySelector('input[name="img_scope"]:checked');
-    // Check if scope modal box is visible (display:block means user chose a scope)
-    const scopeBox = document.getElementById('scope-selection-box');
-    const isScopeModalOpen = scopeBox && scopeBox.style.display === 'block';
-    let scope = (overrideParams && overrideParams.scope) 
-        || ((isScopeModalOpen && scopeEle) ? scopeEle.value : (activeContext.scope || 'all'));
-    
-    // Resolve section BEFORE the debug log to avoid TDZ error
-    const section = (overrideParams && overrideParams.section !== undefined)
-        ? overrideParams.section
-        : (activeContext.section || activeContext.el?.dataset?.section || '');
-
-    // Debug logging
-    console.log('[images] executeImageAssignment:', {
-        overrideScope: overrideParams?.scope,
-        isScopeModalOpen,
-        scopeEleValue: scopeEle?.value,
-        activeContextScope: activeContext.scope,
-        activeContextSection: activeContext.section,
-        elDatasetSection: activeContext.el?.dataset?.section,
-        resolvedScope: scope,
-        resolvedSection: section
-    });
+    const isScopeModalOpen = document.getElementById('modal-replace-scope')?.classList.contains('open');
+    let scope = (isScopeModalOpen && scopeEle) ? scopeEle.value : (activeContext.scope || 'all');
 
     if (scope === 'specific_item' && activeContext.side !== 'personal') {
         scope = 'specific_coin';
     }
 
-    const targetItemId = (overrideParams && overrideParams.item_id) || activeContext.itemId || activeContext.coinId;
-
-    // Guard: a 'specific_coin' assignment REQUIRES a coin_ref_id (item_id). If the
-    // context somehow lacks one (e.g. image picked from the bank without an item
-    // anchor), fall back to a type-level ('all') assignment.
-    if (scope === 'specific_coin' && !targetItemId) {
-        console.warn('[images] specific_coin scope without targetItemId; falling back to type-level (all) assignment.');
-        scope = 'all';
-    }
-
-    const imageB64 = (overrideParams && overrideParams.image !== undefined) ? overrideParams.image : (activeContext.b64 || '');
-    const coinType = (overrideParams && overrideParams.coin_type) || activeContext.typeStr;
-    const side = (overrideParams && overrideParams.side) || activeContext.side;
+    // Detect if this is a remove action (no image data)
+    const isRemoveAction = !activeContext.b64;
 
     try {
         const result = await assignImage({
-            coin_type: coinType,
-            side:      side,
-            image:     imageB64,
+            coin_type: activeContext.typeStr,
+            side:      activeContext.side,
+            image:     activeContext.b64 || '',  // Empty string for removal
             scope:     scope,
-            item_id:   targetItemId,
-            section:   section
+            item_id:   activeContext.itemId,
+            section:   activeContext.section || ''
         });
 
         if (result.status === 'success' || result.status === 'skipped') {
             showToast(result.message || 'Image updated successfully', 'success');
-            // Guarantee EVERY modal layer is dismissed, regardless of which
-            // modal system or branch opened it (legacy .modal-overlay, new
-            // orchestrator .modal-window-wrapper, or the coin-bank modal that
-            // may still be on the stack). This prevents a stuck, click-through
-            // modal after Save & Apply.
-            closeModalLegacy('modal-image-interaction');
-            closeModalLegacy('modal-replace-scope');
-            closeModalLegacy('modal-crop');
-            closeModalLegacy('modal-coin-bank');
-            closeAllModals();
-            window.dispatchEvent(new CustomEvent('cc-modals-force-close'));
-            document.body.classList.remove('modal-open');
+            if (activeContext.isItem) {
+                closeModalLegacy('modal-image-interaction');
+                closeModalLegacy('modal-replace-scope');
+                closeModalLegacy('modal-crop');
+            } else {
+                closeAllModals();
+            }
 
-            // Soft re-render: refetch type configs and update memory state & DOM
+            // Soft re-render: refetch type configs (images live there) and
+            // rerender sections — preserves all accordion/scroll state.
             try {
                 const updatedConfigs = await fetchTypeConfigs();
                 setTypeConfigs(updatedConfigs);
-                
-                const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
+                // For personal photos, also refresh inventory state so re-render picks up changes
+                if (scope === 'specific_item' || scope === 'specific_coin') {
+                    const newInv = await fetchInventory();
+                    setInventory(newInv);
+                }
 
-                if (scope === 'specific_coin' && targetItemId) {
-                    // Use the URL returned by the server (new per-coin file) instead of the bank URL
-                    const newUrl = result.new_url || imageB64 || null;
-                    // Update specific coin in in-memory section cache
+                // If type-level change, update local state & DOM immediately so change is visual instantly.
+                // Also cover 'specific_coin' (no item_id): its image lives in the type config, so it
+                // resolves via updatedConfigs[activeContext.typeStr] and must repaint now.
+                if (scope === 'all' || scope === 'empty_only' || scope === 'specific_coin') {
+                    const targetMainType = getMainType(activeContext.typeStr);
+                    const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
+                    const newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] || 
+                                       updatedConfigs[targetMainType]?.[field];
+                                       
+                    // 1. Clear matching local coins in state (section-qualified)
                     getSections().forEach(sec => {
                         const coins = getCoinsForSection(sec.section);
                         if (coins) {
-                            const c = coins.find(coin => String(coin.id) === String(targetItemId));
-                            if (c) {
-                                c[field] = newUrl;
-                                const deletedField = "_deleted_" + field;
-                                c[deletedField] = !newUrl;
-                            }
-                        }
-                    });
-
-                    // Update DOM elements for this specific coin
-                    const coinImgs = document.querySelectorAll(`img[data-action="view-img"][data-coin-id="${targetItemId}"]`);
-                    coinImgs.forEach(img => {
-                        if (img.dataset.side === activeContext.side) {
-                            if (newUrl) {
-                                img.src = newUrl;
-                                img.classList.remove('placeholder');
-                            } else {
-                                import('./utils.js').then(m => {
-                                    img.src = m.placeholderCoinSvg();
-                                    img.classList.add('placeholder');
-                                });
-                            }
-                        }
-                    });
-                } else if (scope === 'specific_item' && targetItemId) {
-                    const newInv = await fetchInventory();
-                    setInventory(newInv);
-                } else if (scope === 'all' || scope === 'empty_only') {
-                    // Batch assign writes per-coin images on server.
-                    // Fetch fresh data DIRECTLY from server to avoid stale IndexedDB race.
-                    try {
-                        const _host = (window.location && window.location.hostname) || '';
-                        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.') || _host === 'localhost';
-                        // Resolve target section: context -> state scan (same as self-hosted)
-                        let secName = activeContext.section || '';
-                        if (!secName && activeContext.typeStr) {
-                            const t = activeContext.typeStr;
-                            const main = t.includes(' - ') ? t.split(' - ')[0].trim()
-                                       : (t.includes(' (') ? t.split(' (')[0].trim() : t);
-                            for (const s of getSections()) {
-                                const cs = getCoinsForSection(s.section);
-                                if (cs && cs.some(c => c.coin_type === t ||
-                                        c.coin_type && c.coin_type.split(' - ')[0].trim() === main)) {
-                                    secName = s.section;
-                                    break;
+                            coins.forEach(c => {
+                                if (!shouldUpdateCoinType(c.coin_type, c.section, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side)) return;
+                                if (scope === 'empty_only') {
+                                    const imgVal = c[field];
+                                    // Only clear if it's a placeholder/type-level image (not personal)
+                                    if (imgVal && imgVal.includes('/images/types/')) {
+                                        c[field] = null;
+                                    }
+                                } else {
+                                    const imgVal = c[field];
+                                    if (imgVal && (imgVal.includes('/images/types/') || imgVal === newImageUrl)) {
+                                        c[field] = null;
+                                    }
                                 }
-                            }
+                            });
                         }
-                        let coins;
-                        if (_selfHosted) {
-                            // Direct server fetch - bypass IndexedDB-first logic for immediate fresh data
-                            const _native = window.__nativeFetch || window.fetch;
-                            const _res = await _native('/api/coins?section=' + encodeURIComponent(activeContext.section));
-                            if (_res && _res.ok) {
-                                coins = await _res.json();
-                            } else {
-                                throw new Error('Server fetch failed');
-                            }
+                    });
+                    
+                    // 2. Update all matching IMG elements in the DOM immediately (section-qualified)
+                    const imgElements = document.querySelectorAll('img[data-action="view-img"]');
+                    imgElements.forEach(img => {
+                        const imgType = img.dataset.type;
+                        const imgSide = img.dataset.side;
+                        const imgSection = img.dataset.section || '';
+                        if (imgSide !== activeContext.side) return;
+                        if (!shouldUpdateCoinType(imgType, imgSection, activeContext.typeStr, activeContext.section, targetMainType, activeContext.side)) return;
+                        // Respect empty_only scope — skip if img already has a real image
+                        if (scope === 'empty_only' && img.src && !img.classList.contains('placeholder') && !img.src.includes('data:image/svg')) return;
+                            
+                        if (newImageUrl) {
+                            img.src = newImageUrl;
+                            img.classList.remove('placeholder');
                         } else {
-                            // Public: use local (IndexedDB) path
-                            coins = await fetchCoinsForSection(secName);
+                            import('./utils.js').then(m => {
+                                img.src = m.placeholderCoinSvg();
+                                img.classList.add('placeholder');
+                            });
                         }
-                        // Update in-memory state
-                        setCoinsForSection(secName, coins);
-                        // Re-render immediately
-                        const sectionId = 'section-' + secName.replace(/[^a-zA-Z0-9]/g, '');
-                        const content = document.getElementById(sectionId + '-content');
-                        if (content) {
-                            // 2026-08-31: circular-import-safe access (catalog<->images cycle)
-                            const _wcc = window.__ccCatalog || {};
-                            const _rta = _wcc.renderTypeAccordions;
-                            if (typeof _rta === 'function') _rta(content, coins); else console.warn('[images] RTA unavailable, skipping re-render');
-                        } else {
-                            console.warn('[images] Section content not found for', sectionId);
-                        }
-                    } catch (e) {
-                        console.warn('[images] Could not refresh section after batch assign:', e);
-                        // Fallback to standard fetch
-                        try {
-                            const coins = await fetchCoinsForSection(activeContext.section);
-                            setCoinsForSection(activeContext.section, coins);
-                            const sectionId = 'section-' + activeContext.section.replace(/[^a-zA-Z0-9]/g, '');
-                            const content = document.getElementById(sectionId + '-content');
-                            if (content) {
-                                // 2026-08-31: circular-import-safe access (catalog<->images cycle)
-                                const _wcc = window.__ccCatalog || {};
-                                const _rta = _wcc.renderTypeAccordions;
-                                if (typeof _rta === 'function') _rta(content, coins); else console.warn('[images] RTA unavailable, skipping re-render');
-                            }
-                        } catch (fbErr) {
-                            console.warn('[images] Fallback fetch also failed:', fbErr);
-                        }
-                    }
+                    });
                 }
             } catch (cfgErr) {
                 console.warn('[images] Could not refresh type configs:', cfgErr);
@@ -989,35 +904,7 @@ export function openBankForPersonalSlot(coinTypeStr, onSelectCallback) {
 
 // Exposed globally for HTML oninput handlers
 window._cbLoadImages = loadCoinBankImages;
-let _currentBankMode = 'context';
-// Refine the current bank grid by the search box without re-fetching when possible
-function _applyBankSearchFilter() {
-  const grid = document.getElementById('coin-bank-grid');
-  if (!grid) return;
-  const q = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
-  const cards = Array.from(grid.querySelectorAll('[data-bank-card]'));
-  let shown = 0;
-  cards.forEach(c => {
-    const hay = ((c.dataset.coinType || '') + ' ' + (c.dataset.side || '')).toLowerCase();
-    const match = !q || hay.includes(q);
-    c.style.display = match ? '' : 'none';
-    if (match) shown++;
-  });
-  let note = document.getElementById('cb-search-note');
-  if (!note) {
-    note = document.createElement('div');
-    note.id = 'cb-search-note';
-    note.style.cssText = 'grid-column:1/-1;text-align:center;padding:1rem;color:var(--color-text-muted);font-size:0.85em;';
-    grid.appendChild(note);
-  }
-  note.textContent = (q && shown === 0) ? 'No images match your search.' : '';
-}
-// Optional searchQ lets the search box re-query the ENTIRE bank (not just the
-// current coin type). Fixes the "auto search came back empty" bug where context
-// mode only loaded the active type's images and the inline filter could not reach
-// across types.
-async function loadCoinBankImages(mode, searchQ) {
-    if (mode) _currentBankMode = mode;
+async function loadCoinBankImages(mode) {
     const grid = document.getElementById('coin-bank-grid');
     grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-text-muted);">Loading bank...</div>';
 
@@ -1033,12 +920,14 @@ async function loadCoinBankImages(mode, searchQ) {
     }
 
     try {
-        const q = (typeof searchQ === 'string')
-            ? searchQ
-            : (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
-        const params = (mode === 'context' && !q)
-            ? { coin_type: activeContext.typeStr, side: activeContext.side, section: activeContext.section }
-            : (q ? { q: q } : {});
+        // When searching, ignore the narrow per-type filter so the search can find
+        // images across the whole bank (context mode otherwise only shows the current
+        // coin type's already-assigned images, which is empty when nothing is assigned yet).
+        // NOTE: searchQ is declared just below (used by the inline filter) — reuse it here.
+        const _searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
+        const params = (mode === 'context' && !_searchQ)
+            ? { coin_type: activeContext.typeStr, side: activeContext.side }
+            : {};
         const images = await fetchCoinBankImages(params);
 
         if (!images.length) {
@@ -1047,32 +936,20 @@ async function loadCoinBankImages(mode, searchQ) {
         }
 
         grid.innerHTML = '';
-        // Apply inline search filter. NOTE: must NOT redeclare `searchQ` here —
-        // `searchQ` is a function PARAMETER, and a same-scope `const searchQ`
-        // redeclaration triggers a TDZ ReferenceError
-        // ("Cannot access 'searchQ' before initialization"). Use a distinct name.
-        const inlineQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
-        const filtered = inlineQ
-            ? images.filter(img =>
-                (img.coin_type || '').toLowerCase().includes(inlineQ) ||
-                (img.side || '').toLowerCase().includes(inlineQ)
+        // Apply inline search filter
+        const searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
+        const filtered = searchQ
+            ? images.filter(img => 
+                (img.coin_type || '').toLowerCase().includes(searchQ) ||
+                (img.side || '').toLowerCase().includes(searchQ)
               )
             : images;
         if (filtered.length === 0) {
             grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-text-muted);">No images match your search.</div>';
             return;
         }
-        // Render in chunks so 'show all' (6000+ images) paints fast instead of freezing.
-        const CHUNK = 120;
-        let _renderIdx = 0;
-        function _renderChunk() {
-            const slice = filtered.slice(_renderIdx, _renderIdx + CHUNK);
-            _renderIdx += slice.length;
-            slice.forEach(img => {
+        filtered.forEach(img => {
             const card = el('div', {
-                'data-bank-card': '',
-                'data-coin-type': img.coin_type || '',
-                'data-side': img.side || '',
                 style: 'border:1px solid var(--color-border-light); border-radius:var(--radius-md); overflow:hidden; background:var(--color-bg-card); cursor:pointer; transition:transform 0.1s; position:relative;',
                 onclick: (e) => {
                     if (e.target.tagName !== 'SELECT' && e.target.tagName !== 'BUTTON') {
@@ -1080,15 +957,7 @@ async function loadCoinBankImages(mode, searchQ) {
                     }
                 }
             },
-                el('img', {
-                    src: resolveImageUrl(img.filename),
-                    style: 'width:100%; height:100px; object-fit:contain;',
-                    onerror: function() {
-                        // Hide broken type-default images that were never published
-                        // (e.g. /data/images/types/*.webp that 404). Keeps the bank usable.
-                        this.style.visibility = 'hidden';
-                    }
-                }),
+                el('img', { src: img.filename, style: 'width:100%; height:100px; object-fit:contain;' }),
                 el('div', { 
                     style: 'position:absolute; top:0; left:0; background:rgba(0,0,0,0.7); color:white; padding:2px 4px; font-size:0.7rem;',
                     onclick: (e) => { e.stopPropagation(); editCoinBankImage(img); },
@@ -1117,25 +986,14 @@ async function loadCoinBankImages(mode, searchQ) {
                         el('option', { value: 'unknown', selected: img.side === 'unknown' }, 'Unknown')
                     ),
                     el('button', {
-                        class: 'cb-delete-btn',
                         style: 'margin-top:4px; padding:3px 6px; font-size:0.7rem; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; width:100%;',
-                        onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img, e.currentTarget); },
+                        onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img); },
                         title: 'Delete this image from coin bank'
                     }, 'Delete')
                 )
             );
             grid.appendChild(card);
-            });
-            if (_renderIdx < filtered.length) {
-                const moreBtn = el('button', {
-                    className: 'btn-secondary',
-                    style: 'grid-column:1/-1; margin:0.5rem auto; display:block; padding:6px 18px; cursor:pointer;',
-                    onclick: () => { moreBtn.remove(); _renderChunk(); }
-                }, 'Show more (' + (filtered.length - _renderIdx) + ' remaining)');
-                grid.appendChild(moreBtn);
-            }
-        }
-        _renderChunk();
+        });
     } catch (err) {
         grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-danger);">Error: ${err.message}</div>`;
     }
@@ -1163,48 +1021,25 @@ function selectBankImage(img) {
     showScopeSelection();
 }
 
-async function deleteCoinBankImageConfirm(img, btn) {
-    // First click: turn the BUTTON ITSELF into a confirm prompt (no toast needed)
+async function deleteCoinBankImageConfirm(img) {
+    // First click: show confirmation state
     if (img._confirming !== true) {
         img._confirming = true;
-        if (btn) {
-            btn.textContent = 'Click to confirm';
-            btn.style.background = '#f59e0b';   // amber warning
-            btn.dataset.confirming = '1';
-        }
-        // Auto-revert if the user doesn't confirm in time
-        clearTimeout(img._confirmTimer);
-        img._confirmTimer = setTimeout(() => {
-            img._confirming = false;
-            if (btn && btn.dataset.confirming === '1') {
-                btn.textContent = 'Delete';
-                btn.style.background = '#dc2626';
-                btn.dataset.confirming = '';
-            }
-        }, 5000);
+        showToast('Click Delete again to confirm permanent deletion', 'warning', 3000);
+        setTimeout(() => { img._confirming = false; }, 5000);
         return;
     }
-    // Second click: confirmed -- reset the button then delete
+    // Second click: confirmed
     img._confirming = false;
-    clearTimeout(img._confirmTimer);
-    if (btn) { btn.textContent = 'Delete'; btn.style.background = '#dc2626'; btn.dataset.confirming = ''; }
     try {
         const grid = document.getElementById('coin-bank-grid');
         const scrollPos = grid ? grid.parentElement.scrollTop : 0;
-        const result = await deleteCoinBankImage(img.filename);
-        if (!result || result.status === 'error') {
-            throw new Error((result && result.error) || 'Delete rejected by server');
-        }
-        // Honestly report when the file was already missing on disk
-        if (result.message && result.message.indexOf('already missing') !== -1) {
-            showToast('Removed broken image reference', 'success');
-        } else {
-            showToast('Image deleted from coin bank', 'success');
-        }
+        await deleteCoinBankImage(img.filename);
+        showToast('Image deleted from coin bank', 'success');
         // Notify catalog to refresh
         window.dispatchEvent(new CustomEvent('cc-image-updated'));
         window.dispatchEvent(new CustomEvent('cc-inventory-updated'));
-        // Refresh the bank view, then restore scroll so the user keeps their place
+        // Refresh the bank view, then restore scroll
         const ctxBtn = document.getElementById('cb-filter-ctx');
         await loadCoinBankImages(ctxBtn && ctxBtn.className.includes('btn-primary') ? 'context' : 'all');
         if (grid) requestAnimationFrame(() => { grid.parentElement.scrollTop = scrollPos; });
@@ -1217,13 +1052,13 @@ async function renameCoinBankImage(img, newSide) {
     const grid = document.getElementById('coin-bank-grid');
     const scrollPos = grid ? grid.parentElement.scrollTop : 0;
     try {
-        // LOCAL-FIRST FIX (2026-08-24): Previously called
-        // `fetch('/api/coin_bank_images/rename', ...)`, which 404s on the
-        // local-first build. renameCoinBankImageApi() routes through db.js
-        // (IndexedDB) and takes { filename, new_side }. (Aliased import to avoid
-        // colliding with this module's own renameCoinBankImage() wrapper.)
-        const res = await renameCoinBankImageApi({ filename: img.filename, new_side: newSide });
-        if (!res || res.status !== 'renamed') throw new Error('Failed to rename image');
+        const response = await fetch('/api/coin_bank_images/rename', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: img.filename, new_side: newSide })
+        });
+        const res = await response.json();
+        if (!response.ok) throw new Error(res.error || 'Failed to rename image');
         
         showToast('Image side updated', 'success');
         
@@ -1265,16 +1100,8 @@ async function editCoinBankImage(img) {
 // ============================================================
 
 function showScopeSelection() {
-    const scopeBox = document.getElementById('scope-selection-box');
-    const applyBtn = document.getElementById('btn-execute-assign');
-    if (scopeBox) scopeBox.style.display = 'block';
-    if (applyBtn) applyBtn.style.display = 'block';
-    
-    // Ensure the modal is actually open — showScopeSelection may be called
-    // from saveCrop() which already opened it, but if it was called from
-    // an unexpected context, make sure the user can see and interact with the
-    // scope options before Save & Apply.
-    openModalLegacy('modal-replace-scope');
+    document.getElementById('scope-selection-box').style.display = 'block';
+    document.getElementById('btn-execute-assign').style.display = 'block';
 }
 
 // Inject premium drag-and-drop stylesheet
@@ -1496,12 +1323,7 @@ async function handleDroppedImage(file, dropZone) {
     }
 }
 
-// 2026-08-31 CRITICAL FIX: this block was wrapped in DOMContentLoaded, but ES modules
-    // execute AFTER that event has fired — the callback never ran, so NONE of the modal
-    // button/file-input/bank listeners were ever attached (modal buttons did nothing on
-    // every device; From Device file selection went nowhere). Execute immediately —
-    // module scripts are DOM-ready by definition.
-    (() => {
+document.addEventListener('DOMContentLoaded', () => {
     if (window.__cc_images_events_bound) return;
     window.__cc_images_events_bound = true;
 
@@ -1593,17 +1415,10 @@ async function handleDroppedImage(file, dropZone) {
         });
     }
 
-    // Modal action buttons.
-    // 2026-08-28 MOBILE FIX: resolve the clickable through closest() so taps that land on a
-    // child node (svg, span, label text) inside a modal button still register. Previously a
-    // tap on a child made target.dataset.action/target.id undefined -> button 'did nothing'
-    // (reported on the public site's image modal: From Device / Browse Coin Bank dead).
+    // Modal action buttons
     document.addEventListener('click', e => {
-        const target = e.target instanceof Element
-            ? (e.target.closest('[data-action], button[id]') || e.target)
-            : e.target;
-        if (!target || !target.dataset) return;
-
+        const target = e.target;
+        
         if (target.dataset.action === 'ii-crop') openCropTool();
         if (target.dataset.action === 'ii-replace') openReplaceWorkflow();
         if (target.id === 'btn-save-crop') saveCrop();
@@ -1615,13 +1430,13 @@ async function handleDroppedImage(file, dropZone) {
         if (target.id === 'ii-btn-save') saveCurrentImage();
         if (target.id === 'ii-btn-reset-master') resetToMaster();
         if (target.id === 'ii-btn-promote-default') promoteToDefaultHandler();
-
+        
         // Navigation back buttons
         if (target.dataset.action === 'close-crop') { closeModalLegacy('modal-crop'); openModalLegacy('modal-replace-scope'); }
-        if (target.dataset.action === 'close-replace') {
-            closeModalLegacy('modal-replace-scope');
+        if (target.dataset.action === 'close-replace') { 
+            closeModalLegacy('modal-replace-scope'); 
             if (!activeContext.isGeneric) {
-                openModalLegacy('modal-image-interaction');
+                openModalLegacy('modal-image-interaction'); 
             }
         }
         if (target.dataset.action === 'close-bank') { closeModalLegacy('modal-coin-bank'); openModalLegacy('modal-replace-scope'); }
@@ -1633,27 +1448,6 @@ async function handleDroppedImage(file, dropZone) {
 
     const fileInput = document.getElementById('ii-hidden-file-input');
     if (fileInput) fileInput.addEventListener('change', handleNewUpload);
-
-    // Coin Bank search box: re-query the WHOLE bank by query (fixes empty auto-search).
-    // Debounced so typing is smooth; falls back to the inline filter if the load fails.
-    const cbSearch = document.getElementById('cb-search-input');
-    if (cbSearch && !window.__ccCoinBankSearchBound) {
-      window.__ccCoinBankSearchBound = true;
-      let _t;
-      cbSearch.addEventListener('input', () => {
-        clearTimeout(_t);
-        const v = cbSearch.value;
-        _t = setTimeout(() => {
-          if (_currentBankMode === 'context') {
-            // Current-type view: filter ONLY what is already loaded (instant).
-            _applyBankSearchFilter();
-          } else {
-            // Show-all view: re-query the whole bank server-side.
-            loadCoinBankImages(_currentBankMode, v).catch(() => _applyBankSearchFilter());
-          }
-        }, 200);
-      });
-    }
     const cameraInput = document.getElementById('ii-camera-input');
     if (cameraInput) cameraInput.addEventListener('change', handleNewUpload);
 
@@ -1738,7 +1532,7 @@ async function handleDroppedImage(file, dropZone) {
             import('./notifications.js').then(m => m.showToast('Please drop a valid image file.', 'error'));
         }
     });
-})();
+});
 
 // ============================================================
 // Helper Functions
@@ -1926,52 +1720,3 @@ function handleZoom(val) {
     cropOffY = cy - (cy - cropOffY) * (newH / oldH);
     drawCropCanvas();
 }
-// 2026-08-31 v142: direct onclick bindings for the core image-modal buttons. These are the
-// primitive, non-delegated mechanism — immune to any delegation/interception issue. The
-// delegated document handler below remains as backup (idempotent: both call the same fns).
-function _ccBindDirectModalButtons() {
-    const map = {
-        'btn-upload-file': () => triggerFileUpload(),
-        'btn-open-bank': () => openCoinBankModal(),
-        'btn-take-photo': () => { const el = document.getElementById('ii-camera-input'); if (el) el.click(); },
-        'btn-execute-assign': () => executeImageAssignment(),
-        'ii-btn-remove': () => removeCurrentImage(),
-        'ii-btn-save': () => saveCurrentImage(),
-        'ii-btn-reset-master': () => resetToMaster(),
-        'ii-btn-promote-default': () => promoteToDefaultHandler(),
-    };
-    for (const [id, fn] of Object.entries(map)) {
-        const bind = () => {
-            const el = document.getElementById(id);
-            if (el && !el.dataset.ccDirect) {
-                el.dataset.ccDirect = '1';
-                el.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    console.log('[tap-diag] direct handler:', id);
-                    fn();
-                });
-            }
-        };
-        bind();
-        // Re-bind when the element appears later (modals are static in index.html, but be safe)
-        setTimeout(bind, 1500);
-    }
-    // data-action buttons are created dynamically — delegate directly on document with
-    // pointerup+click pair but WITHOUT preventDefault/stopPropagation:
-    document.addEventListener('click', (ev) => {
-        const el = ev.target instanceof Element
-            ? ev.target.closest('[data-action="ii-crop"], [data-action="ii-replace"], [data-action="close-bank"], [data-action="close-crop"], [data-action="close-replace"]')
-            : null;
-        if (!el) return;
-        console.log('[tap-diag] direct delegated:', el.dataset.action);
-        if (el.dataset.action === 'ii-crop') openCropTool();
-        if (el.dataset.action === 'ii-replace') openReplaceWorkflow();
-        if (el.dataset.action === 'close-bank') { closeModalLegacy('modal-coin-bank'); openModalLegacy('modal-replace-scope'); }
-        if (el.dataset.action === 'close-crop') { closeModalLegacy('modal-crop'); openModalLegacy('modal-replace-scope'); }
-        if (el.dataset.action === 'close-replace') {
-            closeModalLegacy('modal-replace-scope');
-            if (!activeContext.isGeneric) openModalLegacy('modal-image-interaction');
-        }
-    });
-}
-try { _ccBindDirectModalButtons(); } catch (e) { console.warn('[modals] direct bind failed:', e); }
