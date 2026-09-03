@@ -189,20 +189,18 @@
    Cyberpunk
    ========================================================================= */
 [data-theme="cyberpunk"] {
-    --color-bg-body:      #0a0014;
-    --color-bg-card:      #12001f;
-    --color-text-main:    #f0e6ff;
-    --color-text-muted:   #b090d0;
-    --color-border:       #ff00ff;
-    --color-border-light: #400060;
-    --color-accent:       #00ffff;
-    --color-accent-text:  #000000;
-    --color-header-bg:    #08000f;
-    --color-header-text:  #f0e6ff;
-    --color-accord-bg:    #1a0030;
-    --color-finance-bg:   #10001a;
-    --color-neon-pink:    #ff00ff;
-    --color-neon-cyan:    #00ffff;
+    --color-bg-body:      #120014;
+    --color-bg-card:      #1c0620;
+    --color-text-main:    #ffe6f7;
+    --color-text-muted:   #c78ac8;
+    --color-border:       #ff2ec4;
+    --color-border-light: #3a1042;
+    --color-accent:       #ff2ec4;
+    --color-accent-text:  #1c0024;
+    --color-header-bg:    #0a000c;
+    --color-header-text:  #ffe6f7;
+    --color-accord-bg:    #2a0f30;
+    --color-finance-bg:   #160818;
 }
 
 [data-theme="cyberpunk"] .card {
@@ -220,19 +218,18 @@
    Neon
    ========================================================================= */
 [data-theme="neon"] {
-    --color-bg-body:      #0a0d14;
-    --color-bg-card:      #111827;
-    --color-text-main:    #f0f4ff;
-    --color-text-muted:   #94a3b8;
-    --color-border:       rgba(255, 149, 0, 0.67);
-    --color-border-light: #1e2a40;
-    --color-accent:       #ff9500;
-    --color-accent-text:  #000000;
-    --color-header-bg:    #060a10;
-    --color-header-text:  #f0f4ff;
-    --color-accord-bg:    #162032;
-    --color-finance-bg:   #0d1520;
-    --color-neon-blue:    #00b4ff;
+    --color-bg-body:      #05070f;
+    --color-bg-card:      #0b1020;
+    --color-text-main:    #e8f6ff;
+    --color-text-muted:   #7fb3cf;
+    --color-border:       rgba(0, 229, 255, 0.55);
+    --color-border-light: #123049;
+    --color-accent:       #00e5ff;
+    --color-accent-text:  #00212b;
+    --color-header-bg:    #02040a;
+    --color-header-text:  #e8f6ff;
+    --color-accord-bg:    #0d1830;
+    --color-finance-bg:   #070d18;
 }
 
 [data-theme="neon"] #app-header {
@@ -250,36 +247,36 @@
    Violet (new)
    ========================================================================= */
 [data-theme="violet"] {
-    --color-bg-body:      #120b1a;
-    --color-bg-card:      #1c1228;
-    --color-text-main:    #efe6fb;
-    --color-text-muted:   #b79edd;
-    --color-border:       #6d4fa8;
-    --color-border-light: #33213f;
-    --color-accent:       #b388ff;
-    --color-accent-text:  #160b22;
-    --color-header-bg:    #0c0612;
-    --color-header-text:  #efe6fb;
-    --color-accord-bg:    #271838;
-    --color-finance-bg:   #181022;
+    --color-bg-body:      #0d0618;
+    --color-bg-card:      #180d2b;
+    --color-text-main:    #ece2ff;
+    --color-text-muted:   #a78fd0;
+    --color-border:       #7c5fd6;
+    --color-border-light: #2b1c45;
+    --color-accent:       #8b6dff;
+    --color-accent-text:  #150a24;
+    --color-header-bg:    #070310;
+    --color-header-text:  #ece2ff;
+    --color-accord-bg:    #241539;
+    --color-finance-bg:   #100922;
 }
 
 /* =========================================================================
    Sunset (new)
    ========================================================================= */
 [data-theme="sunset"] {
-    --color-bg-body:      #1a0e0a;
-    --color-bg-card:      #2a1710;
-    --color-text-main:    #ffe9dc;
-    --color-text-muted:   #d9a88e;
-    --color-border:       #c2563a;
-    --color-border-light: #47231a;
-    --color-accent:       #ff8a5c;
-    --color-accent-text:  #1e0c05;
-    --color-header-bg:    #120907;
-    --color-header-text:  #ffe9dc;
-    --color-accord-bg:    #3a2116;
-    --color-finance-bg:   #221209;
+    --color-bg-body:      #0a1414;
+    --color-bg-card:      #12201f;
+    --color-text-main:    #dff5f0;
+    --color-text-muted:   #8fb8b0;
+    --color-border:       #47a894;
+    --color-border-light: #1d3934;
+    --color-accent:       #3ec9b0;
+    --color-accent-text:  #06201a;
+    --color-header-bg:    #060d0d;
+    --color-header-text:  #dff5f0;
+    --color-accord-bg:    #1a302c;
+    --color-finance-bg:   #0c1817;
 }
 
 
@@ -287,18 +284,18 @@
    Film Noir (new)
    ========================================================================= */
 [data-theme="noir"] {
-    --color-bg-body:      #0d0d0d;
-    --color-bg-card:      #171717;
-    --color-text-main:    #e8e4da;
-    --color-text-muted:   #9e968a;
-    --color-border:       #8a7a5a;
-    --color-border-light: #2a2823;
-    --color-accent:       #d8b46a;
-    --color-accent-text:  #14100a;
-    --color-header-bg:    #060606;
-    --color-header-text:  #e8e4da;
-    --color-accord-bg:    #1f1d19;
-    --color-finance-bg:   #131210;
+    --color-bg-body:      #080808;
+    --color-bg-card:      #161616;
+    --color-text-main:    #ffffff;
+    --color-text-muted:   #a2a2a2;
+    --color-border:       #5a5a5a;
+    --color-border-light: #2a2a2a;
+    --color-accent:       #7a7a7a;
+    --color-accent-text:  #0a0a0a;
+    --color-header-bg:    #000000;
+    --color-header-text:  #ffffff;
+    --color-accord-bg:    #1e1e1e;
+    --color-finance-bg:   #101010;
 }
 
 [data-theme="custom1"] {
