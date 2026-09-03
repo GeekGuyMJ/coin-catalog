@@ -500,7 +500,7 @@ function buildSpotTrendCard(prices) {
     });
     card.appendChild(legend);
 
-    var readout = el('div', { style: 'font-size:0.78em;margin-top:6px;padding:6px 8px;background:var(--color-accord-bg);border-radius:6px;' });
+    var readout = el('div', { style: 'font-size:0.9em;margin-top:6px;padding:8px 10px;background:var(--color-accord-bg);border-radius:6px;' });
     card.appendChild(readout);
 
     var cursorT = (tMin + tMax) / 2;
@@ -554,7 +554,7 @@ function buildSpotTrendCard(prices) {
         var dt = new Date(cursorT);
         var timePart = (activePeriod === '1D' || activePeriod === '1W') ? ' ' + dt.toLocaleTimeString() : '';
         var line1 = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span>@ ' + dt.toLocaleDateString() + timePart + '</span><span style="font-weight:700;color:var(--color-accent);">Est. collection value: $' + totalAtT.toFixed(2) + '</span></div>';
-        var line2 = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.74em;margin-top:4px;">' + priceBits.join('') + '</div>';
+        var line2 = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:1.0em;margin-top:4px;">' + priceBits.join('') + '</div>';
         var minT = null, maxT = null;
         metals.forEach(function(m){ var ser = seriesByMetal[m.key]; if (!ser || !ser.length) return; ser.forEach(function(pt){ if (minT===null||pt.t<minT) minT=pt.t; if (maxT===null||pt.t>maxT) maxT=pt.t; }); });
         var spanTxt = 'No price history yet';
