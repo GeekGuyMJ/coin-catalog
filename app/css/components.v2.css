@@ -2439,12 +2439,23 @@ select optgroup {
     max-height: none;
 }
 
-/* ── Responsive: mobile (≤768px → 1 column) ── */
-@media (max-width: 768px) {
+/* ── Responsive: narrow (≤960px) — let the layout button keep working ── */
+@media (max-width: 960px) {
     .dashboard-grid {
-        grid-template-columns: 1fr !important;
+        /* Default (Grid) drops to 2 columns; layout-compact stays 2; layout-list stays 1.
+           No !important — the layout classes on the grid element still win. */
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
         padding: 10px;
+    }
+    .dashboard-grid.layout-list {
+        grid-template-columns: 1fr;
+    }
+}
+/* ── True phone: Grid collapses to 1 column; Compact still 2; List still 1 ── */
+@media (max-width: 560px) {
+    .dashboard-grid:not(.layout-compact):not(.layout-list) {
+        grid-template-columns: 1fr;
     }
     .dashboard-grid .dashboard-card.card-w-25,
     .dashboard-grid .dashboard-card.card-w-50,
@@ -2452,7 +2463,7 @@ select optgroup {
     .dashboard-grid .dashboard-card.card-w-100 { grid-column: 1 / -1; }
 }
 
-}.dashboard-card {
+.dashboard-card {
     background: var(--color-bg-card);
     border: 1px solid var(--color-border-light);
     border-radius: 12px;
