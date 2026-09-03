@@ -269,7 +269,6 @@ function showThemeModal() {
  { value: 'neon', label: 'Neon' },
  { value: 'matrix', label: 'Matrix' },
  { value: 'violet', label: 'Violet' },
- { value: 'sunset', label: 'Sunset' },
  { value: 'noir', label: 'Film Noir' },
  { value: 'light', label: 'Light' },
  { value: 'silver', label: 'Silver' },

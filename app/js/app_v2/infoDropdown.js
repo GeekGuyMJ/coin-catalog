@@ -186,7 +186,7 @@ function showAbout() {
   'Full JSON backup & restore, ZIP backup, and CSV export/import',
   ]},
  { heading: 'Themes & Customization', list: [
-  '14 built-in themes: Dark, Light, Midnight, Copper, Ocean, Deep Forest, Silver, Aged Paper, Matrix, Cyberpunk, Neon, Violet, Sunset, Film Noir',
+  '13 built-in themes: Dark, Midnight, Copper, Ocean, Deep Forest, Silver, Aged Paper, Matrix, Cyberpunk, Neon, Violet, Film Noir',
   '3 custom theme slots — design your own theme with a live color preview in Settings → Custom Theme Designer',
   'Drag to reorder dashboard cards with the ≡ handle; hide/show any card individually',
   'Resize the width of dashboard cards by grabbing either edge of a card',

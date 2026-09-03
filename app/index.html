@@ -3,34 +3,9 @@
 <head>
 <script>
 if ('serviceWorker' in navigator) {
-  // Reload the page once a new service worker takes control, so deployed
-  // fixes actually apply to already-open tabs (otherwise the old JS keeps
-  // running in memory and the app appears "stuck" after an update).
-  var _ccReloading = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function () {
-    if (_ccReloading) return;
-    _ccReloading = true;
-    location.reload();
-  });
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
-      if (!reg) return;
-      // If a new worker is already waiting, activate it now and reload.
-      if (reg.waiting) {
-        reg.waiting.postMessage('skipWaiting');
-        // controllerchange handler above will reload.
-        return;
-      }
-      reg.addEventListener('updatefound', function () {
-        var installing = reg.installing;
-        if (!installing) return;
-        installing.addEventListener('statechange', function () {
-          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
-            installing.postMessage('skipWaiting');
-          }
-        });
-      });
-      if (reg.update) { try { reg.update(); } catch (e) {} }
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      if (reg && reg.update) { try { reg.update(); } catch (e) {} }
     }).catch(function (e) { console.warn('[SW] register failed', e); });
   });
 }
@@ -53,10 +28,10 @@ if ('serviceWorker' in navigator) {
     <meta name="description" content="Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.">
 
     <!-- Manifest -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
 
     <!-- Google Font — Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,9 +39,9 @@ if ('serviceWorker' in navigator) {
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/base.css?v=1786636458">
-    <link rel="stylesheet" href="css/themes.css?v=1786636458">
-    <link rel="stylesheet" href="css/components.v2.css?v=1786636458">
+    <link rel="stylesheet" href="/css/base.css?v=1786636458">
+    <link rel="stylesheet" href="/css/themes.css?v=1786636458">
+    <link rel="stylesheet" href="/css/components.v2.css?v=1786636458">
 
     <!--
         Theme is applied BEFORE paint to prevent a flash of the wrong theme.
@@ -99,33 +74,27 @@ if ('serviceWorker' in navigator) {
 
     <script>
         // Cycle through coin images on each page load
-        // DEPLOYMENT-AGNOSTIC FIX (2026-08-24): the image list used root-absolute
-        // "/images/..." paths which 404 on the GitHub Pages sub-path
-        // (/coin-catalog/app/). Derive the app base from the current pathname and
-        // prepend it so the splash coins load on both self-hosted ("/") and public
-        // ("/coin-catalog/app/") deployments.
         (function() {
-            var APP_BASE = location.pathname.replace(/\/app\/.*$/, '') + '/app';
             var coins = [
-                APP_BASE + '/images/coin_gold1.png',
-                APP_BASE + '/images/coin_gold_proof1.png',
-                APP_BASE + '/images/coin_silver1.png',
-                APP_BASE + '/images/coin_copper1.png',
-                APP_BASE + '/images/coin_copper_proof1.png',
-                APP_BASE + '/images/coin_copper_green1.png',
-                APP_BASE + '/images/coin_copper_toned1.png',
-                APP_BASE + '/images/coin_bronze1.png',
-                APP_BASE + '/images/coin_bend1.png',
-                APP_BASE + '/images/coin_bend2.png',
-                APP_BASE + '/images/coin_bend3.png',
-                APP_BASE + '/images/coin_chocolate1.png',
-                APP_BASE + '/images/coin_chocolate2.png',
-                APP_BASE + '/images/coin_dirty1.png',
-                APP_BASE + '/images/coin_dirty2.png',
-                APP_BASE + '/images/coin_dirty3.png',
-                APP_BASE + '/images/coin_dirty4.png',
-                APP_BASE + '/images/coin_dirty5.png',
-                APP_BASE + '/icons/icon-512.png'
+                '/images/coin_gold1.png',
+                '/images/coin_gold_proof1.png',
+                '/images/coin_silver1.png',
+                '/images/coin_copper1.png',
+                '/images/coin_copper_proof1.png',
+                '/images/coin_copper_green1.png',
+                '/images/coin_copper_toned1.png',
+                '/images/coin_bronze1.png',
+                '/images/coin_bend1.png',
+                '/images/coin_bend2.png',
+                '/images/coin_bend3.png',
+                '/images/coin_chocolate1.png',
+                '/images/coin_chocolate2.png',
+                '/images/coin_dirty1.png',
+                '/images/coin_dirty2.png',
+                '/images/coin_dirty3.png',
+                '/images/coin_dirty4.png',
+                '/images/coin_dirty5.png',
+                '/icons/icon-512.png'
             ];
             var pick = coins[Math.floor(Math.random() * coins.length)];
             function setCoinImages() {
@@ -147,7 +116,7 @@ if ('serviceWorker' in navigator) {
          Splash screen — shown while JS loads and data fetches
     ================================================================ -->
     <div id="app-splash" aria-hidden="true" aria-live="polite">
-        <img class="splash-coin" id="splash-coin-anim" src="icons/icon-512.png" alt="" aria-hidden="true">
+        <img class="splash-coin" id="splash-coin-anim" src="/icons/icon-512.png" alt="" aria-hidden="true">
         <p class="splash-label">Loading...</p>
     </div>
 
@@ -216,7 +185,6 @@ if ('serviceWorker' in navigator) {
                     <option value="neon">Neon</option>
                     <option value="matrix">Matrix</option>
                     <option value="violet">Violet</option>
-                    <option value="sunset">Sunset</option>
                     <option value="noir">Film Noir</option>
                 </optgroup>
                 <optgroup label="Light Themes">
@@ -239,20 +207,20 @@ if ('serviceWorker' in navigator) {
     <!-- ================================================================
          Main Content
     ================================================================ -->
-    <script type="module" src="js/app_v2/utils.js"></script>
-    <script type="module" src="js/app_v2/state.js"></script>
-    <script type="module" src="js/app_v2/api.js"></script>
-    <script type="module" src="js/app_v2/themes.js"></script>
-    <script type="module" src="js/app_v2/catalog.js"></script>
-    <script type="module" src="js/app_v2/inventory.js"></script>
-    <script type="module" src="js/app_v2/modals.js"></script>
-    <script type="module" src="js/app_v2/search.js"></script>
-    <script type="module" src="js/app_v2/wishlist.js"></script>
-    <script type="module" src="js/app_v2/images.js"></script>
-    <script type="module" src="js/app_v2/album.js"></script>
-    <script type="module" src="js/app_v2/portfolio_history.js"></script>
-    <script type="module" src="js/app_v2/serverPrefs.js"></script>
-    <script type="module" src="js/app_v2/main.js"></script>
+    <script type="module" src="/js/app_v2/utils.js"></script>
+    <script type="module" src="/js/app_v2/state.js"></script>
+    <script type="module" src="/js/app_v2/api.js"></script>
+    <script type="module" src="/js/app_v2/themes.js"></script>
+    <script type="module" src="/js/app_v2/catalog.js"></script>
+    <script type="module" src="/js/app_v2/inventory.js"></script>
+    <script type="module" src="/js/app_v2/modals.js"></script>
+    <script type="module" src="/js/app_v2/search.js"></script>
+    <script type="module" src="/js/app_v2/wishlist.js"></script>
+    <script type="module" src="/js/app_v2/images.js"></script>
+    <script type="module" src="/js/app_v2/album.js"></script>
+    <script type="module" src="/js/app_v2/portfolio_history.js"></script>
+    <script type="module" src="/js/app_v2/serverPrefs.js"></script>
+    <script type="module" src="/js/app_v2/main.js"></script>
 <main id="app-main" class="container" role="main">
 
         <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->

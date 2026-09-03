@@ -59,18 +59,18 @@
    Midnight (deep blue-black)
    ========================================================================= */
 [data-theme="midnight"] {
-    --color-bg-body:      #0d1117;
-    --color-bg-card:      #161b22;
-    --color-text-main:    #c9d1d9;
-    --color-text-muted:   #8b949e;
-    --color-border:       #30363d;
-    --color-border-light: #21262d;
-    --color-accent:       #79b8ff;
-    --color-accent-text:  #ffffff;
-    --color-header-bg:    #010409;
-    --color-header-text:  #c9d1d9;
-    --color-accord-bg:    #21262d;
-    --color-finance-bg:   #1f2428;
+    --color-bg-body:      #070d1a;
+    --color-bg-card:      #0e1626;
+    --color-text-main:    #dfe8f5;
+    --color-text-muted:   #8b9bb5;
+    --color-border:       #2f4260;
+    --color-border-light: #16213a;
+    --color-accent:       #6ea8fe;
+    --color-accent-text:  #061020;
+    --color-header-bg:    #04080f;
+    --color-header-text:  #dfe8f5;
+    --color-accord-bg:    #16223a;
+    --color-finance-bg:   #0b1220;
 }
 
 /* =========================================================================
@@ -171,36 +171,36 @@
    Matrix
    ========================================================================= */
 [data-theme="matrix"] {
-    --color-bg-body:      #0a0f0a;
-    --color-bg-card:      #0f1a0f;
-    --color-text-main:    #7ddc7d;
-    --color-text-muted:   #4a9e4a;
-    --color-border:       #2d5a2d;
-    --color-border-light: #1a3d1a;
-    --color-accent:       #00ff41;
-    --color-accent-text:  #000000;
-    --color-header-bg:    #050a05;
-    --color-header-text:  #00ff41;
-    --color-accord-bg:    #121e12;
-    --color-finance-bg:   #0a100a;
+    --color-bg-body:      #030503;
+    --color-bg-card:      #0a1009;
+    --color-text-main:    #a3d4a5;
+    --color-text-muted:   #5d8a60;
+    --color-border:       #2b552f;
+    --color-border-light: #132216;
+    --color-accent:       #3fc261;
+    --color-accent-text:  #031604;
+    --color-header-bg:    #010201;
+    --color-header-text:  #a3d4a5;
+    --color-accord-bg:    #112011;
+    --color-finance-bg:   #070c07;
 }
 
 /* =========================================================================
    Cyberpunk
    ========================================================================= */
 [data-theme="cyberpunk"] {
-    --color-bg-body:      #120014;
-    --color-bg-card:      #1c0620;
-    --color-text-main:    #ffe6f7;
-    --color-text-muted:   #c78ac8;
-    --color-border:       #ff2ec4;
-    --color-border-light: #3a1042;
-    --color-accent:       #ff2ec4;
-    --color-accent-text:  #1c0024;
-    --color-header-bg:    #0a000c;
-    --color-header-text:  #ffe6f7;
-    --color-accord-bg:    #2a0f30;
-    --color-finance-bg:   #160818;
+    --color-bg-body:      #140d1a;
+    --color-bg-card:      #1d1426;
+    --color-text-main:    #eadcf0;
+    --color-text-muted:   #a98bb5;
+    --color-border:       #a7548f;
+    --color-border-light: #2d1f36;
+    --color-accent:       #b85ca0;
+    --color-accent-text:  #160b1d;
+    --color-header-bg:    #0c0711;
+    --color-header-text:  #eadcf0;
+    --color-accord-bg:    #271a30;
+    --color-finance-bg:   #180f1d;
 }
 
 [data-theme="cyberpunk"] .card {
@@ -218,18 +218,18 @@
    Neon
    ========================================================================= */
 [data-theme="neon"] {
-    --color-bg-body:      #05070f;
-    --color-bg-card:      #0b1020;
-    --color-text-main:    #e8f6ff;
-    --color-text-muted:   #7fb3cf;
-    --color-border:       rgba(0, 229, 255, 0.55);
-    --color-border-light: #123049;
-    --color-accent:       #00e5ff;
-    --color-accent-text:  #00212b;
-    --color-header-bg:    #02040a;
-    --color-header-text:  #e8f6ff;
-    --color-accord-bg:    #0d1830;
-    --color-finance-bg:   #070d18;
+    --color-bg-body:      #0a1418;
+    --color-bg-card:      #101f26;
+    --color-text-main:    #dceff4;
+    --color-text-muted:   #83a6ae;
+    --color-border:       rgba(74, 170, 182, 0.45);
+    --color-border-light: #162d33;
+    --color-accent:       #5fc8d0;
+    --color-accent-text:  #06232a;
+    --color-header-bg:    #050c0f;
+    --color-header-text:  #dceff4;
+    --color-accord-bg:    #142c35;
+    --color-finance-bg:   #0b171c;
 }
 
 [data-theme="neon"] #app-header {
@@ -247,37 +247,24 @@
    Violet (new)
    ========================================================================= */
 [data-theme="violet"] {
-    --color-bg-body:      #0d0618;
-    --color-bg-card:      #180d2b;
-    --color-text-main:    #ece2ff;
-    --color-text-muted:   #a78fd0;
-    --color-border:       #7c5fd6;
-    --color-border-light: #2b1c45;
-    --color-accent:       #8b6dff;
-    --color-accent-text:  #150a24;
-    --color-header-bg:    #070310;
-    --color-header-text:  #ece2ff;
-    --color-accord-bg:    #241539;
-    --color-finance-bg:   #100922;
+    --color-bg-body:      #121020;
+    --color-bg-card:      #1a1730;
+    --color-text-main:    #e6e1f5;
+    --color-text-muted:   #9c92c0;
+    --color-border:       #62599b;
+    --color-border-light: #26203e;
+    --color-accent:       #8f82d9;
+    --color-accent-text:  #120e26;
+    --color-header-bg:    #0b0a15;
+    --color-header-text:  #e6e1f5;
+    --color-accord-bg:    #242042;
+    --color-finance-bg:   #151325;
 }
 
 /* =========================================================================
    Sunset (new)
    ========================================================================= */
-[data-theme="sunset"] {
-    --color-bg-body:      #0a1414;
-    --color-bg-card:      #12201f;
-    --color-text-main:    #dff5f0;
-    --color-text-muted:   #8fb8b0;
-    --color-border:       #47a894;
-    --color-border-light: #1d3934;
-    --color-accent:       #3ec9b0;
-    --color-accent-text:  #06201a;
-    --color-header-bg:    #060d0d;
-    --color-header-text:  #dff5f0;
-    --color-accord-bg:    #1a302c;
-    --color-finance-bg:   #0c1817;
-}
+
 
 
 /* =========================================================================
