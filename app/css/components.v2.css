@@ -4069,7 +4069,7 @@ body.ready-mode-active .ready-badge { display: flex; }
 .gallery-tab:hover { border-color: var(--color-accent, #4a90d9); }
 .gallery-tab.active {
     background: var(--color-accent, #4a90d9);
-    color: #fff;
+    color: var(--color-accent-text, #fff);
     border-color: var(--color-accent, #4a90d9);
 }
 /* Compact empty state — no wasted middle space */
