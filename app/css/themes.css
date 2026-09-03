@@ -222,10 +222,10 @@
     --color-bg-card:      #101f26;
     --color-text-main:    #dceff4;
     --color-text-muted:   #83a6ae;
-    --color-border:       rgba(74, 170, 182, 0.45);
-    --color-border-light: #162d33;
-    --color-accent:       #5fc8d0;
-    --color-accent-text:  #06232a;
+    --color-border:       rgba(255, 149, 0, 0.5);
+    --color-border-light: #16303a;
+    --color-accent:       #ff9500;
+    --color-accent-text:  #1c0f00;
     --color-header-bg:    #050c0f;
     --color-header-text:  #dceff4;
     --color-accord-bg:    #142c35;
