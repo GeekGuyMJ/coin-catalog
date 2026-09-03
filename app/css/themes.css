@@ -271,18 +271,18 @@
    Film Noir (new)
    ========================================================================= */
 [data-theme="noir"] {
-    --color-bg-body:      #080808;
-    --color-bg-card:      #161616;
+    --color-bg-body:      #0a0a0a;
+    --color-bg-card:      #1a1a1a;
     --color-text-main:    #ffffff;
-    --color-text-muted:   #a2a2a2;
-    --color-border:       #5a5a5a;
-    --color-border-light: #2a2a2a;
-    --color-accent:       #7a7a7a;
+    --color-text-muted:   #b8b8b8;
+    --color-border:       #808080;
+    --color-border-light: #3a3a3a;
+    --color-accent:       #c9c9c9;
     --color-accent-text:  #0a0a0a;
-    --color-header-bg:    #000000;
+    --color-header-bg:    #050505;
     --color-header-text:  #ffffff;
-    --color-accord-bg:    #1e1e1e;
-    --color-finance-bg:   #101010;
+    --color-accord-bg:    #262626;
+    --color-finance-bg:   #141414;
 }
 
 [data-theme="custom1"] {

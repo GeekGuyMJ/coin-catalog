@@ -1430,9 +1430,9 @@ async function buildSpotPricesCard(prices) {
                     // cards always render real 2000-2026 history even if /api is
                     // slow, blocked, or served from a stale Service Worker cache.
                     try { const r = await fetch('/api/spot_history?cb=' + Date.now()); const j = await r.json(); if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; } catch(e){}
-                    try { const r2 = await fetch('/data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
+                    try { const r2 = await fetch('data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
                 },
-getBaseline: async () => { try { const r = await fetch('/data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+getBaseline: async () => { try { const r = await fetch('data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
                 getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
             });
         } catch(e) { window._spotHistoryStore = null; }
