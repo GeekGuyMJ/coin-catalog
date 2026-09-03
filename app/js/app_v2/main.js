@@ -208,6 +208,11 @@ async function boot() {
         setupLogoZoomEngine();
         initThemeSync();
 
+        // Apply colorblind assist if enabled
+        if (localStorage.getItem('cc-colorblind') === '1') {
+            document.body.classList.add('cc-colorblind');
+        }
+
         // Start the automatic cloud backup scheduler (silent if not enabled)
         import('./sync.js').then(m => m.startAutoBackupScheduler && m.startAutoBackupScheduler());
 

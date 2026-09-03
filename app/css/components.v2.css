@@ -4096,3 +4096,13 @@ body.ready-mode-active .ready-badge { display: flex; }
     vertical-align: middle;
 }
 .user-coin-del:hover { opacity: 1; background: rgba(192,57,43,.35); }
+
+/* ===== Colorblind Assist (deuteranopia / protanopia safe palette) ===== */
+/* Recolor badges into distinct blue / purple / orange hues (Okabe-Ito CVD-safe),
+   plus folder/owned accents into distinguishable tones. */
+body.cc-colorblind .badge-key   { color: #0072b2; background: rgba(0,114,178,0.16); }
+body.cc-colorblind .badge-proof { color: #cc79a7; background: rgba(204,121,167,0.16); }
+body.cc-colorblind .badge-error { color: #e69f00; background: rgba(230,159,0,0.16); }
+body.cc-colorblind .badge-silver{ color: #8a6d3b; background: rgba(138,109,59,0.16); }
+body.cc-colorblind .badge-key, body.cc-colorblind .badge-proof,
+body.cc-colorblind .badge-error { border: 1px solid currentColor; }

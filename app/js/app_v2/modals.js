@@ -1155,6 +1155,8 @@ export async function importCSV(file) {
 }
 
 export async function purgeInventory() {
+    // In-app confirm (no native browser dialog). Two-step: first click arms,
+    // second confirms. Kept for backward-compat (Settings -> Purge All Inventory).
     if (!(await confirmInApp('Purge All Inventory',
         'This permanently deletes every inventory entry. This cannot be undone.',
         'Purge Inventory'))) return;
@@ -1163,10 +1165,21 @@ export async function purgeInventory() {
     location.reload();
 }
 
+/**
+ * openResetDataModal - the unified "Reset / Purge Data" experience.
+ * Two clearly separated actions, each with its own two-step in-app confirm:
+ *   A) Factory Reset (full_reset): wipe ALL data + ALL uploaded images, restoring
+ *      the shipped default images that came with the app.
+ *   B) Clear Data, Keep Images (data_only): delete all data but retain every
+ *      image the user has uploaded and been using.
+ */
 export function openResetDataModal() {
     const wrap = el('div', { className: 'reset-data-modal' });
+
     wrap.appendChild(el('p', { className: 'reset-data-intro' },
         'Choose how to reset the app. Both options permanently remove your data \u2014 there is no undo.'));
+
+    // Option A
     const optA = el('div', { className: 'reset-option reset-option-danger' });
     optA.appendChild(el('h3', {}, '\uD83E\uDEA8 Factory Reset (wipe everything)'));
     optA.appendChild(el('p', {}, 'Deletes all data AND all uploaded images, then restores the default images that shipped with the app.'));
@@ -1174,7 +1187,11 @@ export function openResetDataModal() {
     armTwoStep(btnA, 'Factory Reset', () => runReset('full_reset'));
     optA.appendChild(btnA);
     wrap.appendChild(optA);
+
+    // Divider
     wrap.appendChild(el('hr', { className: 'reset-divider' }));
+
+    // Option B
     const optB = el('div', { className: 'reset-option' });
     optB.appendChild(el('h3', {}, '\uD83D\uDCCB Clear Data, Keep Images'));
     optB.appendChild(el('p', {}, 'Deletes all your data (inventory, wishlist, etc.) but keeps every image you have uploaded and been using.'));
@@ -1182,6 +1199,7 @@ export function openResetDataModal() {
     armTwoStep(btnB, 'Clear Data', () => runReset('data_only'));
     optB.appendChild(btnB);
     wrap.appendChild(optB);
+
     createModal('modal-reset-data', 'Reset / Purge Data', wrap);
 }
 
@@ -1199,6 +1217,10 @@ async function runReset(mode) {
     }
 }
 
+/**
+ * Two-step in-app confirm: first click re-labels the button to "Click again to
+ * confirm" (red), second click fires onConfirm. No native browser dialog.
+ */
 function armTwoStep(btn, label, onConfirm) {
     let armed = false;
     btn.addEventListener('click', () => {
@@ -1215,6 +1237,7 @@ function armTwoStep(btn, label, onConfirm) {
     });
 }
 
+/** Lightweight in-app confirm used by the legacy purgeInventory path. */
 async function confirmInApp(title, message, confirmLabel) {
     return await new Promise((resolve) => {
         const wrap = el('div', {});
@@ -1241,7 +1264,12 @@ export function dispatchSettingsChange(key, value) {
 
 export function applyFolderColor(v) {
     localStorage.setItem('cc-folder-color', v);
-    const fcMap = { green:'#2d4a2d', blue:'#2d3a4a', red:'#4a2d2d', brown:'#4a3d2d', black:'#1a1a1a', purple:'#3d2d4a', gray:'#3a3a3a' };
+    const fcMap = (
+    localStorage.getItem('cc-colorblind') === '1'
+        ? { green:'#245c4a', blue:'#1f4a72', red:'#8a3a2a', brown:'#7a5a3a',
+            black:'#1a1a1a', purple:'#5a4a7a', gray:'#4a4a4a' }
+        : { green:'#2d4a2d', blue:'#2d3a4a', red:'#4a2d2d', brown:'#4a3d2d',
+            black:'#1a1a1a', purple:'#3d2d4a', gray:'#3a3a3a' });
     const ftMap = { green:'#c9a227', blue:'#7db3d8', red:'#e8a0a0', brown:'#d4a574', black:'#888888', purple:'#c9a0d4', gray:'#aaaaaa' };
     const fcVal = fcMap[v] || fcMap.green;
     const ftVal = ftMap[v] || ftMap.green;

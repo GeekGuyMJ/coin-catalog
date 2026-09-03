@@ -93,7 +93,7 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     
     // Set folder color dynamically
     const fc = localStorage.getItem('cc-folder-color') || 'green';
-    const fcMap = {green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'};
+    const fcMap = (localStorage.getItem('cc-colorblind')==='1'?{green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'}:{green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'});
     const ftMap = {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
     const fcVal = fcMap[fc] || fcMap.green;
     const ftVal = ftMap[fc] || ftMap.green;
@@ -298,7 +298,7 @@ function renderAlbumLayout(container) {
     
     // Set folder color dynamically
     const fc = localStorage.getItem('cc-folder-color') || 'green';
-    const fcMap = {green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'};
+    const fcMap = (localStorage.getItem('cc-colorblind')==='1'?{green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'}:{green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'});
     const ftMap = {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
     const fcVal = fcMap[fc] || fcMap.green;
     const ftVal = ftMap[fc] || ftMap.green;
@@ -403,6 +403,8 @@ function renderAlbumGrid(container, sectionName, coins) {
  * Build a single coin hole element.
  */
 function buildCoinHole(coin, typeCfg, qtyOverride) {
+    // qtyOverride lets callers force the displayed qty (e.g. right after a write)
+    // so the slot re-renders correctly even if _state.inventory hasn't refreshed yet.
     const qty = (qtyOverride != null) ? qtyOverride : getInventoryTotalQty(coin.id);
     const isOwned = qty > 0;
 
@@ -429,8 +431,8 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
     }
     
     // Prefer the coin's own uploaded image (per-coin), then fall back to the type-config default.
-    const obvImg = resolveImageUrl(coin.obv_image || (specificCfg && specificCfg.obv_image) || mainCfg.obv_image);
-    const revImg = resolveImageUrl(coin.rev_image || (specificCfg && specificCfg.rev_image) || mainCfg.rev_image);
+    const obvImg = coin.obv_image;
+    const revImg = coin.rev_image;
     let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
     if (displayImg && !displayImg.includes('?')) {
         displayImg += '?v=2';
@@ -535,7 +537,7 @@ async function handleAlbumClick(e) {
         if (!parentHole || parentHole.classList.contains('example-hole')) {
             e.stopPropagation();
             const { type, side } = imgBtn.dataset;
-            openImageInteractionModal(imgBtn, type, side, false);
+            openImageInteractionModal(imgBtn, type, side, false, null, null, imgBtn.dataset.section || _activeSection || '');
             return;
         }
     }
@@ -589,7 +591,7 @@ async function decrementHole(coinId, holeElement) {
 // Place/remove coins for a hole and re-render that single hole in place.
 async function _setHoleQty(coinId, holeElement, newQty) {
     const section = holeElement.dataset.section;
-    let _newQty = newQty;
+    let _newQty = newQty;  // authoritative qty after this op, used for re-render
     try {
         if (newQty <= 0) {
             // Remove ALL inventory entries so the hole goes empty.
@@ -635,7 +637,9 @@ async function _setHoleQty(coinId, holeElement, newQty) {
             setInventory(fresh);
         } catch { /* non-critical */ }
 
-        // Re-render just this hole (image + xN badge) so it stays in sync
+        // Re-render just this hole (image + xN badge) so it stays in sync.
+        // Use the authoritative _newQty we just computed so the slot updates
+        // immediately even if _state.inventory refresh timing is off.
         const coins = _albumLoaded[section] || getCoinsForSection(section) || [];
         const coin = coins.find(c => c.id === coinId);
         if (coin) {
@@ -733,8 +737,12 @@ window.addEventListener('cc-inventory-updated', async () => {
     // Preserve scroll position to prevent page jump
     const scrollY = window.scrollY;
 
-    if (typeof _activeContainer !== 'undefined' && _activeContainer && _activeSection) {
-        await renderAlbum(_activeSection);
+    // _activeContainer is not a module variable; resolve the live album container
+    // from the DOM (catalog-container) so the re-render actually has a target.
+    const _albumEl = document.getElementById('catalog-container');
+    if (_albumEl && _activeSection) {
+        try { await renderAlbumView(_activeSection); }
+        catch (rerr) { console.warn('[album] re-render on update failed:', rerr); }
     }
 
     // Refresh album grids that are currently visible (inline album mode)

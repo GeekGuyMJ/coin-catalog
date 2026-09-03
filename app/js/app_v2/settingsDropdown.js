@@ -64,6 +64,9 @@ function openSettingsDropdown(btn) {
  {key: 'themeDesigner', label: 'Custom Theme Designer', section: 'appearance' },
  {key: 'cardVisibility', label: 'Dashboard Card Visibility', section: 'appearance' },
  
+ // Accessibility
+ {key: 'colorblind', label: 'Colorblind Assist', section: 'accessibility' },
+ 
  // Catalog
  {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
  {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
@@ -94,10 +97,11 @@ function openSettingsDropdown(btn) {
  sections[it.section].push(it);
  });
 
- const sectionOrder = ['general', 'appearance', 'catalog', 'data', 'cloud', 'advanced', 'danger'];
+ const sectionOrder = ['general', 'appearance', 'accessibility', 'catalog', 'data', 'cloud', 'advanced', 'danger'];
  const sectionLabels = {
  general: 'General',
  appearance: 'Appearance',
+ accessibility: 'Accessibility',
  catalog: 'Catalog',
  data: 'Data & Backup',
  cloud: 'Cloud Sync',
@@ -164,6 +168,9 @@ export function openSettingsSection(key) {
  case 'folderColor': showFolderColorModal(); break;
  case 'themeDesigner': openCustomThemeDesigner(1); break;
  case 'cardVisibility': showCardVisibilityModal(); break;
+ 
+ // Accessibility
+ case 'colorblind': showColorblindModal(); break;
  
  // Catalog
  case 'displayFilters': showDisplayFiltersModal(); break;
@@ -255,13 +262,15 @@ function showThemeModal() {
  }, [
  { value: 'dark', label: 'Dark' },
  { value: 'midnight', label: 'Midnight' },
- { value: 'gold', label: 'Gold' },
  { value: 'copper', label: 'Copper' },
  { value: 'ocean', label: 'Ocean' },
  { value: 'forest', label: 'Deep Forest' },
  { value: 'cyberpunk', label: 'Cyberpunk' },
  { value: 'neon', label: 'Neon' },
  { value: 'matrix', label: 'Matrix' },
+ { value: 'violet', label: 'Violet' },
+ { value: 'sunset', label: 'Sunset' },
+ { value: 'noir', label: 'Film Noir' },
  { value: 'light', label: 'Light' },
  { value: 'silver', label: 'Silver' },
  { value: 'paper', label: 'Aged Paper' },
@@ -277,6 +286,36 @@ function showThemeModal() {
  );
  createModal('modal-settings-theme', 'Color Theme', body, null);
 }
+
+// Colorblind Assist
+function showColorblindModal() {
+    const isOn = localStorage.getItem('cc-colorblind') === '1';
+    const toggle = el('label', { className: 'settings-toggle-row', style: 'display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;' }, ...[
+        el('span', {}, 'Colorblind Assist'),
+        el('input', {
+            type: 'checkbox',
+            checked: isOn,
+            onchange: (e) => {
+                const on = e.target.checked;
+                localStorage.setItem('cc-colorblind', on ? '1' : '0');
+                applyColorblindAssist(on);
+                dispatchSettingsChange('cc-colorblind', on);
+            }
+        })
+    ]);
+    const body = _sectionBody(
+        'Colorblind Assist',
+        'Recolor color-coded elements (badges, album folders, status markers) into a palette that stays distinguishable for red-green color vision deficiency (deuteranopia / protanopia). Key dates, proofs, and errors are also labeled with distinct icons and text, so you are never relying on hue alone.',
+        [{ control: toggle }]
+    );
+    createModal('modal-settings-colorblind', 'Colorblind Assist', body, null);
+}
+
+// Apply or remove the colorblind assist body class
+function applyColorblindAssist(on) {
+    document.body.classList.toggle('cc-colorblind', !!on);
+}
+window.applyColorblindAssist = applyColorblindAssist;
 
 // Card Layout
 function showCardLayoutModal() {
