@@ -1327,6 +1327,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.__cc_images_events_bound) return;
     window.__cc_images_events_bound = true;
 
+    // Expose image functions to window so global click handler can find them
+    window.removeCurrentImage = removeCurrentImage;
+    window.saveCurrentImage = saveCurrentImage;
+    window.resetToMaster = resetToMaster;
+    window.promoteToDefaultHandler = promoteToDefaultHandler;
+    window.executeImageAssignment = executeImageAssignment;
+    window.saveCrop = saveCrop;
+    window.openCropTool = openCropTool;
+    window.openReplaceWorkflow = openReplaceWorkflow;
+    window.triggerFileUpload = triggerFileUpload;
+    window.openCoinBankModal = openCoinBankModal;
+    window.openImageInteractionModal = openImageInteractionModal;
+    window.closeModalLegacy = closeModalLegacy;
+    window.loadCoinBankImages = loadCoinBankImages;
+
     // Zoom slider
     const zoomInput = document.getElementById('crop-zoom');
     if (zoomInput) {
