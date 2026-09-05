@@ -761,6 +761,20 @@ export async function executeImageAssignment() {
         scope = 'specific_coin';
     }
 
+    // For specific_coin scope the backend needs the CoinReference id (coin_ref_id).
+    // Coin-row images carry it in activeContext.coinId; activeContext.itemId is the
+    // UserInventory id (personal photos) and is null for coin images, so DON'T rely on it.
+    let itemId = activeContext.itemId;
+    if (scope === 'specific_coin') {
+        itemId = activeContext.coinId ?? activeContext.itemId;
+        // No coin id (e.g. opened from a type/section example thumbnail): there is no
+        // specific coin to target — fall back to a type-level save rather than erroring
+        // (mirrors the public app's db.js specific_coin-without-item_id handling).
+        if (!itemId) {
+            scope = 'all';
+        }
+    }
+
     // Detect if this is a remove action (no image data)
     const isRemoveAction = !activeContext.b64;
 
@@ -770,7 +784,7 @@ export async function executeImageAssignment() {
             side:      activeContext.side,
             image:     activeContext.b64 || '',  // Empty string for removal
             scope:     scope,
-            item_id:   activeContext.itemId,
+            item_id:   itemId,
             section:   activeContext.section || ''
         });
 
