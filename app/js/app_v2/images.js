@@ -812,7 +812,8 @@ export async function executeImageAssignment() {
                 // If type-level change, update local state & DOM immediately so change is visual instantly.
                 // Also cover 'specific_coin' (no item_id): its image lives in the type config, so it
                 // resolves via updatedConfigs[activeContext.typeStr] and must repaint now.
-                if (scope === 'all' || scope === 'empty_only' || scope === 'specific_coin') {
+                const isTypeLevelAssignment = (result.configs_written > 0 && result.updated === 0);
+                if (isTypeLevelAssignment) {
                     const targetMainType = getMainType(activeContext.typeStr);
                     const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
                     const newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] || 
