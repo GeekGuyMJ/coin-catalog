@@ -1323,7 +1323,7 @@ async function handleDroppedImage(file, dropZone) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function __bindImageEvents() {
     if (window.__cc_images_events_bound) return;
     window.__cc_images_events_bound = true;
 
@@ -1547,7 +1547,17 @@ document.addEventListener('DOMContentLoaded', () => {
             import('./notifications.js').then(m => m.showToast('Please drop a valid image file.', 'error'));
         }
     });
-});
+}
+
+// ES modules are deferred and may evaluate AFTER DOMContentLoaded has already
+// fired, so the event-binding block above would never run on some builds (the
+// public/local-first GitHub Pages bundle). Bind immediately if the DOM is ready,
+// otherwise wait for the event — same guard pattern as portfolio.js.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', __bindImageEvents);
+} else {
+    __bindImageEvents();
+}
 
 // ============================================================
 // Helper Functions
