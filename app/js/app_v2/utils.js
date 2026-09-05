@@ -134,7 +134,14 @@ export function mintRank(mint) {
  * @returns {number} Effective sort year.
  */
 export function sortYear(coin) {
-    return coin.year === 1776 ? 1976 : (coin.year || 9999);
+    if (!coin || coin.year === undefined || coin.year === null) return 9999;
+    let y = coin.year;
+    if (typeof y !== 'number') {
+        // Bicentennial stored as string '1776-1976' (and similar ranged years) → extract first 4-digit year.
+        const m = String(y).match(/\d{4}/);
+        y = m ? parseInt(m[0], 10) : 9999;
+    }
+    return y === 1776 ? 1976 : y;
 }
 
 /**
