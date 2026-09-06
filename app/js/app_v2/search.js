@@ -23,10 +23,10 @@ import {
     getWishlist,
 } from './state.js';
 
-import { fetchCoinsForSection, searchCoins } from './api.js';
+import { fetchCoinsForSection } from './api.js';
 import { renderSections } from './catalog.js';
 import {
-    getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg,
+    getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear,
 } from './utils.js';
 import { showToast } from './notifications.js';
 
@@ -186,13 +186,8 @@ export async function triggerSearch() {
             const maxYear = getMaxYear();
             if (maxYear !== null) params.set('max_year', maxYear);
 
-            // LOCAL-FIRST FIX (2026-08-24): Previously this called
-            // `fetch('/api/coins?...')`, which only works on the server-first
-            // self-hosted build and 404s on the local-first public build.
-            // searchCoins() routes through db.js (IndexedDB) and accepts the
-            // same URLSearchParams object we already build above.
-            const results_local = await searchCoins(params);
-            results = results_local;
+            const resp = await fetch('/api/coins?' + params.toString());
+            results = await resp.json();
         } else {
             // Filters only — fetch all sections, filter client-side
             results = [];
@@ -204,6 +199,16 @@ export async function triggerSearch() {
             if (getFilterHideProofs())   results = results.filter(c => !c.is_proof);
             if (getFilterHideErrors())   results = results.filter(c => !c.is_error);
             if (getFilterKeyDatesOnly()) results = results.filter(c => c.is_key_date);
+            // Year range filter (client-side; sortYear maps 1776 → 1976 for Bicentennial)
+            if (getMinYear() !== null || getMaxYear() !== null) {
+                const mn = getMinYear(), mx = getMaxYear();
+                results = results.filter(c => {
+                    const y = sortYear(c);
+                    if (mn !== null && y < mn) return false;
+                    if (mx !== null && y > mx) return false;
+                    return true;
+                });
+            }
 
             // Apply sort mode client-side (mirrors backend behavior)
             if (sortMode === 'az') {
@@ -335,7 +340,7 @@ function renderSearchResults(container, results, query) {
 function buildSearchRow(coin, mainType) {
     const qty = getInventoryTotalQty(coin.id);
     const specificCfg = getTypeConfig(coin.coin_type);
-    const cfg = specificCfg || getTypeConfig(getMainType(coin.coin_type)) || {};
+    const cfg = specificCfg || {};
 
     const row = document.createElement('div');
     row.className = 'coin-row';
