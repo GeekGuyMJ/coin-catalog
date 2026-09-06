@@ -915,18 +915,19 @@ function buildBullionCard(items, p, prices) {
         if (!totals.hasOwnProperty(m)) return;
         var unit = (item.weight_unit || 'oz').toLowerCase();
         var rawW = item.weight || 0;
+        var iAmt = item.amount || 1.0;
         var spotKey = m === 'copper' ? 'copper_lb' : m + '_oz';
-        var w = rawW;
+        var w = rawW * iAmt;
         // Convert to valuation unit (lbs for copper, ozt for precious metals)
         if (m === 'copper') {
-            if (unit === 'oz' || unit === 'ozt') w = rawW / 16;
-            else if (unit === 'g')   w = rawW / 453.592;
-            else if (unit === 'kg')  w = rawW * 2.20462;
+            if (unit === 'oz' || unit === 'ozt') w = w / 16;
+            else if (unit === 'g')   w = w / 453.592;
+            else if (unit === 'kg')  w = w * 2.20462;
         } else {
-            if (unit === 'g')        w = rawW / 31.1035;
-            else if (unit === 'kg')  w = rawW * 32.1507;
-            else if (unit === 'lbs') w = rawW * 14.5833;
-            else if (unit === 'oz')  w = rawW / 1.09714;
+            if (unit === 'g')        w = w / 31.1035;
+            else if (unit === 'kg')  w = w * 32.1507;
+            else if (unit === 'lbs') w = w * 14.5833;
+            else if (unit === 'oz')  w = w / 1.09714;
         }
         var spot = prices[spotKey] || 0;
         totals[m] += w * spot;
@@ -968,21 +969,22 @@ function buildBullionCard(items, p, prices) {
                 var subParts = [];
                 var iUnit = (item.weight_unit || 'oz').toLowerCase();
                 var iW = item.weight || 0;
-                subParts.push(iW.toFixed(2) + ' ' + iUnit);
+                var iAmt = item.amount || 1.0;
+                subParts.push(iW.toFixed(2) + ' ' + iUnit + ' × ' + iAmt.toFixed(0));
                 if (item.purity && item.purity < 1) subParts.push(((item.purity * 100) % 1 === 0) ? (item.purity * 100).toFixed(0) + '%' : (item.purity * 100).toFixed(1) + '%');
                 // Value for this item (convert to standard valuation unit)
-                var convW = iW;
+                var convW = iW * iAmt;
                 if (m === 'copper') {
                     // Convert to lbs
-                    if (iUnit === 'oz' || iUnit === 'ozt') convW = iW / 16;
-                    else if (iUnit === 'g')   convW = iW / 453.592;
-                    else if (iUnit === 'kg')  convW = iW * 2.20462;
+                    if (iUnit === 'oz' || iUnit === 'ozt') convW = convW / 16;
+                    else if (iUnit === 'g')   convW = convW / 453.592;
+                    else if (iUnit === 'kg')  convW = convW * 2.20462;
                 } else {
                     // Convert to troy oz
-                    if (iUnit === 'g')        convW = iW / 31.1035;
-                    else if (iUnit === 'kg')  convW = iW * 32.1507;
-                    else if (iUnit === 'lbs') convW = iW * 14.5833;
-                    else if (iUnit === 'oz')  convW = iW / 1.09714;
+                    if (iUnit === 'g')        convW = convW / 31.1035;
+                    else if (iUnit === 'kg')  convW = convW * 32.1507;
+                    else if (iUnit === 'lbs') convW = convW * 14.5833;
+                    else if (iUnit === 'oz')  convW = convW / 1.09714;
                 }
                 var val = convW * (prices[spotKey] || 0);
                 if (val > 0) subParts.push('$' + val.toFixed(2));
@@ -1011,17 +1013,19 @@ function buildBullionCard(items, p, prices) {
     row1.appendChild(metalSel);
     form.appendChild(row1);
 
-    // Row 2: Weight + Unit (grouped) + Purity
+    // Row 2: Weight + Unit (grouped) + Amount + Purity
     var row2 = el('div', { className: 'v1-form-row', style: 'align-items:flex-end; gap:8px;' });
     var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'rb-weight' }, style: 'flex:1;min-width:60px;' });
     var unitSel = el('select', { className: 'v1-select', style: 'width:76px;', dataset: { field: 'rb-unit' } });
     [['oz','oz'],['ozt','troy oz'],['g','g'],['lbs','lbs'],['kg','kg']].forEach(function(u) {
         unitSel.appendChild(el('option', { value: u[0] }, u[1]));
     });
-    // Group weight + unit
+    var amtIn = el('input', { className: 'v1-input', type: 'number', step: '1', min: '1', placeholder: 'Qty', dataset: { field: 'rb-amount' }, style: 'width:60px;', value: '1' });
+    // Group weight + unit + amount
     var wgtWrap2 = el('div', { style: 'display:flex; align-items:flex-end; gap:2px; flex:1; min-width:120px;' });
     wgtWrap2.appendChild(wgtIn);
     wgtWrap2.appendChild(unitSel);
+    wgtWrap2.appendChild(amtIn);
     row2.appendChild(wgtWrap2);
     form.appendChild(row2);
 
@@ -1035,6 +1039,7 @@ function buildBullionCard(items, p, prices) {
     addBtn._metalSel = metalSel;
     addBtn._wgtIn = wgtIn;
     addBtn._unitSel = unitSel;
+    addBtn._amtIn = amtIn;
     addBtn._purityIn = null;
     addBtn._notesIn = notesIn;
     addBtn._prices = prices;
@@ -2179,6 +2184,7 @@ document.addEventListener('click', async function(e) {
         var rbMetalSel  = btn._metalSel;
         var rbWgtIn     = btn._wgtIn;
         var rbUnitSel  = btn._unitSel;
+        var rbAmtIn    = btn._amtIn;
         var rbPurityIn = btn._purityIn;
         var rbNotesIn  = btn._notesIn;
 
@@ -2186,6 +2192,7 @@ document.addEventListener('click', async function(e) {
             _saving = false; btn.disabled = false; return _showCardToast('Weight is required', 'error');
         }
         var w = parseFloat(rbWgtIn.value);
+        var amt = parseInt(rbAmtIn?.value || '1', 10);
         var unit = rbUnitSel.value;
         try {
             var { saveRawBullion, fetchRawBullion } = await import('./api.js');
@@ -2194,6 +2201,7 @@ document.addEventListener('click', async function(e) {
                 label: (rbLabelIn.value || '').trim(),
                 metal_type: rbMetalSel.value,
                 weight: w,
+                amount: amt,
                 weight_unit: unit,
                 purity: 1.0,
                 notes: (rbNotesIn.value || '').trim()
