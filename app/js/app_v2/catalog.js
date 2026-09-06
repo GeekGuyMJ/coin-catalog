@@ -1,7 +1,7 @@
 /**
  * catalog.js — Coin Catalog v2
  *
- * Renders the coin catalog: section cards with lazy-loaded type accordions.
+ * Renders the coin catalogue: section cards with lazy-loaded type accordions.
  * Uses event delegation — one listener per container, never per-row.
  *
  * Flow:
@@ -13,7 +13,7 @@
  * @module catalog
  */
 
-import { resolveImageUrl,
+import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
     typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
 } from './utils.js';
@@ -54,7 +54,7 @@ export function renderSections() {
 
     const sections = getSections();
     if (!sections.length) {
-        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalog.</p>';
+        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalogue.</p>';
         return;
     }
 
@@ -104,7 +104,7 @@ export function renderSections() {
     container.style.setProperty('--folder-color', fcVal);
     container.style.setProperty('--folder-header-text', ftVal);
 
-    // Single event listener for ALL stepper clicks across the entire catalog
+    // Single event listener for ALL stepper clicks across the entire catalogue
     // Guard against duplicate attachment (renderSections can be called on search/filter)
     if (!container.dataset.clickHandler) {
         container.addEventListener('click', handleCatalogClick);
@@ -239,27 +239,28 @@ function buildSectionCard(sec) {
     
     // Add example images (always show, even if just placeholders)
     if (sec.section) {
-        // Issue 1: section example images use their OWN per-section slot (sec.section),
-        // decoupled from type-level images. Slot is seeded empty; filled by user upload.
-        const cfg = getTypeConfig(sec.section, sec.section) || {};
-        const pair = el('div', { className: 'coin-img-pair' });
-        const hasObv = cfg?.obv_image;
-        const hasRev = cfg?.rev_image;
-        if (hasObv) {
-            const img = el('img', { className: 'coin-thumb obv', src: resolveImageUrl(cfg.obv_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv', section: sec.section } });
+        // Example resolution: manual override > first coin with image > placeholder.
+        // NO fallback to recovered/master/seed config defaults.
+        const cfg = getTypeConfig(sec.sample_type, sec.section) || getTypeConfig(sec.section, sec.section) || {};
+        const exObv = cfg.example_obv_image || null;
+        const exRev = cfg.example_rev_image || null;
+        // If no override yet, leave a marker so expandSection can fill the first-coin image.
+        const pair = el('div', { className: 'coin-img-pair', dataset: { sampleType: sec.sample_type || '' } });
+        if (exObv) {
+            const img = el('img', { className: 'coin-thumb obv', src: exObv, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
-            const ph = el('img', { className: 'coin-thumb obv placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'obv', section: sec.section } });
+            const ph = el('img', { className: 'coin-thumb obv placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
             ph.onerror = () => { ph.src = placeholderCoinSvg(); ph.classList.add('placeholder'); };
             pair.appendChild(ph);
         }
-        if (hasRev) {
-            const img = el('img', { className: 'coin-thumb rev', src: resolveImageUrl(cfg.rev_image), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev', section: sec.section } });
+        if (exRev) {
+            const img = el('img', { className: 'coin-thumb rev', src: exRev, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
-            const ph = el('img', { className: 'coin-thumb rev placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'rev', section: sec.section } });
+            const ph = el('img', { className: 'coin-thumb rev placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
             ph.onerror = () => { ph.src = placeholderCoinSvg(); ph.classList.add('placeholder'); };
             pair.appendChild(ph);
         }
@@ -289,12 +290,11 @@ function buildSectionCard(sec) {
     // Self-hosted only: "Publish to public" button in the section header
     const host = window.location.hostname || '';
     const isSelfHosted = host.includes('opaleye-bluegill') || host.includes('ts.net') || host.includes('192.168.');
-    // "+ Add Coin" button (every deployment)
     if (isSelfHosted) {
         const publishBtn = el('button', {
             className: 'btn-section-publish',
             title: "Publish this section's images to public app",
-            onclick: (e) => { e.stopPropagation(); window.openPublishSectionModal(sec.section); },
+            onclick: (e) => { e.stopPropagation(); openPublishSectionModal(sec.section); },
         }, '📤 Publish');
         header.append(left, dragHandle, publishBtn, chevron);
     } else {
@@ -366,33 +366,11 @@ async function expandSection(sectionName) {
         const coins = await fetchCoinsForSection(sectionName);
         setCoinsForSection(sectionName, coins);
         renderTypeAccordions(content, coins);
+        refreshSectionHeaderExample(sectionName, coins);
     } catch (err) {
         content.innerHTML = `<p class="text-muted" style="padding:1rem">
             Failed to load coins: ${escHtml(err.message)}
         </p>`;
-    }
-}
-
-/**
- * Re-fetch a section from the API and re-render it if currently expanded.
- * Used after adding/deleting user coins so changes appear immediately.
- */
-export async function reloadSectionCoins(sectionName) {
-    const sectionId = 'section-' + sectionName.replace(/[^a-zA-Z0-9]/g, '');
-    const card = document.getElementById(sectionId);
-    if (!card) return;
-    const content = card.querySelector('.section-content');
-    const isOpen = content && content.classList.contains('open');
-    setCoinsForSection(sectionName, null);
-    if (!isOpen) return;
-    content.innerHTML = '<div class="section-loading">Loading coins…</div>';
-    try {
-        const coins = await fetchCoinsForSection(sectionName);
-        setCoinsForSection(sectionName, coins);
-        renderTypeAccordions(content, coins);
-    } catch (err) {
-        console.warn('[catalog] reloadSectionCoins failed:', err.message);
-        content.innerHTML = `<p class="text-muted" style="padding:1rem">Failed to reload: ${escHtml(err.message)}</p>`;
     }
 }
 
@@ -406,7 +384,7 @@ export async function reloadSectionCoins(sectionName) {
  * @param {HTMLElement} container - The section's content element.
  * @param {Array}       coins     - Coins for this section.
  */
-export function renderTypeAccordions(container, coins) {
+function renderTypeAccordions(container, coins) {
     container.innerHTML = '';
 
     // Deduplicate by coin ID (outer join with inventory can produce duplicates)
@@ -427,7 +405,7 @@ export function renderTypeAccordions(container, coins) {
         typeMap.get(main).push(coin);
     }
 
-    // Sort type groups by their earliest coin year
+    // Sort type groups by their earliest coin year (sortYear maps 1776 → 1976, handles string '1776-1976')
     const sortedTypes = [...typeMap.entries()].sort((a, b) => {
         const minA = Math.min(...a[1].map(c => sortYear(c)));
         const minB = Math.min(...b[1].map(c => sortYear(c)));
@@ -445,6 +423,76 @@ export function renderTypeAccordions(container, coins) {
 // ============================================================
 
 /**
+ * Resolve the EXAMPLE (header/accordion thumbnail) image for a type.
+ *
+ * Priority:
+ *   1. Manual override (config.example_obv_image / example_rev_image) — wins until cleared.
+ *   2. The first coin (lowest year) of this type that actually HAS an image for this side.
+ *   3. Placeholder — NO fallback to .recovered / master / seed / shared config defaults.
+ *
+ * @param {string} mainType  - Type name.
+ * @param {Array}  typeCoins - Coins belonging to this type.
+ * @param {string} side      - "obv" | "rev".
+ * @param {string} [section] - Optional section for qualified config lookup.
+ * @returns {string|null}    - Resolved image URL, or null → placeholder.
+ */
+function resolveExampleImage(mainType, typeCoins, side, section) {
+    const cfg = getTypeConfig(mainType, section) || {};
+    const override = side === 'obv' ? cfg.example_obv_image : cfg.example_rev_image;
+    if (override) return override;
+
+    const field = side === 'obv' ? 'obv_image' : 'rev_image';
+    const deletedField = '_deleted_' + field;
+    // First coin (lowest year) with an image for this side (respecting deletions).
+    const sorted = [...(typeCoins || [])].sort((a, b) => (a.year || 0) - (b.year || 0));
+    for (const c of sorted) {
+        if (c[deletedField]) continue;
+        if (c[field]) return c[field];
+    }
+    return null; // no fallback → placeholder
+}
+
+/**
+ * Fill a section header's example thumbnails from the first coin (lowest year)
+ * of the section's sample_type that has an image — but ONLY if no manual override
+ * (example_obv_image / example_rev_image) is set. Called after a section's coins load.
+ *
+ * @param {string} sectionName - Section name (used to locate the header pair).
+ * @param {Array}  coins        - Coins just loaded for the section.
+ */
+function refreshSectionHeaderExample(sectionName, coins) {
+    const header = document.querySelector(`.section-header[data-section="${CSS.escape(sectionName)}"]`);
+    if (!header) return;
+    const pair = header.querySelector('.coin-img-pair');
+    if (!pair) return;
+
+    const sampleType = pair.dataset.sampleType || '';
+    // Coins whose coin_type matches sample_type, or whose main type matches it.
+    const matches = (coins || []).filter(c =>
+        c.coin_type === sampleType ||
+        getMainType(c.coin_type) === sampleType ||
+        getMainType(c.coin_type) === getMainType(sampleType)
+    );
+    if (!matches.length) return;
+
+    const cfg = getTypeConfig(sampleType, sectionName) || {};
+    ['obv', 'rev'].forEach(side => {
+        const override = side === 'obv' ? cfg.example_obv_image : cfg.example_rev_image;
+        if (override) return; // override already shows; don't overwrite
+        const field = side === 'obv' ? 'obv_image' : 'rev_image';
+        const deleted = '_deleted_' + field;
+        const sorted = [...matches].sort((a, b) => (a.year || 0) - (b.year || 0));
+        let src = null;
+        for (const c of sorted) { if (!c[deleted] && c[field]) { src = c[field]; break; } }
+        if (!src) return;
+        let img = pair.querySelector(`img[data-side="${side}"]`) || pair.querySelector(`img.coin-thumb.${side}`);
+        if (!img) return;
+        img.src = src;
+        img.classList.remove('placeholder');
+    });
+}
+
+/**
  * Build a type accordion (header + coin rows).
  *
  * @param {string} mainType  - Display name for the type.
@@ -453,8 +501,6 @@ export function renderTypeAccordions(container, coins) {
  */
 function buildTypeAccordion(mainType, typeCoins) {
     const typeId = 'type-' + mainType.replace(/[^a-zA-Z0-9]/g, '');
-    const firstCoinSection = (typeCoins && typeCoins[0]) ? (typeCoins[0].section || '') : '';
-    const cfg = getTypeConfig(mainType, firstCoinSection) || {};
 
     const wrapper = el('div', { className: 'type-wrapper', id: typeId });
     
@@ -475,16 +521,21 @@ function buildTypeAccordion(mainType, typeCoins) {
 
     const left = el('div', { className: 'type-header-left' });
 
-    // Coin thumbnails
+    // Coin thumbnails — example resolution: override > first coin with image > placeholder.
+    // No fallback to recovered/master/seed defaults.
+    const _tcSection = (typeCoins && typeCoins[0] && typeCoins[0].section) || '';
+    const exObv = resolveExampleImage(mainType, typeCoins, 'obv', _tcSection);
+    const exRev = resolveExampleImage(mainType, typeCoins, 'rev', _tcSection);
     const pair = el("div", { className: "coin-img-pair" });
-    if (cfg.obv_image) {
+    if (exObv) {
         const imgObv = el("img", {
             className: "coin-thumb obv",
-            src: resolveImageUrl(cfg.obv_image),
+            src: exObv,
             alt: mainType + " obverse",
-                        role: "button",
+            loading: "lazy",
+            role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "obv", section: firstCoinSection },
+            dataset: { action: "view-img", type: mainType, side: "obv", section: _tcSection },
         });
         imgObv.onerror = function() { imgObv.src = placeholderCoinSvg(); };
         pair.appendChild(imgObv);
@@ -495,18 +546,19 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: "Upload " + mainType + " obverse",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "obv", section: firstCoinSection },
+            dataset: { action: "view-img", type: mainType, side: "obv", section: _tcSection },
         });
         pair.appendChild(placeholderObv);
     }
-    if (cfg.rev_image) {
+    if (exRev) {
         const imgRev = el("img", {
             className: "coin-thumb rev",
-            src: resolveImageUrl(cfg.rev_image),
+            src: exRev,
             alt: mainType + " reverse",
-                        role: "button",
+            loading: "lazy",
+            role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "rev", section: firstCoinSection },
+            dataset: { action: "view-img", type: mainType, side: "rev", section: _tcSection },
         });
         imgRev.onerror = function() { imgRev.src = placeholderCoinSvg(); };
         pair.appendChild(imgRev);
@@ -517,7 +569,7 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: "Upload " + mainType + " reverse",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "rev", section: firstCoinSection },
+            dataset: { action: "view-img", type: mainType, side: "rev", section: _tcSection },
         });
         pair.appendChild(placeholderRev);
     }
@@ -1026,56 +1078,35 @@ function buildCoinRow(coin) {
         thumbWrap.classList.add("show-rev");
     }
     
-    // No fallback chain - per-coin images only. Section/type configs are for
-    // section header examples and type reference, NOT for year coin fallback.
-    // Respect explicit per-coin deletions: if the coin itself deleted a side,
-    // show placeholder (do NOT fall back to type/section config).
-    var obvSrc = coin._deleted_obv_image ? null : resolveImageUrl(coin.obv_image);
-    var revSrc = coin._deleted_rev_image ? null : resolveImageUrl(coin.rev_image);
+    var specificCfg = getTypeConfig(coin.coin_type);
+    var mainCfg = getTypeConfig(getMainType(coin.coin_type));
+    // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
+    var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
+    var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
+    var obvSrc = coin.obv_image || specObv || (mainCfg ? mainCfg.obv_image : null);
+    var revSrc = coin.rev_image || specRev || (mainCfg ? mainCfg.rev_image : null);
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
     if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
-        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
+        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };
         thumbWrap.appendChild(img);
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, section: coin.section || ''}}));
     }
     if (revSrc) {
-        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
+        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img2.onerror = function() { img2.src = placeholderCoinSvg(); img2.classList.add("placeholder"); };
         thumbWrap.appendChild(img2);
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, section: coin.section || ''}}));
     }
 
     row.appendChild(thumbWrap);
 
     var info = el("div", {className: "coin-row-info"});
-    if (coin.user_added) {
-        var delBtn = el("span", {
-            className: "user-coin-del",
-            title: "Remove this user-added coin from the catalog",
-            role: "button",
-            tabIndex: 0
-        }, "✕");
-        delBtn.addEventListener("click", async function(ev) {
-            ev.stopPropagation();
-            if (window.confirm(`Remove ${coin.coin_type} ${coin.year}${coin.mint_mark || ""} from your catalog? Any ownership entries for it are removed too.`)) {
-                try {
-                    const { deleteUserCoin } = await import("./api.js");
-                    await deleteUserCoin(coin.id);
-                    showToast("Coin removed from catalog", "success", 2500);
-                    reloadSectionCoins(coin.section);
-                } catch (err) {
-                    showToast(err.message || String(err), "error", 4000);
-                }
-            }
-        });
-        info.appendChild(delBtn);
-    }
     var tl = el("span", {className: "coin-row-title"});
-    var yr = coin.year === 1776 ? "1776-1976" : ((coin.year === 2026 && (coin.coin_type || "").includes("Semiquincentennial")) ? "1776-2026" : (coin.year || "\u2014"));
+    var yr = coin.year === 1776 ? "1776-1976" : (coin.year || "\u2014");
     var fm = formatMintMark(coin);
     var mt = fm ? "-" + fm : "";
     var isPenny = coin.denomination === '1 Cent' || (coin.coin_type || '').toLowerCase().includes('cent');
@@ -2151,7 +2182,7 @@ function applySectionOrder() {
 }
 
 export function openCoinDetailModal(coinId) {
-    import('./state.js').then(async (state) => {
+    import('./state.js').then(state => {
         let coin = null;
         for (const s of state.getSections()) {
             const coins = state.getCoinsForSection(s.section);
@@ -2159,14 +2190,6 @@ export function openCoinDetailModal(coinId) {
                 coin = coins.find(c => c.id === coinId);
                 if (coin) break;
             }
-        }
-        if (!coin) {
-            // Fallback: look the coin up directly in the local DB so the detail
-            // modal still opens even if it isn't in the in-memory section cache.
-            try {
-                const dbm = await import('./db.js');
-                if (dbm.fetchCoinLocal) coin = await dbm.fetchCoinLocal(coinId);
-            } catch (_) { /* non-fatal */ }
         }
         if (!coin) return;
         
@@ -2191,8 +2214,8 @@ export function openCoinDetailModal(coinId) {
         const totalQty = state.getInventoryTotalQty(coinId);
 
         const mainType = getMainType(coin.coin_type);
-        const mainCfg = state.getTypeConfig(mainType, coin.section) || {};
-        const specificCfg = state.getTypeConfig(coin.coin_type, coin.section) || {};
+        const mainCfg = state.getTypeConfig(mainType) || {};
+        const specificCfg = state.getTypeConfig(coin.coin_type) || {};
         
         let currentSide = localStorage.getItem(`cc-flipped-${coinId}`);
         if (!currentSide) {
@@ -2200,11 +2223,10 @@ export function openCoinDetailModal(coinId) {
         }
         
         const getDisplayImgSrc = (side) => {
-            // Respect explicit deletions at ALL levels — no fallback to mainCfg when specificCfg is deleted
-            const specObv = (specificCfg && specificCfg.obv_image) ? specificCfg.obv_image : null;
-            const specRev = (specificCfg && specificCfg.rev_image) ? specificCfg.rev_image : null;
-            const obv = coin._deleted_obv_image ? null : coin.obv_image;
-            const rev = coin._deleted_rev_image ? null : coin.rev_image;
+            const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
+            const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
+            const obv = specObv || mainCfg.obv_image;
+            const rev = specRev || mainCfg.rev_image;
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
             if (src && !src.includes('?')) src += '';
             return src;
@@ -2359,6 +2381,3 @@ export async function openPublishSectionModal(sectionName) {
         }
     });
 }
-
-// 2026-08-31: registry for circular-import-safe access (images.js batch refresh)
-window.__ccCatalog = { renderTypeAccordions };
