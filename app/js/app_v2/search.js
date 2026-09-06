@@ -383,7 +383,7 @@ function buildSearchRow(coin, mainType) {
     const info = document.createElement('div');
     info.className = 'coin-row-info';
 
-    const yearStr = coin.year === 1776 ? '1776-1976' : (coin.year || '\u2014');
+    const yearStr = coin.year === 1776 ? '1776-1976' : (coin.year === 2026 ? '1776-2026' : (coin.year || '\u2014'));
     const mintStr = coin.mint_mark ? '-' + coin.mint_mark : '';
     
     const isPenny = coin.denomination === '1 Cent' || (coin.coin_type || '').toLowerCase().includes('cent');

@@ -1106,7 +1106,7 @@ function buildCoinRow(coin) {
 
     var info = el("div", {className: "coin-row-info"});
     var tl = el("span", {className: "coin-row-title"});
-    var yr = coin.year === 1776 ? "1776-1976" : (coin.year || "\u2014");
+    var yr = coin.year === 1776 ? "1776-1976" : (coin.year === 2026 ? "1776-2026" : (coin.year || "\u2014"));
     var fm = formatMintMark(coin);
     var mt = fm ? "-" + fm : "";
     var isPenny = coin.denomination === '1 Cent' || (coin.coin_type || '').toLowerCase().includes('cent');
