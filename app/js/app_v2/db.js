@@ -6,6 +6,14 @@
 
 import Dexie from './dexie.js';
 
+// DEPLOYMENT-AGNOSTIC HELPER (2026-08-24): returns true when running on the
+// server-first self-hosted build. Used to choose the correct data source for
+// features that only exist on the backend (spot-price proxy, settings sync).
+function getIsSelfHosted() {
+    const host = (location.hostname || '');
+    return host.includes('opaleye-bluegill') || host.includes('ts.net') || host.startsWith('192.168.');
+}
+
 // ============================================================
 // Database Initialization
 // ============================================================
@@ -41,6 +49,24 @@ db.version(2).stores({
     portfolio_history: '++id, date',
     user_settings: 'key',
     pending_defaults: 'coin_type'
+});
+
+// v3: Photos & Documents gallery store (free-form user pictures).
+db.version(3).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key',
+    pending_defaults: 'coin_type',
+    user_photos: '++id, category, title, created_at'
 });
 
 // ============================================================
@@ -177,23 +203,176 @@ const FALLBACK_SPOT_PRICES = {
 // Master Catalog Seeding
 // ============================================================
 
+
+// 2026-08-31 RUNTIME IMAGE HEAL: browsers that wiped + re-seeded from a stale cached coins.json
+// (or pre-image seed) keep empty year-row images forever, because migrations only run once.
+// This runs at every boot (throttled to 6h) and fills EMPTY obv/rev fields from the current
+// served seed. Never overwrites local uploads; respects _deleted_* flags.
+export async function healImagesFromSeed() {
+    try {
+        const last = parseInt(localStorage.getItem('_cc_img_heal_at') || '0', 10);
+        if (Date.now() - last < 6 * 3600 * 1000) return;
+        const res = await fetch(new URL('data/coins.json', document.baseURI).href);
+        if (!res || !res.ok) return;
+        const seed = await res.json();
+        let healed = 0;
+        await db.transaction('rw', db.coins_reference, async () => {
+            for (const s of seed) {
+                if (!s.obv_image && !s.rev_image) continue;
+                const loc = await db.coins_reference.get(s.id);
+                if (!loc) continue;
+                const upd = {};
+                if (s.obv_image && !loc.obv_image && !loc._deleted_obv_image) upd.obv_image = s.obv_image;
+                if (s.rev_image && !loc.rev_image && !loc._deleted_rev_image) upd.rev_image = s.rev_image;
+                if (Object.keys(upd).length) {
+                    await db.coins_reference.update(s.id, upd);
+                    healed++;
+                }
+            }
+        });
+        localStorage.setItem('_cc_img_heal_at', String(Date.now()));
+        if (healed > 0) console.log(`[db] image heal: filled ${healed} empty row(s) from seed.`);
+    } catch (e) {
+        console.warn('[db] image heal skipped:', e && e.message);
+    }
+}
+
 export async function initDb() {
     // Check if database needs seeding
     const refCount = await db.coins_reference.count();
-    if (refCount === 0) {
-        console.log('IndexedDB empty. Fetching master coins catalogue from JSON...');
-        const response = await fetch('data/coins.json');
+    {
+        console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
+        const response = await fetch(new URL('data/coins.json', document.baseURI).href);
         if (!response.ok) {
             throw new Error(`Failed to load coins.json: HTTP ${response.status}`);
         }
         const coins = await response.json();
         console.log(`Seeding ${coins.length} coins into IndexedDB...`);
         
-        // Seed in chunks to prevent transaction overload
-        const chunkSize = 500;
-        for (let i = 0; i < coins.length; i += chunkSize) {
-            const chunk = coins.slice(i, i + chunkSize);
-            await db.coins_reference.bulkAdd(chunk);
+        // 2026-08-31 TOP-UP SEEDING: the old gate (refCount === 0) made seeding all-or-nothing.
+        // A page reload during the multi-second seed (service-worker controllerchange reload)
+        // aborted it mid-way and, because refCount was then > 0, the catalog stayed truncated
+        // forever (the 'coin list stops at Dime' bug). Now: fetch the seed every boot and add
+        // only MISSING ids — idempotent, cheap when complete, self-healing when truncated.
+        const existingIds = new Set(await db.coins_reference.toCollection().primaryKeys());
+        const missing = coins.filter(c => !existingIds.has(c.id));
+        if (missing.length > 0) {
+            console.log(`[db] top-up seeding: ${missing.length} of ${coins.length} coins missing.`);
+            const chunkSize = 500;
+            for (let i = 0; i < missing.length; i += chunkSize) {
+                const chunk = missing.slice(i, i + chunkSize);
+                try {
+                    await db.coins_reference.bulkAdd(chunk);
+                } catch (chunkErr) {
+                    console.error(`[db] seed chunk ${i}-${i + chunk.length} failed:`, chunkErr);
+                    for (const coin of chunk) {
+                        try {
+                            await db.coins_reference.add(coin);
+                        } catch (rowErr) {
+                            console.error(`[db] seed row skipped id=${coin && coin.id}:`, rowErr && rowErr.message);
+                        }
+                    }
+                }
+            }
+        }
+        // 2026-09-02 STALE-ROW PURGE (public): remove IDB rows whose ids are not in the
+        // current seed — older seeds left duplicate/wrong-image rows on devices (the
+        // 'images in wrong spots / duplicate 1960 rows' bug). Keeps user_added coins.
+        const allRows = await db.coins_reference.toArray();
+        try {
+            const seedIds = new Set(coins.map(c => c.id));
+            const stale = allRows.filter(r => !seedIds.has(r.id) && !r.user_added);
+            if (stale.length > 0) {
+                await db.transaction('rw', db.coins_reference, async () => {
+                    await db.coins_reference.bulkDelete(stale.map(r => r.id));
+                });
+                console.log(`[db] purged ${stale.length} stale row(s) not in current seed.`);
+            }
+        } catch (purgeErr) {
+            console.warn('[db] stale purge skipped:', purgeErr && purgeErr.message);
+        }
+        // 2026-09-02 IDENTITY-DRIFT REPAIR (public): rows whose id EXISTS but whose
+        // type/year/mint no longer match the seed are stale remnants of older seeds (they
+        // render in wrong spots with wrong images). For those rows only, take the seed's
+        // identity AND images (they were never user-assigned content — the row itself is
+        // wrong). Rows matching the seed identity are left untouched (user assignments safe).
+        try {
+            const seedMap = new Map(coins.map(c => [c.id, c]));
+            const drifted = [];
+            for (const r of allRows) {
+                if (r.user_added) continue;
+                const sc = seedMap.get(r.id);
+                if (!sc) continue;
+                if ((r.coin_type || '') !== (sc.coin_type || '') ||
+                    String(r.year ?? '') !== String(sc.year ?? '') ||
+                    (r.mint_mark || '') !== (sc.mint_mark || '')) {
+                    drifted.push({ stale: r, seed: sc });
+                }
+            }
+            if (drifted.length > 0) {
+                await db.transaction('rw', db.coins_reference, async () => {
+                    for (const d0 of drifted) {
+                        await db.coins_reference.put({
+                            ...d0.stale,
+                            coin_type: d0.seed.coin_type,
+                            year: d0.seed.year,
+                            mint_mark: d0.seed.mint_mark,
+                            obv_image: d0.seed.obv_image || null,
+                            rev_image: d0.seed.rev_image || null,
+                            _deleted_obv_image: false,
+                            _deleted_rev_image: false
+                        });
+                    }
+                });
+                console.log(`[db] identity-drift repair: corrected ${drifted.length} stale row(s) from seed.`);
+            }
+        } catch (driftErr) {
+            console.warn('[db] drift repair skipped:', driftErr && driftErr.message);
+        }
+        // 2026-09-02 FULL RECONCILIATION (public): even when identity matches, older seeds
+        // left rows with stale image pointers (files that no longer exist) and stale
+        // sections. Rebuild every non-user_added row from the current seed, preserving only
+        // genuine user uploads (data: base64 images) and user deletions... user deletions
+        // are honored by the merge/heal elsewhere; here seed is authoritative because on
+        // public the seed IS the published truth from self-hosted.
+        try {
+            const seedMap2 = new Map(coins.map(c => [c.id, c]));
+            const rebuilds = [];
+            for (const r of allRows) {
+                if (r.user_added) continue;
+                const sc = seedMap2.get(r.id);
+                if (!sc) continue;
+                const keepObv = typeof r.obv_image === 'string' && r.obv_image.startsWith('data:') ? r.obv_image : (sc.obv_image || null);
+                const keepRev = typeof r.rev_image === 'string' && r.rev_image.startsWith('data:') ? r.rev_image : (sc.rev_image || null);
+                if ((r.coin_type || '') !== (sc.coin_type || '') ||
+                    String(r.year ?? '') !== String(sc.year ?? '') ||
+                    (r.mint_mark || '') !== (sc.mint_mark || '') ||
+                    (r.section || '') !== (sc.section || '') ||
+                    (r.obv_image || '') !== (keepObv || '') ||
+                    (r.rev_image || '') !== (keepRev || '')) {
+                    rebuilds.push({ id: r.id, sc, keepObv, keepRev });
+                }
+            }
+            if (rebuilds.length > 0) {
+                await db.transaction('rw', db.coins_reference, async () => {
+                    for (const rb of rebuilds) {
+                        await db.coins_reference.update(rb.id, {
+                            coin_type: rb.sc.coin_type,
+                            year: rb.sc.year,
+                            mint_mark: rb.sc.mint_mark,
+                            section: rb.sc.section,
+                            denomination: rb.sc.denomination,
+                            obv_image: rb.keepObv,
+                            rev_image: rb.keepRev,
+                            _deleted_obv_image: false,
+                            _deleted_rev_image: false
+                        });
+                    }
+                });
+                console.log(`[db] data reconciliation: rebuilt ${rebuilds.length} row(s) from published seed.`);
+            }
+        } catch (reconErr) {
+            console.warn('[db] reconciliation skipped:', reconErr && reconErr.message);
         }
         console.log('Seeding completed successfully!');
     }
@@ -202,7 +381,7 @@ export async function initDb() {
     let needsSeed = configCount === 0;
     if (needsSeed) {
         console.log('Fetching type configs from JSON...');
-        const response = await fetch('data/type_configs.json');
+        const response = await fetch(new URL('data/type_configs.json', document.baseURI).href);
         if (response.ok) {
             const configs = await response.json();
             console.log(`Seeding ${configs.length} type configs into IndexedDB...`);
@@ -247,6 +426,7 @@ export async function initDb() {
 
     // Run data migrations (update existing IndexedDB data when coins.json has changed)
     await runMigrations();
+    try { healImagesFromSeed(); } catch (e) { console.warn('[db] heal error:', e); }
 }
 
 // ============================================================
@@ -255,7 +435,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 6;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 9;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -400,15 +580,95 @@ export async function runMigrations() {
         console.log(`  Migration 4→5: created ${created} section-qualified rows, cleared ${cleared} legacy rows.`);
     }
 
-    // Migration 5 → 6: Clean up any stale per-coin black circles (1793, 1840, 1847) from local IndexedDB
-    // so client browsers immediately purge corrupted local rows without needing a manual DB wipe.
-    if (storedVersion < 6) {
-        for (const coinId of [1, 27, 34]) {
-            const coin = await db.coins_reference.get(coinId);
-            if (coin && (coin.obv_image || coin.rev_image)) {
-                await db.coins_reference.update(coinId, { obv_image: null, rev_image: null });
-                console.log(`  Migration 5→6: Cleared stale image on coin id=${coinId}`);
+    // Migration 5 → 6: RETIRED 2026-08-28. It wiped obv/rev images on coin ids [1,27,34] to
+    // clear old corrupted 'black circle' uploads — but those ids now hold REAL curated images
+    // (1793 half cent, 1840/1847 Braided Hair). On the public app (no server) the wipe was
+    // permanent, so those coins rendered placeholders forever. Migration 7→8 below restores them.
+
+    // Migration 6 → 7: purge 'Washington Bicentennial*' rows (merged into Washington types 2026-08-28).
+    if (storedVersion < 7) {
+        const bic = await db.coins_reference
+            .filter(c => (c.coin_type || '').startsWith('Washington Bicentennial'))
+            .toArray();
+        if (bic.length > 0) {
+            await db.transaction('rw', db.coins_reference, async () => {
+                for (const _o of bic) {
+                    await db.coins_reference.delete(_o.id);
+                }
+            });
+            console.log(`  Migration 6->7: purged ${bic.length} Washington Bicentennial row(s).`);
+        }
+    }
+
+    // Migration 7 → 8: restore images on ids 1/27/34 that the retired 5→6 wipe cleared,
+    // re-seeding them from the shipped coins.json (which has the correct curated URLs).
+    if (storedVersion < 8) {
+        try {
+            const _res = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res.ok) {
+                const _seed = await _res.json();
+                const _byId = new Map(_seed.map(_s => [_s.id, _s]));
+                for (const coinId of [1, 27, 34]) {
+                    const _s = _byId.get(coinId);
+                    const _loc = await db.coins_reference.get(coinId);
+                    if (_s && _loc && !_loc._deleted_obv_image && !_loc._deleted_rev_image) {
+                        await db.coins_reference.update(coinId, {
+                            obv_image: _s.obv_image || null,
+                            rev_image: _s.rev_image || null
+                        });
+                        console.log(`  Migration 7→8: restored images on coin id=${coinId}`);
+                    }
+                }
             }
+        } catch (_e) {
+            console.warn('  Migration 7→8: seed restore skipped:', _e && _e.message);
+        }
+    }
+
+    // Migration 6 -> 7: purge 'Washington Bicentennial*' rows (merged into Washington types 2026-08-28).
+    if (storedVersion < 7) {
+        const bic = await db.coins_reference
+            .filter(c => (c.coin_type || '').startsWith('Washington Bicentennial'))
+            .toArray();
+        if (bic.length > 0) {
+            await db.transaction('rw', db.coins_reference, async () => {
+                for (const _o of bic) {
+                    await db.coins_reference.delete(_o.id);
+                }
+            });
+            console.log(`  Migration 6->7: purged ${bic.length} Washington Bicentennial row(s).`);
+        }
+    }
+
+
+    // Migration 8 → 9 (2026-08-30): heal stale local rows whose obv/rev images exist in the
+    // shipped coins.json but are empty locally (public browsers seeded before images were
+    // uploaded/published never re-read the seed). Fill EMPTY fields only — never overwrite
+    // a local upload or an explicit deletion.
+    if (storedVersion < 9) {
+        try {
+            const _res9 = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res9 && _res9.ok) {
+                const _seed9 = await _res9.json();
+                let _healed = 0;
+                await db.transaction('rw', db.coins_reference, async () => {
+                    for (const _s of _seed9) {
+                        if (!_s.obv_image && !_s.rev_image) continue;
+                        const _loc = await db.coins_reference.get(_s.id);
+                        if (!_loc) continue;
+                        const upd = {};
+                        if (_s.obv_image && !_loc.obv_image && !_loc._deleted_obv_image) upd.obv_image = _s.obv_image;
+                        if (_s.rev_image && !_loc.rev_image && !_loc._deleted_rev_image) upd.rev_image = _s.rev_image;
+                        if (Object.keys(upd).length) {
+                            await db.coins_reference.update(_s.id, upd);
+                            _healed++;
+                        }
+                    }
+                });
+                console.log(`  Migration 8→9: healed images on ${_healed} coin row(s).`);
+            }
+        } catch (_e) {
+            console.warn('  Migration 8→9 skipped:', _e && _e.message);
         }
     }
 
@@ -538,6 +798,21 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                                 toUpdate.push({ id: _c.id, changes: _upd });
                                 Object.assign(_c, _upd);
                             }
+                            // FIELD RE-SYNC: server is authoritative for descriptive fields.
+                            // Fixes stale local copies keeping old year/type after a data fix
+                            // (e.g. Bicentennial double-date merge) — the row id exists on both
+                            // sides but its year/type drifted.
+                            const _fields = ['coin_type', 'year', 'mint_mark', 'is_proof', 'denomination', 'metal', 'mintage'];
+                            const _fieldUpd = {};
+                            for (const _f of _fields) {
+                                if (_s[_f] !== undefined && String(_c[_f]) !== String(_s[_f])) {
+                                    _fieldUpd[_f] = _s[_f];
+                                }
+                            }
+                            if (Object.keys(_fieldUpd).length > 0) {
+                                toUpdate.push({ id: _c.id, changes: _fieldUpd });
+                                Object.assign(_c, _fieldUpd);
+                            }
                         }
                     }
                     if (toUpdate.length > 0) {
@@ -547,6 +822,79 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                             }
                         });
                     }
+                    // USER-COIN PULL (2026-08-25): also insert server rows this device
+                    // has never seen (e.g. a user coin added on another device).
+                    const _known = new Set(coins.map(c => c.id));
+                    const _incoming = (_server || []).filter(_s => _s && _s.id != null && !_known.has(_s.id));
+                    if (_incoming.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const _n of _incoming) {
+                                await db.coins_reference.put({ ..._n, id: _n.id });
+                            }
+                        });
+                        console.log('[db] pulled ' + _incoming.length + ' new coin(s) from server');
+                        const _fresh = await db.coins_reference.where('section').equals(sectionName).toArray();
+                        coins.length = 0;
+                        coins.push(..._fresh);
+                        // re-sort to keep type→year→mint order
+                        coins.sort((a, b) => {
+                            if (a.coin_type !== b.coin_type) return (a.coin_type || '').localeCompare(b.coin_type || '');
+                            const yA = typeof a.year === 'number' ? a.year : (parseInt(String(a.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+                            const yB = typeof b.year === 'number' ? b.year : (parseInt(String(b.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+                            if (yA !== yB) return yA - yB;
+                            return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+                        });
+                    }
+                    // CLEANUP (2026-08-25): drop LOCAL user_added rows the server no
+                    // longer has (coins deleted on another device, or just deleted).
+                    // Query IndexedDB directly (not the `coins` array, which was just
+                    // overwritten by _fresh) so we catch stale local rows reliably.
+                    const _serverIds = new Set((_server || []).map(_s => _s && _s.id));
+                    const _localUser = await db.coins_reference
+                        .where('section').equals(sectionName)
+                        .filter(_r => _r.user_added && !_serverIds.has(_r.id))
+                        .toArray();
+                    if (_localUser.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const _o of _localUser) {
+                                await db.coins_reference.delete(_o.id);
+                            }
+                        });
+                        // also drop any inventory tied to removed coins
+                        const _removedIds = _localUser.map(_o => _o.id);
+                        await db.user_inventory.where('coin_ref_id').anyOf(_removedIds).delete();
+                        console.log('[db] removed ' + _localUser.length + ' deleted user coin(s)');
+                        // refresh coins from IndexedDB so the returned list is truthful
+                        const _fresh2 = await db.coins_reference.where('section').equals(sectionName).toArray();
+                        coins.length = 0;
+                        coins.push(..._fresh2);
+                    }
+                    // STALE-ROW PURGE: delete local rows that no longer exist on the server
+                    // (matched by identity key, not just id) so renamed/merged coins never dup.
+                    const _srvKeys = new Map((_server || []).map(_s =>
+                        [[(_s.coin_type || ''), String(_s.year), (_s.mint_mark || ''), (_s.is_proof ? 1 : 0)].join('|'), _s.id]));
+                    const _staleRows = await db.coins_reference
+                        .where('section').equals(sectionName)
+                        .filter(_r => {
+                            if (_serverIds.has(_r.id)) return false;
+                            const _k = [(_r.coin_type || ''), String(_r.year), (_r.mint_mark || ''), (_r.is_proof ? 1 : 0)].join('|');
+                            const srvId = _srvKeys.get(_k);
+                            // keep only true orphans; if a server row with a DIFFERENT id owns
+                            // this identity, the local row is a cross-id duplicate -> purge
+                            return srvId === undefined;
+                        })
+                        .toArray();
+                    if (_staleRows.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const _o of _staleRows) {
+                                await db.coins_reference.delete(_o.id);
+                            }
+                        });
+                        console.log('[db] purged ' + _staleRows.length + ' stale coin row(s) no longer on server');
+                        const _fresh3 = await db.coins_reference.where('section').equals(sectionName).toArray();
+                        coins.length = 0;
+                        coins.push(..._fresh3);
+                    }
                 }
             }
         }
@@ -554,18 +902,7 @@ export async function fetchCoinsForSectionLocal(sectionName) {
         console.warn('[db] per-coin image server sync skipped:', _e && _e.message);
     }
 
-    // CRITICAL: Re-read from IndexedDB after sync to ensure we return fresh data
-    // This fixes the "first expand shows broken images, second expand works" bug
-    const freshCoins = await db.coins_reference.where('section').equals(sectionName).toArray();
-    freshCoins.sort((a, b) => {
-        if (a.coin_type !== b.coin_type) return (a.coin_type || '').localeCompare(b.coin_type || '');
-        const yA = typeof a.year === 'number' ? a.year : (parseInt(String(a.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
-        const yB = typeof b.year === 'number' ? b.year : (parseInt(String(b.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
-        if (yA !== yB) return yA - yB;
-        return (a.mint_mark || '').localeCompare(b.mint_mark || '');
-    });
-
-    return freshCoins.map(coin => ({
+    return coins.map(coin => ({
         ...coin,
         coin_id: coin.id,
         inventory: null // Frontend uses its own inventory state via fetchInventory
@@ -833,6 +1170,29 @@ export async function fetchTypeConfigsLocal() {
 // Spot Prices (CORS Proxy Yahoo Finance)
 // ============================================================
 
+
+// 2026-08-30: gold-api.com fallback (CORS-open, no key, all 5 metals). On the public app the
+// /yahoo-finance/ nginx proxy does not exist and public CORS proxies are dead (allorigins blocked,
+// corsproxy 401), so this is what keeps live spot prices updating outside self-hosted.
+async function _fetchGoldApiSpot(key) {
+    const symbolMap = { gold_oz: "XAU", silver_oz: "XAG", platinum_oz: "XPT", palladium_oz: "XPD", copper_lb: "HG" };
+    const sym = symbolMap[key];
+    if (!sym) return null;
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 8000);
+    try {
+        const resp = await fetch("https://api.gold-api.com/price/" + sym, { signal: ctl.signal });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        const price = parseFloat(data.price);
+        return isFinite(price) && price > 0 ? parseFloat(price.toFixed(2)) : null;
+    } catch (e) {
+        return null;
+    } finally {
+        clearTimeout(to);
+    }
+}
+
 export async function fetchSpotPricesLocal() {
     const symbolMap = {
         gold_oz: "GC=F",
@@ -860,24 +1220,40 @@ export async function fetchSpotPricesLocal() {
         const symbol = symbolMap[key];
         const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}`;
         const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol)}`;
-        
+        // PUBLIC FALLBACK (2026-08-24): on the local-first public build there is
+        // no self-hosted /yahoo-finance proxy and allorigins.win is often blocked,
+        // so add a second public CORS proxy as a last resort before falling back
+        // to cached/fallback prices. This keeps live prices working for strangers.
+        const publicProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol)}`;
+
+        let triedUrls = [];
         try {
             let resp;
             let controller = new AbortController();
             let timeoutId = setTimeout(() => controller.abort(), 4000);
-            
-            try {
-                resp = await fetch(primaryUrl, { signal: controller.signal });
-            } catch (e) {
-                resp = null;
+
+            // Only attempt the self-hosted proxy when actually self-hosted.
+            if (getIsSelfHosted()) {
+                triedUrls.push(primaryUrl);
+                try {
+                    resp = await fetch(primaryUrl, { signal: controller.signal });
+                } catch (e) { resp = null; }
+                clearTimeout(timeoutId);
             }
-            clearTimeout(timeoutId);
 
             if (!resp || !resp.ok) {
-                // Try backup
+                // Public builds skip straight to a public CORS proxy.
                 controller = new AbortController();
                 timeoutId = setTimeout(() => controller.abort(), 4000);
-                resp = await fetch(backupUrl, { signal: controller.signal });
+                if (!getIsSelfHosted()) {
+                    // 2026-08-31: corsproxy.io 401s (needs API key) — skip it; gold-api.com
+                    // fallback below covers public live prices. Avoids 5x 401 console spam.
+                    triedUrls.push('gold-api-fallback');
+                } else {
+                    triedUrls.push(backupUrl);
+                    try { resp = await fetch(backupUrl, { signal: controller.signal }); }
+                    catch (e) { resp = null; }
+                }
                 clearTimeout(timeoutId);
             }
 
@@ -890,7 +1266,15 @@ export async function fetchSpotPricesLocal() {
                 throw new Error("API completely failed for " + symbol);
             }
         } catch (e) {
-            console.warn(`Failed to fetch ${symbol} live spot price, using fallback/cache.`);
+            // Yahoo chain failed (always on public — no nginx proxy; public CORS proxies dead).
+            // Try gold-api.com before giving up (2026-08-30).
+            const ga = await _fetchGoldApiSpot(key);
+            if (ga !== null) {
+                prices[key] = ga;
+                successCount++;
+            } else {
+                console.debug(`[spot] ${symbol} using fallback/cache (tried: ${triedUrls.join(', ') || 'none'}).`);
+            }
         }
     });
 
@@ -913,6 +1297,25 @@ export async function fetchSpotPricesLocal() {
             }));
         } catch(e) {}
     }
+
+
+    // 2026-08-31 SELF-RECORDED HISTORY: persist a daily snapshot so the spot-history chart
+    // can fall back to our OWN records when the live upstream is unreachable (public build).
+    try {
+        const hist = JSON.parse(localStorage.getItem('cc-spot-history') || '{}');
+        const today = new Date().toISOString().slice(0, 10);
+        hist[today] = {
+            gold_oz: prices.gold_oz,
+            silver_oz: prices.silver_oz,
+            copper_lb: prices.copper_lb,
+            platinum_oz: prices.platinum_oz,
+            palladium_oz: prices.palladium_oz,
+        };
+        // keep ~400 days
+        const keys = Object.keys(hist).sort();
+        while (keys.length > 400) delete hist[keys.shift()];
+        localStorage.setItem('cc-spot-history', JSON.stringify(hist));
+    } catch (e) {}
 
     return prices;
 }
@@ -950,19 +1353,28 @@ export async function fetchSpotHistoryLocal(period) {
         const symbol = symbolMap[key];
         const primaryUrl = `/yahoo-finance/v8/finance/chart/${symbol}?range=${range}&interval=${interval}`;
         const backupUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent('https://query2.finance.yahoo.com/v8/finance/chart/' + symbol + '?range=' + range + '&interval=' + interval)}`;
-        
+        // PUBLIC FALLBACK (2026-08-24): mirror fetchSpotPricesLocal — public builds
+        // skip the self-hosted proxy and use a public CORS proxy instead.
+        const publicProxyUrl = `https://corsproxy.io/?url=${encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/' + symbol + '?range=' + range + '&interval=' + interval)}`;
+
         try {
             let resp;
             let controller = new AbortController();
             let timeoutId = setTimeout(() => controller.abort(), 6000);
-            
-            try { resp = await fetch(primaryUrl, { signal: controller.signal }); } catch (e) { resp = null; }
-            clearTimeout(timeoutId);
+
+            if (getIsSelfHosted()) {
+                try { resp = await fetch(primaryUrl, { signal: controller.signal }); } catch (e) { resp = null; }
+                clearTimeout(timeoutId);
+            }
 
             if (!resp || !resp.ok) {
                 controller = new AbortController();
                 timeoutId = setTimeout(() => controller.abort(), 6000);
-                resp = await fetch(backupUrl, { signal: controller.signal });
+                if (!getIsSelfHosted()) {
+                    // 2026-09-01: corsproxy 401s; skip — self-recorded history covers public.
+                } else {
+                    try { resp = await fetch(backupUrl, { signal: controller.signal }); } catch (e) { resp = null; }
+                }
                 clearTimeout(timeoutId);
             }
 
@@ -993,8 +1405,27 @@ export async function fetchSpotHistoryLocal(period) {
         }
     }
     
-    // Fallback to cache entirely if fetch failed
-    return cached ? cached.data : {};
+    // Fallback 1: cache. Fallback 2 (2026-08-31): our OWN self-recorded daily snapshots
+    // (cc-spot-history) — so the chart still shows real recorded data when the live upstream
+    // and the response cache are both unavailable (public build).
+    if (cached && cached.data) return cached.data;
+    try {
+        const hist = JSON.parse(localStorage.getItem('cc-spot-history') || '{}');
+        const keys = Object.keys(hist).sort();
+        if (keys.length >= 2) {
+            const series = {};
+            for (const key of Object.keys(symbolMap)) {
+                series[key] = keys
+                    .map(d => ({ t: new Date(d + 'T00:00:00Z').getTime(), v: hist[d][key] }))
+                    .filter(pt => pt.v != null && isFinite(pt.v));
+            }
+            if (Object.values(series).some(arr => arr.length >= 2)) {
+                console.log('[spot] history: using self-recorded daily snapshots.');
+                return series;
+            }
+        }
+    } catch (e) {}
+    return {};
 }
 
 // ============================================================
@@ -1202,7 +1633,7 @@ export async function fetchPortfolioLocal() {
     const bullionItems = await db.raw_bullion.toArray();
     bullionItems.forEach(b => {
         const metal = (b.metal_type || "").toLowerCase();
-        const weightOz = (b.weight || 0) * (b.amount || 1.0);
+        const weightOz = b.weight || 0;
         const purity = b.purity || 1.0;
         const spotMap = {
             "gold":      spotPrices.gold_oz,
@@ -1321,7 +1752,6 @@ export async function saveRawBullionLocal(data) {
         metal_type: data.metal_type || "gold",
         weight_unit: data.weight_unit || "oz",
         weight: Number(data.weight || 0),
-        amount: Number(data.amount || 1.0),
         purity: Number(data.purity || 1.0),
         label: data.label || "",
         notes: data.notes || ""
@@ -1622,21 +2052,37 @@ function _extractBaseName(coinType) {
  * @param {string} side 'obv' or 'rev'
  * @returns {Promise<string[]>} Array of coin_type values to update together.
  */
+/**
+ * Find all coin types that share the same image as the given coin_type
+ * for a specific side (obv/rev).
+ * 
+ * For obverse: groups by series (all sub-types of a series share the obverse).
+ * For reverse: groups by BASE NAME (e.g., all Michigan variants share the same
+ * reverse: P mint, D mint, S proof, silver proof — all under "Michigan").
+ * 
+ * @param {string} coinType The coin_type to look up.
+ * @param {string} side 'obv' or 'rev'
+ * @param {string} [section] Optional section to qualify colliding types (e.g., "US Coinage — Half Cent")
+ * @returns {Promise<string[]>} Array of coin_type values to update together (section-qualified for colliding types).
+ */
 // Coin-type names shared by MORE THAN ONE section. These are section-scoped:
 // a config row for one of these must live under '<section> — <coin_type>' so
 // Half Cent images can never bleed into Large & Small Cent (e.g. "Braided Hair").
 export const _COLLIDING_TYPES = new Set(["Barber", "Braided Hair", "Capped Bust", "Classic Head", "Draped Bust", "Draped Bust - Heraldic Eagle", "Draped Bust - Small Eagle", "Flowing Hair", "Seated Liberty", "Trade Dollar"]);
 
-export async function _getCoimageGroupMembers(coinType, side) {
+export async function _getCoimageGroupMembers(coinType, side, section) {
     const allConfigs = await db.coin_type_config.toArray();
     const isRev = (side === 'rev' || side === 'proof_rev');
+
+    // Helper: qualify a coin_type if it's a colliding type
+    const qualify = (t) => (section && _COLLIDING_TYPES.has(t)) ? (section + ' — ' + t) : t;
 
     // === REVERSE: group by base name ===
     if (isRev) {
         const base = _extractBaseName(coinType);
         if (base) {
             // Find all configs that share this base name — no series prefix match needed
-        // since base names (state/entity names) are unique within context
+            // since base names (state/entity names) are unique within context
             const members = [coinType];
             for (const cfg of allConfigs) {
                 if (cfg.coin_type === coinType) continue;
@@ -1645,7 +2091,7 @@ export async function _getCoimageGroupMembers(coinType, side) {
                     members.push(cfg.coin_type);
                 }
             }
-            if (members.length > 0) return [...new Set(members)];
+            if (members.length > 0) return [...new Set(members)].map(qualify);
         }
         // where ALL variants share the same reverse
         // Look for other configs that share the same "root" name
@@ -1659,11 +2105,11 @@ export async function _getCoimageGroupMembers(coinType, side) {
                     members.push(cfg.coin_type);
                 }
             }
-            if (members.length > 1) return [...new Set(members)];
+            if (members.length > 1) return [...new Set(members)].map(qualify);
         }
 
         // Default: just this one entry
-        return [coinType];
+        return [qualify(coinType)];
     }
 
     // === OBVERSE: group by series ===
@@ -1681,7 +2127,7 @@ export async function _getCoimageGroupMembers(coinType, side) {
                 }
             }
         }
-        return members;
+        return members.map(qualify);
     }
 
     // Check if this coin_type is a sub-type of a known series
@@ -1723,7 +2169,7 @@ export async function _getCoimageGroupMembers(coinType, side) {
                     }
                 }
             }
-            return [...new Set(members)];
+            return [...new Set(members)].map(qualify);
         }
     }
 
@@ -1740,10 +2186,10 @@ export async function _getCoimageGroupMembers(coinType, side) {
                 members.push(cfg.coin_type);
             }
         }
-        if (members.length > 1) return members;
+        if (members.length > 1) return members.map(qualify);
     }
 
-    return [coinType];
+    return [qualify(coinType)];
 }
 
 export async function assignImageLocal(data) {
@@ -1751,7 +2197,7 @@ export async function assignImageLocal(data) {
     // For offline-first, images are saved directly as base64 strings in the DB
     if (scope === "all" || scope === "empty_only") {
         // Determine which coin types should be updated together
-        const members = await _getCoimageGroupMembers(coin_type, side);
+        const members = await _getCoimageGroupMembers(coin_type, side, section);
         const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
         const sideKey = sideMap[side] || "obv_image";
         const qualify = (t) => (section && _COLLIDING_TYPES.has(t)) ? (section + ' — ' + t) : t;
@@ -1875,7 +2321,7 @@ export async function saveToCoinBankLocal(data) {
                     (side === "obv" ? "obv_image" : "rev_image");
     
     // Use group-aware logic: determine which members share this image
-    const members = await _getCoimageGroupMembers(coin_type, side);
+    const members = await _getCoimageGroupMembers(coin_type, side, section);
     for (const memberType of members) {
         let cfg = await db.coin_type_config.get(memberType);
         if (!cfg) {
@@ -1893,14 +2339,15 @@ export async function fetchCoinBankImagesLocal(params = {}) {
     var q = params.get ? params.get('q') : (params.q || null);
 
     // On self-hosted: try fetching the server-authoritative Coin Bank list (scans filesystem + DB)
+    // 2026-09-01: gate on self-hosted — on GitHub Pages this raw /api call always 404s.
+    const _hostBank = (window.location && window.location.hostname) || '';
+    const _selfHostedBank = _hostBank.includes('opaleye-bluegill') || _hostBank.includes('ts.net') || _hostBank.includes('192.168.') || _hostBank === 'localhost';
     try {
-        var section = params.get ? params.get('section') : (params.section || null);
         const _native = window.__nativeFetch || window.fetch;
-        if (typeof _native === 'function') {
+        if (_selfHostedBank && typeof _native === 'function') {
             const search = new URLSearchParams();
             if (coin_type) search.set('coin_type', coin_type);
             if (side) search.set('side', side);
-            if (section) search.set('section', section);
             if (q) search.set('q', q);
             const queryStr = search.toString() ? ('?' + search.toString()) : '';
             const res = await _native('/api/coin_bank_images' + queryStr);
@@ -2035,6 +2482,32 @@ export async function factoryResetImagesLocal() {
         }
     }
     return { status: "success" };
+}
+
+export async function factoryResetDataLocal(mode) {
+    const full = (mode === 'full_reset');
+    await db.user_inventory.clear();
+    await db.wishlist_item.clear();
+    await db.raw_bullion.clear();
+    await db.paper_currency.clear();
+    await db.other_collectable.clear();
+    await db.bulk_inventory.clear();
+    await db.portfolio_history.clear();
+    const refs = await db.coins_reference.toArray();
+    for (const r of refs) { if (r.user_added) await db.coins_reference.delete(r.id); }
+    if (full) {
+        await db.user_photos.clear();
+        const cfgs = await db.coin_type_config.toArray();
+        for (const c of cfgs) {
+            await db.coin_type_config.update(c.coin_type, {
+                obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null,
+                _deleted_obv_image: true, _deleted_rev_image: true,
+            });
+        }
+        const inv = await db.user_inventory.toArray();
+        for (const it of inv) { if (it.personal_photo) await db.user_inventory.update(it.id, { personal_photo: null }); }
+    }
+    return { status: 'success', mode };
 }
 
 // ============================================================
@@ -2345,4 +2818,84 @@ export async function publishSectionLocal(sectionName) {
         xhr.onerror = () => reject(new Error('Network error calling /api/publish_section'));
         xhr.send(JSON.stringify({ section: sectionName }));
     });
+}
+
+// ============================================================
+// Photos & Documents Gallery — local (IndexedDB) persistence
+// Used by the public build and as the offline cache on self-hosted.
+// ============================================================
+
+export async function fetchUserPhotosLocal() {
+    const rows = await db.user_photos.orderBy('id').reverse().toArray();
+    return rows;
+}
+
+export async function addUserPhotoLocal(photo) {
+    // photo: { title, caption, category, image_data, created_at? }
+    const row = {
+        title: (photo.title || '').toString().slice(0, 200),
+        caption: (photo.caption || '').toString(),
+        category: (photo.category || 'General').toString().slice(0, 100),
+        image_data: photo.image_data || '',
+        created_at: photo.created_at || new Date().toISOString(),
+    };
+    const id = await db.user_photos.add(row);
+    return { ...row, id };
+}
+
+export async function deleteUserPhotoLocal(id) {
+    await db.user_photos.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
+}
+
+// ============================================================
+// User-added catalog coins — local (IndexedDB) persistence
+// A user coin is a real coins_reference row with user_added=true, so it
+// sorts/counts/images exactly like seeded coins everywhere in the app.
+// ============================================================
+
+export async function addUserCoinLocal(coin) {
+    // Find a sibling of the same section+type to inherit denomination/metal/weight.
+    // NOTE: coins_reference has no compound [section+coin_type] index, so query by
+    // section and filter in JS (small result set per section).
+    const siblings = await db.coins_reference.where('section').equals(coin.section).toArray();
+    const sibling = siblings.find(s => s.coin_type === coin.coin_type) || null;
+    // coins_reference uses keyPath 'id' (not auto-increment), so we must supply one.
+    // Server rows have positive IDs; use a negative ID for local user coins to avoid
+    // any collision with synced server rows.
+    const localId = -Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 1000);
+    const row = {
+        id: localId,
+        section: coin.section,
+        denomination: coin.denomination || (sibling && sibling.denomination) || '',
+        coin_type: coin.coin_type,
+        year: Number(coin.year) || 0,
+        mint_mark: (coin.mint_mark || '').toString().slice(0, 10),
+        metal: coin.metal || (sibling && sibling.metal) || '',
+        weight_grams: Number(coin.weight_grams || 0) || (sibling && sibling.weight_grams) || 0,
+        is_key_date: !!coin.is_key_date,
+        is_proof: !!coin.is_proof,
+        is_error: !!coin.is_error,
+        mintage: null,
+        ref_notes: (coin.ref_notes || '').toString(),
+        obv_image: null,
+        rev_image: null,
+        _deleted_obv_image: false,
+        _deleted_rev_image: false,
+        user_added: true,
+    };
+    await db.coins_reference.add(row);
+    return { ...row, id: localId };
+}
+
+export async function deleteUserCoinLocal(id) {
+    const coin = await db.coins_reference.get(Number(id));
+    if (!coin) return { status: 'not_found', id: Number(id) };
+    if (!coin.user_added) {
+        throw new Error('This coin is part of the master catalog and cannot be deleted');
+    }
+    // Remove inventory rows that point at it so no orphans remain.
+    await db.user_inventory.where('coin_ref_id').equals(Number(id)).delete();
+    await db.coins_reference.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
 }
