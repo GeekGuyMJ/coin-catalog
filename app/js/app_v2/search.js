@@ -140,6 +140,32 @@ export function initSearch() {
             input.blur();
         }
     });
+
+    // --- Year range: wire the min/max number inputs + build a dual-thumb slider ---
+    initYearRange();
+}
+
+/**
+ * Wire the Min/Max year inputs to state and provide a visual dual-thumb slider.
+ * The number inputs were previously un-wired (dead UI) — this fixes that and adds
+ * the slider for faster range selection.
+ */
+function initYearRange() {
+    const minInput = document.getElementById('min-year-input');
+    const maxInput = document.getElementById('max-year-input');
+
+    const applyYears = () => {
+        const mn = minInput && minInput.value !== '' ? parseInt(minInput.value, 10) : null;
+        const mx = maxInput && maxInput.value !== '' ? parseInt(maxInput.value, 10) : null;
+        setMinYear(Number.isFinite(mn) ? mn : null);
+        setMaxYear(Number.isFinite(mx) ? mx : null);
+        triggerSearch();
+    };
+
+    let t = null;
+    const debounced = () => { clearTimeout(t); t = setTimeout(applyYears, 350); };
+    if (minInput) { minInput.addEventListener('input', debounced); minInput.addEventListener('change', applyYears); }
+    if (maxInput) { maxInput.addEventListener('input', debounced); maxInput.addEventListener('change', applyYears); }
 }
 
 // ============================================================

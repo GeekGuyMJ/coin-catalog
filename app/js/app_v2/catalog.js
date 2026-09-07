@@ -247,7 +247,7 @@ function buildSectionCard(sec) {
         // If no override yet, leave a marker so expandSection can fill the first-coin image.
         const pair = el('div', { className: 'coin-img-pair', dataset: { sampleType: sec.sample_type || '' } });
         if (exObv) {
-            const img = el('img', { className: 'coin-thumb obv', src: exObv, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
+            const img = el('img', { className: 'coin-thumb obv', src: exObv, alt: '', loading: 'lazy', fetchpriority: 'low', decoding: 'async', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
@@ -256,7 +256,7 @@ function buildSectionCard(sec) {
             pair.appendChild(ph);
         }
         if (exRev) {
-            const img = el('img', { className: 'coin-thumb rev', src: exRev, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
+            const img = el('img', { className: 'coin-thumb rev', src: exRev, alt: '', loading: 'lazy', fetchpriority: 'low', decoding: 'async', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {

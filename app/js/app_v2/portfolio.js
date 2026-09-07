@@ -770,13 +770,26 @@ function buildCompletionCard(sections) {
 }
 
 
+function buildEmptyPortfolioCard() {
+    var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio'});
+    card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
+    var body = el('div',{style:'padding:12px 4px; text-align:center; color:var(--color-text-muted); font-size:0.9em; line-height:1.5;'});
+    body.appendChild(el('div',{style:'font-size:2em; margin-bottom:6px;'},'\uD83E\uDE99'));
+    body.appendChild(el('div',{},'Your portfolio is empty.'));
+    body.appendChild(el('div',{style:'margin-top:4px;'},'Add coins from the catalog, enter bullion, or record paper currency to see your total value here.'));
+    card.appendChild(body);
+    return card;
+}
+
 function buildPortfolioBreakdownCard(p) {
     var total = p.total_estimated_value || 0;
     var melt = p.total_melt || 0;
     var face = p.face_value || 0;
     var coins = p.total_physical_coins || 0;
     var items = p.total_items || 0;
-    if (total===0 && melt===0) return null;
+    if (total===0 && melt===0) {
+        return buildEmptyPortfolioCard();
+    }
 
     var history = JSON.parse(localStorage.getItem('cc-portfolio-history') || '[]');
     var now = Date.now();

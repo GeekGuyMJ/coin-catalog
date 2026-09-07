@@ -92,6 +92,29 @@ function shouldUpdateCoinType(coinType, coinSection, targetType, targetSection, 
     return false;
 }
 
+/**
+ * Confirm before a "fill all of this type" overwrites coins that already have a
+ * DISTINCT image. Returns true to proceed, false to cancel.
+ */
+async function confirmOverwriteAll(ctx) {
+    try {
+        const coins = getCoinsForSection(ctx.section) || [];
+        const side = ctx.side;
+        const field = side === 'obv' ? 'obv_image' : 'rev_image';
+        const existingCount = coins.filter(c =>
+            shouldUpdateCoinType(c.coin_type, c.section, ctx.typeStr, ctx.section, getMainType(ctx.typeStr), side) &&
+            c[field]
+        ).length;
+        if (existingCount === 0) return true;
+        const proceed = window.confirm(
+            `This will overwrite the existing image on ${existingCount} coin${existingCount === 1 ? '' : 's'} of this type.\n\nAre you sure you want to apply this image to all of them?`
+        );
+        return proceed === true;
+    } catch (e) {
+        return true; // on any error, don't block the user
+    }
+}
+
 // Crop tool state
 let cropImg = new Image();
 let ctx_crop = null;
@@ -778,6 +801,13 @@ export async function executeImageAssignment() {
     // Detect if this is a remove action (no image data)
     const isRemoveAction = !activeContext.b64;
 
+    // SAFETY GUARD: before overwriting a whole type, warn if any target coin already
+    // has a DIFFERENT image (prevents accidentally replacing curated per-coin uploads).
+    if (scope === 'all' && !isRemoveAction && activeContext.b64) {
+        const ok = await confirmOverwriteAll(activeContext);
+        if (!ok) return;
+    }
+
     try {
         const result = await assignImage({
             coin_type: activeContext.typeStr,
@@ -1002,7 +1032,7 @@ async function loadCoinBankImages(mode) {
                     ),
                     el('button', {
                         style: 'margin-top:4px; padding:3px 6px; font-size:0.7rem; background:#dc2626; color:white; border:none; border-radius:4px; cursor:pointer; width:100%;',
-                        onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img); },
+                        onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img, e.currentTarget); },
                         title: 'Delete this image from coin bank'
                     }, 'Delete')
                 )
@@ -1036,16 +1066,33 @@ function selectBankImage(img) {
     showScopeSelection();
 }
 
-async function deleteCoinBankImageConfirm(img) {
-    // First click: show confirmation state
+async function deleteCoinBankImageConfirm(img, btn) {
+    // First click: show a visual confirmation state on the button (color + text).
     if (img._confirming !== true) {
         img._confirming = true;
+        if (btn) {
+            btn.textContent = 'Click to confirm';
+            btn.style.background = '#7f1d1d';   // darker red = "armed"
+            btn.style.border = '1px solid #fca5a5';
+        }
         showToast('Click Delete again to confirm permanent deletion', 'warning', 3000);
-        setTimeout(() => { img._confirming = false; }, 5000);
+        setTimeout(() => {
+            img._confirming = false;
+            if (btn) {
+                btn.textContent = 'Delete';
+                btn.style.background = '#dc2626';
+                btn.style.border = 'none';
+            }
+        }, 5000);
         return;
     }
     // Second click: confirmed
     img._confirming = false;
+    if (btn) {
+        btn.textContent = 'Delete';
+        btn.style.background = '#dc2626';
+        btn.style.border = 'none';
+    }
     try {
         const grid = document.getElementById('coin-bank-grid');
         const scrollPos = grid ? grid.parentElement.scrollTop : 0;
