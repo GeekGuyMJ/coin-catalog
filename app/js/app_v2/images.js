@@ -842,11 +842,22 @@ export async function executeImageAssignment() {
                 // If type-level change, update local state & DOM immediately so change is visual instantly.
                 // Also cover 'specific_coin' (no item_id): its image lives in the type config, so it
                 // resolves via updatedConfigs[activeContext.typeStr] and must repaint now.
-                const isTypeLevelAssignment = (result.configs_written > 0 && result.updated === 0);
+                // Immediate visual update: refetch type configs already succeeded above.
+                // Re-paint matching coin rows in the DOM/state for ANY type-level
+                // assignment (scope 'all' or 'empty_only'), not just the pure
+                // type-config case. The old guard `configs_written>0 && updated===0`
+                // skipped the "fill all of this type" path (where updated>0), so only
+                // the clicked coin repainted and the rest required a refresh.
+                const isTypeLevelAssignment =
+                    (scope === 'all' || scope === 'empty_only') && !!result.new_url;
                 if (isTypeLevelAssignment) {
                     const targetMainType = getMainType(activeContext.typeStr);
                     const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
-                    const newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] || 
+                    // Prefer result.new_url (the actual URL the backend assigned) over the
+                    // type-config lookup — for "fill all" the per-coin rows get new URLs
+                    // that may not appear in the (refetched) type-config map.
+                    const newImageUrl = result.new_url ||
+                                       updatedConfigs[activeContext.typeStr]?.[field] || 
                                        updatedConfigs[targetMainType]?.[field];
                                        
                     // 1. Clear matching local coins in state (section-qualified)
