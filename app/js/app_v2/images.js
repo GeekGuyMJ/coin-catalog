@@ -910,6 +910,11 @@ export async function executeImageAssignment() {
 
             // Fire the standard catalog update event so catalog.js re-renders.
             window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: activeContext.coinId } }));
+            // ALSO fire cc-image-updated: catalog.js listens on this to refetch type
+            // configs AND re-render every open section (renderTypeAccordions). This is
+            // what makes "fill all of this type" repaint all matching coin rows at
+            // once — cc-inventory-updated alone only refreshes counts/badges, not images.
+            window.dispatchEvent(new CustomEvent('cc-image-updated'));
             
             // Also update the original image element if it exists and is an IMG element
             if (activeContext.el && activeContext.el.tagName === 'IMG' && activeContext.b64) {
