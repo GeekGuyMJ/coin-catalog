@@ -14128,5 +14128,15 @@
     "rev_image": null,
     "proof_obv_image": null,
     "proof_rev_image": null
+  },
+  {
+    "id": 1431,
+    "coin_type": "US Coinage \u2014 Twenty Cent \u2014 Twenty Cent Piece",
+    "base_price": 0.0,
+    "key_price": 0.0,
+    "obv_image": "/data/images/coins/20-cents.twenty-cent-piece.1878.obv.jpg",
+    "rev_image": "/data/images/coins/20-cents.twenty-cent-piece.1878.rev.jpg",
+    "proof_obv_image": null,
+    "proof_rev_image": null
   }
 ]
