@@ -39,9 +39,9 @@ const TOUR_STEPS = [
         title: 'Browse the Catalog',
         body: 'Coins are grouped by country and denomination. Let\u2019s open \u201cUS Coinage \u2014 Large & Small Cent\u201d so you can see how the list works.',
         before: async () => {
-            // Ensure the US country group + Cent section are open
+            await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
-            scrollToSelector('#section-USCoinageLargeSmallCent .section-header');
+            await scrollToSelector('#section-USCoinageLargeSmallCent .section-header');
         }
     },
     {
@@ -50,6 +50,7 @@ const TOUR_STEPS = [
         title: 'Pick a Type',
                 body: 'Inside each section, coins are broken into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design.',
                 before: async () => {
+                    await switchToList();
                     await ensureSectionOpen('section-USCoinageLargeSmallCent');
                     await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
                     const header = findLincolnWheatHeader();
@@ -62,9 +63,10 @@ const TOUR_STEPS = [
         title: 'Open a Coin\u2019s Note',
         body: 'Tap the bar for \u201c1909-S (VDB)\u201d to reveal its Historical Note \u2014 interesting history behind each coin.',
         before: async () => {
+            await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155'); // 1909-S (VDB) \u2192 opens Historical Note
+            await ensureCoinRowOpen('155', true); // open detail panel + Historical Note
             const wrapper = findCoinRowWrapper('155');
             if (wrapper) await scrollToEl(wrapper);
         }
@@ -75,6 +77,7 @@ const TOUR_STEPS = [
         title: 'Add One Coin',
         body: 'Now tap the \u201c+\u201d to add one to your collection. Watch how the Data Entries section appears with fields for grade, price, and notes.',
         before: async () => {
+            await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             await ensureCoinRowOpen('155');
@@ -89,6 +92,7 @@ const TOUR_STEPS = [
         title: 'Your Data Entries',
         body: 'Here\u2019s your new entry \u2014 record grade, price, value, and notes. Multiple entries let you track each individual coin you own.',
         before: async () => {
+            await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             await ensureCoinRowOpen('155');
@@ -194,21 +198,23 @@ function resolveTarget() {
     // Dynamic targets:
     switch (currentStep) {
         case 3: { // Lincoln Wheat type header
-            const card = document.getElementById('section-USCoinageLargeSmallCent');
-            const headers = card?.querySelectorAll('.type-header');
-            for (const h of headers || []) if (h.textContent.includes('Lincoln Wheat')) return h;
-            return null;
+            return findLincolnWheatHeader();
         }
-        case 4: { // 1909-S (VDB) row
-            return findCoinRow('155');
+        case 4: { // 1909-S (VDB) row + Historical Note (highlight the note content)
+            const wrapper = findCoinRowWrapper('155');
+            // Prefer the reference-note block if it is now visible (opened by the
+            // before hook); fall back to the whole wrapper.
+            const note = wrapper?.querySelector('.coin-detail-ref');
+            if (note && note.style.display !== 'none') return note;
+            return wrapper;
         }
         case 5: { // + stepper of VDB row
             const row = findCoinRow('155');
             return row?.querySelector('[data-action="stepper-inc"]');
         }
-        case 6: { // Data Entries panel
-            const row = findCoinRow('155');
-            return row?.querySelector('.coin-detail-panel') || row?.querySelector('.coin-slots-wrap');
+        case 6: { // Data Entries panel (highlight the slots wrap)
+            const wrapper = findCoinRowWrapper('155');
+            return wrapper?.querySelector('.coin-slots-wrap') || wrapper?.querySelector('.coin-detail-panel') || wrapper;
         }
         case 8: { // Lincoln Wheat album inline grid
             const card = document.getElementById('section-USCoinageLargeSmallCent');
@@ -229,6 +235,24 @@ function findCoinRow(coinId) {
     const rows = card?.querySelectorAll('.coin-row');
     for (const r of rows || []) {
         if (r.dataset.coinId === coinId) return r;
+    }
+    return null;
+}
+
+function findCoinRowWrapper(coinId) {
+    const card = document.getElementById('section-USCoinageLargeSmallCent');
+    const wrappers = card?.querySelectorAll('.coin-row-wrapper');
+    for (const w of wrappers || []) {
+        if (w.querySelector('.coin-row[data-coin-id="' + coinId + '"]')) return w;
+    }
+    return null;
+}
+
+function findLincolnWheatHeader() {
+    const card = document.getElementById('section-USCoinageLargeSmallCent');
+    const headers = card?.querySelectorAll('.type-header');
+    for (const h of headers || []) {
+        if (h.textContent.includes('Lincoln Wheat')) return h;
     }
     return null;
 }
@@ -264,7 +288,7 @@ async function openType(typeName, sectionId) {
     }
 }
 
-async function ensureCoinRowOpen(coinId) {
+async function ensureCoinRowOpen(coinId, openNote = false) {
     const wrapper = findCoinRowWrapper(coinId);
     if (!wrapper) return;
     // Open the detail panel (▼ Details) if not open. The .coin-detail-panel is a
@@ -276,23 +300,49 @@ async function ensureCoinRowOpen(coinId) {
         detailToggle.click();
         await new Promise(r => setTimeout(r, 600));
     }
-    // Also ensure the Historical Note is expanded if present (it lives inside the
-    // detail panel).
-    const refToggle = wrapper.querySelector('[data-action="toggle-historical"]');
-    if (refToggle) {
-        refToggle.click();
-        await new Promise(r => setTimeout(r, 400));
+    // Ensure the Historical Note (Reference Notes) is VISIBLE. The app auto-opens
+    // the note only when qty === 0; when qty >= 1 it stays collapsed, so we must
+    // explicitly click the toggle to reveal it for the tour highlight.
+    if (openNote) {
+        const refDiv = wrapper.querySelector('.coin-detail-ref');
+        const refToggle = wrapper.querySelector('[data-action="toggle-historical"]');
+        if (refToggle) {
+            const isVisible = refDiv && refDiv.style.display !== 'none';
+            if (!isVisible) {
+                refToggle.click();
+                await new Promise(r => setTimeout(r, 400));
+            }
+        }
     }
 }
 
 async function switchToAlbum() {
-    // ensure US group is present with the album toggle
     const usGroup = document.getElementById('group-united-states');
     const albumBtn = usGroup?.querySelector('.view-toggle-btn[title="Album view"]');
     const listBtn = usGroup?.querySelector('.view-toggle-btn[title="List view"]');
     // only click if not already album (list button would have 'active')
     if (listBtn && listBtn.classList.contains('active')) {
         albumBtn?.click();
+        await new Promise(r => setTimeout(r, 1200));
+    }
+}
+
+async function switchToList() {
+    // Force LIST view. This is required for the list-view tour steps — if the user
+    // hand-switched to album view before/while the tour runs, the list-view steps'
+    // targets (type headers, coin rows, steppers) would not exist, and the tour
+    // highlight would drift or vanish.
+    const usGroup = document.getElementById('group-united-states');
+    const albumBtn = usGroup?.querySelector('.view-toggle-btn[title="Album view"]');
+    const listBtn = usGroup?.querySelector('.view-toggle-btn[title="List view"]');
+    // If the album button is currently active, click the list button to switch back.
+    if (albumBtn && albumBtn.classList.contains('active')) {
+        listBtn?.click();
+        await new Promise(r => setTimeout(r, 1200));
+    }
+    // If for some reason neither is marked active (fresh load), ensure list is default.
+    if (listBtn && !listBtn.classList.contains('active') && albumBtn && !albumBtn.classList.contains('active')) {
+        listBtn?.click();
         await new Promise(r => setTimeout(r, 1200));
     }
 }
