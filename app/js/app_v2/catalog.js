@@ -607,8 +607,9 @@ function buildTypeAccordion(mainType, typeCoins) {
         // accordions via renderSections/expandSection) would otherwise fall back to
         // the list rows populated above, losing the album view.
         const _m = getCatalogViewMode();
-        if ((_m === 'album' || _m === 'folder') && firstCoinSection) {
-            renderAlbumType(firstCoinSection, mainType, content, header);
+        // _tcSection is already defined as typeCoins[0].section (the section for this type)
+        if ((_m === 'album' || _m === 'folder') && _tcSection) {
+            renderAlbumType(_tcSection, mainType, content, header);
         }
     }
 
