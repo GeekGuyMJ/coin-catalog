@@ -67,6 +67,7 @@ import {
     renameCoinBankImageLocal,
     saveToCoinBankLocal,
     importCSVLocal,
+    factoryResetDataLocal,
     deleteBulkCoinsLocal,
     fetchSpotHistoryLocal,
     fetchUserPhotosLocal,
@@ -362,7 +363,8 @@ if (!isSelfHosted) {
         checkMasterLocal, promoteToDefaultLocal, fetchCoinBankImagesLocal, deleteCoinBankImageLocal,
         factoryResetImagesLocal, savePricingRulesLocal, searchCoinsLocal, fetchAllCoinsLocal,
         getFullBackupLocal, publishSectionLocal, restoreBackupLocal, renameCoinBankImageLocal,
-        saveToCoinBankLocal, importCSVLocal, deleteBulkCoinsLocal, fetchSpotHistoryLocal
+        saveToCoinBankLocal, importCSVLocal,
+    factoryResetDataLocal, deleteBulkCoinsLocal, fetchSpotHistoryLocal
     } = await import('./db.js');
 
     async function handleInterceptedRequest(apiPart, init) {
