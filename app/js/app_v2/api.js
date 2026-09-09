@@ -69,7 +69,6 @@ import {
     importCSVLocal,
     deleteBulkCoinsLocal,
     fetchSpotHistoryLocal,
-    factoryResetDataLocal,
     fetchUserPhotosLocal,
     addUserPhotoLocal,
     deleteUserPhotoLocal,
@@ -248,9 +247,15 @@ export const saveRawBullion        = isSelfHosted
 export const deleteRawBullion      = isSelfHosted
     ? async (id) => serverFetch('/api/raw_bullion/' + id, { method: 'DELETE' })
     : wrap(deleteRawBullionLocal);
-export const fetchScrap            = wrap(fetchScrapLocal);
-export const saveScrap             = wrap(saveScrapLocal);
-export const deleteScrap           = wrap(deleteScrapLocal);
+export const fetchScrap            = isSelfHosted
+    ? async () => serverFetch('/api/scrap')
+    : wrap(fetchScrapLocal);
+export const saveScrap             = isSelfHosted
+    ? async (data) => serverFetch('/api/scrap', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(saveScrapLocal);
+export const deleteScrap           = isSelfHosted
+    ? async (id) => serverFetch('/api/scrap/' + id, { method: 'DELETE' })
+    : wrap(deleteScrapLocal);
 export const fetchPortfolioHistory = wrap(fetchPortfolioHistoryLocal);
 export const fetchPortfolio        = wrap(fetchPortfolioLocal);
 export const fetchPaperCurrency    = isSelfHosted
@@ -285,11 +290,21 @@ export const saveWishlist          = wrap(saveWishlistLocal);
 export const addToWishlist         = wrap(addToWishlistLocal);
 export const removeFromWishlist    = wrap(removeFromWishlistLocal);
 export const updateWishlistItem    = wrap(updateWishlistItemLocal);
-export const fetchBulkCoins        = wrap(fetchBulkCoinsLocal);
-export const saveBulkCoins         = wrap(saveBulkCoinsLocal);
-export const fetchBulkEntries      = async () => ({ entries: await fetchBulkCoinsLocal() });
-export const addBulkEntry          = wrap(saveBulkCoinsLocal);
-export const deleteBulkEntry       = wrap(deleteBulkCoinsLocal);
+export const fetchBulkCoins        = isSelfHosted
+    ? async () => serverFetch('/api/bulk_coins')
+    : wrap(fetchBulkCoinsLocal);
+export const saveBulkCoins         = isSelfHosted
+    ? async (data) => serverFetch('/api/bulk_coins', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(saveBulkCoinsLocal);
+export const fetchBulkEntries      = isSelfHosted
+    ? async () => serverFetch('/api/bulk_coins/entries')
+    : async () => ({ entries: await fetchBulkCoinsLocal() });
+export const addBulkEntry          = isSelfHosted
+    ? async (data) => serverFetch('/api/bulk_coins/entries', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(saveBulkCoinsLocal);
+export const deleteBulkEntry       = isSelfHosted
+    ? async (id) => serverFetch('/api/bulk_coins/entries/' + id, { method: 'DELETE' })
+    : wrap(deleteBulkCoinsLocal);
 export const fetchCoinWeight       = async () => [];
 export const saveCoinWeight        = async () => ({});
 export const deleteCoinWeight      = async () => ({});

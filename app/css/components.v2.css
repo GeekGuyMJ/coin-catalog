@@ -4213,10 +4213,13 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
 .guide-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.65);
+    /* Transparent + non-interactive: ALL dimming is done by .guide-spotlight's
+       box-shadow spread (which creates a natural "hole" over the target), and
+       clicks must pass straight through to the highlighted element. */
+    background: transparent;
+    pointer-events: none;
     z-index: 10000;
     display: none;
-    animation: guide-fade-in 0.2s ease;
 }
 .guide-overlay.is-active {
     display: block;
