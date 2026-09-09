@@ -60,6 +60,7 @@ function openInfoDropdown(btn) {
   { key: 'rollHunting', label: 'Roll Hunting Tips' },
   { key: 'donate', label: 'Support This App' },
   { key: 'privacy', label: 'Privacy & Reporting Bugs' },
+  { key: 'guide', label: '✨ Take the Tour' },
   ];
 
  const menu = el('div', { className: 'info-menu', role: 'menu' });
@@ -122,6 +123,10 @@ export function openInfoSection(key) {
  case 'rollHunting': return showRollHunting();
  case 'donate': return showDonate();
  case 'privacy': return showPrivacy();
+ case 'guide': {
+    import('./guide.js').then(m => m.startTour());
+    break;
+ }
  }
 }
 

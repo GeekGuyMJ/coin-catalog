@@ -220,6 +220,7 @@ button {
     white-space: nowrap;
 }
 
+/* ---- Desktop (default) ---- */
 .header-logo {
     width: 105px;
     height: 105px;
@@ -230,12 +231,15 @@ button {
     aspect-ratio: 1 / 1 !important;
     object-fit: cover !important;
     border-radius: 50%;
-    flex-shrink:   0;
+    flex-shrink: 0;
     margin-top: -9px;
     margin-bottom: -40px;
     position:      relative;
     z-index:       10;
 }
+
+/* Tablet (≤768px) logo size is set inside the grid-layout block below (60px).
+   Small phone (≤480px) is 45px. Single clean cascade — no duplicate/oscillating sizes. */
 
 /* header-right: nav buttons + theme selector */
 .header-right {
@@ -243,8 +247,9 @@ button {
     align-items:     center;
     gap:             var(--space-2);
     margin-left:     auto;  /* push the nav group to the far right on desktop */
-    flex-wrap:       wrap;  /* allow internal wrapping of buttons if absolutely needed */
+    flex-wrap:       nowrap; /* keep on one row; fitHeader() hides Install first if tight */
     justify-content: flex-end;
+    min-width:       0;
 }
 
 /* header-settings no longer a separate wrapper (Settings lives in header-right now) */

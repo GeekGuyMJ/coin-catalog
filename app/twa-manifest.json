@@ -1,0 +1,25 @@
+{
+  "packageId": "com.geekguymj.coincatalog",
+  "host": "coin-catalog.opaleye-bluegill.ts.net",
+  "name": "Coin & Collectable Catalog",
+  "launcherName": "Coin Catalog",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#60a5fa",
+  "backgroundColor": "#121212",
+  "startUrl": "/",
+  "iconUrl": "https://coin-catalog.opaleye-bluegill.ts.net/icons/icon-512.png",
+  "maskableIconUrl": "https://coin-catalog.opaleye-bluegill.ts.net/icons/icon-512.png",
+  "monochromeIconUrl": "https://coin-catalog.opaleye-bluegill.ts.net/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "coin-catalog"
+  },
+  "appVersionCode": 1,
+  "appVersionName": "1.0.0",
+  "shortDescription": "Track, value, and manage your coin collection with live metal prices.",
+  "description": "Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.",
+  "categories": ["FINANCE", "LIFESTYLE", "UTILITIES"],
+  "playStoreUrl": "https://play.google.com/store/apps/details?id=com.geekguymj.coincatalog"
+}

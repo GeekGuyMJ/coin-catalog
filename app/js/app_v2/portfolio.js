@@ -351,6 +351,9 @@ function addDragHandle(card) {
 export function initPortfolio() {
     onChange('inventory', renderDashboard);
     onChange('wishlist', renderDashboard);
+    // Re-render when live spot prices arrive late (fixes blank spot-price card
+    // on cold load — renderDashboard used to run before fetchSpotPrices resolved).
+    onChange('spotPrices', renderDashboard);
     fetchPortfolioAsync().then(function(d){ 
         _portfolioData = d && d.portfolio ? d.portfolio : d; 
         _bulkCoinsData = d && d.bulkEntries ? d.bulkEntries : [];

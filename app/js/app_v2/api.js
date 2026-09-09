@@ -73,8 +73,7 @@ import {
     addUserPhotoLocal,
     deleteUserPhotoLocal,
     addUserCoinLocal,
-    deleteUserCoinLocal,
-    factoryResetDataLocal
+    deleteUserCoinLocal
 } from './db.js';
 
 // ============================================================
@@ -115,11 +114,19 @@ export const fetchInventory = isSelfHosted
     : wrap(fetchInventoryLocal);
 
 export const updateInventory = isSelfHosted
-    ? async (coinId, data) => serverFetch('/api/inventory', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
+    ? async (coinId, data) => {
+        // 2026-08-31: server requires coin_ref_id as an INTEGER; album passes dataset
+        // strings. Build the payload explicitly and coerce types (400 fix).
+        const payload = { coin_ref_id: parseInt(coinId, 10), quantity: parseInt(data.quantity || 0, 10) };
+        if (data.id) payload.id = parseInt(data.id, 10);
+        if (data.grade) payload.grade = data.grade;
+        if (data.notes) payload.notes = data.notes;
+        return serverFetch('/api/inventory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    }
     : wrap(updateInventoryLocal);
 
 export const deleteInventoryEntry = isSelfHosted
@@ -145,14 +152,26 @@ export const fetchStatus = isSelfHosted
     ? async () => serverFetch('/api/status')
     : wrap(fetchStatusLocal);
 
-// Image APIs — assignImage uses server on self-hosted, local IndexedDB on public
-export const assignImage = isSelfHosted
-    ? async (data) => serverFetch('/api/assign_image', {
+// Image APIs — assignImage already uses originalFetch (server-backed)
+export const assignImage = async (data) => {
+    const res = await originalFetch('/api/assign_image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data || {}),
-    })
-    : wrap(assignImageLocal);
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) return { status: 'error', error: body.error || ('HTTP ' + res.status) };
+    
+    // Only call local sync for specific_coin/specific_item scopes.
+    // For 'all' and 'empty_only', backend writes per-coin images directly
+    // and fetchCoinsForSectionLocal syncs them correctly from server.
+    const scope = (data && data.scope) || 'all';
+    if (scope === 'specific_coin' || scope === 'specific_item') {
+        try { await assignImageLocal(data); } catch (_) { /* non-fatal */ }
+    }
+    
+    return { status: body.status || 'success', message: body.message, updated: body.updated };
+};
 
 export const fetchCoinBankImages = isSelfHosted
     ? async (params = {}) => {
@@ -197,6 +216,7 @@ export const deleteUserCoin = isSelfHosted
     }
     : wrap(deleteUserCoinLocal);
 
+// Reset / purge all data (mode: 'data_only' | 'full_reset')
 export const factoryResetData = isSelfHosted
     ? async (mode) => serverFetch('/api/backup/factory_reset', {
         method: 'POST',
@@ -206,7 +226,18 @@ export const factoryResetData = isSelfHosted
     : wrap(factoryResetDataLocal);
 
 // Local-only features (no server equivalent) - always use local DB
-export const fetchSpotPrices       = wrap(fetchSpotPricesLocal);
+// Spot prices: server-first on self-hosted (nginx proxies Yahoo + backend has
+// a working /api/spot_prices), else fall back to the client-side Yahoo chain.
+export const fetchSpotPrices       = isSelfHosted
+    ? async () => {
+        const data = await serverFetch('/api/spot_prices');
+        // Backend returns raw prices; add _meta for stale-warning UI.
+        if (!data._meta) {
+            data._meta = { is_stale: false, updated_at: Date.now() };
+        }
+        return data;
+    }
+    : wrap(fetchSpotPricesLocal);
 export const fetchRawBullion       = isSelfHosted
     ? async () => serverFetch('/api/raw_bullion')
     : wrap(fetchRawBullionLocal);
@@ -400,24 +431,16 @@ if (!isSelfHosted) {
                 else { data = await fetchUserPhotosLocal(); }
             }
             else if (path.startsWith('/api/user_photos/')) { data = await deleteUserPhotoLocal(path.substring('/api/user_photos/'.length)); }
-            else if (path === '/api/user_coins') {
-                if (method === 'POST') { status = 201; data = await addUserCoinLocal(body); }
-                else { status = 404; data = { error: 'Route not available in local mode' }; }
-            }
-            else if (path.startsWith('/api/user_coins/')) { data = await deleteUserCoinLocal(path.substring('/api/user_coins/'.length)); }
             else if (path === '/api/backup/full') { data = await getFullBackupLocal(); }
             else if (path === '/api/backup/restore') { data = await restoreBackupLocal(body); }
             else if (path === '/api/backup/import_csv') { data = await importCSVLocal(rawBody); }
             else if (path === '/api/backup/zip_restore') { status = 400; data = { error: "ZIP restore is legacy backend only. Please use JSON restore." }; }
             else {
-                // LOCAL-FIRST FIX (2026-08-24): on the public (local-first) build there is
-                // no backend, so any unmatched /api/* route resolves to a clean local 404
-                // JSON instead of hitting the real network. This removes the spurious 404
-                // console errors for self-hosted-only features such as /api/upload and
-                // /api/pricing_rules while keeping every caller's .then(r => r.json())
-                // error-handling intact.
-                console.debug(`Local API Interceptor: unmatched route on local build: [${method}] ${path}`);
-                status = 404; data = { error: "Route not available in local mode" };
+                try { return await originalFetch(urlStr, init); }
+                catch (netErr) {
+                    console.warn(`Local API Interceptor: Route not matched and backend unreachable: [${method}] ${path}`);
+                    status = 404; data = { error: "Route not found" };
+                }
             }
         } catch (err) {
             console.error(`Local API Interceptor Exception at ${path}:`, err);

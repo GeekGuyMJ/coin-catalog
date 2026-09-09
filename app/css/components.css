@@ -2288,7 +2288,11 @@ select optgroup {
     /* Card header value/count overflow */
     .dashboard-card .card-title + div {
         max-width: 50%;
-        overflow: hidden;
+        overflow: visible;
+    }
+    /* Ensure all dashboard card titles are left-aligned (not centered) */
+    .dashboard-card .card-title {
+        justify-content: flex-start !important;
     }
     .dashboard-card .card-title + div span {
         white-space: nowrap;

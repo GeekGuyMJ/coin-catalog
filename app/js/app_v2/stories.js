@@ -18,7 +18,7 @@ async function fetchStoriesData() {
         return _storiesCache;
     }
     try {
-        const response = await fetch(new URL('data/stories.json', document.baseURI).href);
+        const response = await fetch('data/stories.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

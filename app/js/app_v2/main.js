@@ -31,6 +31,8 @@ import { initWishlist, openWishlistPanel } from './wishlist.js';
 
 export { showToast };
 
+import { initFirstLaunch } from './first_launch.js';
+
 // Expose dropdown toggles globally for onclick handlers in index.html
 window.toggleInfoDropdown = toggleInfoDropdown;
 window.closeInfoDropdown = closeInfoDropdown;
@@ -360,6 +362,80 @@ window.openPaperCurrencyModal = openPaperCurrencyModal;
 window.openCollectablesModal  = openCollectablesModal;
 
 // ============================================================
+// Header fit — hide the Install button FIRST when the nav row would
+// horizontally overflow (so Layout/Info/Settings/Theme stay on one row).
+// Hides Install → Layout → Info (Settings + Theme always kept).
+// ============================================================
+function fitHeader() {
+    const header = document.getElementById('app-header');
+    const inner = header && header.querySelector('.header-inner');
+    const right = header && header.querySelector('.header-right');
+    const left  = header && header.querySelector('.header-left');
+    if (!header || !inner || !right || !left) return;
+
+    const hideable = ['btn-install', 'btn-layout', 'btn-info'];
+    const installVisible = !!window._installPrompt;
+
+    // In the 2-row grid layout (≤768px) the nav sits on its own row, so there's no
+    // horizontal collision with the logo/title — CSS handles compacting there.
+    // Only run the hide logic in single-row (flex) mode.
+    if (getComputedStyle(inner).display === 'grid') {
+        for (const id of hideable) {
+            const b = document.getElementById(id);
+            if (!b) continue;
+            if (id === 'btn-install') b.style.display = installVisible ? '' : 'none';
+        }
+        return;
+    }
+
+    // Reset to natural visibility (Install only if a PWA prompt is available).
+    for (const id of hideable) {
+        const b = document.getElementById(id);
+        if (!b) continue;
+        if (id === 'btn-install') b.style.display = installVisible ? '' : 'none';
+        else b.style.display = '';
+    }
+
+    // Horizontal overflow test: do the left (logo+title) + right (nav) blocks
+    // together exceed the inner header's available width? If so, hide extras.
+    const overflowX = () => {
+        const innerRect = inner.getBoundingClientRect();
+        const leftRect  = left.getBoundingClientRect();
+        // Sum the natural (un-wrapped) widths of the visible right children.
+        const rightW = [...right.children]
+            .filter(c => c.offsetParent !== null)
+            .reduce((s, c) => s + c.getBoundingClientRect().width, 0);
+        const gap = 16; // breathing room
+        return (leftRect.width + rightW + gap) > innerRect.width;
+    };
+
+    let guard = 0;
+    while (overflowX() && guard < hideable.length) {
+        const id = hideable[guard++];
+        const b = document.getElementById(id);
+        if (!b) continue;
+        if (id === 'btn-install' && !installVisible) continue; // already hidden
+        if (b.style.display === 'none') continue;
+        b.style.display = 'none';
+    }
+}
+
+let _fitRAF = null;
+function scheduleFitHeader() {
+    if (_fitRAF) cancelAnimationFrame(_fitRAF);
+    _fitRAF = requestAnimationFrame(() => { _fitRAF = null; fitHeader(); });
+}
+window.addEventListener('resize', () => {
+    clearTimeout(window.__fitT);
+    window.__fitT = setTimeout(fitHeader, 120);
+});
+window.addEventListener('load', scheduleFitHeader);
+document.addEventListener('DOMContentLoaded', scheduleFitHeader);
+const _hdrLogoEl = document.getElementById('header-coin-img');
+if (_hdrLogoEl) { _hdrLogoEl.addEventListener('load', scheduleFitHeader); if (_hdrLogoEl.complete) scheduleFitHeader(); }
+scheduleFitHeader();
+
+// ============================================================
 // View Toggle — List vs Album
 // ============================================================
 
@@ -427,6 +503,11 @@ function initLayoutToggle() {
         import('./notifications.js').then(m => m.showToast(`Layout: ${layoutNames[currentIdx]}`, 'info', 1500));
     });
 }
+
+// ============================================================
+// User Guide Modal — First-time user onboarding
+// Initialize the first-launch popup + guided tour
+initFirstLaunch();
 
 
 // ============================================================

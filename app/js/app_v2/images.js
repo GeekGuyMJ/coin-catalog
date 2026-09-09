@@ -905,24 +905,29 @@ export async function executeImageAssignment() {
                     });
                 }
             } catch (cfgErr) {
-                console.warn('[images] Could not refresh type configs:', cfgErr);
-            }
+                            console.warn('[images] Could not refresh type configs:', cfgErr);
+                        }
 
-            // Fire the standard catalog update event so catalog.js re-renders.
-            window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: activeContext.coinId } }));
-            // ALSO fire cc-image-updated: catalog.js listens on this to refetch type
-            // configs AND re-render every open section (renderTypeAccordions). This is
-            // what makes "fill all of this type" repaint all matching coin rows at
-            // once — cc-inventory-updated alone only refreshes counts/badges, not images.
-            window.dispatchEvent(new CustomEvent('cc-image-updated'));
-            
-            // Also update the original image element if it exists and is an IMG element
-            if (activeContext.el && activeContext.el.tagName === 'IMG' && activeContext.b64) {
-                activeContext.el.src = activeContext.b64;
-            } else if (activeContext.el && activeContext.el.tagName === 'IMG' && !activeContext.b64) {
-                // If removing image, reset to placeholder
-                activeContext.el.src = placeholderCoinSvg();
-            }
+                        // Fire the standard catalog update event so catalog.js re-renders.
+                        window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: activeContext.coinId } }));
+                        // ALSO fire cc-image-updated: catalog.js listens on this to refetch type
+                        // configs AND re-render every open section (renderTypeAccordions). This is
+                        // what makes "fill all of this type" repaint all matching coin rows at
+                        // once — cc-inventory-updated alone only refreshes counts/badges, not images.
+                        window.dispatchEvent(new CustomEvent('cc-image-updated'));
+
+                        // For type-level assignments (scope 'all' or 'empty_only'), do NOT do
+                        // immediate DOM updates with a single URL — each coin gets a unique URL
+                        // based on its year/mint/descriptor. Instead, rely on the cc-image-updated
+                        // event to trigger a proper re-render with correct per-coin URLs.
+                        // For specific_coin/specific_item, update the clicked element immediately.
+                        if (scope === 'specific_coin' || scope === 'specific_item') {
+                            if (activeContext.el && activeContext.el.tagName === 'IMG' && activeContext.b64) {
+                                activeContext.el.src = activeContext.b64;
+                            } else if (activeContext.el && activeContext.el.tagName === 'IMG' && !activeContext.b64) {
+                                activeContext.el.src = placeholderCoinSvg();
+                            }
+                        }
         } else {
             showToast(result.error || 'Failed to update image', 'error');
         }
