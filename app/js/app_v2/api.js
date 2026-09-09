@@ -69,6 +69,7 @@ import {
     importCSVLocal,
     deleteBulkCoinsLocal,
     fetchSpotHistoryLocal,
+    factoryResetDataLocal,
     fetchUserPhotosLocal,
     addUserPhotoLocal,
     deleteUserPhotoLocal,
