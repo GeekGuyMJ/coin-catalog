@@ -48,22 +48,25 @@ const TOUR_STEPS = [
         selector: null, // dynamic: the Lincoln Wheat type header
         placement: 'below',
         title: 'Pick a Type',
-        body: 'Inside each section, coins are broken into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design.',
-        before: async () => {
-            await ensureSectionOpen('section-USCoinageLargeSmallCent');
-            await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            scrollToSelector('#section-USCoinageLargeSmallCent .type-wrapper .type-title');
-        }
-    },
-    {
-        selector: null, // dynamic: 1909-S (VDB) row
+                body: 'Inside each section, coins are broken into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design.',
+                before: async () => {
+                    await ensureSectionOpen('section-USCoinageLargeSmallCent');
+                    await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
+                    const header = findLincolnWheatHeader();
+                    if (header) await scrollToEl(header);
+                }
+            },
+            {
+                selector: null, // dynamic: 1909-S (VDB) row + Historical Note
         placement: 'below',
         title: 'Open a Coin\u2019s Note',
         body: 'Tap the bar for \u201c1909-S (VDB)\u201d to reveal its Historical Note \u2014 interesting history behind each coin.',
         before: async () => {
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155'); // 1909-S (VDB)
+            await ensureCoinRowOpen('155'); // 1909-S (VDB) \u2192 opens Historical Note
+            const wrapper = findCoinRowWrapper('155');
+            if (wrapper) await scrollToEl(wrapper);
         }
     },
     {
@@ -75,10 +78,13 @@ const TOUR_STEPS = [
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             await ensureCoinRowOpen('155');
+            const row = findCoinRow('155');
+            const stepper = row?.querySelector('[data-action="stepper-inc"]');
+            if (stepper) await scrollToEl(stepper);
         }
     },
     {
-        selector: null, // dynamic: the Data Entries panel
+        selector: null, // dynamic: the Data Entries panel (whole wrapper)
         placement: 'below',
         title: 'Your Data Entries',
         body: 'Here\u2019s your new entry \u2014 record grade, price, value, and notes. Multiple entries let you track each individual coin you own.',
@@ -86,6 +92,8 @@ const TOUR_STEPS = [
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             await ensureCoinRowOpen('155');
+            const wrapper = findCoinRowWrapper('155');
+            if (wrapper) await scrollToEl(wrapper);
         }
     },
     {
@@ -144,17 +152,38 @@ function ensureDom() {
     document.body.appendChild(bubble);
 }
 
-function scrollToSelector(sel) {
-    const el = document.querySelector(sel);
-    if (el && typeof el.scrollIntoView === 'function') {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+function smartScroll(el) {
+    if (!el) return Promise.resolve();
+    const h = el.getBoundingClientRect().height;
+    const vh = window.innerHeight;
+    const block = h > vh * 0.9 ? 'start' : 'center';
+    // Use BOTH scrollIntoView and a manual window.scrollTo fallback. scrollIntoView
+    // on an element that is still expanding (accordion opening) sometimes lands the
+    // element below the fold; a manual absolute scrollTo is more reliable.
+    if (typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'auto', block });
     }
+    // Manual absolute correction: compute the element's document position and
+    // scroll so its block anchor sits at the desired viewport offset.
+    const rect = el.getBoundingClientRect();
+    const absTop = window.scrollY + rect.top;
+    let targetY;
+    if (block === 'start') {
+        targetY = absTop - 20;
+    } else {
+        targetY = absTop - (vh - h) / 2;
+    }
+    window.scrollTo(0, Math.max(0, targetY));
+    // Small delay to let layout settle after scrolling, so spotlight gets correct rect.
+    return new Promise(r => setTimeout(r, 120));
 }
 
-function scrollToEl(el) {
-    if (el && typeof el.scrollIntoView === 'function') {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
+async function scrollToSelector(sel) {
+    await smartScroll(document.querySelector(sel));
+}
+
+async function scrollToEl(el) {
+    await smartScroll(el);
 }
 
 // Resolve the element to spotlight for the current step (may be dynamic).
@@ -236,20 +265,21 @@ async function openType(typeName, sectionId) {
 }
 
 async function ensureCoinRowOpen(coinId) {
-    const row = findCoinRow(coinId);
-    if (!row) return;
-    // Open the detail panel (▼ Details) if not open
-    const dp = row.querySelector('.coin-detail-panel');
-    const detailToggle = row.querySelector('.coin-row-detail-toggle');
+    const wrapper = findCoinRowWrapper(coinId);
+    if (!wrapper) return;
+    // Open the detail panel (▼ Details) if not open. The .coin-detail-panel is a
+    // SIBLING of .coin-row (both children of .coin-row-wrapper), not a child of
+    // .coin-row, so look it up on the wrapper.
+    const dp = wrapper.querySelector('.coin-detail-panel');
+    const detailToggle = wrapper.querySelector('.coin-row-detail-toggle');
     if (dp && detailToggle && !dp.classList.contains('open')) {
         detailToggle.click();
         await new Promise(r => setTimeout(r, 600));
     }
-    // Also ensure the Historical Note is expanded if present
-    const refToggle = row.querySelector('[data-action="toggle-historical"]');
+    // Also ensure the Historical Note is expanded if present (it lives inside the
+    // detail panel).
+    const refToggle = wrapper.querySelector('[data-action="toggle-historical"]');
     if (refToggle) {
-        const noteText = row.querySelector('.coin-ref-note');
-        // Click to open historical note
         refToggle.click();
         await new Promise(r => setTimeout(r, 400));
     }
@@ -385,6 +415,17 @@ function renderStep() {
     requestAnimationFrame(() => {
         positionBubble(el.getBoundingClientRect());
     });
+    // A second deferred pass after layout settles (accordions expanding, images
+    // loading) so the spotlight/bubble land on the final position instead of
+    // drifting off-screen while a section is still expanding.
+    setTimeout(() => {
+        if (!isRunning) return;
+        const liveEl = resolveTarget();
+        if (liveEl) {
+            positionSpotlight(liveEl);
+            positionBubble(liveEl.getBoundingClientRect());
+        }
+    }, 300);
 }
 
 // ---- navigation -----------------------------------------------------
@@ -392,6 +433,15 @@ function renderStep() {
 async function showCurrent() {
     const step = TOUR_STEPS[currentStep];
     if (step.before) { try { await step.before(); } catch (e) { console.warn('[guide]', e); } }
+    // Force a layout flush and correction: after the before hook's async work
+    // (accordions expanding, scrolling) completes, force one more scroll pass
+    // so the spotlight lands exactly on target. This handles the race where
+    // accordions are still expanding when positionSpotlight runs.
+    const target = resolveTarget();
+    if (target) {
+        smartScroll(target);
+        await new Promise(r => setTimeout(r, 80));
+    }
     renderStep();
 }
 
