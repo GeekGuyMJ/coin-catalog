@@ -524,7 +524,7 @@ if (typeof window._markBootComplete !== 'function') {
 
 // ============================================================
 // Expose app version for About modal
-window.APP_VERSION = "2.0.3-fix-input-clearing";
+window.APP_VERSION = "2.0";
 
 // Start the app
 // ============================================================

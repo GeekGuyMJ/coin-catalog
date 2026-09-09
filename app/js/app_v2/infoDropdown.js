@@ -137,7 +137,7 @@ function showAbout() {
  'About Coin Catalog v2',
  `Version ${version}`,
  [
- { text: 'A self-hosted coin and collectable collection tracker with live metal prices, album view, and comprehensive inventory management.' },
+ { text: 'A coin and collectable collection tracker with live metal prices, album view, and comprehensive inventory management.' },
  { heading: 'What it does', list: [
  'Tracks 6,400+ US coin types across albums and sections (Half Cent through modern issues, US Gold, Bullion Eagles, Commemoratives, State/Park Quarters, Presidential Dollars, First Spouse coins, plus Canadian coins cent through $2 Toonie)',
  '4-level hierarchy: Section → Series → Sub-type → Individual coin — every variety has its own entry',
@@ -172,7 +172,7 @@ function showAbout() {
   'Upload obverse & reverse reference photos for any coin type (type-level applies to all coins of that type)',
   'Upload a personal photo of your actual coin in the Details panel (per-coin)',
   'Circular cropping tool with zoom, rotate, and the option to use the original shape for paper currency',
-  'Self-hosted app stores uploads under /data/images/types/user/ (personal photos under /data/images/personal/); the public app resolves the same images relative to its own base path',
+  'The app stores uploads under /data/images/types/user/ (personal photos under /data/images/personal/); the public app resolves the same images relative to its own base path',
   'WebP format with automatic conversion',
   ]},
  { heading: 'Search & View Options', list: [
@@ -186,7 +186,7 @@ function showAbout() {
  { heading: 'Cloud Backup & Sync', list: [
   'Google Drive — backup to your Drive app folder using Google Identity Services',
   'Dropbox — backup using PKCE OAuth flow (no server needed)',
-  'WebDAV — self-hosted WebDAV-compatible storage (Nextcloud, ownCloud, Synology)',
+  'WebDAV — WebDAV-compatible storage (Nextcloud, ownCloud, Synology)',
   'All providers work entirely client-side — no backend server required',
   'Full JSON backup & restore, ZIP backup, and CSV export/import',
   ]},
@@ -440,7 +440,7 @@ function showPrivacy() {
  `Coin Catalog v2 — ${version}`,
  [
  { heading: 'Your data stays yours', list: [
- 'All collection data is stored locally on your self-hosted server',
+ 'All collection data is stored locally on your your server',
  'No accounts, no telemetry, no third-party analytics',
  'Live spot prices are fetched from a public metals API only',
  'Export anytime from Settings → Data & Backup',
