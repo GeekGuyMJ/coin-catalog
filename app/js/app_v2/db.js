@@ -1145,7 +1145,8 @@ export async function fetchSpotPricesLocal() {
     }
 
     // Check if we got fresh data
-    const freshCount = Object.keys(symbolMap).filter(k => prices[k] !== FALLBACK_SPOT_PRICES[k]).length;
+    const METAL_KEYS = ['gold_oz', 'silver_oz', 'copper_lb', 'platinum_oz', 'palladium_oz'];
+    const freshCount = METAL_KEYS.filter(k => prices[k] !== FALLBACK_SPOT_PRICES[k]).length;
     
     // Update cache if we got fresh data
     if (freshCount > 0) {
