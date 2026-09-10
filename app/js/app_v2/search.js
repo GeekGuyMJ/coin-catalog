@@ -26,7 +26,7 @@ import {
 import { fetchCoinsForSection } from './api.js';
 import { renderSections } from './catalog.js';
 import {
-    getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear,
+    getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear, resolveImageUrl,
 } from './utils.js';
 import { showToast } from './notifications.js';
 
@@ -377,7 +377,7 @@ function buildSearchRow(coin, mainType) {
     // --- Thumbnail ---
     const tw = document.createElement('div');
     tw.className = 'coin-row-thumb-wrap';
-    const imgSrc = cfg.rev_image || cfg.obv_image || null;
+    const imgSrc = resolveImageUrl(cfg.rev_image || cfg.obv_image || null);
     if (imgSrc) {
         const img = document.createElement('img');
         img.className = 'coin-row-thumb';

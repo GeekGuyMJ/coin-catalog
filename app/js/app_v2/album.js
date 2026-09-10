@@ -431,8 +431,8 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
     }
     
     // Prefer the coin's own uploaded image (per-coin), then fall back to the type-config default.
-    const obvImg = coin.obv_image;
-    const revImg = coin.rev_image;
+    const obvImg = resolveImageUrl(coin.obv_image);
+    const revImg = resolveImageUrl(coin.rev_image);
     let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
     if (displayImg && !displayImg.includes('?')) {
         displayImg += '?v=2';
