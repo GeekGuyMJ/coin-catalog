@@ -1093,16 +1093,13 @@ async function _fetchGoldApiSpot(key) {
     }
 }
 
+// 2026-09-10: Cloudflare Worker proxy (unlimited, CORS-safe, 15-min edge cache).
+// Replaces direct gold-api.com calls which were rate-limited to 100 req/day.
+// Worker URL: https://coin-catalog-spot.matt-e-jenkins.workers.dev
 export async function fetchSpotPricesLocal() {
-    const symbolMap = {
-        gold_oz: "XAU",
-        silver_oz: "XAG",
-        platinum_oz: "XPT",
-        palladium_oz: "XPD",
-        copper_lb: "HG"
-    };
+    const WORKER_URL = "https://coin-catalog-spot.matt-e-jenkins.workers.dev";
 
-    // Check cache first (15 min TTL = 96 req/day, well under 100/day limit)
+    // Check cache first (15 min TTL = 96 req/day per client)
     let cached = null;
     try {
         const c = localStorage.getItem('cc-spot-cache');
@@ -1122,33 +1119,29 @@ export async function fetchSpotPricesLocal() {
         Object.assign(prices, cached.prices);
     }
 
-    // Fetch from gold-api.com (free, no key, 100 req/day limit)
-    // 15 min interval = 96 req/day, well under 100/day limit
-    const promises = Object.entries(symbolMap).map(async ([key, symbol]) => {
-        try {
-            const resp = await fetch(`https://api.gold-api.com/price/${symbol}`, {
-                signal: AbortSignal.timeout(8000)
-            });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    // Single request to Cloudflare Worker (edge-cached, CORS-safe, unlimited)
+    // Worker returns { gold_oz, silver_oz, copper_lb, platinum_oz, palladium_oz, _meta }
+    try {
+        const resp = await fetch("https://coin-catalog-spot.matt-e-jenkins.workers.dev", {
+            signal: AbortSignal.timeout(8000)
+        });
+        if (resp.ok) {
             const data = await resp.json();
-            // gold-api.com returns { metal: "XAU", price: 1234.56, currency: "USD", date: "2024-01-01", timestamp: 1234567890 }
-            const price = data?.price;
-            if (typeof price === 'number' && price > 0) {
-                return { key, price: parseFloat(price.toFixed(2)) };
+            if (data && typeof data === 'object') {
+                // Merge worker prices (null values ignored)
+                for (const key of ['gold_oz', 'silver_oz', 'copper_lb', 'platinum_oz', 'palladium_oz']) {
+                    if (data[key] !== null && data[key] !== undefined) {
+                        prices[key] = data[key];
+                    }
+                }
+                // Preserve worker's _meta if present
+                if (data._meta) {
+                    prices._meta = data._meta;
+                }
             }
-            throw new Error(`Invalid price: ${price}`);
-        } catch (e) {
-            console.warn(`gold-api.com failed for ${symbol}: ${e.message}`);
-            return { key, price: null };
         }
-    });
-
-    const results = await Promise.allSettled(promises);
-
-    for (const result of results) {
-        if (result.status === 'fulfilled' && result.value.price !== null) {
-            prices[result.value.key] = result.value.price;
-        }
+    } catch (e) {
+        console.warn('Worker spot fetch failed:', e);
     }
 
     // Check if we got fresh data
