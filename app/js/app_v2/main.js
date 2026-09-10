@@ -150,24 +150,24 @@ async function boot() {
         setWishlist([]);
         console.log('[boot] Continued with empty data - app will show "no data" state');
         
-    }, 15000); // 15 seconds max for entire boot sequence
+    }, 60000); // 60 seconds max for entire boot sequence
 
     try {
         // Initialize the local database (seeds from coins.json if empty) - with timeout!
         console.log('[boot] Seeding database...');
-        await timeout(initDb(), 15000, 'initDb');
+        await timeout(initDb(), 45000, 'initDb');
         console.log('[boot] Database ready.');
 
         // Load sections, inventory, type configs, and wishlist in parallel with timeout protection
         console.log('[boot] Fetching data...');
         console.log('[boot] Starting fetchSections()...');
-        const sectionsPromise = timeout(fetchSections(), 12000, 'sections').catch(e => { console.warn('[boot] sections failed:', e.message); return []; });
+        const sectionsPromise = timeout(fetchSections(), 30000, 'sections').catch(e => { console.warn('[boot] sections failed:', e.message); return []; });
         console.log('[boot] Starting fetchInventory()...');
-        const inventoryPromise = timeout(fetchInventory(), 12000, 'inventory').catch(e => { console.warn('[boot] inventory failed:', e.message); return {}; });
+        const inventoryPromise = timeout(fetchInventory(), 30000, 'inventory').catch(e => { console.warn('[boot] inventory failed:', e.message); return {}; });
         console.log('[boot] Starting fetchTypeConfigs()...');
-        const typeConfigsPromise = timeout(fetchTypeConfigs(), 8000, 'typeConfigs').catch(e => { console.warn('[boot] typeConfigs failed:', e.message); return {}; });
+        const typeConfigsPromise = timeout(fetchTypeConfigs(), 20000, 'typeConfigs').catch(e => { console.warn('[boot] typeConfigs failed:', e.message); return {}; });
         console.log('[boot] Starting fetchWishlist()...');
-        const wishlistPromise = timeout(fetchWishlist(), 6000, 'wishlist').catch(e => { console.warn('[boot] wishlist failed:', e.message); return []; });
+        const wishlistPromise = timeout(fetchWishlist(), 15000, 'wishlist').catch(e => { console.warn('[boot] wishlist failed:', e.message); return []; });
         
         const [sections, inventory, typeConfigs, wishlist] = await Promise.all([
             sectionsPromise,
