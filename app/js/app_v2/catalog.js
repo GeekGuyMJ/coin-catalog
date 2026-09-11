@@ -35,6 +35,44 @@ const _expandedSections = new Set();
 const _expandedTypes = new Set();
 const _expandedCountries = new Set(['United States', 'Canada']); // Default US/Canada open
 
+// --- Section Filter State (set by search.js when pills are active) ---
+// When pill filters are active (no text query), the catalog renders with its
+// NORMAL list/album layout but only shows matching coins — and hides whole
+// sections/types with zero matches. Filtering happens here in catalog.js so the
+// layout is identical to unfiltered browsing.
+let _catalogFilter = null; // { missingOnly, hideProofs, hideErrors, keyDates, minYear, maxYear } | null
+
+export function setCatalogFilter(filter) {
+    _catalogFilter = filter;
+}
+
+export function clearCatalogFilter() {
+    _catalogFilter = null;
+}
+
+// Returns filtered coins (with inventory qty always available) or null when no filter.
+function applyCatalogFilter(coins) {
+    if (!_catalogFilter) return coins;
+    const f = _catalogFilter;
+    return (coins || []).filter(c => {
+        if (f.missingOnly && getInventoryTotalQty(c.id) > 0) return false;
+        if (f.hideProofs && c.is_proof) return false;
+        if (f.hideErrors && (c.is_error || isErrorVariety(c.coin_type, c.ref_notes))) return false;
+        if (f.keyDates && !c.is_key_date) return false;
+        if (f.minYear !== null || f.maxYear !== null) {
+            const y = sortYear(c);
+            if (f.minYear !== null && y < f.minYear) return false;
+            if (f.maxYear !== null && y > f.maxYear) return false;
+        }
+        return true;
+    });
+}
+
+// Returns true if ANY pill filter (missing/hide-proofs/hide-errors/key-dates/year) is active.
+export function hasActiveCatalogFilter() {
+    return !!_catalogFilter;
+}
+
 // --- View Mode ---
 function isAlbumMode() {
     return _catalogViewMode === 'folder' || _catalogViewMode === 'album';
@@ -48,12 +86,16 @@ function isAlbumMode() {
  * Render all section cards into #catalog-container.
  * Called once after sections are loaded from the API.
  */
-export function renderSections() {
+export function renderSections(visibleSections) {
     const container = document.getElementById('catalog-container');
     if (!container) return;
     container.innerHTML = '';
 
-    const sections = getSections();
+    let sections = getSections();
+    // If a filter provides an explicit allow-list of section names, keep only those.
+    if (visibleSections instanceof Set) {
+        sections = sections.filter(s => visibleSections.has(s.section));
+    }
     if (!sections.length) {
         container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalogue.</p>';
         return;
@@ -399,9 +441,13 @@ function renderTypeAccordions(container, coins) {
         }
     }
 
+    // Apply active pill filters (missing-only / hide-proofs / hide-errors /
+    // key-dates / year range). When no filter is active this is a no-op.
+    const filteredCoins = applyCatalogFilter(uniqueCoins);
+
     // Group by main type
     const typeMap = new Map();
-    for (const coin of uniqueCoins) {
+    for (const coin of filteredCoins) {
         const main = getMainType(coin.coin_type);
         if (!typeMap.has(main)) typeMap.set(main, []);
         typeMap.get(main).push(coin);
@@ -1143,6 +1189,9 @@ function buildCoinRow(coin) {
     var dateStr = labelParts.length > 0 ? ` (${labelParts.join(', ')})` : "";
     tl.appendChild(document.createTextNode(yr + mt + dateStr));
     if (coin.is_key_date) tl.append(" ", el("span", {className: "badge badge-key"}, "\u2b50 Key"));
+    if (coin.is_semi_key) tl.append(" ", el("span", {className: "badge badge-semi-key"}, "\u25c6 Semi-Key"));
+    if (coin.is_lowest_mintage) tl.append(" ", el("span", {className: "badge badge-lowest-mintage"}, "\u25bc Lowest Mintage"));
+    if (coin.is_lowest_mintage_proof) tl.append(" ", el("span", {className: "badge badge-lowest-mintage"}, "\u25bc Lowest Proof Mintage"));
     if (coin.is_proof) {
         tl.append(" ", el("span", {className: "badge badge-proof"}, "\uD83D\uDC8E Proof"));
         var isSilver = coin.metal && coin.metal.toLowerCase().includes('silver');
@@ -2228,10 +2277,8 @@ export function openCoinDetailModal(coinId) {
         const getDisplayImgSrc = (side) => {
             const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
             const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-            // Prefer the coin's OWN per-coin image, then type-config fallback. Resolve
-            // through resolveImageUrl so the public app's /coin-catalog/app/ sub-path works.
-            const obv = resolveImageUrl((coin.obv_image || null) || specObv || mainCfg.obv_image);
-            const rev = resolveImageUrl((coin.rev_image || null) || specRev || mainCfg.rev_image);
+            const obv = specObv || mainCfg.obv_image;
+            const rev = specRev || mainCfg.rev_image;
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
             if (src && !src.includes('?')) src += '';
             return src;

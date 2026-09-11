@@ -695,7 +695,7 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                             // Fixes stale local copies keeping old year/type after a data fix
                             // (e.g. Bicentennial double-date merge) — the row id exists on both
                             // sides but its year/type drifted.
-                            const _fields = ['coin_type', 'year', 'mint_mark', 'is_proof', 'denomination', 'metal', 'mintage'];
+                            const _fields = ['coin_type', 'year', 'mint_mark', 'is_proof', 'denomination', 'metal', 'mintage', 'is_key_date', 'is_semi_key', 'is_lowest_mintage', 'is_lowest_mintage_proof', 'ref_notes'];
                             const _fieldUpd = {};
                             for (const _f of _fields) {
                                 if (_s[_f] !== undefined && String(_c[_f]) !== String(_s[_f])) {
