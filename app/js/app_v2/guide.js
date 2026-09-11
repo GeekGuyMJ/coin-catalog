@@ -23,21 +23,21 @@ const TOUR_STEPS = [
         selector: '#card-portfolio',
         placement: 'below',
         title: 'Your Portfolio Overview',
-        body: 'This is your whole collection at a glance — total value, metal melt values, and a sparkline of how it\u2019s changed. Everything you add anywhere shows up here.',
-        before: async () => { scrollToSelector('#card-portfolio'); }
+        body: 'This is your whole collection at a glance — total value, metal melt values, and how it\u2019s changed over time. Everything you add anywhere in the app shows up here.',
+        before: async () => { await scrollToSelector('#card-portfolio'); }
     },
     {
-        selector: '#dashboard-grid',
+        selector: '#card-spot',
         placement: 'below',
         title: 'Your Dashboard Cards',
-        body: 'These cards summarize your collection. Drag the \u2630 handle to reorder, drag edges to resize, and hide cards you don\u2019t use from Settings.',
-        before: async () => { scrollToSelector('#dashboard-grid'); }
+        body: 'The dashboard is made of cards like this one. Drag the \u2630 handle to reorder them, drag the edges to resize, and hide any card you don\u2019t use — all from Settings.',
+        before: async () => { await scrollToSelector('#card-spot'); }
     },
     {
         selector: '#section-USCoinageLargeSmallCent .section-header',
         placement: 'below',
         title: 'Browse the Catalog',
-        body: 'Coins are grouped by country and denomination. Let\u2019s open \u201cUS Coinage \u2014 Large & Small Cent\u201d so you can see how the list works.',
+        body: 'Coins are grouped by country and denomination. Tap \u201cUS Coinage — Large & Small Cent\u201d to open it and see how the list is organized.',
         before: async () => {
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
@@ -45,89 +45,90 @@ const TOUR_STEPS = [
         }
     },
     {
-        selector: null, // dynamic: the Lincoln Wheat type header
+        selector: null, // dynamic: Lincoln Wheat type header
         placement: 'below',
         title: 'Pick a Type',
-                body: 'Inside each section, coins are broken into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design.',
-                before: async () => {
-                    await switchToList();
-                    await ensureSectionOpen('section-USCoinageLargeSmallCent');
-                    await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-                    const header = findLincolnWheatHeader();
-                    if (header) await scrollToEl(header);
-                }
-            },
-            {
-                selector: null, // dynamic: 1909-S (VDB) row + Historical Note
-        placement: 'below',
-        title: 'Open a Coin\u2019s Note',
-        body: 'Tap the bar for \u201c1909-S (VDB)\u201d to reveal its Historical Note \u2014 interesting history behind each coin.',
+        body: 'Inside each section, coins are divided into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design in one list.',
         before: async () => {
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155', true); // open detail panel + Historical Note
-            const wrapper = findCoinRowWrapper('155');
-            if (wrapper) await scrollToEl(wrapper);
+            const header = findLincolnWheatHeader();
+            if (header) await scrollToEl(header);
+        }
+    },
+    {
+        selector: null, // dynamic: 1909-S (VDB) coin row (closed)
+        placement: 'below',
+        title: 'Open a Coin\u2019s Note',
+        body: 'Each coin row has a detail area. Tap the row for \u201c1909-S (VDB)\u201d to expand it and reveal its Historical Note and data fields.',
+        before: async () => {
+            await switchToList();
+            await ensureSectionOpen('section-USCoinageLargeSmallCent');
+            await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
+            const row = findCoinRow('155');
+            if (row) await scrollToEl(row);
         }
     },
     {
         selector: null, // dynamic: the + stepper of the VDB row
         placement: 'below',
-        title: 'Add One Coin',
-        body: 'Now tap the \u201c+\u201d to add one to your collection. Watch how the Data Entries section appears with fields for grade, price, and notes.',
+        title: 'Track How Many You Own',
+        body: 'Use the \u201c+\u201d and \u201c\u2212\u201d buttons to record how many of a coin you own. Each press updates your totals and the detail area below.',
         before: async () => {
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155');
+            await ensureCoinRowOpen('155'); // open the detail panel so the + is visible in context
             const row = findCoinRow('155');
             const stepper = row?.querySelector('[data-action="stepper-inc"]');
             if (stepper) await scrollToEl(stepper);
         }
     },
     {
-        selector: null, // dynamic: the Data Entries panel (whole wrapper)
+        selector: null, // dynamic: the coin detail panel (notes + data entries)
         placement: 'below',
-        title: 'Your Data Entries',
-        body: 'Here\u2019s your new entry \u2014 record grade, price, value, and notes. Multiple entries let you track each individual coin you own.',
+        title: 'Your Entries & Notes',
+        body: 'This detail area is where you record grade, price, value, and notes for each coin you own. Add multiple entries to track every individual piece.',
         before: async () => {
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155');
+            await ensureCoinRowOpen('155', true); // open panel + historical note so the area is visible
             const wrapper = findCoinRowWrapper('155');
-            if (wrapper) await scrollToEl(wrapper);
+            const panel = wrapper?.querySelector('.coin-detail-panel');
+            if (panel) await scrollToEl(panel);
         }
     },
     {
         selector: '.folder-view-toggle',
         placement: 'below',
         title: 'Switch to Album View',
-        body: 'Now tap \u201cAlbum\u201d to see your Lincoln Wheat collection as a real album of coin slots.',
+        body: 'Tap \u201cAlbum\u201d to see your collection as a real stamp-style album of coin slots instead of a list.',
         before: async () => {
             await switchToAlbum();
-            scrollToSelector('.folder-view-toggle');
+            await scrollToSelector('.folder-view-toggle');
         }
     },
     {
-        selector: null, // dynamic: the Lincoln Wheat album inline grid
+        selector: null, // dynamic: Lincoln Wheat album inline grid
         placement: 'below',
         title: 'Your Lincoln Wheat Album',
-        body: 'That\u2019s your Lincoln Wheat album. Owned coins are filled in; empty slots are still missing. Tap any filled coin to open its details.',
+        body: 'Here\u2019s Lincoln Wheat in album form. Owned coins are filled in; empty slots are still missing from your collection. Tap any filled coin to open its details.',
         before: async () => {
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            // make sure album mode is active and the grid is rendered
             await switchToAlbum();
+            const grid = document.querySelector('#section-USCoinageLargeSmallCent .type-content.album-inline');
+            if (grid) await scrollToEl(grid);
         }
     },
     {
         selector: '#btn-settings',
         placement: 'left',
         title: 'Customize Everything',
-        body: 'Finally, Settings is where you change themes, pick visible cards/sections, and fine-tune the app \u2014 and you can always replay this tour from the \u24d8 info menu.',
-        before: async () => { scrollToSelector('#btn-settings'); }
+        body: 'Settings is where you change themes, choose which cards and sections are visible, and fine-tune the app. You can replay this tour anytime from the \u24d8 info menu.',
+        before: async () => { await scrollToSelector('#btn-settings'); }
     }
 ];
 
@@ -200,21 +201,16 @@ function resolveTarget() {
         case 3: { // Lincoln Wheat type header
             return findLincolnWheatHeader();
         }
-        case 4: { // 1909-S (VDB) row + Historical Note (highlight the note content)
-            const wrapper = findCoinRowWrapper('155');
-            // Prefer the reference-note block if it is now visible (opened by the
-            // before hook); fall back to the whole wrapper.
-            const note = wrapper?.querySelector('.coin-detail-ref');
-            if (note && note.style.display !== 'none') return note;
-            return wrapper;
+        case 4: { // 1909-S (VDB) coin ROW (the bar the user should tap)
+            return findCoinRow('155');
         }
         case 5: { // + stepper of VDB row
             const row = findCoinRow('155');
             return row?.querySelector('[data-action="stepper-inc"]');
         }
-        case 6: { // Data Entries panel (highlight the slots wrap)
+        case 6: { // coin detail panel (notes + data entries area)
             const wrapper = findCoinRowWrapper('155');
-            return wrapper?.querySelector('.coin-slots-wrap') || wrapper?.querySelector('.coin-detail-panel') || wrapper;
+            return wrapper?.querySelector('.coin-detail-panel') || wrapper;
         }
         case 8: { // Lincoln Wheat album inline grid
             const card = document.getElementById('section-USCoinageLargeSmallCent');
@@ -351,10 +347,16 @@ async function switchToList() {
 
 function positionSpotlight(el) {
     const r = el.getBoundingClientRect();
-    spotlight.style.top = r.top + 'px';
+    // Clamp oversized targets (whole dashboard grid, full album) to a readable
+    // height so the spotlight doesn't span the entire viewport. We highlight the
+    // top portion of the element and rely on the bubble copy to explain the rest.
+    const CLAMP = Math.round(window.innerHeight * 0.62);
+    let h = r.height + 10;
+    if (h > CLAMP) h = CLAMP;
+    spotlight.style.top = Math.max(0, r.top) + 'px';
     spotlight.style.left = r.left + 'px';
     spotlight.style.width = (r.width + 10) + 'px';
-    spotlight.style.height = (r.height + 10) + 'px';
+    spotlight.style.height = h + 'px';
     spotlight.style.display = 'block';
 }
 
