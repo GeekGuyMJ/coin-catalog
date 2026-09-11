@@ -441,7 +441,7 @@ function renderTypeAccordions(container, coins) {
 function resolveExampleImage(mainType, typeCoins, side, section) {
     const cfg = getTypeConfig(mainType, section) || {};
     const override = side === 'obv' ? cfg.example_obv_image : cfg.example_rev_image;
-    if (override) return override;
+    if (override) return resolveImageUrl(override);
 
     const field = side === 'obv' ? 'obv_image' : 'rev_image';
     const deletedField = '_deleted_' + field;
@@ -449,7 +449,7 @@ function resolveExampleImage(mainType, typeCoins, side, section) {
     const sorted = [...(typeCoins || [])].sort((a, b) => (a.year || 0) - (b.year || 0));
     for (const c of sorted) {
         if (c[deletedField]) continue;
-        if (c[field]) return c[field];
+        if (c[field]) return resolveImageUrl(c[field]);
     }
     return null; // no fallback → placeholder
 }
@@ -485,7 +485,7 @@ function refreshSectionHeaderExample(sectionName, coins) {
         const deleted = '_deleted_' + field;
         const sorted = [...matches].sort((a, b) => (a.year || 0) - (b.year || 0));
         let src = null;
-        for (const c of sorted) { if (!c[deleted] && c[field]) { src = c[field]; break; } }
+        for (const c of sorted) { if (!c[deleted] && c[field]) { src = resolveImageUrl(c[field]); break; } }
         if (!src) return;
         let img = pair.querySelector(`img[data-side="${side}"]`) || pair.querySelector(`img.coin-thumb.${side}`);
         if (!img) return;
