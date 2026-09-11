@@ -3547,6 +3547,13 @@ select optgroup {
     grid-auto-flow: dense;
 }
 
+/* Desktop↔tablet: 3 columns at 769–1100px so cards never get too skinny. */
+@media (min-width: 769px) and (max-width: 1100px) {
+    .dashboard-grid:not(.layout-list) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 /* Ensure dashboard cards are visible by default */
 .dashboard-card {
     display: flex !important;
