@@ -1107,7 +1107,12 @@ export async function fetchSpotPricesLocal() {
             const parsed = JSON.parse(c);
             const age = Date.now() - parsed.updated_at;
             if (age < 15 * 60 * 1000) { // 15 min TTL
-                return parsed;
+                // Cache is stored as { prices: {...}, updated_at }; return the SAME
+                // UNWRAPPED shape as a fresh fetch ({ gold_oz, ..., _meta }) so
+                // setSpotPrices()/getSpotPrices() always see top-level metal keys.
+                // (Previously returned `parsed` directly → wrapped shape → blank card.)
+                const p = parsed.prices || parsed;
+                return { ...FALLBACK_SPOT_PRICES, ...p, _meta: { is_stale: false, updated_at: parsed.updated_at } };
             }
             cached = parsed; // Use stale data as fallback
         }
