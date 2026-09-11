@@ -453,7 +453,7 @@ function buildSpotTrendCard(prices) {
         { key: 'copper_lb', base: 'copper', l: 'Copper', c: '#b45309' }
     ];
 
-    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:4px;font-size:0.62em;flex-wrap:nowrap;white-space:nowrap;' });
+    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:4px;font-size:0.62em;flex-wrap:wrap;white-space:nowrap;' });
     var periods = ['1D', '1W', '1M', '1Y', '10Y', 'All'];
     var activePeriod = localStorage.getItem('cc-trend-period') || 'All';
     periods.forEach(function(p) {
@@ -1438,7 +1438,7 @@ async function buildSpotPricesCard(prices) {
     var titleRow = el('div', {style:'display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;padding-right:28px;'});
     titleRow.appendChild(el('div',{className:'card-title', style:'margin-bottom:0;'},'Live Spot Prices'));
     
-    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:4px; font-size:0.62em; flex-wrap:nowrap; white-space:nowrap;'});
+    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:4px; font-size:0.62em; flex-wrap:wrap; white-space:nowrap;'});
     var periods = [
         {label:'1D', range:'1D'},
         {label:'1W', range:'1W'},
