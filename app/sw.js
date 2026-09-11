@@ -1,7 +1,7 @@
 // Coin Catalog — Public GitHub Pages Service Worker
-// v269: NETWORK-FIRST for JS/JSON/images; cache-first for CSS/icons.
+// v270: NETWORK-FIRST for JS/JSON/images; cache-first for CSS/icons.
 // Bumping CACHE purges all previously-cached (possibly stale) assets.
-const CACHE = "coin-catalog-v269";
+const CACHE = "coin-catalog-v270";
 const BASE = "/coin-catalog/app/";
 const ASSETS = [
   BASE,
