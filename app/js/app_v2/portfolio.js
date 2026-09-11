@@ -590,10 +590,11 @@ export async function renderDashboard() {
     var vis = {};
     try { vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}'); } catch(e) {}
 
-    // Always build all cards, respecting visibility toggles
-    var cc = buildCompletionCard(getSections());
-    if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
-
+    // Always build all cards, respecting visibility toggles.
+    // DEFAULT ORDER (when the user has not dragged to reorder):
+    //   Portfolio Overview first (top-left), Completion ("Percentage Finished")
+    //   second-from-last (just before Support). applyDashboardOrder() re-applies
+    //   a user's saved drag order over this default at the end.
     var pc = buildPortfolioBreakdownCard(p);
     if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
 
@@ -632,6 +633,10 @@ export async function renderDashboard() {
     // Photos & Documents gallery card
     var g2 = renderGalleryCard();
     if (g2) { if (vis['card-gallery'] === false) g2.style.display='none'; addDragHandle(g2); c.appendChild(g2); }
+
+    // Completion ("Percentage Finished") — second-from-last by default.
+    var cc = buildCompletionCard(getSections());
+    if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
 
     // Support card - always render, respects visibility toggle
     var sup = buildSupportCard();
