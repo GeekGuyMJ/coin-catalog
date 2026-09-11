@@ -4021,9 +4021,12 @@ body.ready-mode-active .ready-badge { display: flex; }
 .spot-period-row {
     flex-wrap: nowrap;
     white-space: nowrap;
-    overflow-x: visible;
+    overflow-x: auto;
+    max-width: 100%;
     -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
 }
+.spot-period-row::-webkit-scrollbar { display: none; }
 .spot-period-row > div {
     flex: 0 0 auto;
     white-space: nowrap;
@@ -4196,12 +4199,14 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     display: flex;
     align-items: flex-start;
     flex-direction: column;
+    white-space: nowrap;
 }
 .spot-right {
-    flex: 0 0 96px !important;
-    min-width: 0 !important;
+    flex: 0 1 96px !important;
+    min-width: 40px !important;
     max-width: 96px !important;
     justify-content: flex-end !important;
+    overflow: hidden !important;
 }
 .spot-right canvas {
     max-width: 100% !important;

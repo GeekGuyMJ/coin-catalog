@@ -453,11 +453,11 @@ function buildSpotTrendCard(prices) {
         { key: 'copper_lb', base: 'copper', l: 'Copper', c: '#b45309' }
     ];
 
-    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:8px;font-size:0.7em;flex-wrap:nowrap;white-space:nowrap;' });
+    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:4px;font-size:0.62em;flex-wrap:nowrap;white-space:nowrap;' });
     var periods = ['1D', '1W', '1M', '1Y', '10Y', 'All'];
     var activePeriod = localStorage.getItem('cc-trend-period') || 'All';
     periods.forEach(function(p) {
-        var b = el('div', { style: 'cursor:pointer;color:' + (p === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';font-weight:' + (p === activePeriod ? 'bold' : 'normal') + ';padding:2px;' }, p);
+        var b = el('div', { style: 'cursor:pointer;color:' + (p === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';font-weight:' + (p === activePeriod ? 'bold' : 'normal') + ';padding:1px 2px;' }, p);
         b.addEventListener('click', function(e) { e.stopPropagation(); localStorage.setItem('cc-trend-period', p); renderDashboard(); });
         btnRow.appendChild(b);
     });
@@ -782,7 +782,7 @@ function buildCompletionCard(sections) {
 function buildEmptyPortfolioCard() {
     var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio'});
     card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
-    var body = el('div',{style:'padding:12px 4px; text-align:center; color:var(--color-text-muted); font-size:0.9em; line-height:1.5;'});
+    var body = el('div',{style:'width:100%; min-width:0; padding:12px 4px; text-align:center; color:var(--color-text-muted); font-size:0.9em; line-height:1.5; word-break:normal; overflow-wrap:normal; white-space:normal;'});
     body.appendChild(el('div',{style:'font-size:2em; margin-bottom:6px;'},'\uD83E\uDE99'));
     body.appendChild(el('div',{},'Your portfolio is empty.'));
     body.appendChild(el('div',{style:'margin-top:4px;'},'Add coins from the catalog, enter bullion, or record paper currency to see your total value here.'));
@@ -1438,7 +1438,7 @@ async function buildSpotPricesCard(prices) {
     var titleRow = el('div', {style:'display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;padding-right:28px;'});
     titleRow.appendChild(el('div',{className:'card-title', style:'margin-bottom:0;'},'Live Spot Prices'));
     
-    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:8px; font-size:0.7em; flex-wrap:nowrap; white-space:nowrap;'});
+    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:4px; font-size:0.62em; flex-wrap:nowrap; white-space:nowrap;'});
     var periods = [
         {label:'1D', range:'1D'},
         {label:'1W', range:'1W'},
@@ -1467,7 +1467,7 @@ getBaseline: async () => { try { const r = await fetch('data/spot_history_baseli
     
     periods.forEach(p => {
         var b = el('div', {
-            style:'cursor:pointer; color: ' + (p.label === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + '; font-weight: ' + (p.label === activePeriod ? 'bold' : 'normal') + '; padding:2px;'
+            style:'cursor:pointer; color: ' + (p.label === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + '; font-weight: ' + (p.label === activePeriod ? 'bold' : 'normal') + '; padding:1px 2px;'
         }, p.label);
         b.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1547,7 +1547,7 @@ getBaseline: async () => { try { const r = await fetch('data/spot_history_baseli
         var row = el('div',{className:'spot-item', style:'display:flex; justify-content:space-between; align-items:center; gap:8px;'});
         
         // Left: metal name + current price + change indicator
-        var left = el('div',{className:'spot-left', style:'display:flex; flex-direction:column; min-width:90px; flex: 1;'});
+        var left = el('div',{className:'spot-left', style:'display:flex; flex-direction:column; flex: 1 1 0; min-width:0;'});
         left.appendChild(el('div',{className:'spot-label', style:'font-weight:bold; margin-bottom:2px;'},m.l));
         
         var priceLine = el('div', {style:'display:flex; flex-direction:column; gap:2px; line-height:1.2;'});
@@ -1562,7 +1562,7 @@ getBaseline: async () => { try { const r = await fetch('data/spot_history_baseli
         row.appendChild(left);
 
         // Right: sparkline
-        var right = el('div',{className:'spot-right', style:'flex: 1; min-width: 60px; max-width: 160px; height: 32px; display: flex; justify-content: flex-end;'});
+        var right = el('div',{className:'spot-right', style:'flex: 0 1 96px; min-width: 40px; max-width: 96px; height: 32px; display: flex; justify-content: flex-end; overflow: hidden;'});
         var canvas = el('canvas',{
             className:'spot-sparkline',
             style:'width:100%; height:32px;',
