@@ -598,6 +598,10 @@ export async function renderDashboard() {
     var pc = buildPortfolioBreakdownCard(p);
     if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
 
+    // Spot prices card — SECOND card by default (shows loading state if no data yet).
+    var sc = await buildSpotPricesCard(prices);
+    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
+
     // Bullion card - uses raw bullion individual entries
     var bi = getRawBullion();
     var bc = buildBullionCard(bi, p, prices);
@@ -607,9 +611,6 @@ export async function renderDashboard() {
     var cwCard = buildCoinsByWeightCard(_bulkCoinsData, prices);
     if (cwCard) { if (vis['card-coinweight'] === false) cwCard.style.display='none'; addDragHandle(cwCard); c.appendChild(cwCard); }
 
-    // Spot prices card - always render (shows loading state if no data)
-    var sc = await buildSpotPricesCard(prices);
-    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
     var tc = buildSpotTrendCard(prices);
     if (tc) { if (vis['card-trend'] === false) tc.style.display='none'; addDragHandle(tc); c.appendChild(tc); }
 
