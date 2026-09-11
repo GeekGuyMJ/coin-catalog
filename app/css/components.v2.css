@@ -4192,7 +4192,8 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     flex: 1 1 0;
     min-width: 0;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    flex-direction: column;
 }
 .spot-right {
     flex: 0 0 96px !important;
