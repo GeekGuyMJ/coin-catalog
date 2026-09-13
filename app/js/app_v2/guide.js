@@ -66,8 +66,9 @@ const TOUR_STEPS = [
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            const row = findCoinRow('155');
-            if (row) await scrollToEl(row);
+            await ensureCoinRowOpen('155', true); // open detail panel + historical note
+            const wrapper = findCoinRowWrapper('155');
+            if (wrapper) await scrollToEl(wrapper);
         }
     },
     {
@@ -79,10 +80,9 @@ const TOUR_STEPS = [
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155'); // open the detail panel so the + is visible in context
-            const row = findCoinRow('155');
-            const stepper = row?.querySelector('[data-action="stepper-inc"]');
-            if (stepper) await scrollToEl(stepper);
+            await ensureCoinRowOpen('155', true); // open panel + historical note so full area is visible
+            const wrapper = findCoinRowWrapper('155');
+            if (wrapper) await scrollToEl(wrapper);
         }
     },
     {
@@ -201,16 +201,14 @@ function resolveTarget() {
         case 3: { // Lincoln Wheat type header
             return findLincolnWheatHeader();
         }
-        case 4: { // 1909-S (VDB) coin ROW (the bar the user should tap)
-            return findCoinRow('155');
+        case 4: { // 1909-S (VDB) coin ROW WRAPPER (includes expanded historical notes)
+            return findCoinRowWrapper('155');
         }
-        case 5: { // + stepper of VDB row
-            const row = findCoinRow('155');
-            return row?.querySelector('[data-action="stepper-inc"]');
+        case 5: { // + stepper of VDB row — highlight the whole wrapper so detail panel + stepper are in the hole
+            return findCoinRowWrapper('155');
         }
-        case 6: { // coin detail panel (notes + data entries area)
-            const wrapper = findCoinRowWrapper('155');
-            return wrapper?.querySelector('.coin-detail-panel') || wrapper;
+        case 6: { // coin detail panel wrapper (notes + data entries area)
+            return findCoinRowWrapper('155');
         }
         case 8: { // Lincoln Wheat album inline grid
             const card = document.getElementById('section-USCoinageLargeSmallCent');
@@ -351,11 +349,11 @@ function positionSpotlight(el) {
     // height so the spotlight doesn't span the entire viewport. We highlight the
     // top portion of the element and rely on the bubble copy to explain the rest.
     const CLAMP = Math.round(window.innerHeight * 0.62);
-    let h = r.height + 10;
+    let h = r.height;
     if (h > CLAMP) h = CLAMP;
     spotlight.style.top = Math.max(0, r.top) + 'px';
     spotlight.style.left = r.left + 'px';
-    spotlight.style.width = (r.width + 10) + 'px';
+    spotlight.style.width = r.width + 'px';
     spotlight.style.height = h + 'px';
     spotlight.style.display = 'block';
 }
