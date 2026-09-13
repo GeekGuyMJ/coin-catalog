@@ -695,7 +695,7 @@ export async function fetchCoinsForSectionLocal(sectionName) {
                             // Fixes stale local copies keeping old year/type after a data fix
                             // (e.g. Bicentennial double-date merge) — the row id exists on both
                             // sides but its year/type drifted.
-                            const _fields = ['coin_type', 'year', 'mint_mark', 'is_proof', 'denomination', 'metal', 'mintage'];
+                            const _fields = ['coin_type', 'year', 'mint_mark', 'is_proof', 'denomination', 'metal', 'mintage', 'is_key_date', 'is_semi_key', 'is_lowest_mintage', 'is_lowest_mintage_proof', 'ref_notes'];
                             const _fieldUpd = {};
                             for (const _f of _fields) {
                                 if (_s[_f] !== undefined && String(_c[_f]) !== String(_s[_f])) {
@@ -1107,7 +1107,12 @@ export async function fetchSpotPricesLocal() {
             const parsed = JSON.parse(c);
             const age = Date.now() - parsed.updated_at;
             if (age < 15 * 60 * 1000) { // 15 min TTL
-                return parsed;
+                // Cache is stored as { prices: {...}, updated_at }; return the SAME
+                // UNWRAPPED shape as a fresh fetch ({ gold_oz, ..., _meta }) so
+                // setSpotPrices()/getSpotPrices() always see top-level metal keys.
+                // (Previously returned `parsed` directly → wrapped shape → blank card.)
+                const p = parsed.prices || parsed;
+                return { ...FALLBACK_SPOT_PRICES, ...p, _meta: { is_stale: false, updated_at: parsed.updated_at } };
             }
             cached = parsed; // Use stale data as fallback
         }

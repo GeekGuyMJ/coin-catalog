@@ -127,7 +127,7 @@ const TOUR_STEPS = [
         selector: '#btn-settings',
         placement: 'left',
         title: 'Customize Everything',
-        body: 'Settings is where you change themes, choose which cards and sections are visible, and fine-tune the app. You can replay this tour anytime from the \u24d8 info menu.',
+        body: 'Settings is where you choose which cards and sections are visible and fine-tune the app. You can replay this tour anytime from the \u24d8 info menu.',
         before: async () => { await scrollToSelector('#btn-settings'); }
     }
 ];

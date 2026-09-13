@@ -376,7 +376,7 @@ if (!isSelfHosted) {
         let data;
 
         try {
-            const url = new URL('/' + urlStr, 'http://localhost');
+            const url = new URL(urlStr, 'http://localhost');
             const path = url.pathname;
 
             if (path === '/api/status') { data = await fetchStatusLocal(); }
