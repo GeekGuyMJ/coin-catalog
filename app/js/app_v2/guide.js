@@ -35,24 +35,30 @@ const TOUR_STEPS = [
     },
     {
         selector: '#section-USCoinageLargeSmallCent .section-header',
-        placement: 'below',
+        placement: 'above',
         title: 'Browse the Catalog',
         body: 'Coins are grouped by country and denomination. Tap \u201cUS Coinage — Large & Small Cent\u201d to open it and see how the list is organized.',
         before: async () => {
             await switchToList();
-            await ensureSectionOpen('section-USCoinageLargeSmallCent');
+            // Ensure the section is closed initially for tour highlighting
+            await closeSectionForTour('section-USCoinageLargeSmallCent');
+            // Open the section for tour highlighting (only step 2)
+            await openSectionForTour('section-USCoinageLargeSmallCent');
             await scrollToSelector('#section-USCoinageLargeSmallCent .section-header');
         }
     },
     {
         selector: null, // dynamic: Lincoln Wheat type header
-        placement: 'below',
+        placement: 'above',
         title: 'Pick a Type',
         body: 'Inside each section, coins are divided into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design in one list.',
         before: async () => {
             await switchToList();
-            await ensureSectionOpen('section-USCoinageLargeSmallCent');
-            await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
+            // Ensure the section is closed initially for tour highlighting
+            await closeSectionForTour('section-USCoinageLargeSmallCent');
+            // Manually open the section and type for the tour (step 4)
+            await openSectionForTour('section-USCoinageLargeSmallCent');
+            await openTypeForTour('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             const header = findLincolnWheatHeader();
             if (header) await scrollToEl(header);
         }
@@ -141,6 +147,7 @@ let overlay = null;
 let spotlight = null;
 let bubble = null;
 let isRunning = false;
+let tourInitialized = false;
 
 function ensureDom() {
     if (document.getElementById('guide-overlay')) return;
@@ -251,20 +258,31 @@ function findLincolnWheatHeader() {
     return null;
 }
 
-// ---- app-driving helpers --------------------------------------------
-
-function getCentCard() {
-    return document.getElementById('section-USCoinageLargeSmallCent');
-}
-
-async function ensureSectionOpen(sectionId) {
+async function openSectionForTour(sectionId) {
     const card = document.getElementById(sectionId);
     if (!card) return;
     const header = card.querySelector('.section-header');
     const content = card.querySelector('.section-content');
-    if (header && content && !content.classList.contains('open')) {
-        header.click();
-        await new Promise(r => setTimeout(r, 1600)); // wait for coins to load
+    if (header && content) {
+        // Check if already open - if not, open it
+        if (!content.classList.contains('open')) {
+            header.click();
+            await new Promise(r => setTimeout(r, 1600)); // wait for coins to load
+        }
+    }
+}
+
+async function openTypeForTour(typeName, sectionId) {
+    const card = document.getElementById(sectionId);
+    if (!card) return;
+    const headers = card.querySelectorAll('.type-header');
+    let target = null;
+    for (const h of headers) if (h.textContent.includes(typeName)) { target = h; break; }
+    if (!target) return;
+    const content = target.closest('.type-wrapper')?.querySelector('.type-content');
+    if (content && !content.classList.contains('open')) {
+        target.click();
+        await new Promise(r => setTimeout(r, 1200));
     }
 }
 

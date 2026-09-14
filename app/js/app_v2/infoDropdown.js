@@ -285,30 +285,72 @@ function showValues() {
  createModal('modal-info-values', 'How Values Work', body, null);
 }
 
-// --- Coin Collecting Tips -------------------------------------------------
+// --- Coin Collecting Tips -----------------------------------------------------
 function showCoinTips() {
  const body = _sectionBody(
- 'Coin Collecting Tips',
- 'Practical advice for building and preserving a coin collection.',
- [
- { heading: 'Handling', list: [
- 'Always hold coins by the edge — oils from your skin cause permanent toning and spots',
- 'Never clean a coin. Cleaning destroys numismatic value even if it looks better',
- 'Use soft vinyl-free (Mylar) flips, not PVC holders which leach chemicals',
- 'Store in a cool, dry place; humidity drives corrosion',
- ]},
- { heading: 'Grading & Value', list: [
- 'Learn the Sheldon scale (1–70) basics before buying',
- 'Key date + low mintage + high grade = the coins worth the most',
- 'Check for "full steps" (Jefferson nickels) and "full bands" (Mercury dimes)',
- 'Mint errors and varieties often outvalue the base coin — research yours',
- ]},
- { heading: 'Buying', list: [
- 'Buy the book before the coin — know the series',
- 'Prefer certified (PCGS/NGC) coins for high-value purchases',
- 'Condition rarity matters more than raw rarity for common dates',
- ]},
- ]
+     'Coin Collecting Tips',
+     'Practical advice for building and preserving a coin collection.',
+     [
+         { heading: 'Handling', list: [
+             'Always hold coins by the edge — oils from your skin cause permanent toning and spots',
+             'Never clean a coin. Cleaning destroys numismatic value even if it looks better',
+             'Use soft vinyl-free (Mylar) flips, not PVC holders which leach chemicals',
+             'Store in a cool, dry place; humidity drives corrosion',
+         ]},
+         { heading: 'Grading & Value', list: [
+             'Learn the Sheldon scale (1-70) basics before buying',
+             'Key date + low mintage + high grade = the coins worth the most',
+             'Check for "full steps" (Jefferson nickels) and "full bands" (Mercury dimes)',
+             'Mint errors and varieties often outvalue the base coin — research yours',
+         ]},
+         { heading: 'Buying', list: [
+             'Buy the book before the coin — know the series',
+             'Prefer certified (PCGS/NGC) coins for high-value purchases',
+             'Condition rarity matters more than raw rarity for common dates',
+         ]},
+         { heading: 'Researching', list: [
+             'Identify your coin: country, denomination, date, mintmark, design, composition, weight, diameter, edge, and condition',
+             'Check weight as an early diagnostic tool — helps identify wrong planchets, counterfeits, clipped planchets, or composition changes',
+             'Use multiple reference sources for variety identification',
+             'Learn the difference between doubled dies (valuable) and machine doubling (usually not)',
+             'Study die cracks, cuds, chips, clashes, and polish lines to understand die states',
+             'Research key dates and common errors (RPMs, OMMs, transitional errors)',
+             'Always use reputable references rather than internet rumors',
+         ]},
+         { heading: 'Storage', list: [
+             'Store in cool, dry environment away from direct light',
+             'Use archival-quality holders (Mylar, not PVC)',
+             'Keep coins separated to avoid scratches and stress',
+             'Monitor humidity levels — aim for 45-55% relative humidity',
+             'Consider professional grade storage for valuable collections',
+         ]},
+         { heading: 'Advanced Considerations', list: [
+             'Understand that condition can dramatically change value — a well-preserved common coin can be worth more than a damaged key date',
+             'Learn the normal appearance of your specific coin series to spot errors and varieties',
+             'Keep detailed acquisition records with photos for provenance',
+             'Consider professional grading for coins over $500, especially for rare dates or errors',
+             'Stay informed about market trends and auction results',
+             'Join coin clubs or online communities for learning and trading opportunities',
+         ]},
+         { heading: 'Common Beginner Mistakes to Avoid', list: [
+             'Never clean collectible coins',
+             'Don\'t assume old = rare — age alone doesn\'t determine value',
+             'Don\'t rely on a single opinion for expensive coins',
+             'Don\'t buy before researching thoroughly',
+             'Don\'t call machine doubling a doubled die',
+             'Don\'t confuse post-mint damage with mint errors',
+             'Don\'t ignore weight as a diagnostic tool',
+             'Don\'t handle coins by the surfaces',
+         ]},
+         { heading: 'Key Principles', list: [
+             '<strong>Identification First</strong> — Know exactly what you have before valuing it',
+             '<strong>Research Deeply</strong> — Use multiple sources and verify information',
+             '<strong>Handle Carefully</strong> — Even handling can destroy value',
+             '<strong>Store Properly</strong> — Environment is critical for preservation',
+             '<strong>Be Patient</strong> — Collecting is a long-term investment',
+             '<strong>Enjoy the Journey</strong> — The best collection is one you enjoy building',
+         ]},
+     ]
  );
  createModal('modal-info-coin', 'Coin Collecting Tips', body, null);
 }
