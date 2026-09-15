@@ -4295,6 +4295,38 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     0%, 100% { transform: translateY(0); }
     50%      { transform: translateY(4px); }
 }
+
+/* Tap indicator shown inside the spotlight on click-gated tour steps */
+.guide-click-cue {
+    position: fixed;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    z-index: 10002;
+    pointer-events: none;
+}
+.guide-click-cue-ring {
+    width: 28px; height: 28px;
+    border: 3px solid var(--color-accent, #c9a227);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.35);
+    animation: guide-cue-ripple 1.2s ease-out infinite;
+}
+.guide-click-cue-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--color-accent, #c9a227);
+    background: var(--color-bg-card, #1a1a1a);
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+@keyframes guide-cue-ripple {
+    0%   { transform: scale(0.85); opacity: 1; }
+    70%  { transform: scale(1.15); opacity: 0.7; }
+    100% { transform: scale(0.85); opacity: 1; }
+}
+
 @keyframes guide-arrow-pulse {
     0%, 100% { filter: drop-shadow(0 0 2px var(--color-accent, #c9a227)); }
     50%      { filter: drop-shadow(0 0 7px var(--color-accent, #c9a227)); }

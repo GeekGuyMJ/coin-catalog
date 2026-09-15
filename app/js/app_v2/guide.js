@@ -146,6 +146,7 @@ let currentStep = 0;
 let overlay = null;
 let spotlight = null;
 let bubble = null;
+let clickCue = null;
 let isRunning = false;
 
 function ensureDom() {
@@ -158,8 +159,15 @@ function ensureDom() {
     bubble = document.createElement('div');
     bubble.className = 'guide-bubble';
     bubble.id = 'guide-bubble';
+    // Tap indicator: shown INSIDE the highlight while an interactive step waits
+    // for the user's click — points at exactly where to tap.
+    clickCue = document.createElement('div');
+    clickCue.className = 'guide-click-cue';
+    clickCue.innerHTML = '<span class="guide-click-cue-ring"></span><span class="guide-click-cue-label">Tap here</span>';
+    clickCue.style.display = 'none';
     document.body.appendChild(overlay);
     document.body.appendChild(spotlight);
+    document.body.appendChild(clickCue);
     document.body.appendChild(bubble);
 }
 
@@ -393,7 +401,6 @@ async function switchToList() {
 // ---- positioning ----------------------------------------------------
 
 function positionSpotlight(el) {
-    if (!isStepOpen()) { spotlight.style.display = 'none'; return; }
     const r = el.getBoundingClientRect();
     // Clamp oversized targets (whole dashboard grid, full album) to a readable
     // height so the spotlight doesn't span the entire viewport. We highlight the
@@ -406,6 +413,15 @@ function positionSpotlight(el) {
     spotlight.style.width = r.width + 'px';
     spotlight.style.height = h + 'px';
     spotlight.style.display = 'block';
+    const step = TOUR_STEPS[currentStep];
+    if (step && step.awaitClick && !isStepOpen()) {
+        const rr = el.getBoundingClientRect();
+        clickCue.style.left = (rr.left + Math.min(rr.width, 240) / 2 - 44) + 'px';
+        clickCue.style.top = (rr.top + Math.min(rr.height, 80) / 2 - 22) + 'px';
+        clickCue.style.display = 'flex';
+    } else {
+        clickCue.style.display = 'none';
+    }
 }
 
 function positionBubble(targetRect) {
@@ -529,8 +545,8 @@ async function showCurrent() {
     const step = TOUR_STEPS[currentStep];
     const atStart = isStepOpen();
     if (step.before) { try { await step.before(); } catch (e) { console.warn('[guide]', e); } }
-    // Show the bubble NOW: interactive steps anchor to the collapsed element with
-    // no spotlight; static steps render normally after `before` settles.
+    // Static steps scroll after `before`; interactive steps keep the spotlight on
+    // the collapsed target (bubble + tap-cue show where to click instead).
     if (!step.awaitClick) {
         const target = resolveTarget();
         if (target) {
@@ -546,11 +562,12 @@ async function showCurrent() {
     const tick = async () => {
         if (!isRunning) return;
         attempts++;
-        if (attempts < 10 && !isStepOpen()) { _settleTimer = setTimeout(tick, 250); return; }
+        if (step.awaitClick && attempts < 10 && !isStepOpen()) { _settleTimer = setTimeout(tick, 250); return; }
         clearTimeout(_settleTimer);
-        const target = resolveTarget();
-        if (target && (!atStart || !step.awaitClick)) await smartScroll(target);
-        else if (target) await smartScroll(target);
+        if (!step.awaitClick) {
+            const target = resolveTarget();
+            if (target) await smartScroll(target);
+        }
         renderStep();
         // One corrective pass for late layout shifts (images, reflows)
         setTimeout(() => {
@@ -586,6 +603,7 @@ function stopTour() {
     if (overlay) overlay.classList.remove('is-active');
     if (spotlight) spotlight.style.display = 'none';
     if (bubble) bubble.style.display = 'none';
+    if (clickCue) clickCue.style.display = 'none';
     currentStep = 0;
 }
 
@@ -626,14 +644,17 @@ document.addEventListener('click', () => {
     if (!isRunning) return;
     const step = TOUR_STEPS[currentStep];
     if (!step || !step.awaitClick) return;
+    // The user's own tap is the Next button: once the target flips to its open
+    // state, scroll to it, expand the spotlight over the expanded content, and
+    // re-render the full bubble (Next returns). NEVER re-run step.before here —
+    // that hook ensures the target is closed and would undo the user's click.
     setTimeout(() => {
         if (!isRunning || !isStepOpen()) return;
         const t = resolveTarget();
-        if (t) smartScroll(t);
+        if (t) smartScroll(t).then(() => setTimeout(() => isRunning && renderStep(), 150));
+        else setTimeout(() => isRunning && renderStep(), 150);
         clearTimeout(_settleTimer);
-        if (step.before) { try { step.before(); } catch (e) { /* ignore */ } }
-        renderStep();
-    }, 50);
+    }, 60);
 }, true);
 
 // ESC to exit
