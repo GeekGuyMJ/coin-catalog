@@ -39,6 +39,7 @@ const TOUR_STEPS = [
         title: 'Browse the Catalog',
         body: 'Coins are grouped by country and denomination. Tap \u201cUS Coinage — Large & Small Cent\u201d to open it and see how the list is organized.',
         awaitClick: true,
+        expandSpotlight: '#section-USCoinageLargeSmallCent',
         isOpen: () => { const c = document.getElementById('section-USCoinageLargeSmallCent'); return c?.querySelector('.section-content')?.classList.contains('open'); },
         before: async () => {
             await switchToList();
@@ -52,6 +53,7 @@ const TOUR_STEPS = [
         title: 'Pick a Type',
         body: 'Inside each section, coins are divided into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design in one list.',
         awaitClick: true,
+        expandSpotlight: null, // wrapper resolved dynamically below
         isOpen: () => { const h = findLincolnWheatHeader(); return h?.closest('.type-wrapper')?.querySelector('.type-content')?.classList.contains('open'); },
         before: async () => {
             await switchToList();
@@ -107,14 +109,13 @@ const TOUR_STEPS = [
         }
     },
     {
-        selector: '.folder-view-toggle',
+        selector: '#group-united-states .view-toggle-btn[title="Album view"]',
         placement: 'below',
         title: 'Switch to Album View',
         body: 'Tap \u201cAlbum\u201d to see your collection as a real stamp-style album of coin slots instead of a list.',
-        before: async () => {
-            await switchToAlbum();
-            await scrollToSelector('.folder-view-toggle');
-        }
+        awaitClick: true,
+        isOpen: () => document.querySelector('#group-united-states .view-toggle-btn[title="Album view"]')?.classList.contains('active'),
+        before: async () => { await scrollToSelector('#group-united-states .folder-view-toggle'); }
     },
     {
         selector: null, // dynamic: Lincoln Wheat album inline grid
@@ -401,7 +402,22 @@ async function switchToList() {
 // ---- positioning ----------------------------------------------------
 
 function positionSpotlight(el) {
-    const r = el.getBoundingClientRect();
+    const step = TOUR_STEPS[currentStep];
+    let hEl = el;
+
+    // After the user expands a section/type, highlight the expanded content area
+    // (not just the header) so the opened list isn't left dark outside the hole.
+    if (step && step.awaitClick && isStepOpen()) {
+        if (step.expandSpotlight) {
+            const ex = document.querySelector(step.expandSpotlight);
+            if (ex) hEl = ex;
+        } else if (step.awaitClick && currentStep === 3) {
+            const h = findLincolnWheatHeader();
+            const tw = h?.closest('.type-wrapper');
+            if (tw) hEl = tw;
+        }
+    }
+    const r = hEl.getBoundingClientRect();
     // Clamp oversized targets (whole dashboard grid, full album) to a readable
     // height so the spotlight doesn't span the entire viewport. We highlight the
     // top portion of the element and rely on the bubble copy to explain the rest.
@@ -413,11 +429,11 @@ function positionSpotlight(el) {
     spotlight.style.width = r.width + 'px';
     spotlight.style.height = h + 'px';
     spotlight.style.display = 'block';
-    const step = TOUR_STEPS[currentStep];
     if (step && step.awaitClick && !isStepOpen()) {
+        // Center the tap cue over the highlighted target (header bar / row).
         const rr = el.getBoundingClientRect();
-        clickCue.style.left = (rr.left + Math.min(rr.width, 240) / 2 - 44) + 'px';
-        clickCue.style.top = (rr.top + Math.min(rr.height, 80) / 2 - 22) + 'px';
+        clickCue.style.left = (rr.left + rr.width / 2) + 'px';
+        clickCue.style.top = (rr.top + rr.height / 2) + 'px';
         clickCue.style.display = 'flex';
     } else {
         clickCue.style.display = 'none';

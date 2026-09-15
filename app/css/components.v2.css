@@ -4304,6 +4304,7 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     gap: 8px;
     z-index: 10002;
     pointer-events: none;
+    transform: translate(-50%, -50%);
 }
 .guide-click-cue-ring {
     width: 28px; height: 28px;
