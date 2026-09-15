@@ -4280,6 +4280,26 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Pointer state: bubble anchored to a collapsed element, arrow doubles as click indicator */
+.guide-bubble-pointer {
+    animation: guide-bubble-in 0.2s ease, guide-pointer-nudge 1.2s ease-in-out infinite;
+    border-color: var(--color-accent, #c9a227);
+}
+.guide-bubble-pointer.arrow-bottom::after,
+.guide-bubble-pointer.arrow-top::after {
+    animation: guide-arrow-pulse 1.2s ease-in-out infinite;
+    border-color: var(--color-accent, #c9a227);
+}
+@keyframes guide-pointer-nudge {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(4px); }
+}
+@keyframes guide-arrow-pulse {
+    0%, 100% { filter: drop-shadow(0 0 2px var(--color-accent, #c9a227)); }
+    50%      { filter: drop-shadow(0 0 7px var(--color-accent, #c9a227)); }
+}
+
 .guide-bubble-header {
     display: flex;
     align-items: flex-start;

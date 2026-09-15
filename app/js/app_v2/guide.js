@@ -35,38 +35,44 @@ const TOUR_STEPS = [
     },
     {
         selector: '#section-USCoinageLargeSmallCent .section-header',
-        placement: 'below',
+        placement: 'above',
         title: 'Browse the Catalog',
         body: 'Coins are grouped by country and denomination. Tap \u201cUS Coinage — Large & Small Cent\u201d to open it and see how the list is organized.',
+        awaitClick: true,
+        isOpen: () => { const c = document.getElementById('section-USCoinageLargeSmallCent'); return c?.querySelector('.section-content')?.classList.contains('open'); },
         before: async () => {
             await switchToList();
-            await ensureSectionOpen('section-USCoinageLargeSmallCent');
+            await ensureSectionClosed('section-USCoinageLargeSmallCent');
             await scrollToSelector('#section-USCoinageLargeSmallCent .section-header');
         }
     },
     {
         selector: null, // dynamic: Lincoln Wheat type header
-        placement: 'below',
+        placement: 'above',
         title: 'Pick a Type',
         body: 'Inside each section, coins are divided into types by design and year. Tap \u201cLincoln Wheat\u201d to see every year of that design in one list.',
+        awaitClick: true,
+        isOpen: () => { const h = findLincolnWheatHeader(); return h?.closest('.type-wrapper')?.querySelector('.type-content')?.classList.contains('open'); },
         before: async () => {
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
-            await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
+            await closeType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             const header = findLincolnWheatHeader();
             if (header) await scrollToEl(header);
         }
     },
     {
-        selector: null, // dynamic: 1909-S (VDB) coin row (closed)
-        placement: 'below',
+        selector: null, // dynamic: 1909-S (VDB) coin row (user taps to open)
+        placement: 'above',
         title: 'Open a Coin\u2019s Note',
-        body: 'Each coin row has a detail area. Tap the row for \u201c1909-S (VDB)\u201d to expand it and reveal its Historical Note and data fields.',
+        body: 'Each coin row has a detail area. Tap the \u25bc Details toggle on the \u201c1909-S (VDB)\u201d row to expand it and reveal its Historical Note and data fields.',
+        awaitClick: true,
+        isOpen: () => { const w = findCoinRowWrapper('155'); return w?.querySelector('.coin-detail-panel')?.classList.contains('open'); },
         before: async () => {
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155', true); // open detail panel + historical note
+            await ensureCoinRowClosed('155');
             const wrapper = findCoinRowWrapper('155');
             if (wrapper) await scrollToEl(wrapper);
         }
@@ -310,6 +316,49 @@ async function ensureCoinRowOpen(coinId, openNote = false) {
     }
 }
 
+async function ensureSectionClosed(sectionId) {
+    const card = document.getElementById(sectionId);
+    if (!card) return;
+    const header = card.querySelector('.section-header');
+    const content = card.querySelector('.section-content');
+    if (header && content && content.classList.contains('open')) {
+        header.click();
+        await new Promise(r => setTimeout(r, 600));
+    }
+}
+
+async function closeType(typeName, sectionId) {
+    const card = document.getElementById(sectionId);
+    if (!card) return;
+    const headers = card.querySelectorAll('.type-header');
+    let target = null;
+    for (const h of headers) if (h.textContent.includes(typeName)) { target = h; break; }
+    if (!target) return;
+    const content = target.closest('.type-wrapper')?.querySelector('.type-content');
+    if (content && content.classList.contains('open')) {
+        target.click();
+        await new Promise(r => setTimeout(r, 600));
+    }
+}
+
+async function ensureCoinRowClosed(coinId) {
+    const wrapper = findCoinRowWrapper(coinId);
+    if (!wrapper) return;
+    const dp = wrapper.querySelector('.coin-detail-panel');
+    const detailToggle = wrapper.querySelector('.coin-row-detail-toggle');
+    if (dp && detailToggle && dp.classList.contains('open')) {
+        detailToggle.click();
+        await new Promise(r => setTimeout(r, 300));
+    }
+}
+
+// Is the current step's target in its "opened" state? (interactive steps only)
+function isStepOpen() {
+    const step = TOUR_STEPS[currentStep];
+    if (typeof step.isOpen !== 'function') return true; // static steps render immediately
+    try { return !!step.isOpen(); } catch (e) { return false; }
+}
+
 async function switchToAlbum() {
     const usGroup = document.getElementById('group-united-states');
     const albumBtn = usGroup?.querySelector('.view-toggle-btn[title="Album view"]');
@@ -344,6 +393,7 @@ async function switchToList() {
 // ---- positioning ----------------------------------------------------
 
 function positionSpotlight(el) {
+    if (!isStepOpen()) { spotlight.style.display = 'none'; return; }
     const r = el.getBoundingClientRect();
     // Clamp oversized targets (whole dashboard grid, full album) to a readable
     // height so the spotlight doesn't span the entire viewport. We highlight the
@@ -411,7 +461,8 @@ function renderStep() {
     }
 
     bubble.innerHTML = '';
-    bubble.className = 'guide-bubble';
+    bubble.className = 'guide-bubble' + (step.awaitClick && !isStepOpen() ? ' guide-bubble-pointer' : '');
+    clearTimeout(_settleTimer);
 
     const header = document.createElement('div');
     header.className = 'guide-bubble-header';
@@ -451,6 +502,9 @@ function renderStep() {
     nextBtn.className = 'guide-btn' + (isLast ? ' guide-btn-primary' : '');
     nextBtn.textContent = isLast ? 'Done' : 'Next \u2192';
     nextBtn.addEventListener('click', () => isLast ? stopTour() : next());
+    // Interactive steps: only the user's tap on the highlighted element may
+    // advance the tour — hide Next until the target reaches its "open" state.
+    if (step.awaitClick && !isStepOpen()) nextBtn.style.display = 'none';
 
     nav.appendChild(backBtn);
     nav.appendChild(nextBtn);
@@ -465,34 +519,50 @@ function renderStep() {
     requestAnimationFrame(() => {
         positionBubble(el.getBoundingClientRect());
     });
-    // A second deferred pass after layout settles (accordions expanding, images
-    // loading) so the spotlight/bubble land on the final position instead of
-    // drifting off-screen while a section is still expanding.
-    setTimeout(() => {
-        if (!isRunning) return;
-        const liveEl = resolveTarget();
-        if (liveEl) {
-            positionSpotlight(liveEl);
-            positionBubble(liveEl.getBoundingClientRect());
-        }
-    }, 300);
 }
 
 // ---- navigation -----------------------------------------------------
 
+let _settleTimer = null;
+
 async function showCurrent() {
     const step = TOUR_STEPS[currentStep];
+    const atStart = isStepOpen();
     if (step.before) { try { await step.before(); } catch (e) { console.warn('[guide]', e); } }
-    // Force a layout flush and correction: after the before hook's async work
-    // (accordions expanding, scrolling) completes, force one more scroll pass
-    // so the spotlight lands exactly on target. This handles the race where
-    // accordions are still expanding when positionSpotlight runs.
-    const target = resolveTarget();
-    if (target) {
-        smartScroll(target);
-        await new Promise(r => setTimeout(r, 80));
+    // Show the bubble NOW: interactive steps anchor to the collapsed element with
+    // no spotlight; static steps render normally after `before` settles.
+    if (!step.awaitClick) {
+        const target = resolveTarget();
+        if (target) {
+            smartScroll(target);
+            await new Promise(r => setTimeout(r, 80));
+        }
     }
     renderStep();
+    // Poll until the target reaches its "open" state, then scroll+spotlight the
+    // freshly-expanded element and re-render the full bubble (Next returns).
+    // The poll converges immediately for non-interactive steps (~1 tick).
+    let attempts = 0;
+    const tick = async () => {
+        if (!isRunning) return;
+        attempts++;
+        if (attempts < 10 && !isStepOpen()) { _settleTimer = setTimeout(tick, 250); return; }
+        clearTimeout(_settleTimer);
+        const target = resolveTarget();
+        if (target && (!atStart || !step.awaitClick)) await smartScroll(target);
+        else if (target) await smartScroll(target);
+        renderStep();
+        // One corrective pass for late layout shifts (images, reflows)
+        setTimeout(() => {
+            if (!isRunning) return;
+            const liveEl = resolveTarget();
+            if (liveEl) {
+                positionSpotlight(liveEl);
+                positionBubble(liveEl.getBoundingClientRect());
+            }
+        }, 400);
+    };
+    _settleTimer = setTimeout(tick, step.awaitClick ? 250 : 400);
 }
 
 function next() {
@@ -547,6 +617,24 @@ window.addEventListener('scroll', () => {
     const el = resolveTarget();
     if (el) positionSpotlight(el);
 }, { passive: true });
+
+// Interactive steps: when the user clicks ANYWHERE while a click-gated step is
+// pending (e.g. tapping the highlighted header), re-run rendering so the
+// spotlight opens on the expanded element, the bubble repositions above it,
+// and the Next button returns.
+document.addEventListener('click', () => {
+    if (!isRunning) return;
+    const step = TOUR_STEPS[currentStep];
+    if (!step || !step.awaitClick) return;
+    setTimeout(() => {
+        if (!isRunning || !isStepOpen()) return;
+        const t = resolveTarget();
+        if (t) smartScroll(t);
+        clearTimeout(_settleTimer);
+        if (step.before) { try { step.before(); } catch (e) { /* ignore */ } }
+        renderStep();
+    }, 50);
+}, true);
 
 // ESC to exit
 document.addEventListener('keydown', (e) => {
