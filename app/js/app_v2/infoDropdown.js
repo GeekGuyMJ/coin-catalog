@@ -54,10 +54,10 @@ function openInfoDropdown(btn) {
  const items = [
   { key: 'about', label: 'About the App' },
   { key: 'values', label: 'How Values Work' },
-  { key: 'coinTips', label: 'Coin Collecting Tips' },
-  { key: 'noteTips', label: 'Note Collecting Tips' },
+  { key: 'coinTips', label: 'Coin Collecting Guide' },
+  { key: 'noteTips', label: 'Paper Currency Guide' },
   { key: 'famousStories', label: 'Famous Coin Stories' },
-  { key: 'rollHunting', label: 'Roll Hunting Tips' },
+  { key: 'rollHunting', label: 'Coin Roll-Hunting Guide' },
   { key: 'donate', label: 'Support This App' },
   { key: 'privacy', label: 'Privacy & Reporting Bugs' },
   { key: 'guide', label: '✨ Take the Tour' },
@@ -286,8 +286,7 @@ function showValues() {
 }
 
 // --- Coin Collecting Tips ----------------------------------------------------
-// Full U.S. Coin Collecting General Tips & Reference Guide (embedded markdown)
-const COIN_TIPS_GUIDE_HTML = `<style>
+const PAPER_GUIDE_HTML = `<style>
 .cc-guide h1{font-size:1.15em;margin:1em 0 .4em;color:var(--color-accent,#c9a227);}
 .cc-guide h2{font-size:1.05em;margin:1em 0 .35em;}
 .cc-guide h3{font-size:.95em;margin:.8em 0 .3em;}
@@ -299,1991 +298,3051 @@ const COIN_TIPS_GUIDE_HTML = `<style>
 .cc-guide hr{border:none;border-top:1px solid var(--color-border-light,#444);margin:.8em 0;}
 .cc-guide strong{color:var(--color-accent,#c9a227);}
 .cc-guide a{color:var(--color-accent,#c9a227);}
-</style><div class="cc-guide"><h1>U.S. Coin Collecting: General Tips &amp; Reference Guide</h1>
-<p>A practical beginner-to-intermediate guide to collecting, identifying, researching, grading, storing, and evaluating United States coins.</p>
+.cc-guide table{border-collapse:collapse;margin:.5em 0;font-size:.85em;}
+.cc-guide th,.cc-guide td{border:1px solid var(--color-border-light,#444);padding:3px 8px;}
+</style><div class="cc-guide"><h1>U.S. PAPER CURRENCY ROLL-HUNTING &amp; CURRENCY-FINDING MASTER FIELD GUIDE</h1>
+<h2>Expanded Collector Edition --- Identification, Hunting, Varieties, Errors, and Research Workflow</h2>
+<p><strong>Purpose:</strong> A practical U.S. paper-money field guide for finding,
+identifying, documenting, and researching potentially collectible notes.</p>
+<p><strong>Important:</strong> This is not a price guide. Values change with rarity,
+condition, market demand, authenticity, serial number, and variety.</p>
 <hr>
-<h2>Table of Contents</h2>
+<p><strong>Scope:</strong> Primarily United States paper currency. The guide emphasizes
+notes that an ordinary person can realistically encounter, while also
+explaining older and obsolete issues so that a surprising note is not
+accidentally spent.</p>
+<p><strong>Core rule:</strong> Do not judge a bill only by its denomination or age.
+Identify the <strong>type of note, series, signatures, seal, serial number,
+Federal Reserve district, condition, and possible printing error</strong>.</p>
+<blockquote>
+<p><strong>Important:</strong> This is a hunting and identification guide, not a price
+guide. Values change with grade, rarity, market demand, serial number,
+and authentication. Major rarities and suspected errors should be
+examined by a specialist or professional grading service.</p>
+</blockquote>
+<hr>
+<h1>1. THE FIRST 30 SECONDS</h1>
+<p>When you receive a bill, look at these things before spending it:</p>
 <ol>
-<li><a href="#1-what-is-numismatics">What Is Numismatics?</a></li>
-<li><a href="#2-how-to-identify-a-coin">How to Identify a Coin</a></li>
-<li><a href="#3-anatomy-of-a-coin">Anatomy of a Coin</a></li>
-<li><a href="#4-mintmarks">Mintmarks</a></li>
-<li><a href="#5-mintage-vs-rarity">Mintage vs. Rarity</a></li>
-<li><a href="#6-key-dates">Key Dates</a></li>
-<li><a href="#7-types-and-type-sets">Types and Type Sets</a></li>
-<li><a href="#8-date-varieties">Date Varieties</a></li>
-<li><a href="#9-die-varieties">Die Varieties</a></li>
-<li><a href="#10-doubled-dies">Doubled Dies</a></li>
-<li><a href="#11-machine-doubling">Machine Doubling</a></li>
-<li><a href="#12-repunched-mintmarks">Repunched Mintmarks</a></li>
-<li><a href="#13-overpunched-mintmarks">Overpunched Mintmarks</a></li>
-<li><a href="#14-die-cracks">Die Cracks</a></li>
-<li><a href="#15-cuds">Cuds</a></li>
-<li><a href="#16-die-chips">Die Chips</a></li>
-<li><a href="#17-die-clashes">Die Clashes</a></li>
-<li><a href="#18-die-polish-lines">Die Polish Lines</a></li>
-<li><a href="#19-die-states">Die States</a></li>
-<li><a href="#20-mint-errors">Mint Errors</a></li>
-<li><a href="#21-wrong-planchet-errors">Wrong-Planchet Errors</a></li>
-<li><a href="#22-off-center-strikes">Off-Center Strikes</a></li>
-<li><a href="#23-broadstrikes">Broadstrikes</a></li>
-<li><a href="#24-clipped-planchets">Clipped Planchets</a></li>
-<li><a href="#25-struck-through-errors">Struck-Through Errors</a></li>
-<li><a href="#26-brockage-errors">Brockage Errors</a></li>
-<li><a href="#27-multiple-strikes">Multiple Strikes</a></li>
-<li><a href="#28-rotated-dies">Rotated Dies</a></li>
-<li><a href="#29-transitional-errors">Transitional Errors</a></li>
-<li><a href="#30-post-mint-damage">Post-Mint Damage</a></li>
-<li><a href="#31-coin-weight">Coin Weight</a></li>
-<li><a href="#32-diameter-and-thickness">Diameter and Thickness</a></li>
-<li><a href="#33-us-coin-metal-compositions">U.S. Coin Metal Compositions</a></li>
-<li><a href="#34-silver-coins">Silver Coins</a></li>
-<li><a href="#35-gold-coins">Gold Coins</a></li>
-<li><a href="#36-copper-coins">Copper Coins</a></li>
-<li><a href="#37-nickel-coins">Nickel Coins</a></li>
-<li><a href="#38-clad-coins">Clad Coins</a></li>
-<li><a href="#39-proof-coins">Proof Coins</a></li>
-<li><a href="#40-reverse-proof-coins">Reverse Proof Coins</a></li>
-<li><a href="#41-coin-grades">Coin Grades</a></li>
-<li><a href="#42-the-sheldon-grading-scale">The Sheldon Grading Scale</a></li>
-<li><a href="#43-details-and-problem-coins">Details and Problem Coins</a></li>
-<li><a href="#44-wear-vs-damage">Wear vs. Damage</a></li>
-<li><a href="#45-cleaning-coins">Cleaning Coins</a></li>
-<li><a href="#46-toning">Toning</a></li>
-<li><a href="#47-luster">Luster</a></li>
-<li><a href="#48-strike-quality">Strike Quality</a></li>
-<li><a href="#49-eye-appeal">Eye Appeal</a></li>
-<li><a href="#50-contact-and-bag-marks">Contact and Bag Marks</a></li>
-<li><a href="#51-authentication">Authentication</a></li>
-<li><a href="#52-counterfeits">Counterfeits</a></li>
-<li><a href="#53-useful-equipment">Useful Equipment</a></li>
-<li><a href="#54-researching-coins">Researching Coins</a></li>
-<li><a href="#55-price-guides">Price Guides</a></li>
-<li><a href="#56-auction-prices-vs-asking-prices">Auction Prices vs. Asking Prices</a></li>
-<li><a href="#57-population-reports">Population Reports</a></li>
-<li><a href="#58-buying-coins">Buying Coins</a></li>
-<li><a href="#59-selling-coins">Selling Coins</a></li>
-<li><a href="#60-when-to-have-a-coin-graded">When to Have a Coin Graded</a></li>
-<li><a href="#61-coin-storage">Coin Storage</a></li>
-<li><a href="#62-pvc-damage">PVC Damage</a></li>
-<li><a href="#63-handling-coins">Handling Coins</a></li>
-<li><a href="#64-photographing-coins">Photographing Coins</a></li>
-<li><a href="#65-keeping-an-inventory">Keeping an Inventory</a></li>
-<li><a href="#66-provenance">Provenance</a></li>
-<li><a href="#67-insurance">Insurance</a></li>
-<li><a href="#68-building-a-collection">Building a Collection</a></li>
-<li><a href="#69-type-sets">Type Sets</a></li>
-<li><a href="#70-date-sets">Date Sets</a></li>
-<li><a href="#71-mintmark-sets">Mintmark Sets</a></li>
-<li><a href="#72-error-collections">Error Collections</a></li>
-<li><a href="#73-variety-collections">Variety Collections</a></li>
-<li><a href="#74-silver-collections">Silver Collections</a></li>
-<li><a href="#75-gold-collections">Gold Collections</a></li>
-<li><a href="#76-modern-coin-collecting">Modern Coin Collecting</a></li>
-<li><a href="#77-roll-hunting">Roll Hunting</a></li>
-<li><a href="#78-pocket-change-hunting">Pocket-Change Hunting</a></li>
-<li><a href="#79-estate-and-inherited-collections">Estate and Inherited Collections</a></li>
-<li><a href="#80-coin-clubs">Coin Clubs</a></li>
-<li><a href="#81-beginner-equipment-checklist">Beginner Equipment Checklist</a></li>
-<li><a href="#82-advanced-equipment">Advanced Equipment</a></li>
-<li><a href="#83-study-one-series">Study One Series</a></li>
-<li><a href="#84-the-normal-first-rule">The Normal-First Rule</a></li>
-<li><a href="#85-did-the-mint-make-it">Did the Mint Make It?</a></li>
-<li><a href="#86-why-is-it-valuable">Why Is It Valuable?</a></li>
-<li><a href="#87-common-beginner-mistakes">Common Beginner Mistakes</a></li>
-<li><a href="#88-coin-identification-workflow">Coin Identification Workflow</a></li>
-<li><a href="#89-special-coin-checklist">Special-Coin Checklist</a></li>
-<li><a href="#90-final-advice">Final Advice</a></li>
+<li><strong>Denomination</strong></li>
+<li><strong>Series year</strong></li>
+<li><strong>Serial number</strong></li>
+<li><strong>Star at the end of the serial?</strong></li>
+<li><strong>Seal color</strong></li>
+<li><strong>Federal Reserve district</strong></li>
+<li><strong>Signatures</strong></li>
+<li><strong>Condition</strong></li>
+<li><strong>Unusual serial number</strong></li>
+<li><strong>Printing error</strong></li>
+<li><strong>Old design/type</strong></li>
+<li><strong>Silver Certificate / Gold Certificate / United States Note /
+National Bank Note / other obsolete type</strong></li>
 </ol>
+<p>The Bureau of Engraving and Printing states that all U.S. currency
+remains legal tender regardless of when it was issued. That means an old
+note should not automatically be spent simply because it looks
+unfamiliar.</p>
 <hr>
-<h1>1. What Is Numismatics?</h1>
-<p><strong>Numismatics</strong> is the study and collection of coins, paper money, medals, tokens, and related forms of currency.</p>
-<p>Coin collecting can be as simple as keeping interesting coins from pocket change or as specialized as collecting a particular die variety from a specific mint and year.</p>
-<p>There is no single &quot;correct&quot; way to collect.</p>
-<p>Common collecting approaches include:</p>
+<h1>2. THE MOST IMPORTANT CONCEPT: IDENTIFY THE NOTE BEFORE VALUING IT</h1>
+<p>A $1 bill is not necessarily &quot;just a dollar.&quot;</p>
+<p>A $1 note might be:</p>
 <ul>
-<li>By denomination</li>
-<li>By date</li>
-<li>By mintmark</li>
-<li>By historical period</li>
-<li>By design type</li>
-<li>By metal</li>
-<li>By proof coins</li>
-<li>By errors</li>
-<li>By die varieties</li>
-<li>By condition</li>
-<li>By key dates</li>
-<li>By a specific series</li>
-<li>By a complete type set</li>
-<li>By coins found in circulation</li>
+<li>Federal Reserve Note</li>
+<li>Silver Certificate</li>
+<li>United States Note</li>
+<li>National Bank Note</li>
+<li>Legal Tender Note</li>
+<li>Emergency/obsolete issue</li>
+<li>Star note</li>
+<li>Fancy serial number</li>
+<li>Low serial number</li>
+<li>Printing error</li>
+<li>Rare signature combination</li>
+<li>Rare series</li>
+<li>High-grade example</li>
 </ul>
-<p>The best collection is one that you enjoy building.</p>
+<p>The same principle applies to every denomination.</p>
 <hr>
-<h1>2. How to Identify a Coin</h1>
-<p>Before deciding whether a coin is rare or valuable, identify it correctly.</p>
-<p>Record:</p>
-<ol>
-<li>Country</li>
+<h1>3. PAPER MONEY TERMINOLOGY</h1>
+<h2>Face</h2>
+<p>The front of the note.</p>
+<h2>Back</h2>
+<p>The reverse of the note.</p>
+<h2>Series</h2>
+<p>The year or year-with-letter designation printed on the note.</p>
+<p>Examples:</p>
+<ul>
+<li>Series 1957</li>
+<li>Series 1995</li>
+<li>Series 2009A</li>
+<li>Series 2017A</li>
+</ul>
+<p><strong>Series is not necessarily the year the particular note was printed.</strong></p>
+<hr>
+<h1>4. SIGNATURES</h1>
+<p>Historical U.S. notes normally carry signatures representing Treasury
+officials.</p>
+<p>For modern small-size notes, collectors commonly describe a signature
+combination using the names of the:</p>
+<ul>
+<li><strong>Treasurer of the United States</strong></li>
+<li><strong>Secretary of the Treasury</strong></li>
+</ul>
+<h3>Why signatures matter</h3>
+<p>A short-serving Treasury official can produce a relatively scarce
+signature combination.</p>
+<p>The famous example is:</p>
+<h2>Joseph W. Barr</h2>
+<p>Barr served as Secretary of the Treasury for only about one month, from
+December 21, 1968 to January 20, 1969.</p>
+<p>As a result, <strong>Series 1963B $1 Federal Reserve Notes with Barr&#39;s
+signature are popularly collected as &quot;Barr notes.&quot;</strong></p>
+<p>The Bureau of Engraving and Printing specifically notes that fewer notes
+bear Barr&#39;s facsimile signature because of his unusually short tenure.</p>
+<h3>Roll-hunting rule</h3>
+<p>Whenever you find an older note:</p>
+<p><strong>Read the signatures.</strong></p>
+<p>Do not rely on the series year alone.</p>
+<hr>
+<h1>5. SERIAL NUMBERS</h1>
+<p>Serial numbers are one of the easiest things to hunt because you can
+examine them without specialized equipment.</p>
+<h2>Modern basic structure</h2>
+<p>Historically, many Federal Reserve Notes used:</p>
+<p><strong>one letter + eight digits + one letter</strong></p>
+<p>Example:</p>
+<p><code>A12345678B</code></p>
+<p>Beginning with Series 1996, $5 and higher Federal Reserve Notes use two
+letters before the eight digits, while $1 and $2 retain the
+older-style one-letter prefix format.</p>
+<p>For modern Federal Reserve Notes of $5 and higher, the first
+serial-number letter identifies the series and the second letter
+identifies the issuing Federal Reserve Bank. For $1 and $2 notes, the
+first serial-number letter identifies the issuing Federal Reserve Bank.</p>
+<hr>
+<h1>6. FEDERAL RESERVE BANK LETTERS</h1>
+<p>The 12 Federal Reserve districts use:</p>
+<p>  Letter   District</p>
+<hr>
+<p>  A        Boston
+  B        New York
+  C        Philadelphia
+  D        Cleveland
+  E        Richmond
+  F        Atlanta
+  G        Chicago
+  H        St. Louis
+  I        Minneapolis
+  J        Kansas City
+  K        Dallas
+  L        San Francisco</p>
+<p>The BEP confirms this letter-to-district relationship.</p>
+<h3>Why collectors care</h3>
+<p>Some older series/district combinations are substantially scarcer than
+others.</p>
+<p>The district letter can also help identify a note that appears ordinary
+at first glance.</p>
+<hr>
+<h1>7. STAR NOTES</h1>
+<h2>What is a star note?</h2>
+<p>A star note is a replacement note.</p>
+<p>If a sheet is discovered to be defective after serial numbers have been
+printed, the defective sheet cannot simply receive the same serial
+numbers again.</p>
+<p>A replacement sheet is therefore produced with a <strong>star in place of the
+normal suffix letter</strong>.</p>
+<p>The BEP explains this manufacturing process directly.</p>
+<p>Example:</p>
+<p><code>B12345678*</code></p>
+<p>instead of:</p>
+<p><code>B12345678A</code></p>
+<hr>
+<h1>8. ARE ALL STAR NOTES RARE?</h1>
+<p><strong>No.</strong></p>
+<p>This is one of the most important beginner lessons.</p>
+<p>A star note can be:</p>
+<ul>
+<li>Common</li>
+<li>Moderately scarce</li>
+<li>Scarce</li>
+<li>Very scarce</li>
+<li>Extremely rare</li>
+</ul>
+<h3>What determines scarcity?</h3>
+<p>Collectors may consider:</p>
+<ul>
 <li>Denomination</li>
-<li>Date</li>
-<li>Mintmark</li>
-<li>Design/type</li>
-<li>Composition</li>
-<li>Weight</li>
-<li>Diameter</li>
-<li>Edge</li>
+<li>Series</li>
+<li>Federal Reserve district</li>
+<li>Print run</li>
+<li>Replacement rate</li>
+<li>Whether the star note was produced for a limited run</li>
 <li>Condition</li>
-<li>Possible variety</li>
-<li>Possible error</li>
-</ol>
-<p>For U.S. coins, the <strong>date and mintmark</strong> are often extremely important.</p>
-<p>For example:</p>
-<blockquote>
-<p>1964-D Roosevelt dime</p>
-</blockquote>
-<p>is much more useful than:</p>
-<blockquote>
-<p>Old dime</p>
-</blockquote>
-<hr>
-<h1>3. Anatomy of a Coin</h1>
-<p>Important terms include:</p>
-<h3>Obverse</h3>
-<p>The front or &quot;heads&quot; side.</p>
-<h3>Reverse</h3>
-<p>The back or &quot;tails&quot; side.</p>
-<h3>Edge</h3>
-<p>The outer surface between the obverse and reverse.</p>
-<p>The edge may be:</p>
-<ul>
-<li>Plain</li>
-<li>Reeded</li>
-<li>Lettered</li>
-<li>Ornamented</li>
 </ul>
-<h3>Rim</h3>
-<p>The raised border around the coin.</p>
-<h3>Field</h3>
-<p>The relatively flat background area surrounding the design.</p>
-<h3>Relief</h3>
-<p>The raised portions of the design.</p>
-<h3>Devices</h3>
-<p>The main design elements, such as:</p>
+<h3>Beginner rule</h3>
+<p><strong>Pull star notes from circulation.</strong></p>
+<p>Research them later.</p>
+<p>Do not assume every star is worth a fortune.</p>
+<hr>
+<h1>9. FANCY SERIAL NUMBERS</h1>
+<p>A fancy serial number has an unusually memorable or mathematically
+interesting pattern.</p>
+<p>These are highly collectible.</p>
+<hr>
+<h1>10. SOLID SERIAL NUMBERS</h1>
+<p>Example:</p>
+<p><code>11111111</code></p>
+<p>All eight digits are identical.</p>
+<p>These are extremely desirable.</p>
+<p>A true eight-digit solid is much more important than something merely
+containing several repeated digits.</p>
+<hr>
+<h1>11. NEAR-SOLID SERIAL NUMBERS</h1>
+<p>Example:</p>
+<p><code>11111112</code></p>
+<p>Seven identical digits and one different digit.</p>
+<p>These can be collectible, although generally less desirable than a true
+solid.</p>
+<hr>
+<h1>12. LOW SERIAL NUMBERS</h1>
+<p>Examples:</p>
+<p><code>00000001</code> <code>00000010</code> <code>00000100</code> <code>00001000</code></p>
+<p>The closer a serial number is to the beginning of the production run,
+the more interesting it may be.</p>
+<h2>Particularly desirable</h2>
 <ul>
-<li>Portraits</li>
-<li>Buildings</li>
-<li>Eagles</li>
-<li>Wreaths</li>
-<li>Liberty figures</li>
+<li>00000001</li>
+<li>00000002</li>
+<li>00000003</li>
+<li>00000007</li>
+<li>00000010</li>
+<li>00000100</li>
+<li>00001000</li>
+<li>00010000</li>
 </ul>
-<h3>Legend</h3>
-<p>Major lettering on the coin.</p>
-<h3>Mintmark</h3>
-<p>A letter identifying the mint facility that struck the coin.</p>
+<h3>Important</h3>
+<p>Not every low serial number is equally rare.</p>
+<p>A low number on an obscure or scarce note can be especially interesting.</p>
 <hr>
-<h1>4. Mintmarks</h1>
-<p>U.S. coins have been struck at multiple facilities.</p>
-<p>Common modern mintmarks include:</p>
-<table>
-<thead>
-<tr>
-<th>Mintmark</th>
-<th>Mint</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>P</td>
-<td>Philadelphia</td>
-</tr>
-<tr>
-<td>D</td>
-<td>Denver</td>
-</tr>
-<tr>
-<td>S</td>
-<td>San Francisco</td>
-</tr>
-<tr>
-<td>W</td>
-<td>West Point</td>
-</tr>
-</tbody></table>
-<p>Not every coin from Philadelphia historically received a mintmark.</p>
-<p>Some series also contain coins with no mintmark that are significant varieties or key dates.</p>
-<p>Never assume:</p>
-<blockquote>
-<p>No mintmark = rare.</p>
-</blockquote>
-<p>The date, denomination, design, and series must all be considered.</p>
+<h1>13. RADAR SERIAL NUMBERS</h1>
+<p>A radar serial reads the same forwards and backwards.</p>
+<p>Example:</p>
+<p><code>12344321</code></p>
+<p>Another:</p>
+<p><code>00055000</code></p>
+<h3>Rule</h3>
+<p>Ignore the prefix/suffix letters when evaluating the basic eight-digit
+radar pattern.</p>
 <hr>
-<h1>5. Mintage vs. Rarity</h1>
-<p><strong>Mintage</strong> is the number of coins produced.</p>
-<p>A low mintage can indicate scarcity, but mintage alone does not determine value.</p>
-<p>A coin can have:</p>
+<h1>14. REPEATER SERIAL NUMBERS</h1>
+<p>A repeating pattern repeats across the number.</p>
+<p>Example:</p>
+<p><code>12341234</code></p>
+<p>or:</p>
+<p><code>45454545</code></p>
+<p>The most obvious form is a four-digit sequence repeated twice.</p>
+<hr>
+<h1>15. SUPER-REPEATER / REPEATING PATTERNS</h1>
+<p>Examples:</p>
+<p><code>12121212</code> <code>12341234</code> <code>71717171</code></p>
+<p>The stronger and more obvious the repetition, the more interesting the
+note can become.</p>
+<hr>
+<h1>16. LADDER SERIAL NUMBERS</h1>
+<p>A ladder runs upward or downward in numerical sequence.</p>
+<p>Examples:</p>
+<p><code>12345678</code> <code>87654321</code></p>
+<p>These are among the most recognizable fancy serial numbers.</p>
+<hr>
+<h1>17. PARTIAL LADDER</h1>
+<p>Example:</p>
+<p><code>12345679</code></p>
+<p>This is close to a ladder but is not a perfect ladder.</p>
+<p>Do not value it like:</p>
+<p><code>12345678</code></p>
+<p>Collectors generally distinguish exact patterns from approximate ones.</p>
+<hr>
+<h1>18. BINARY SERIAL NUMBERS</h1>
+<p>A binary serial contains only two different digits.</p>
+<p>Example:</p>
+<p><code>10101010</code></p>
+<p>or:</p>
+<p><code>10001111</code></p>
+<h3>Important distinction</h3>
+<p>A note containing only 0 and 1 is a true binary.</p>
+<p>The exact pattern affects desirability.</p>
+<hr>
+<h1>19. TRUE BINARY</h1>
+<p>Examples:</p>
+<p><code>10101010</code> <code>11001100</code> <code>11110000</code></p>
+<p>These are especially easy to recognize.</p>
+<hr>
+<h1>20. REPEATED-DIGIT SERIALS</h1>
+<p>Examples:</p>
+<p><code>12222222</code> <code>77777770</code> <code>55555555</code></p>
+<p>The more extreme the repetition, the more collectible the number may be.</p>
+<hr>
+<h1>21. SEQUENTIAL SERIAL NUMBERS</h1>
+<p>Examples:</p>
+<p><code>12345678</code> <code>23456789</code></p>
+<p>Reverse sequences:</p>
+<p><code>87654321</code></p>
+<p>These are classic fancy numbers.</p>
+<hr>
+<h1>22. BIRTHDAY SERIAL NUMBERS</h1>
+<p>A serial can represent a date.</p>
+<p>Example:</p>
+<p><code>07141976</code></p>
+<p>could be interpreted as:</p>
+<p><strong>07/14/1976</strong></p>
+<p>or:</p>
+<p><strong>July 14, 1976</strong></p>
+<h3>Important</h3>
+<p>Birthday serials are subjective.</p>
+<p>A number may be meaningful to one collector but not another.</p>
+<p>Shorter or more clearly interpretable dates are generally easier to
+market.</p>
+<hr>
+<h1>23. YEAR SERIAL NUMBERS</h1>
+<p>Example:</p>
+<p><code>00001976</code></p>
+<p>A serial containing a recognizable year can be interesting.</p>
+<p>But:</p>
+<p><strong>A year-looking serial is not automatically rare.</strong></p>
+<p>The exact pattern and collector demand matter.</p>
+<hr>
+<h1>24. 7-OF-A-KIND / 8-OF-A-KIND</h1>
+<p>Examples:</p>
+<p><code>77777770</code> <code>77777777</code></p>
+<p>A note with seven identical digits is sometimes called a
+<strong>seven-of-a-kind</strong>.</p>
+<p>Eight identical digits is a <strong>solid</strong>.</p>
+<hr>
+<h1>25. REPEATED PAIRS</h1>
+<p>Example:</p>
+<p><code>11223344</code></p>
+<p>This has a strong repeated-pair structure.</p>
+<p>Another:</p>
+<p><code>12121212</code></p>
+<p>is a much stronger repeater.</p>
+<hr>
+<h1>26. RADAR + REPEATER COMBINATIONS</h1>
+<p>Some serials have multiple desirable characteristics.</p>
+<p>Example:</p>
+<p><code>12211221</code></p>
+<p>may have more than one recognizable pattern.</p>
+<h3>General principle</h3>
+<p>The more compelling the exact mathematical pattern, the more interesting
+the note.</p>
+<hr>
+<h1>27. SERIAL NUMBER ERRORS</h1>
+<p>These are potentially much more important than ordinary fancy numbers.</p>
+<p>Look for:</p>
 <ul>
-<li>Low mintage but many survivors</li>
-<li>High mintage but very few survivors in high grade</li>
-<li>High mintage but heavy melting or attrition</li>
-<li>Low mintage but little collector demand</li>
+<li>Mismatched serial numbers</li>
+<li>Missing serial number</li>
+<li>Partially printed serial number</li>
+<li>Wrong color serial number</li>
+<li>Misaligned serial number</li>
+<li>Double-printed serial number</li>
+<li>Serial number printed over another design element</li>
+<li>Incorrect serial number relationship</li>
+<li>Serial number that does not match the note&#39;s design/series</li>
 </ul>
-<p>Always distinguish between:</p>
-<h3>Mintage</h3>
-<p>How many were produced.</p>
-<h3>Survival</h3>
-<p>How many are believed to still exist.</p>
-<h3>Condition rarity</h3>
-<p>How difficult the coin is to find in a particular grade.</p>
-<h3>Market demand</h3>
-<p>How many collectors want it.</p>
 <hr>
-<h1>6. Key Dates</h1>
-<p>A <strong>key date</strong> is a particularly scarce and important date within a coin series.</p>
-<p>Examples from U.S. collecting include:</p>
+<h1>28. MISMATCHED SERIAL NUMBERS</h1>
+<p>A note normally has matching serial numbers.</p>
+<p>If the two serial numbers are genuinely different:</p>
+<p><strong>STOP.</strong></p>
+<p>Do not spend it.</p>
+<p>Do not attempt to alter it.</p>
+<p>Photograph both sides and seek expert attribution.</p>
+<p>A genuine mismatched serial-number error can be a major collectible
+error.</p>
+<hr>
+<h1>29. MISSING SERIAL NUMBER</h1>
+<p>If one serial number is completely missing but the other is present,
+investigate.</p>
+<p>However, determine whether:</p>
 <ul>
-<li>1909-S VDB Lincoln cent</li>
-<li>1914-D Lincoln cent</li>
-<li>1931-S Lincoln cent</li>
-<li>1922 No D Lincoln cent</li>
-<li>1955 Doubled Die Obverse Lincoln cent</li>
-<li>1969-S Doubled Die Obverse Lincoln cent</li>
-<li>1970-S Large Date Doubled Die Obverse Lincoln cent</li>
-<li>1932-D Washington quarter</li>
-<li>1932-S Washington quarter</li>
-<li>1916-D Mercury dime</li>
+<li>It is a genuine printing error</li>
+<li>Ink was removed</li>
+<li>The note was chemically altered</li>
+<li>The serial number was intentionally erased</li>
 </ul>
-<p>A key date can be valuable even when it does not contain an obvious mint error.</p>
 <hr>
-<h1>7. Types and Type Sets</h1>
-<p>A <strong>type</strong> refers to a particular design or major design variation.</p>
-<p>Collectors may build a:</p>
-<blockquote>
-<p>Type Set</p>
-</blockquote>
-<p>rather than collecting every date.</p>
-<p>For example, instead of collecting every Washington quarter, someone might collect one representative example of each major U.S. quarter design.</p>
-<p>Type collecting is an excellent way to learn U.S. coin history without needing thousands of coins.</p>
+<h1>30. MISALIGNED SERIAL NUMBERS</h1>
+<p>A serial number can sometimes be noticeably shifted.</p>
+<p>Minor variation is not necessarily collectible.</p>
+<p>A major, dramatic misalignment can be an error.</p>
 <hr>
-<h1>8. Date Varieties</h1>
-<p>A date variety occurs when there are identifiable differences in the date.</p>
-<p>Common terminology includes:</p>
-<h3>Small Date</h3>
-<p>Digits are smaller or arranged differently than another recognized date style.</p>
-<h3>Large Date</h3>
-<p>Digits are larger or positioned differently.</p>
-<h3>Close Date / Close Numbers</h3>
-<p>Digits are positioned closer together.</p>
-<h3>Wide Date / Wide Numbers</h3>
-<p>Digits are spaced farther apart.</p>
-<h3>Near Date</h3>
-<p>A digit is unusually close to another design element.</p>
-<h3>Near Rim</h3>
-<p>A digit or design element is positioned unusually close to the rim.</p>
-<h3>Far Date</h3>
-<p>The date is positioned farther from another design element than the normal variety.</p>
-<h3>High Date</h3>
-<p>The date is positioned higher than another recognized variety.</p>
-<h3>Low Date</h3>
-<p>The date is positioned lower than another recognized variety.</p>
-<p>Always use a recognized reference when identifying a date variety.</p>
-<p>A coin that merely &quot;looks different&quot; is not automatically a recognized variety.</p>
+<h1>31. PRINTING ERRORS</h1>
+<p>A paper-money error occurs during production.</p>
+<p>Potential things to watch for:</p>
+<ul>
+<li>Missing printing</li>
+<li>Misregistration</li>
+<li>Offset printing</li>
+<li>Foldover</li>
+<li>Cutting error</li>
+<li>Obstruction</li>
+<li>Ink smear</li>
+<li>Missing seal</li>
+<li>Misplaced seal</li>
+<li>Misplaced serial numbers</li>
+<li>Wrong denomination components</li>
+<li>Dramatically shifted overprint</li>
+<li>Blank back</li>
+<li>Missing face/back printing</li>
+<li>Overprint errors</li>
+<li>Mismatched serials</li>
+</ul>
 <hr>
-<h1>9. Die Varieties</h1>
-<p>A <strong>die variety</strong> is a recurring characteristic caused by the dies used to strike coins.</p>
-<p>This is different from a random mint error.</p>
-<p>A die variety can appear on many coins struck by the same die pair.</p>
+<h1>32. OFFSET ERROR</h1>
+<p>An image can transfer from one sheet or surface to another before the
+ink has fully dried.</p>
+<p>This can create a mirrored or transferred image.</p>
+<h3>Warning</h3>
+<p>Do not call every strange ink mark an offset error.</p>
+<p>Compare: - Direction - Mirroring - Ink characteristics - Placement</p>
+<hr>
+<h1>33. FOLDOVER ERROR</h1>
+<p>A portion of the sheet folds during printing or cutting.</p>
+<p>The folded section can receive an abnormal print impression.</p>
+<p>This can create:</p>
+<ul>
+<li>Missing portions</li>
+<li>Extra portions</li>
+<li>Misplaced printing</li>
+<li>Unusual margins</li>
+</ul>
+<p>A genuine foldover error is much more interesting than an ordinary
+crease.</p>
+<hr>
+<h1>34. CUTTING ERRORS</h1>
+<p>Currency is printed on large sheets and later separated.</p>
+<p>A note can occasionally be cut incorrectly.</p>
+<p>Look for:</p>
+<ul>
+<li>Abnormally wide margin</li>
+<li>Abnormally narrow margin</li>
+<li>Design cut into the margin</li>
+<li>Part of neighboring note design</li>
+<li>Dramatically uneven borders</li>
+</ul>
+<h3>Beginner warning</h3>
+<p>A slightly uneven margin is not automatically a major error.</p>
+<p>The production sheet geometry matters.</p>
+<hr>
+<h1>35. BLANK BACK / MISSING PRINTING</h1>
+<p>A note with an entirely missing reverse printing can be an important
+error.</p>
+<h3>But verify</h3>
+<p>Make sure the reverse was actually never printed.</p>
+<p>Do not confuse: - Heavy wear - Chemical damage - Ink removal -
+Counterfeit manufacture</p>
+<p>with a genuine missing-print error.</p>
+<hr>
+<h1>36. INK ERRORS</h1>
+<p>Look for:</p>
+<ul>
+<li>Missing ink</li>
+<li>Extra ink</li>
+<li>Smearing</li>
+<li>Misregistration</li>
+<li>Wrong-color ink</li>
+<li>Overinking</li>
+</ul>
+<h3>Particularly important</h3>
+<p>A dramatic error affecting an important design element can be
+considerably more collectible than a tiny ink spot.</p>
+<hr>
+<h1>37. SEAL ERRORS</h1>
+<p>The Treasury seal and Federal Reserve seal are important diagnostic
+features.</p>
+<p>Look for:</p>
+<ul>
+<li>Missing seal</li>
+<li>Dramatically misplaced seal</li>
+<li>Double seal</li>
+<li>Partial seal</li>
+<li>Wrong seal color</li>
+<li>Misaligned seal</li>
+</ul>
+<h3>Warning</h3>
+<p>Do not assume every weak seal is an error.</p>
+<p>Wear, ink variation, and printing pressure can affect appearance.</p>
+<hr>
+<h1>38. SILVER CERTIFICATES</h1>
+<h2>What is a Silver Certificate?</h2>
+<p>Silver Certificates were U.S. currency certificates backed by silver
+held by the Treasury.</p>
+<p>They were first issued in <strong>1878</strong>.</p>
+<p>The BEP lists Silver Certificates as an official U.S. currency issue
+from <strong>1878 through 1965</strong>.</p>
+<hr>
+<h1>39. THE EASY SILVER CERTIFICATE IDENTIFIER</h1>
+<p>For many small-size Silver Certificates:</p>
+<p><strong>Blue Treasury seal</strong></p>
+<p>is the most obvious clue.</p>
 <p>Examples include:</p>
 <ul>
-<li>Doubled dies</li>
-<li>Repunched mintmarks</li>
-<li>Overmintmarks</li>
-<li>Re-engraved dates</li>
-<li>Different lettering styles</li>
-<li>Different hub designs</li>
-<li>Die markers</li>
+<li>1935 $1</li>
+<li>1935A</li>
+<li>1935B</li>
+<li>1935C</li>
+<li>1935D</li>
+<li>1935E</li>
+<li>1935F</li>
+<li>1935G</li>
+<li>1935H</li>
+<li>1957</li>
+<li>1957A</li>
+<li>1957B</li>
+<li>1957C</li>
 </ul>
-<p>A useful rule:</p>
+<h3>Pull them</h3>
+<p>Do not spend an old blue-seal note without checking the series.</p>
+<hr>
+<h1>40. 1957 SILVER CERTIFICATE</h1>
+<p>The 1957 $1 Silver Certificate is particularly common.</p>
+<h3>Important</h3>
+<p>It is collectible.</p>
+<p>But:</p>
+<p><strong>Common does not mean rare.</strong></p>
+<p>A circulated 1957 blue-seal $1 usually does not belong in the same
+category as a scarce early Silver Certificate.</p>
+<hr>
+<h1>41. 1957-B / 1957-C / OTHER VARIANTS</h1>
+<p>Study: - Series - Signatures - Serial range - Seal - Condition</p>
+<p>Some signature/series combinations are more desirable.</p>
+<hr>
+<h1>42. SPECIAL SILVER CERTIFICATE NOTES</h1>
+<p>Look especially for:</p>
+<ul>
+<li>1899 $1 Black Eagle</li>
+<li>1896 $1 Educational Silver Certificate</li>
+<li>1923 $1</li>
+<li>1928 series</li>
+<li>1934 series</li>
+<li>1935 series</li>
+<li>1957 series</li>
+</ul>
+<p>Older Silver Certificates should almost always be researched before
+being spent.</p>
+<hr>
+<h1>43. 1899 BLACK EAGLE</h1>
+<p>A famous large-size Silver Certificate.</p>
+<h3>Why important?</h3>
+<p>It has a dramatic eagle design on the face and portraits of:</p>
+<ul>
+<li>Abraham Lincoln</li>
+<li>Ulysses S. Grant</li>
+</ul>
+<h3>Roll-hunting equivalent</h3>
+<p>If you find one in an old envelope, safe, collection, or estate:</p>
+<p><strong>STOP.</strong></p>
+<p>Do not treat it as a $1 bill.</p>
+<hr>
+<h1>44. GOLD CERTIFICATES</h1>
+<h2>What is a Gold Certificate?</h2>
+<p>Gold Certificates were certificates associated with gold held by the
+Treasury.</p>
+<p>They were first issued in <strong>1865</strong>.</p>
+<p>The BEP lists Gold Certificates as an official currency issue from
+<strong>1865 through 1936</strong>.</p>
+<hr>
+<h1>45. GOLD CERTIFICATE IDENTIFICATION</h1>
+<p>Common small-size Gold Certificates have:</p>
+<p><strong>yellow/orange/gold-colored seal</strong></p>
+<p>and serial-number coloring associated with the issue.</p>
+<p>Older large-size notes can be dramatically different.</p>
+<h3>Pull every genuine Gold Certificate candidate.</h3>
+<hr>
+<h1>46. IMPORTANT GOLD CERTIFICATE WARNING</h1>
+<p>Do not assume:</p>
 <blockquote>
-<p>If the same unusual feature appears in exactly the same location on multiple coins, it may be a die variety.</p>
+<p>&quot;Gold Certificate = redeemable for gold today.&quot;</p>
 </blockquote>
+<p>That is not how modern collectors should interpret these notes.</p>
+<p>They are historical currency issues.</p>
+<p>Their collector value can be far above face value.</p>
 <hr>
-<h1>10. Doubled Dies</h1>
-<p>A <strong>doubled die</strong> occurs when a die itself receives multiple impressions from a hub in slightly different positions.</p>
-<p>The resulting doubling is transferred to every coin struck by that die.</p>
-<p>Look for:</p>
-<ul>
-<li>Separation</li>
-<li>Extra outlines</li>
-<li>Extra serifs</li>
-<li>Distinct secondary images</li>
-<li>Doubling on letters</li>
-<li>Doubling on numbers</li>
-<li>Doubling on design elements</li>
-</ul>
-<p>Important:</p>
-<p><strong>Doubled die != machine doubling.</strong></p>
-<p>True doubled dies are generally much more desirable than ordinary machine doubling.</p>
-<p>Famous examples include:</p>
-<ul>
-<li>1955 DDO Lincoln cent</li>
-<li>1969-S DDO Lincoln cent</li>
-<li>1972 DDO Lincoln cent</li>
-<li>1970-S Large Date DDO Lincoln cent</li>
-<li>1995 DDO Lincoln cent</li>
-</ul>
+<h1>47. UNITED STATES NOTES</h1>
+<p>Often called:</p>
+<p><strong>Legal Tender Notes</strong></p>
+<p>They typically have:</p>
+<p><strong>red Treasury seal</strong></p>
+<p>and red serial numbers on small-size examples.</p>
+<p>United States Notes were authorized beginning in 1862. Their issuance
+was discontinued in 1971; outstanding United States Notes remain legal
+tender at face value.</p>
 <hr>
-<h1>11. Machine Doubling</h1>
-<p>Machine doubling occurs during the striking process when the die or coin shifts or moves slightly.</p>
-<p>It often creates:</p>
-<ul>
-<li>Flat shelf-like doubling</li>
-<li>Reduced-looking lettering</li>
-<li>A flattened secondary edge</li>
-<li>A &quot;smeared&quot; appearance</li>
-</ul>
-<p>Machine doubling usually does <strong>not</strong> create the strong separated secondary design associated with a major doubled die.</p>
-<p>Do not automatically assume any visible doubling is valuable.</p>
+<h1>48. RED-SEAL $2 NOTES</h1>
+<p>If you see an older $2 with:</p>
+<p><strong>red seal</strong></p>
+<p>do not spend it automatically.</p>
+<p>Check: - Series - Signatures - Serial number - Condition</p>
 <hr>
-<h1>12. Repunched Mintmarks</h1>
-<p>A <strong>Repunched Mintmark (RPM)</strong> occurs when a mintmark is punched into a die more than once in different positions.</p>
-<p>This can produce:</p>
-<ul>
-<li>Extra portions of the mintmark</li>
-<li>Secondary outlines</li>
-<li>Extra serifs</li>
-<li>Offset letters</li>
-</ul>
-<p>RPMs are especially important on older U.S. coins.</p>
-<p>Always compare your coin to a trusted variety reference.</p>
+<h1>49. RED-SEAL $5 / $10 / $20 / ETC.</h1>
+<p>Older United States Notes can occur in denominations beyond $2.</p>
+<p>They are historical collectible currency.</p>
 <hr>
-<h1>13. Overpunched Mintmarks</h1>
-<p>An <strong>Over Mint Mark (OMM)</strong> occurs when one mintmark is punched over another mintmark.</p>
-<p>Examples may include:</p>
-<ul>
-<li>D over S</li>
-<li>S over D</li>
-</ul>
-<p>These are especially interesting on series in which mintmarks were manually added to dies.</p>
+<h1>50. FEDERAL RESERVE NOTES</h1>
+<p>Modern U.S. paper money is primarily Federal Reserve Notes.</p>
+<p>Federal Reserve Notes began in <strong>1914</strong>.</p>
+<p>The Bureau of Engraving and Printing prints the Federal Reserve notes
+ordered by the Federal Reserve Board. The seven currently issued
+denominations are $1, $2, $5, $10, $20, $50, and $100.</p>
 <hr>
-<h1>14. Die Cracks</h1>
-<p>A <strong>die crack</strong> occurs when a coin die develops a crack.</p>
-<p>The crack is transferred to the coins struck afterward.</p>
-<p>A die crack generally appears as a raised line on the finished coin.</p>
-<p>Important:</p>
-<blockquote>
-<p>The crack is raised on the coin because the defect is recessed into the die.</p>
-</blockquote>
-<p>Common forms include:</p>
-<ul>
-<li>Hairline cracks</li>
-<li>Large branching cracks</li>
-<li>Cracks through letters</li>
-<li>Cracks through dates</li>
-<li>Cracks extending from the rim</li>
-<li>&quot;Cud&quot; formations</li>
-</ul>
-<p>A die crack that appears repeatedly in the same position can help identify a particular die state or variety.</p>
+<h1>51. LARGE-SIZE FEDERAL RESERVE NOTES</h1>
+<p>Before the 1929 redesign, U.S. paper currency was substantially larger.
+Large-size notes are generally about 7.375 × 3.125 inches, while
+small-size notes are about 6.14 × 2.61 inches.</p>
+<p>Large-size notes measure approximately:</p>
+<p><strong>7.375 × 3.125 inches</strong></p>
+<p>Modern small-size notes are approximately:</p>
+<p><strong>6.14 × 2.61 inches</strong></p>
+<p>The 1929 redesign reduced the physical size of U.S. paper money by about
+30 percent.</p>
+<h3>Pull</h3>
+<p>Any genuine large-size U.S. note.</p>
 <hr>
-<h1>15. Cuds</h1>
-<p>A <strong>cud</strong> occurs when part of the die face breaks away, typically involving the die&#39;s edge.</p>
-<p>The resulting coin has a raised area where metal flowed into the missing portion of the die.</p>
-<p>A cud is usually:</p>
+<h1>52. NATIONAL BANK NOTES</h1>
+<p>National Bank Notes are a major historical collecting field.</p>
+<p>They can contain:</p>
 <ul>
-<li>Raised</li>
-<li>Connected to the rim</li>
-<li>Associated with a broken portion of the die</li>
+<li>National bank name</li>
+<li>Charter number</li>
+<li>Town/state</li>
+<li>Serial information</li>
+<li>Portraits</li>
+<li>Treasury signatures/seals</li>
 </ul>
-<p>Do not confuse a cud with damage caused after the coin left the Mint.</p>
+<p>A genuine National Bank Note is not simply an ordinary Federal Reserve
+Note.</p>
+<h3>If found</h3>
+<p>Photograph it and research the exact bank and charter.</p>
 <hr>
-<h1>16. Die Chips</h1>
-<p>A <strong>die chip</strong> occurs when a small piece of a die breaks away.</p>
-<p>The resulting coin can have a small raised blob of metal.</p>
-<p>Die chips can occur:</p>
+<h1>53. HIGH-DENOMINATION NOTES</h1>
+<p>U.S. notes of:</p>
 <ul>
-<li>Near letters</li>
-<li>Near numbers</li>
-<li>On portraits</li>
-<li>Around mintmarks</li>
-<li>In the field</li>
+<li>$500</li>
+<li>$1,000</li>
+<li>$5,000</li>
+<li>$10,000</li>
 </ul>
-<p>Some famous recurring die chips have become collectible varieties.</p>
+<p>were discontinued in 1969.</p>
+<p>They were last printed in 1945.</p>
+<p>The BEP states that these notes remain legal tender, although most are
+in private collections.</p>
+<h3>If found</h3>
+<p>Do not spend it.</p>
+<p>Do not sell it to the first person who offers cash.</p>
+<p>Have it professionally evaluated.</p>
 <hr>
-<h1>17. Die Clashes</h1>
-<p>A <strong>die clash</strong> occurs when the obverse and reverse dies come together without a planchet between them.</p>
-<p>Parts of one die can leave impressions on the opposite die.</p>
-<p>This can produce unusual design remnants on subsequently struck coins.</p>
-<p>Clashes can appear as:</p>
-<ul>
-<li>Lines</li>
-<li>Curves</li>
-<li>Letter remnants</li>
-<li>Design fragments</li>
-<li>Parts of the opposite design</li>
-</ul>
+<h1>54. $100,000 GOLD CERTIFICATE</h1>
+<p>The $100,000 Gold Certificate, Series 1934, was used only for
+transactions between Federal Reserve Banks.</p>
+<p>It was <strong>not circulated among the general public</strong> and cannot legally be
+held by currency collectors.</p>
+<p>If someone offers you one from an ordinary collection, be extremely
+skeptical.</p>
 <hr>
-<h1>18. Die Polish Lines</h1>
-<p>Dies are sometimes polished to remove marks or damage.</p>
-<p>The polishing can leave lines on the die.</p>
-<p>Those lines can then appear as raised lines on coins struck from that die.</p>
-<p>Important:</p>
-<blockquote>
-<p>Die polish lines are generally raised on the coin.</p>
-</blockquote>
-<p>They are not automatically errors.</p>
+<h1>55. LARGE-SIZE NOTE COLORS AND SEALS</h1>
+<p>Older U.S. currency can have:</p>
+<ul>
+<li>Red seals</li>
+<li>Blue seals</li>
+<li>Gold/orange seals</li>
+<li>Brown seals</li>
+<li>Green seals</li>
+</ul>
+<p>Do not assume:</p>
+<p><strong>&quot;blue = Silver Certificate&quot;</strong></p>
+<p>or:</p>
+<p><strong>&quot;red = United States Note&quot;</strong></p>
+<p>without considering the note&#39;s exact issue.</p>
+<p>The seal system changed over time.</p>
 <hr>
-<h1>19. Die States</h1>
-<p>A die changes as it strikes coins.</p>
-<p>Collectors may describe dies as:</p>
-<ul>
-<li>Early die state</li>
-<li>Middle die state</li>
-<li>Late die state</li>
-</ul>
-<p>A die may begin with no crack, later develop a small crack, and eventually develop a large crack or cud.</p>
-<p>Studying die states can help determine when a coin was struck relative to other coins from the same die.</p>
+<h1>56. CONDITION: PAPER MONEY HAS ITS OWN LANGUAGE</h1>
+<h2>Uncirculated</h2>
+<p>No evidence of normal circulation.</p>
+<h2>Crisp Uncirculated</h2>
+<p>Fresh-looking note with strong original appearance.</p>
+<h2>Choice/Crisp Uncirculated</h2>
+<p>A particularly attractive uncirculated note.</p>
+<h2>Extremely Fine</h2>
+<p>Light circulation but still sharp.</p>
+<h2>Very Fine</h2>
+<p>Moderate circulation.</p>
+<h2>Fine</h2>
+<p>Clear circulation wear.</p>
+<h2>Very Good / Good</h2>
+<p>Heavily circulated.</p>
 <hr>
-<h1>20. Mint Errors</h1>
-<p>A <strong>mint error</strong> is an abnormality that occurs during production.</p>
-<p>Unlike many die varieties, errors are generally accidental events affecting individual coins or limited groups of coins.</p>
-<p>Examples:</p>
+<h1>57. FOLDS MATTER</h1>
+<p>For paper currency:</p>
+<p><strong>A single vertical fold can substantially reduce the value of an
+otherwise beautiful note.</strong></p>
+<p>Collectors distinguish between:</p>
 <ul>
-<li>Off-center strike</li>
-<li>Wrong planchet</li>
-<li>Broadstrike</li>
-<li>Clipped planchet</li>
-<li>Struck-through</li>
-<li>Brockage</li>
-<li>Multiple strike</li>
-<li>Die cap</li>
-<li>Missing design elements</li>
-<li>Transitional error</li>
-</ul>
-<p>A useful distinction:</p>
-<blockquote>
-<p>Variety = the die made it that way repeatedly.</p>
-</blockquote>
-<blockquote>
-<p>Error = something went wrong during production.</p>
-</blockquote>
-<hr>
-<h1>21. Wrong-Planchet Errors</h1>
-<p>A wrong-planchet error occurs when a coin is struck on a planchet intended for another denomination or composition.</p>
-<p>Potential clues include:</p>
-<ul>
-<li>Incorrect weight</li>
-<li>Incorrect diameter</li>
-<li>Incorrect thickness</li>
-<li>Incorrect metal</li>
-<li>Missing expected edge characteristics</li>
-<li>Design larger or smaller than expected</li>
-</ul>
-<p>Some wrong-planchet errors are extremely valuable.</p>
-<p>Weight is one of the most important first checks.</p>
-<hr>
-<h1>22. Off-Center Strikes</h1>
-<p>An off-center strike occurs when the planchet is not properly centered between the dies.</p>
-<p>Look for:</p>
-<ul>
-<li>Blank area</li>
-<li>Partial design</li>
-<li>Crescent-shaped unstruck area</li>
-<li>Design shifted toward the edge</li>
-</ul>
-<p>Generally, dramatic off-center errors are more desirable than minor ones.</p>
-<p>A coin struck 2% off center may be less interesting than one struck 40% off center.</p>
-<hr>
-<h1>23. Broadstrikes</h1>
-<p>A broadstrike occurs when a coin is struck without the collar properly containing the planchet.</p>
-<p>The coin may become:</p>
-<ul>
-<li>Wider</li>
-<li>Flatter</li>
-<li>Missing the normal raised rim</li>
-</ul>
-<p>The coin should still show evidence consistent with a Mint-produced strike.</p>
-<p>Post-Mint flattening is not a broadstrike.</p>
-<hr>
-<h1>24. Clipped Planchets</h1>
-<p>A clipped planchet occurs when part of the blank is missing before striking.</p>
-<p>Common types include:</p>
-<ul>
-<li>Curved clip</li>
-<li>Straight clip</li>
-<li>Ragged clip</li>
-<li>Multiple clips</li>
-</ul>
-<p>A genuine clip often exhibits diagnostic characteristics such as metal flow patterns near the clipped area.</p>
-<p>Be careful with coins that were damaged after leaving the Mint.</p>
-<hr>
-<h1>25. Struck-Through Errors</h1>
-<p>A struck-through error occurs when foreign material comes between the die and planchet during striking.</p>
-<p>Possible materials include:</p>
-<ul>
-<li>Cloth</li>
-<li>Grease</li>
-<li>Wire</li>
-<li>Metal fragments</li>
-<li>Other debris</li>
-</ul>
-<p>The resulting coin may have:</p>
-<ul>
-<li>Missing design</li>
-<li>Weak design</li>
-<li>Texture</li>
-<li>Depressions</li>
-<li>Unusual shapes</li>
-</ul>
-<p>Grease-filled dies can produce weak or missing lettering.</p>
-<hr>
-<h1>26. Brockage Errors</h1>
-<p>A <strong>brockage</strong> occurs when a previously struck coin sticks to a die and impresses its design into another coin.</p>
-<p>A classic brockage can show:</p>
-<ul>
-<li>Incuse design</li>
-<li>Mirror-image design</li>
-<li>Missing normal design in the affected area</li>
-</ul>
-<p>Brockages can be highly collectible.</p>
-<hr>
-<h1>27. Multiple Strikes</h1>
-<p>A multiple strike occurs when a coin is struck more than once.</p>
-<p>The second strike may occur:</p>
-<ul>
-<li>In the collar</li>
-<li>Outside the collar</li>
-<li>With the coin rotated</li>
-<li>With the coin partially overlapping its previous position</li>
-</ul>
-<p>Strong multiple strikes can be dramatic and valuable.</p>
-<hr>
-<h1>28. Rotated Dies</h1>
-<p>The obverse and reverse dies of a U.S. coin normally have a specific orientation.</p>
-<p>A major deviation can be collectible.</p>
-<p>To test rotation:</p>
-<ol>
-<li>Hold the coin upright with the obverse facing you.</li>
-<li>Rotate it vertically from top to bottom.</li>
-<li>Observe the reverse.</li>
-</ol>
-<p>Do not rotate the coin sideways.</p>
-<p>Minor rotations may have little premium.</p>
-<p>Major rotations can be much more interesting.</p>
-<hr>
-<h1>29. Transitional Errors</h1>
-<p>A transitional error occurs when a coin is struck using an outdated planchet after the Mint has changed specifications.</p>
-<p>Examples can occur when:</p>
-<ul>
-<li>Composition changes</li>
-<li>Weight changes</li>
-<li>Planchet specifications change</li>
-</ul>
-<p>Famous U.S. transitional errors include certain:</p>
-<ul>
-<li>1943/1944 cents</li>
-<li>1964/1965 silver/clad issues</li>
-<li>1982 cent transitions</li>
-</ul>
-<p>These can be extremely valuable.</p>
-<hr>
-<h1>30. Post-Mint Damage</h1>
-<p>Not everything unusual was created by the Mint.</p>
-<p>Common post-Mint damage includes:</p>
-<ul>
-<li>Scratches</li>
-<li>Gouges</li>
-<li>Bends</li>
-<li>Dents</li>
-<li>Drilled holes</li>
-<li>Filing</li>
-<li>Polishing</li>
-<li>Grinding</li>
-<li>Chemical damage</li>
-<li>Heat damage</li>
-<li>Plating</li>
-<li>Coloring</li>
-<li>Acid treatment</li>
-</ul>
-<p>This distinction is critical.</p>
-<p>A damaged coin can look spectacular while having little numismatic premium.</p>
-<hr>
-<h1>31. Coin Weight</h1>
-<p>A precision scale is one of the most useful tools for coin hunting.</p>
-<p>Use a scale capable of at least:</p>
-<blockquote>
-<p>0.01 gram resolution</p>
-</blockquote>
-<p>Whenever possible, record the expected standard weight.</p>
-<p>Approximate modern U.S. specifications include:</p>
-<table>
-<thead>
-<tr>
-<th>Coin</th>
-<th align="right">Standard Weight</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Cent</td>
-<td align="right">2.500 g</td>
-</tr>
-<tr>
-<td>Nickel</td>
-<td align="right">5.000 g</td>
-</tr>
-<tr>
-<td>Dime</td>
-<td align="right">2.268 g</td>
-</tr>
-<tr>
-<td>Quarter</td>
-<td align="right">5.670 g</td>
-</tr>
-<tr>
-<td>Half Dollar</td>
-<td align="right">11.340 g</td>
-</tr>
-<tr>
-<td>Native American/Presidential dollar</td>
-<td align="right">8.100 g</td>
-</tr>
-</tbody></table>
-<p>Older coins may have different specifications.</p>
-<p>Wear can reduce weight slightly.</p>
-<p>Environmental contamination can increase weight.</p>
-<p>A large weight difference can indicate:</p>
-<ul>
-<li>Wrong planchet</li>
-<li>Counterfeit</li>
-<li>Clipped planchet</li>
-<li>Composition change</li>
-<li>Severe damage</li>
-</ul>
-<hr>
-<h1>32. Diameter and Thickness</h1>
-<p>Weight alone is not enough.</p>
-<p>Measure:</p>
-<ul>
-<li>Weight</li>
-<li>Diameter</li>
-<li>Thickness</li>
-<li>Edge</li>
-</ul>
-<p>For example, a coin that weighs incorrectly but has normal diameter may indicate a different problem than one that has both incorrect weight and diameter.</p>
-<p>Use a digital caliper carefully.</p>
-<p>Do not scratch a coin while measuring it.</p>
-<hr>
-<h1>33. U.S. Coin Metal Compositions</h1>
-<p>Common modern compositions include:</p>
-<h3>Lincoln cent</h3>
-<p>Since 1982, circulating cents are generally:</p>
-<ul>
-<li>97.5% zinc</li>
-<li>2.5% copper</li>
-</ul>
-<p>Copper-alloy cents from earlier periods generally have substantially different weights.</p>
-<h3>Nickel</h3>
-<ul>
-<li>75% copper</li>
-<li>25% nickel</li>
-<li>5.000 g</li>
-</ul>
-<h3>Dime</h3>
-<p>Modern clad dime:</p>
-<ul>
-<li>Outer layers: copper-nickel alloy</li>
-<li>Core: copper</li>
-</ul>
-<h3>Quarter</h3>
-<p>Modern clad quarter:</p>
-<ul>
-<li>Outer layers: copper-nickel alloy</li>
-<li>Core: copper</li>
-</ul>
-<h3>Half dollar</h3>
-<p>Modern clad half dollar:</p>
-<ul>
-<li>Outer layers: copper-nickel alloy</li>
-<li>Core: copper</li>
-</ul>
-<h3>Dollar</h3>
-<p>Modern manganese-brass/clad-style dollar composition differs from older silver dollars.</p>
-<p>Always verify the specifications for the exact issue being examined.</p>
-<hr>
-<h1>34. Silver Coins</h1>
-<p>Major U.S. silver issues include:</p>
-<ul>
-<li>Morgan dollars</li>
-<li>Peace dollars</li>
-<li>Barber coinage</li>
-<li>Mercury dimes</li>
-<li>Roosevelt dimes through 1964</li>
-<li>Standing Liberty quarters</li>
-<li>Washington quarters through 1964</li>
-<li>Franklin half dollars</li>
-<li>Kennedy half dollars 1964</li>
-<li>Certain 1965‑1970 Kennedy halves containing 40% silver</li>
-</ul>
-<p>Common U.S. pre-1965 circulation silver coins are generally:</p>
-<blockquote>
-<p>90% silver / 10% copper</p>
-</blockquote>
-<p>The 1965‑1970 Kennedy half dollar is generally:</p>
-<blockquote>
-<p>40% silver / 60% copper</p>
-</blockquote>
-<p>Always verify the exact issue.</p>
-<hr>
-<h1>35. Gold Coins</h1>
-<p>Historic U.S. gold coins include:</p>
-<ul>
-<li>$1 gold</li>
-<li>$2.50 quarter eagles</li>
-<li>$3 gold pieces</li>
-<li>$5 half eagles</li>
-<li>$10 eagles</li>
-<li>$20 double eagles</li>
-</ul>
-<p>Many classic U.S. gold coins are highly collectible.</p>
-<p>Value can depend on:</p>
-<ul>
-<li>Gold content</li>
-<li>Date</li>
-<li>Mintmark</li>
-<li>Condition</li>
-<li>Rarity</li>
-<li>Variety</li>
-<li>Historical significance</li>
-</ul>
-<p>Never clean gold coins simply because they look dirty.</p>
-<hr>
-<h1>36. Copper Coins</h1>
-<p>Older U.S. cents can contain substantial copper.</p>
-<p>Important copper issues include:</p>
-<ul>
-<li>Large cents</li>
-<li>Indian Head cents</li>
-<li>Lincoln wheat cents</li>
-<li>Early Lincoln Memorial cents</li>
-</ul>
-<p>Copper coins can develop attractive natural toning.</p>
-<p>Environmental exposure can also cause:</p>
-<ul>
-<li>Verdigris</li>
-<li>Corrosion</li>
-<li>Darkening</li>
-<li>Spotting</li>
-</ul>
-<p>Avoid abrasive cleaning.</p>
-<hr>
-<h1>37. Nickel Coins</h1>
-<p>The U.S. nickel has traditionally been:</p>
-<blockquote>
-<p>75% copper / 25% nickel</p>
-</blockquote>
-<p>Important exceptions include wartime nickels.</p>
-<h3>1942‑1945 Wartime Nickels</h3>
-<p>Certain wartime Jefferson nickels contain:</p>
-<ul>
-<li>35% silver</li>
-<li>56% copper</li>
-<li>9% manganese</li>
-</ul>
-<p>They can be identified by the large mintmark above Monticello on the reverse.</p>
-<p>Look for:</p>
-<blockquote>
-<p>P, D, or S</p>
-</blockquote>
-<p>A &quot;P&quot; wartime nickel is particularly notable because Philadelphia nickels normally did not carry a P mintmark before this period.</p>
-<hr>
-<h1>38. Clad Coins</h1>
-<p>Modern U.S. dimes, quarters, and half dollars generally use clad construction.</p>
-<p>A clad coin contains multiple layers.</p>
-<p>The edge can reveal:</p>
-<ul>
-<li>Copper core</li>
-<li>Outer alloy layers</li>
-</ul>
-<p>A coin with an unusual edge color can deserve further investigation.</p>
-<p>However:</p>
-<blockquote>
-<p>A copper-colored edge does not automatically mean the coin is rare.</p>
-</blockquote>
-<hr>
-<h1>39. Proof Coins</h1>
-<p>Proof coins are specially manufactured for collectors.</p>
-<p>Typical characteristics include:</p>
-<ul>
-<li>Highly polished fields</li>
-<li>Frosted design elements</li>
-<li>Sharp details</li>
-<li>Special preparation of dies and planchets</li>
-</ul>
-<p>Modern proofs are usually produced at San Francisco or West Point depending on the issue.</p>
-<p>Older proof coins can have different characteristics.</p>
-<hr>
-<h1>40. Reverse Proof Coins</h1>
-<p>A reverse proof uses a finish opposite the conventional proof appearance.</p>
-<p>Typically:</p>
-<ul>
-<li>Design elements appear mirror-like</li>
-<li>Fields appear frosted</li>
-</ul>
-<p>These are usually collector issues rather than normal circulation coins.</p>
-<hr>
-<h1>41. Coin Grades</h1>
-<p>Condition has a major effect on value.</p>
-<p>Common grading categories include:</p>
-<ul>
-<li>Poor</li>
-<li>Fair</li>
-<li>About Good</li>
-<li>Good</li>
-<li>Very Good</li>
-<li>Fine</li>
-<li>Very Fine</li>
-<li>Extremely Fine</li>
-<li>About Uncirculated</li>
-<li>Uncirculated</li>
-<li>Mint State</li>
-<li>Proof</li>
-</ul>
-<p>Professional grading uses numerical grades.</p>
-<hr>
-<h1>42. The Sheldon Grading Scale</h1>
-<p>The Sheldon scale ranges from:</p>
-<blockquote>
-<p>1 to 70</p>
-</blockquote>
-<p>Very broadly:</p>
-<ul>
-<li>1 = heavily worn</li>
-<li>20 = Very Fine territory</li>
-<li>30 = Very Fine/Extremely Fine territory</li>
-<li>40 = Extremely Fine</li>
-<li>50 = About Uncirculated</li>
-<li>60 = Uncirculated</li>
-<li>65+ = high-grade Mint State</li>
-</ul>
-<p>The exact standards depend on the series.</p>
-<p>A coin&#39;s grade should be based on its overall condition, not simply how shiny it looks.</p>
-<hr>
-<h1>43. Details and Problem Coins</h1>
-<p>A coin may have excellent remaining detail but still receive a &quot;Details&quot; designation because of a problem.</p>
-<p>Possible problems include:</p>
-<ul>
-<li>Cleaning</li>
-<li>Scratches</li>
-<li>Environmental damage</li>
-<li>Corrosion</li>
-<li>Artificial toning</li>
-<li>Damage</li>
-<li>Mounting</li>
-<li>Improper treatment</li>
-</ul>
-<p>A cleaned AU coin is not equivalent to a straight-graded AU coin.</p>
-<hr>
-<h1>44. Wear vs. Damage</h1>
-<p>This is one of the most important skills in coin collecting.</p>
-<h3>Wear</h3>
-<p>Usually:</p>
-<ul>
-<li>Smooth</li>
-<li>Even</li>
-<li>Occurs on high points</li>
-<li>Reduces detail gradually</li>
-</ul>
-<h3>Damage</h3>
-<p>May be:</p>
-<ul>
-<li>Sharp</li>
-<li>Localized</li>
-<li>Random</li>
-<li>Scratched</li>
-<li>Gouged</li>
-<li>Bent</li>
-<li>Dented</li>
-</ul>
-<p>Learning the difference takes practice.</p>
-<p>Compare questionable areas with photographs of known genuine coins.</p>
-<hr>
-<h1>45. Cleaning Coins</h1>
-<p><strong>Do not clean collectible coins.</strong></p>
-<p>Avoid:</p>
-<ul>
-<li>Toothpaste</li>
-<li>Baking soda</li>
-<li>Vinegar</li>
-<li>Lemon juice</li>
-<li>Jewelry cleaner</li>
-<li>Abrasive cloth</li>
-<li>Wire brushes</li>
-<li>Erasers</li>
-<li>Metal polish</li>
-<li>Dipping without understanding the consequences</li>
-</ul>
-<p>Cleaning can permanently alter the surface.</p>
-<p>A coin that appears dirty may actually have desirable original surfaces.</p>
-<hr>
-<h1>46. Toning</h1>
-<p>Toning is a change in surface color caused by environmental exposure over time.</p>
-<p>Natural toning can be:</p>
-<ul>
-<li>Brown</li>
-<li>Gold</li>
-<li>Blue</li>
-<li>Purple</li>
-<li>Gray</li>
-<li>Rainbow</li>
-<li>Multicolored</li>
-</ul>
-<p>Toning is not automatically bad.</p>
-<p>Some collectors pay significant premiums for attractive natural toning.</p>
-<p>Artificial toning is another matter.</p>
-<hr>
-<h1>47. Luster</h1>
-<p><strong>Luster</strong> is the way light reflects from the microscopic surface structure of a coin.</p>
-<p>Mint State coins can exhibit strong cartwheel luster.</p>
-<p>When examining a coin:</p>
-<ol>
-<li>Hold it under a light.</li>
-<li>Slowly tilt it.</li>
-<li>Observe how the light moves across the surface.</li>
-</ol>
-<p>Strong original luster can be an important indicator of Mint State preservation.</p>
-<hr>
-<h1>48. Strike Quality</h1>
-<p>A coin can be technically uncirculated but poorly struck.</p>
-<p>Look for:</p>
-<ul>
-<li>Weak lettering</li>
-<li>Weak hair details</li>
-<li>Weak central design</li>
-<li>Missing detail</li>
-<li>Strong peripheral detail</li>
-</ul>
-<p>Do not mistake strike weakness for wear.</p>
-<p>This is particularly important for series known for weak strikes.</p>
-<hr>
-<h1>49. Eye Appeal</h1>
-<p>Eye appeal is subjective but important.</p>
-<p>Two coins with similar technical grades may have very different desirability.</p>
-<p>Factors include:</p>
-<ul>
-<li>Attractive toning</li>
-<li>Original surfaces</li>
-<li>Strong luster</li>
-<li>Clean fields</li>
-<li>Sharp strike</li>
-<li>Pleasant color</li>
-<li>Lack of distracting marks</li>
-</ul>
-<hr>
-<h1>50. Contact and Bag Marks</h1>
-<p>Coins can acquire marks while being transported or stored in bags.</p>
-<p>These are commonly called:</p>
-<blockquote>
-<p>Bag marks</p>
-</blockquote>
-<p>or</p>
-<blockquote>
-<p>Contact marks</p>
-</blockquote>
-<p>They are particularly common on large silver dollars.</p>
-<p>They can affect the grade without being post-Mint damage.</p>
-<hr>
-<h1>51. Authentication</h1>
-<p>Authentication becomes increasingly important as coin value increases.</p>
-<p>Warning signs include:</p>
-<ul>
-<li>Incorrect weight</li>
-<li>Incorrect diameter</li>
-<li>Wrong metal</li>
-<li>Strange surfaces</li>
-<li>Incorrect lettering</li>
-<li>Wrong mintmark</li>
-<li>Incorrect edge</li>
-<li>Casting seams</li>
-<li>Unusual texture</li>
-<li>Poor details</li>
-</ul>
-<p>For expensive coins, professional authentication is strongly recommended.</p>
-<hr>
-<h1>52. Counterfeits</h1>
-<p>Counterfeit U.S. coins exist across many denominations.</p>
-<p>Commonly counterfeited coins include:</p>
-<ul>
-<li>Gold coins</li>
-<li>Silver dollars</li>
-<li>Key-date cents</li>
-<li>Rare quarters</li>
-<li>Rare half dollars</li>
-</ul>
-<p>A counterfeit may look convincing.</p>
-<p>Use multiple tests:</p>
-<ol>
-<li>Weight</li>
-<li>Diameter</li>
-<li>Thickness</li>
-<li>Magnet response</li>
-<li>Edge</li>
-<li>Surface</li>
-<li>Die characteristics</li>
-<li>Correct design</li>
-<li>Professional authentication</li>
-</ol>
-<p>Do not rely on a single test.</p>
-<hr>
-<h1>53. Useful Equipment</h1>
-<p>A basic coin-hunting setup can include:</p>
-<ul>
-<li>10× loupe</li>
-<li>Digital scale</li>
-<li>Good LED lighting</li>
-<li>Coin holders</li>
-<li>Magnifying glass</li>
-<li>Digital caliper</li>
-<li>Small magnet</li>
-<li>Gloves for certain handling situations</li>
-<li>Soft work surface</li>
-<li>Camera or phone</li>
-<li>Reference books</li>
-</ul>
-<p>You do not need expensive equipment to begin.</p>
-<hr>
-<h1>54. Researching Coins</h1>
-<p>Before deciding that a coin is rare:</p>
-<ol>
-<li>Identify it.</li>
-<li>Verify the date.</li>
-<li>Verify the mintmark.</li>
-<li>Determine the normal design.</li>
-<li>Check the weight.</li>
-<li>Compare photographs.</li>
-<li>Research known varieties.</li>
-<li>Research known errors.</li>
-<li>Check auction records.</li>
-<li>Consider condition.</li>
-</ol>
-<p>Useful reference organizations include:</p>
-<ul>
-<li>U.S. Mint</li>
-<li>Professional Coin Grading Service (PCGS)</li>
-<li>Numismatic Guaranty Company (NGC)</li>
-<li>American Numismatic Association (ANA)</li>
-</ul>
-<hr>
-<h1>55. Price Guides</h1>
-<p>Price guides are useful but should not be treated as guaranteed selling prices.</p>
-<p>Values can change based on:</p>
-<ul>
-<li>Market demand</li>
-<li>Grade</li>
-<li>Eye appeal</li>
-<li>Certification</li>
-<li>Auction venue</li>
-<li>Population</li>
-<li>Rarity</li>
-<li>Precious-metal prices</li>
-</ul>
-<p>A guide may list a coin at $500 while actual recent sales range from $350 to $650.</p>
-<p>Always investigate actual sales.</p>
-<hr>
-<h1>56. Auction Prices vs. Asking Prices</h1>
-<p>An asking price is:</p>
-<blockquote>
-<p>What someone wants.</p>
-</blockquote>
-<p>A completed auction sale is:</p>
-<blockquote>
-<p>What someone actually paid.</p>
-</blockquote>
-<p>For determining market value, completed sales are generally more useful.</p>
-<p>Be cautious with:</p>
-<ul>
-<li>Unsold eBay listings</li>
-<li>Inflated dealer asking prices</li>
-<li>&quot;Buy It Now&quot; prices</li>
-<li>Online posts claiming extreme values</li>
-</ul>
-<hr>
-<h1>57. Population Reports</h1>
-<p>Professional grading companies publish population data.</p>
-<p>A population report can help answer:</p>
-<blockquote>
-<p>How many examples has this grading service graded at or above this grade?</p>
-</blockquote>
-<p>But population is not identical to total surviving population.</p>
-<p>The same coin may:</p>
-<ul>
-<li>Be resubmitted</li>
-<li>Be crossed over</li>
-<li>Be graded by another company</li>
-<li>Be cracked out of a holder</li>
-</ul>
-<p>Population reports should therefore be interpreted carefully.</p>
-<hr>
-<h1>58. Buying Coins</h1>
-<p>Potential sources include:</p>
-<ul>
-<li>Coin dealers</li>
-<li>Coin shows</li>
-<li>Auctions</li>
-<li>Estate sales</li>
-<li>Bank rolls</li>
-<li>Collector-to-collector sales</li>
-<li>Online marketplaces</li>
-</ul>
-<p>When buying expensive coins:</p>
-<ul>
-<li>Compare prices</li>
-<li>Check return policies</li>
-<li>Research the seller</li>
-<li>Ask about authenticity</li>
-<li>Examine photographs carefully</li>
-<li>Avoid pressure sales</li>
-</ul>
-<hr>
-<h1>59. Selling Coins</h1>
-<p>Before selling a valuable coin:</p>
-<ol>
-<li>Identify it.</li>
-<li>Verify authenticity.</li>
-<li>Determine condition.</li>
-<li>Research recent sales.</li>
-<li>Get multiple opinions.</li>
-<li>Decide whether grading makes sense.</li>
-<li>Compare selling venues.</li>
-</ol>
-<p>Never assume the first dealer&#39;s offer is automatically fair.</p>
-<p>Dealers need room for overhead and profit, so dealer buy offers are normally below retail asking prices.</p>
-<hr>
-<h1>60. When to Have a Coin Graded</h1>
-<p>Professional grading can make sense when:</p>
-<ul>
-<li>The coin is valuable</li>
-<li>Authentication matters</li>
-<li>The coin is rare</li>
-<li>Condition significantly affects value</li>
-<li>You plan to sell</li>
-<li>You want long-term protection</li>
-</ul>
-<p>It may not make sense for a common $2 coin.</p>
-<p>Consider:</p>
-<blockquote>
-<p>Expected increase in marketability/value vs. grading and shipping costs.</p>
-</blockquote>
-<hr>
-<h1>61. Coin Storage</h1>
-<p>Good storage protects a coin from:</p>
-<ul>
-<li>Moisture</li>
-<li>Chemicals</li>
-<li>PVC</li>
-<li>Scratches</li>
 <li>Handling</li>
-<li>Environmental contaminants</li>
+<li>Teller counting marks</li>
+<li>Light bends</li>
+<li>Folds</li>
+<li>Creases</li>
+<li>Tears</li>
 </ul>
-<p>Recommended materials include:</p>
-<ul>
-<li>Archival-quality holders</li>
-<li>Mylar</li>
-<li>Inert plastic</li>
-<li>Quality flips specifically designed for numismatic storage</li>
-<li>Certified coin slabs</li>
-</ul>
-<p>Keep coins:</p>
-<blockquote>
-<p>Cool, dry, and away from extreme temperature changes.</p>
-</blockquote>
+<h3>Never flatten a valuable note yourself.</h3>
+<p>Improper pressing/flattening can affect collector value and may be
+detectable.</p>
 <hr>
-<h1>62. PVC Damage</h1>
-<p>Avoid coin holders made with problematic PVC.</p>
-<p>PVC can leave a greenish or oily residue on coins.</p>
-<p>Long-term exposure can damage the surface.</p>
+<h1>58. NEVER CLEAN PAPER MONEY</h1>
+<p>Do not:</p>
+<ul>
+<li>Wash</li>
+<li>Iron</li>
+<li>Bleach</li>
+<li>Laminate</li>
+<li>Tape</li>
+<li>Glue</li>
+<li>Trim</li>
+<li>Erase</li>
+<li>Rub stains</li>
+<li>Apply chemicals</li>
+</ul>
+<p>A damaged-looking note can still be valuable.</p>
+<p>Cleaning can make it worse.</p>
+<hr>
+<h1>59. SERIAL NUMBER CHECKLIST</h1>
+<p>When you see a bill, ask:</p>
+<h3>Is it:</h3>
+<ul>
+<li>Star?</li>
+<li>00000001?</li>
+<li>00000002?</li>
+<li>Low serial?</li>
+<li>Radar?</li>
+<li>Repeater?</li>
+<li>Ladder?</li>
+<li>Reverse ladder?</li>
+<li>Solid?</li>
+<li>Near-solid?</li>
+<li>Binary?</li>
+<li>Seven-of-a-kind?</li>
+<li>Birthday?</li>
+<li>Year?</li>
+<li>Repeated pairs?</li>
+<li>Interesting sequence?</li>
+<li>Mismatched?</li>
+<li>Missing?</li>
+<li>Misaligned?</li>
+</ul>
+<hr>
+<h1>60. THE BEST SERIAL NUMBERS TO PULL</h1>
+<h2>Tier 1</h2>
+<ul>
+<li>00000001</li>
+<li>00000002</li>
+<li>00000003</li>
+<li>00000007</li>
+<li>11111111</li>
+<li>22222222</li>
+<li>12345678</li>
+<li>87654321</li>
+<li>12344321</li>
+<li>00000000 where applicable/legitimate</li>
+<li>Dramatic genuine serial-number errors</li>
+</ul>
+<h2>Tier 2</h2>
+<ul>
+<li>00000010</li>
+<li>00000100</li>
+<li>00001000</li>
+<li>10101010</li>
+<li>12121212</li>
+<li>12341234</li>
+<li>11223344</li>
+<li>77777770</li>
+<li>Strong birthday numbers</li>
+<li>Scarce star-note combinations</li>
+</ul>
+<h2>Tier 3</h2>
+<ul>
+<li>Interesting years</li>
+<li>Partial ladders</li>
+<li>Near solids</li>
+<li>Repeated pairs</li>
+<li>Personal dates</li>
+<li>Other recognizable patterns</li>
+</ul>
+<hr>
+<h1>61. WHY PREFIXES MATTER</h1>
+<p>The eight digits are not the whole serial number.</p>
+<p>For modern notes, the letters can identify:</p>
+<ul>
+<li>Series information</li>
+<li>Federal Reserve district</li>
+<li>Printing/serial system</li>
+</ul>
+<p>Therefore record the <strong>entire serial number</strong>, not just the eight
+digits.</p>
+<p>The BEP&#39;s current serial-number explanation provides the official
+relationship between the prefixes and Federal Reserve districts.</p>
+<hr>
+<h1>62. THE TWO SERIAL NUMBERS SHOULD MATCH</h1>
+<p>On a normal note:</p>
+<p><strong>Left serial = right serial</strong></p>
+<p>If they do not match:</p>
+<p><strong>STOP.</strong></p>
+<p>This is one of the easiest potentially major errors for a beginner to
+notice.</p>
+<hr>
+<h1>63. STAR NOTE + FANCY SERIAL</h1>
+<p>A note can have both.</p>
+<p>Example:</p>
+<p><code>B12344321*</code></p>
+<p>This combines: - Star replacement note - Radar serial</p>
+<p>Such combinations deserve special attention.</p>
+<hr>
+<h1>64. STAR NOTE + LOW SERIAL</h1>
+<p>Also potentially desirable.</p>
+<p>Example:</p>
+<p><code>A00000123*</code></p>
+<p>Again:</p>
+<p><strong>Research the exact series and district.</strong></p>
+<hr>
+<h1>65. FANCY SERIAL DOES NOT AUTOMATICALLY MEAN HIGH VALUE</h1>
+<p>This is critical.</p>
+<p>Collectors disagree on some patterns.</p>
+<p>A fancy serial can be: - Extremely desirable - Moderately desirable -
+Novelty-level</p>
+<p>Market demand determines actual value.</p>
+<hr>
+<h1>66. DENOMINATION-BY-DENOMINATION HUNTING</h1>
+<h1>$1 NOTES</h1>
 <p>Look for:</p>
-<blockquote>
-<p>PVC-free</p>
-</blockquote>
-<p>or</p>
-<blockquote>
-<p>archival / inert</p>
-</blockquote>
-<p>storage materials.</p>
-<p>If you discover suspected PVC damage on a valuable coin, avoid experimenting with household cleaners.</p>
-<hr>
-<h1>63. Handling Coins</h1>
-<p>Hold collectible coins by the edges.</p>
-<p>Avoid touching the surfaces with bare fingers.</p>
-<p>Finger oils can leave:</p>
 <ul>
-<li>Spots</li>
-<li>Residue</li>
-<li>Corrosion</li>
-<li>Permanent fingerprints</li>
+<li>Silver Certificates</li>
+<li>United States Notes</li>
+<li>Barr notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Low serials</li>
+<li>Rare series</li>
+<li>Printing errors</li>
+<li>Older large-size notes</li>
+<li>1935/1957 Silver Certificates</li>
+<li>1899 and older large-size types</li>
 </ul>
-<p>A clean soft surface beneath your work area can prevent accidental damage if a coin is dropped.</p>
+<h3>Especially inspect</h3>
+<p>Every old-looking $1.</p>
 <hr>
-<h1>64. Photographing Coins</h1>
-<p>Good photographs are extremely useful for identification.</p>
+<h1>$2 NOTES</h1>
+<p>$2 notes are particularly fun because people often overlook them.</p>
+<p>Look for:</p>
+<ul>
+<li>1928 red-seal notes</li>
+<li>1953 red-seal</li>
+<li>1963 red-seal</li>
+<li>1976+ Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Errors</li>
+<li>Proof/specimen-like unusual notes</li>
+<li>Very high-grade examples</li>
+</ul>
+<p>The $2 Federal Reserve Note was reintroduced in 1976.</p>
+<hr>
+<h1>$5 NOTES</h1>
+<p>Look for:</p>
+<ul>
+<li>Large-size notes</li>
+<li>Red-seal United States Notes</li>
+<li>Silver Certificates</li>
+<li>Older Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Errors</li>
+<li>Rare signature combinations</li>
+</ul>
+<hr>
+<h1>$10 NOTES</h1>
+<p>Look for:</p>
+<ul>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Silver Certificates</li>
+<li>United States Notes</li>
+<li>Federal Reserve Bank Notes</li>
+<li>Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Errors</li>
+</ul>
+<hr>
+<h1>$20 NOTES</h1>
+<p>Look for:</p>
+<ul>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Silver Certificates</li>
+<li>United States Notes</li>
+<li>Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Errors</li>
+</ul>
+<hr>
+<h1>$50 NOTES</h1>
+<p>Look for:</p>
+<ul>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Errors</li>
+</ul>
+<hr>
+<h1>$100 NOTES</h1>
+<p>This denomination deserves special attention because it has a long
+history of major collectible varieties.</p>
+<p>Look for:</p>
+<ul>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Silver Certificates</li>
+<li>1914/1918 Federal Reserve Notes</li>
+<li>1928 and later notes</li>
+<li>1990 security-thread transition</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Printing errors</li>
+</ul>
+<p>The BEP notes that security thread and microprinting first appeared on
+Series 1990 $100 notes.</p>
+<hr>
+<h1>67. OLD $1 NOTES --- QUICK REFERENCE</h1>
+<h2>1899 $1 Silver Certificate</h2>
+<p><strong>Black Eagle</strong></p>
+<p>Pull.</p>
+<h2>1923 $1 Silver Certificate</h2>
+<p>Pull.</p>
+<h2>1928 series</h2>
+<p>Research.</p>
+<h2>1935 Silver Certificate</h2>
+<p>Pull and research series/signatures.</p>
+<h2>1957 Silver Certificate</h2>
+<p>Common but collectible; inspect condition, serial, and star.</p>
+<hr>
+<h1>68. SILVER CERTIFICATE VS FEDERAL RESERVE NOTE</h1>
+<h3>Silver Certificate</h3>
+<p>Usually:</p>
+<p><strong>Blue seal</strong></p>
+<h3>Federal Reserve Note</h3>
+<p>Usually:</p>
+<p><strong>Green seal</strong></p>
+<h3>United States Note</h3>
+<p>Usually:</p>
+<p><strong>Red seal</strong></p>
+<h3>Gold Certificate</h3>
+<p>Historically:</p>
+<p><strong>Gold/orange seal</strong></p>
+<p>These are useful beginner clues, but <strong>always identify the complete
+issue</strong>.</p>
+<hr>
+<h1>69. HISTORICAL U.S. PAPER MONEY CATEGORIES</h1>
+<p>A surprising note can belong to:</p>
+<ol>
+<li>Demand Notes</li>
+<li>United States Notes</li>
+<li>Fractional Currency</li>
+<li>National Bank Notes</li>
+<li>Gold Certificates</li>
+<li>Silver Certificates</li>
+<li>Treasury Notes</li>
+<li>Federal Reserve Notes</li>
+<li>Federal Reserve Bank Notes</li>
+<li>Emergency/obsolete issues</li>
+</ol>
+<p>The BEP&#39;s historical currency timeline lists these major issue families
+and their periods.</p>
+<hr>
+<h1>70. FRACTIONAL CURRENCY</h1>
+<p>Fractional Currency was issued during the Civil War era.</p>
+<p>Denominations included:</p>
+<ul>
+<li>3 cents</li>
+<li>5 cents</li>
+<li>10 cents</li>
+<li>15 cents</li>
+<li>25 cents</li>
+<li>50 cents</li>
+</ul>
+<h3>If found</h3>
+<p>Do not spend it.</p>
+<p>Even a small denomination can be a valuable historical collectible.</p>
+<hr>
+<h1>71. DEMAND NOTES</h1>
+<p>Demand Notes are among the earliest federal paper-money issues.</p>
+<p>They date to:</p>
+<p><strong>1861-1862</strong></p>
+<p>If found:</p>
+<p><strong>STOP and research.</strong></p>
+<hr>
+<h1>72. COUNTERFEIT AWARENESS</h1>
+<p>The older and more valuable the note appears, the more important
+authentication becomes.</p>
+<p>Watch for:</p>
+<ul>
+<li>Wrong paper feel</li>
+<li>Incorrect printing</li>
+<li>Poor engraving</li>
+<li>Incorrect serial font</li>
+<li>Incorrect seal</li>
+<li>Missing design elements</li>
+<li>Incorrect signatures</li>
+<li>Modern printer artifacts</li>
+<li>Wrong dimensions</li>
+</ul>
+<p>The BEP describes currency paper as approximately <strong>75% cotton and 25%
+linen</strong>, and an individual note weighs approximately one gram regardless
+of denomination.</p>
+<hr>
+<h1>73. DO NOT DESTROY A SUSPECTED COUNTERFEIT</h1>
+<p>If you believe a note is counterfeit:</p>
+<p><strong>Do not alter it.</strong></p>
+<p>Keep it separate and follow appropriate reporting/legal procedures.</p>
+<p>A counterfeit is not a collectible substitute for a genuine note.</p>
+<hr>
+<h1>74. SECURITY FEATURES OF MODERN NOTES</h1>
+<p>Modern notes can use:</p>
+<ul>
+<li>Security threads</li>
+<li>Watermarks</li>
+<li>Color-shifting ink</li>
+<li>Microprinting</li>
+<li>Security fibers</li>
+<li>Raised/intaglio printing</li>
+<li>Color-shifting numerals</li>
+<li>3-D security ribbons on newer denominations</li>
+</ul>
+<p>The exact features vary by denomination and series.</p>
+<p>Use official U.S. currency resources when authenticating modern notes.</p>
+<hr>
+<h1>75. THE 1990 SECURITY-THREAD MILESTONE</h1>
+<p>Beginning with Series 1990:</p>
+<p><strong>$100 notes received security thread and microprinting.</strong></p>
+<p>By Series 1993, these features appeared on all denominations except $1
+and $2.</p>
+<p>This makes 1990s notes useful for learning the evolution of U.S.
+anti-counterfeiting technology.</p>
+<hr>
+<h1>76. SIGNATURE HUNTING STRATEGY</h1>
+<p>When examining an older note:</p>
+<ol>
+<li>Identify denomination.</li>
+<li>Identify series.</li>
+<li>Read Secretary of Treasury.</li>
+<li>Read Treasurer.</li>
+<li>Record both.</li>
+<li>Check whether that combination is scarce.</li>
+<li>Check district.</li>
+<li>Check serial range.</li>
+<li>Check condition.</li>
+</ol>
+<h3>Do not use</h3>
+<p>&quot;That signature looks old.&quot;</p>
+<p>Use:</p>
+<p><strong>exact signature combination.</strong></p>
+<hr>
+<h1>77. WHY SHORT TENURES MATTER</h1>
+<p>Treasury officials change.</p>
+<p>If a person served only briefly, fewer notes may have been produced
+bearing that signature.</p>
+<p>Barr is the famous modern example.</p>
+<p>This concept also applies to many earlier issues.</p>
+<hr>
+<h1>78. PRINTING FACILITY</h1>
+<p>Modern U.S. currency can be produced at:</p>
+<ul>
+<li>Washington, D.C.</li>
+<li>Fort Worth, Texas</li>
+</ul>
+<p>The BEP&#39;s Fort Worth facility began operating in 1990.</p>
+<p>Some notes carry facility-related identifiers that can be useful to
+advanced collectors.</p>
+<hr>
+<h1>79. CONDITION-FIRST RULE FOR ERRORS</h1>
+<p>A dramatic error can be valuable even when circulated.</p>
+<p>But:</p>
+<p><strong>The better the condition, the better the presentation.</strong></p>
+<p>Avoid unnecessary handling.</p>
+<p>Use clean hands and a protective currency sleeve for anything valuable.</p>
+<hr>
+<h1>80. STORAGE</h1>
+<p>For important paper currency:</p>
 <p>Use:</p>
 <ul>
-<li>Diffused lighting</li>
-<li>Macro mode</li>
-<li>Stable camera</li>
-<li>High resolution</li>
-<li>Obverse and reverse photographs</li>
-<li>Edge photographs for important coins</li>
-<li>Close-ups of questionable areas</li>
+<li>Archival-quality currency sleeves</li>
+<li>Acid-free materials</li>
+<li>Stable temperature</li>
+<li>Moderate humidity</li>
+<li>No PVC</li>
+<li>No adhesive</li>
+<li>No rubber bands</li>
 </ul>
-<p>Avoid excessive sharpening or editing.</p>
-<p>The goal is accurate documentation, not making the coin look better than it really is.</p>
+<p>Avoid: - Tape - Staples - Paper clips - Lamination - Plastic bags of
+unknown composition</p>
 <hr>
-<h1>65. Keeping an Inventory</h1>
-<p>Maintain a spreadsheet or database.</p>
-<p>Useful fields include:</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Example</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Country</td>
-<td>United States</td>
-</tr>
-<tr>
-<td>Denomination</td>
-<td>Lincoln cent</td>
-</tr>
-<tr>
-<td>Date</td>
-<td>1955</td>
-</tr>
-<tr>
-<td>Mintmark</td>
-<td>None</td>
-</tr>
-<tr>
-<td>Variety</td>
-<td>DDO</td>
-</tr>
-<tr>
-<td>Error</td>
-<td>None</td>
-</tr>
-<tr>
-<td>Composition</td>
-<td>Bronze</td>
-</tr>
-<tr>
-<td>Weight</td>
-<td>3.11 g</td>
-</tr>
-<tr>
-<td>Grade</td>
-<td>VF</td>
-</tr>
-<tr>
-<td>Purchase Price</td>
-<td>$___</td>
-</tr>
-<tr>
-<td>Estimated Value</td>
-<td>$___</td>
-</tr>
-<tr>
-<td>Source</td>
-<td>Coin show</td>
-</tr>
-<tr>
-<td>Notes</td>
-<td>Strong doubling</td>
-</tr>
-</tbody></table>
-<p>Add photographs for important coins.</p>
+<h1>81. HOW TO HANDLE A NOTE</h1>
+<p>Hold it by the edges.</p>
+<p>Do not: - Fold it - Bend it - Write on it - Put fingerprints across the
+face - Wet it - Press it</p>
+<p>For very valuable notes, use cotton/nitrile gloves only when appropriate
+and avoid dropping the note.</p>
 <hr>
-<h1>66. Provenance</h1>
-<p><strong>Provenance</strong> is the documented history of ownership or origin.</p>
-<p>Useful provenance can include:</p>
-<ul>
-<li>Old collection records</li>
-<li>Auction invoices</li>
-<li>Dealer receipts</li>
-<li>Certification records</li>
-<li>Family records</li>
-<li>Photographs</li>
-<li>Estate documentation</li>
-</ul>
-<p>Strong provenance can add confidence, especially for unusual or expensive pieces.</p>
-<hr>
-<h1>67. Insurance</h1>
-<p>A valuable collection may require insurance.</p>
-<p>Keep:</p>
-<ul>
-<li>Inventory</li>
-<li>Photographs</li>
-<li>Receipts</li>
-<li>Certification numbers</li>
-<li>Purchase records</li>
-<li>Appraisals</li>
-</ul>
-<p>Ask your insurer whether collectibles are fully covered.</p>
-<p>Do not assume a normal homeowners policy automatically covers a valuable coin collection at full replacement value.</p>
-<hr>
-<h1>68. Building a Collection</h1>
-<p>Start with a clear goal.</p>
-<p>Examples:</p>
-<blockquote>
-<p>&quot;I want one example of every U.S. coin design.&quot;</p>
-</blockquote>
-<p>or:</p>
-<blockquote>
-<p>&quot;I want to collect Lincoln cents.&quot;</p>
-</blockquote>
-<p>or:</p>
-<blockquote>
-<p>&quot;I want to find errors in circulation.&quot;</p>
-</blockquote>
-<p>A focused goal prevents random spending.</p>
-<hr>
-<h1>69. Type Sets</h1>
-<p>A type set contains one example of each major coin type.</p>
-<p>Advantages:</p>
-<ul>
-<li>Historical variety</li>
-<li>Manageable size</li>
-<li>Educational</li>
-<li>Easy to display</li>
-</ul>
-<p>A type set can range from inexpensive modern coins to extremely expensive early U.S. pieces.</p>
-<hr>
-<h1>70. Date Sets</h1>
-<p>A date set focuses on obtaining each year of a series.</p>
-<p>Example:</p>
-<blockquote>
-<p>Lincoln cents 1909–present</p>
-</blockquote>
-<p>A date set may or may not include every mintmark.</p>
-<hr>
-<h1>71. Mintmark Sets</h1>
-<p>A mintmark set focuses on collecting coins from different mints.</p>
-<p>For example:</p>
-<ul>
-<li>Philadelphia</li>
-<li>Denver</li>
-<li>San Francisco</li>
-<li>West Point</li>
-</ul>
-<p>Older series can include additional historical mint facilities.</p>
-<hr>
-<h1>72. Error Collections</h1>
-<p>Error collectors specialize in production mistakes.</p>
-<p>Interesting categories include:</p>
-<ul>
-<li>Wrong planchets</li>
-<li>Off-center strikes</li>
-<li>Broadstrikes</li>
-<li>Clips</li>
-<li>Brockages</li>
-<li>Struck-throughs</li>
-<li>Multiple strikes</li>
-<li>Die caps</li>
-<li>Missing design elements</li>
-<li>Transitional errors</li>
-</ul>
-<p>Major errors can be highly valuable.</p>
-<hr>
-<h1>73. Variety Collections</h1>
-<p>Variety collectors look for differences caused by dies.</p>
-<p>Examples:</p>
-<ul>
-<li>Doubled dies</li>
-<li>RPMs</li>
-<li>OMMs</li>
-<li>Small/Large dates</li>
-<li>Hub changes</li>
-<li>Reverse varieties</li>
-<li>Die states</li>
-</ul>
-<p>Variety collecting rewards close examination and research.</p>
-<hr>
-<h1>74. Silver Collections</h1>
-<p>Silver collecting can be approached in two ways:</p>
-<h3>Bullion-oriented</h3>
-<p>Focus primarily on metal content.</p>
-<h3>Numismatic</h3>
-<p>Focus on:</p>
-<ul>
-<li>Date</li>
-<li>Mintmark</li>
-<li>Grade</li>
-<li>Variety</li>
-<li>Historical importance</li>
-</ul>
-<p>A common silver coin and a rare silver coin can have dramatically different values.</p>
-<hr>
-<h1>75. Gold Collections</h1>
-<p>Gold collecting requires additional caution.</p>
-<p>Large amounts of money can be involved.</p>
-<p>Always verify:</p>
-<ul>
-<li>Weight</li>
-<li>Diameter</li>
-<li>Thickness</li>
-<li>Purity</li>
-<li>Design</li>
-<li>Mintmark</li>
-<li>Authenticity</li>
-</ul>
-<p>For expensive gold coins, professional authentication is highly recommended.</p>
-<hr>
-<h1>76. Modern Coin Collecting</h1>
-<p>Do not assume modern coins are worthless.</p>
-<p>Modern collectors can specialize in:</p>
-<ul>
-<li>Proofs</li>
-<li>Reverse proofs</li>
-<li>Mint sets</li>
-<li>Commemoratives</li>
-<li>Modern errors</li>
-<li>Modern varieties</li>
-<li>Low-mintage issues</li>
-<li>Special finishes</li>
-<li>High-grade examples</li>
-</ul>
-<p>Modern coins can also contain dramatic Mint errors.</p>
-<hr>
-<h1>77. Roll Hunting</h1>
-<p>Roll hunting involves searching rolls of coins for collectible pieces.</p>
-<p>Possible sources:</p>
-<ul>
-<li>Banks</li>
-<li>Credit unions</li>
-<li>Coin-counting machines</li>
-<li>Personal collections</li>
-</ul>
-<p>Look for:</p>
-<ul>
-<li>Silver</li>
-<li>Wheat cents</li>
-<li>Key dates</li>
-<li>Better dates</li>
-<li>Varieties</li>
-<li>Errors</li>
-<li>Foreign coins</li>
-<li>Older designs</li>
-<li>Unusual compositions</li>
-</ul>
-<p>Always return unwanted coins to circulation appropriately.</p>
-<hr>
-<h1>78. Pocket-Change Hunting</h1>
-<p>Search your normal change for:</p>
-<ul>
-<li>Older coins</li>
-<li>Wheat cents</li>
-<li>West Point quarters</li>
-<li>Errors</li>
-<li>Doubled dies</li>
-<li>Die cracks</li>
-<li>Unusual dates</li>
-<li>Foreign coins</li>
-</ul>
-<p>Modern circulation can occasionally produce surprisingly interesting finds.</p>
-<hr>
-<h1>79. Estate and Inherited Collections</h1>
-<p>If you inherit a collection:</p>
-<h3>Do not immediately clean anything.</h3>
-<p>Instead:</p>
+<h1>82. WHAT TO PHOTOGRAPH</h1>
+<p>For a potentially valuable note, photograph:</p>
 <ol>
-<li>Photograph everything.</li>
-<li>Separate coins carefully.</li>
-<li>Preserve existing holders.</li>
-<li>Inventory the collection.</li>
-<li>Identify key dates.</li>
-<li>Identify precious-metal coins.</li>
-<li>Look for rare varieties.</li>
-<li>Research values.</li>
-<li>Obtain professional opinions for important pieces.</li>
+<li>Entire face</li>
+<li>Entire back</li>
+<li>Serial number</li>
+<li>Star</li>
+<li>Seal</li>
+<li>Signatures</li>
+<li>Series</li>
+<li>District identifiers</li>
+<li>Error area</li>
+<li>Edge/corners if relevant</li>
 </ol>
-<p>Large inherited collections may contain both common coins and valuable pieces.</p>
+<p>Good photographs are extremely useful for attribution.</p>
 <hr>
-<h1>80. Coin Clubs</h1>
-<p>Coin clubs are excellent places to learn.</p>
-<p>Benefits can include:</p>
+<h1>83. CURRENCY RESEARCH WORKFLOW</h1>
+<p>When you find a suspicious note:</p>
+<h3>Step 1</h3>
+<p>Identify denomination.</p>
+<h3>Step 2</h3>
+<p>Identify note type.</p>
+<h3>Step 3</h3>
+<p>Record series.</p>
+<h3>Step 4</h3>
+<p>Record both serial numbers.</p>
+<h3>Step 5</h3>
+<p>Record star/non-star.</p>
+<h3>Step 6</h3>
+<p>Record seal color.</p>
+<h3>Step 7</h3>
+<p>Record Federal Reserve district.</p>
+<h3>Step 8</h3>
+<p>Record signatures.</p>
+<h3>Step 9</h3>
+<p>Inspect condition.</p>
+<h3>Step 10</h3>
+<p>Look for errors.</p>
+<h3>Step 11</h3>
+<p>Look up exact issue.</p>
+<h3>Step 12</h3>
+<p>Compare with reputable examples.</p>
+<h3>Step 13</h3>
+<p>Only then investigate value.</p>
+<hr>
+<h1>84. WHAT NOT TO DO</h1>
+<p>Do not:</p>
 <ul>
-<li>Experienced collectors</li>
-<li>Local knowledge</li>
-<li>Educational presentations</li>
-<li>Coin shows</li>
-<li>Trading opportunities</li>
-<li>Variety identification</li>
-<li>Authentication advice</li>
+<li>Spend an old note before identifying it.</li>
+<li>Assume a blue seal is automatically valuable.</li>
+<li>Assume every star note is rare.</li>
+<li>Assume every fancy serial is valuable.</li>
+<li>Wash currency.</li>
+<li>Iron currency.</li>
+<li>Tape currency.</li>
+<li>Trim currency.</li>
+<li>Flatten currency.</li>
+<li>Trust a social-media &quot;rare bill&quot; post without diagnostics.</li>
+<li>Assume a printing error is genuine without checking the
+manufacturing process.</li>
 </ul>
-<p>The numismatic community can be one of the best learning resources available.</p>
 <hr>
-<h1>81. Beginner Equipment Checklist</h1>
-<p>A good starter kit:</p>
+<h1>85. BEGINNER &quot;PULL EVERYTHING&quot; LIST</h1>
+<p>If you are sorting a large amount of cash, immediately separate:</p>
 <ul>
-<li><input disabled="" type="checkbox"> 10× loupe</li>
-<li><input disabled="" type="checkbox"> Digital scale</li>
-<li><input disabled="" type="checkbox"> LED light</li>
-<li><input disabled="" type="checkbox"> Coin flips</li>
-<li><input disabled="" type="checkbox"> Coin tubes</li>
-<li><input disabled="" type="checkbox"> Small magnet</li>
-<li><input disabled="" type="checkbox"> Digital caliper</li>
-<li><input disabled="" type="checkbox"> Notebook</li>
-<li><input disabled="" type="checkbox"> Camera/phone</li>
-<li><input disabled="" type="checkbox"> Reference guide</li>
-<li><input disabled="" type="checkbox"> Soft work surface</li>
+<li>Any note dated before 1930</li>
+<li>Any large-size note</li>
+<li>Any Silver Certificate</li>
+<li>Any Gold Certificate</li>
+<li>Any United States Note</li>
+<li>Any National Bank Note</li>
+<li>Any Federal Reserve Bank Note</li>
+<li>Any star note</li>
+<li>Any obvious fancy serial</li>
+<li>Any serial mismatch</li>
+<li>Any obvious printing error</li>
+<li>Any unusual seal</li>
+<li>Any unusual signature</li>
+<li>Any $2 note</li>
+<li>Any exceptionally crisp old note</li>
+<li>Any high denomination older note</li>
 </ul>
-<p>You can build this gradually.</p>
 <hr>
-<h1>82. Advanced Equipment</h1>
-<p>More advanced collectors may use:</p>
+<h1>86. ADVANCED HUNTING LIST</h1>
+<p>After the obvious finds, examine:</p>
+<h3>Serial</h3>
 <ul>
-<li>Higher-quality microscopes</li>
-<li>Macro photography equipment</li>
-<li>Precision calipers</li>
-<li>Better scales</li>
-<li>UV lighting</li>
-<li>Specialized reference books</li>
-<li>Die-variety databases</li>
-<li>Electronic inventory systems</li>
-<li>Professional grading services</li>
+<li>Radars</li>
+<li>Repeaters</li>
+<li>Ladders</li>
+<li>Solids</li>
+<li>Near-solids</li>
+<li>Binaries</li>
+<li>Seven-of-a-kind</li>
+<li>Birthdays</li>
+<li>Years</li>
+<li>Repeated pairs</li>
 </ul>
-<p>Equipment should support research rather than replace knowledge.</p>
+<h3>Production</h3>
+<ul>
+<li>Misalignment</li>
+<li>Cutting</li>
+<li>Offset</li>
+<li>Foldover</li>
+<li>Missing print</li>
+<li>Seal errors</li>
+<li>Serial errors</li>
+<li>Ink errors</li>
+</ul>
+<h3>Historical</h3>
+<ul>
+<li>Signature combinations</li>
+<li>District combinations</li>
+<li>Series varieties</li>
+<li>Small/large seal varieties</li>
+<li>Large-size types</li>
+<li>Certificates</li>
+<li>National Bank Notes</li>
+</ul>
 <hr>
-<h1>83. Study One Series</h1>
-<p>One of the fastest ways to improve is to specialize temporarily.</p>
-<p>For example:</p>
-<blockquote>
-<p>Study Lincoln cents for a month.</p>
-</blockquote>
+<h1>87. MASTER DENOMINATION CHECKLIST</h1>
+<h2>$1</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Silver Certificate</li>
+<li><input disabled="" type="checkbox"> United States Note</li>
+<li><input disabled="" type="checkbox"> Large-size note</li>
+<li><input disabled="" type="checkbox"> 1899 Black Eagle</li>
+<li><input disabled="" type="checkbox"> 1923 Silver Certificate</li>
+<li><input disabled="" type="checkbox"> 1935 Silver Certificate</li>
+<li><input disabled="" type="checkbox"> 1957 Silver Certificate</li>
+<li><input disabled="" type="checkbox"> Barr</li>
+<li><input disabled="" type="checkbox"> Star</li>
+<li><input disabled="" type="checkbox"> Fancy serial</li>
+<li><input disabled="" type="checkbox"> Printing error</li>
+</ul>
+<h2>$2</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Red-seal note</li>
+<li><input disabled="" type="checkbox"> 1928</li>
+<li><input disabled="" type="checkbox"> 1953</li>
+<li><input disabled="" type="checkbox"> 1963</li>
+<li><input disabled="" type="checkbox"> 1976+</li>
+<li><input disabled="" type="checkbox"> Star</li>
+<li><input disabled="" type="checkbox"> Fancy serial</li>
+<li><input disabled="" type="checkbox"> Error</li>
+</ul>
+<h2>$5</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Large-size</li>
+<li><input disabled="" type="checkbox"> Silver Certificate</li>
+<li><input disabled="" type="checkbox"> United States Note</li>
+<li><input disabled="" type="checkbox"> Gold Certificate</li>
+<li><input disabled="" type="checkbox"> Star</li>
+<li><input disabled="" type="checkbox"> Fancy serial</li>
+<li><input disabled="" type="checkbox"> Error</li>
+</ul>
+<h2>$10</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Large-size</li>
+<li><input disabled="" type="checkbox"> Gold Certificate</li>
+<li><input disabled="" type="checkbox"> Silver Certificate</li>
+<li><input disabled="" type="checkbox"> United States Note</li>
+<li><input disabled="" type="checkbox"> Federal Reserve Bank Note</li>
+<li><input disabled="" type="checkbox"> Star</li>
+<li><input disabled="" type="checkbox"> Fancy serial</li>
+<li><input disabled="" type="checkbox"> Error</li>
+</ul>
+<h2>$20</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Large-size</li>
+<li><input disabled="" type="checkbox"> Gold Certificate</li>
+<li><input disabled="" type="checkbox"> Silver Certificate</li>
+<li><input disabled="" type="checkbox"> United States Note</li>
+<li><input disabled="" type="checkbox"> Federal Reserve Note</li>
+<li><input disabled="" type="checkbox"> Star</li>
+<li><input disabled="" type="checkbox"> Fancy serial</li>
+<li><input disabled="" type="checkbox"> Error</li>
+</ul>
+<h2>$50</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Large-size</li>
+<li><input disabled="" type="checkbox"> Gold Certificate</li>
+<li><input disabled="" type="checkbox"> Federal Reserve Note</li>
+<li><input disabled="" type="checkbox"> Star</li>
+<li><input disabled="" type="checkbox"> Fancy serial</li>
+<li><input disabled="" type="checkbox"> Error</li>
+</ul>
+<h2>$100</h2>
+<ul>
+<li><input disabled="" type="checkbox"> Large-size</li>
+<li><input disabled="" type="checkbox"> Gold Certificate</li>
+<li><input disabled="" type="checkbox"> Silver Certificate</li>
+<li><input disabled="" type="checkbox"> Federal Reserve Note</li>
+<li><input disabled="" type="checkbox"> 1914/1918 type</li>
+<li><input disabled="" type="checkbox"> Security-thread transition</li>
+<li><input disabled="" type="checkbox"> Star</li>
+<li><input disabled="" type="checkbox"> Fancy serial</li>
+<li><input disabled="" type="checkbox"> Error</li>
+</ul>
+<hr>
+<h1>88. QUICK REFERENCE: SEAL COLORS</h1>
+<p>  Seal          Common association</p>
+<hr>
+<p>  Green         Federal Reserve Note
+  Blue          Silver Certificate
+  Red           United States Note / Legal Tender
+  Gold/Orange   Gold Certificate
+  Brown         Several older/historical issues</p>
+<p><strong>This table is a starting point, not a complete attribution guide.</strong></p>
+<p>Older currency used more complicated seal systems.</p>
+<hr>
+<h1>89. QUICK REFERENCE: U.S. PAPER MONEY ERAS</h1>
+<p>  Era            Things to learn</p>
+<hr>
+<p>  1861-1862      Demand Notes
+  1862-1994      United States Notes
+  1862-1876      Fractional Currency
+  1863-1938      National Bank Notes
+  1865-1936      Gold Certificates
+  1878-1965      Silver Certificates
+  1890-1899      Treasury Notes
+  1914-present   Federal Reserve Notes
+  1915-1945      Federal Reserve Bank Notes
+  1929-present   Small-size currency</p>
+<p>The issue ranges above follow the BEP&#39;s historical currency timeline.</p>
+<hr>
+<h1>90. THE PAPER-MONEY &quot;OH WOW&quot; TEST</h1>
+<p>When you see an unfamiliar bill, ask:</p>
+<h3>Is it:</h3>
+<p><strong>Older?</strong></p>
+<p>→ Research.</p>
+<p><strong>Large?</strong></p>
+<p>→ Research.</p>
+<p><strong>Blue seal?</strong></p>
+<p>→ Research.</p>
+<p><strong>Gold/orange seal?</strong></p>
+<p>→ Research.</p>
+<p><strong>Red seal?</strong></p>
+<p>→ Research.</p>
+<p><strong>Star?</strong></p>
+<p>→ Research.</p>
+<p><strong>Crazy serial?</strong></p>
+<p>→ Research.</p>
+<p><strong>Mismatched serials?</strong></p>
+<p>→ STOP.</p>
+<p><strong>Weird printing?</strong></p>
+<p>→ Research.</p>
+<p><strong>Unusual signature?</strong></p>
+<p>→ Research.</p>
+<p><strong>National Bank name?</strong></p>
+<p>→ Research.</p>
+<p><strong>$500/$1,000/$5,000/$10,000?</strong></p>
+<p>→ STOP AND GET EXPERT HELP.</p>
+<hr>
+<h1>91. THE MOST IMPORTANT BEGINNER LESSONS</h1>
+<h2>Lesson 1</h2>
+<p><strong>Old does not automatically mean rare.</strong></p>
+<h2>Lesson 2</h2>
+<p><strong>Rare does not automatically mean valuable.</strong></p>
+<h2>Lesson 3</h2>
+<p><strong>Fancy does not automatically mean rare.</strong></p>
+<h2>Lesson 4</h2>
+<p><strong>Star does not automatically mean rare.</strong></p>
+<h2>Lesson 5</h2>
+<p><strong>A printing error can be much more valuable than an old note.</strong></p>
+<h2>Lesson 6</h2>
+<p><strong>Condition matters enormously.</strong></p>
+<h2>Lesson 7</h2>
+<p><strong>Signatures matter.</strong></p>
+<h2>Lesson 8</h2>
+<p><strong>Serial numbers matter.</strong></p>
+<h2>Lesson 9</h2>
+<p><strong>The exact series matters.</strong></p>
+<h2>Lesson 10</h2>
+<p><strong>Never alter a suspected valuable note.</strong></p>
+<hr>
+<h1>92. MASTER CURRENCY IDENTIFICATION WORKSHEET</h1>
+<p><strong>Denomination:</strong><br><strong>Note type:</strong><br><strong>Series:</strong><br><strong>Serial number #1:</strong><br><strong>Serial number #2:</strong><br><strong>Star?:</strong><br><strong>Federal Reserve district:</strong><br><strong>Seal color:</strong><br><strong>Treasurer:</strong><br><strong>Secretary of Treasury:</strong><br><strong>Large-size or small-size?:</strong><br><strong>Silver Certificate?:</strong><br><strong>Gold Certificate?:</strong><br><strong>United States Note?:</strong><br><strong>Federal Reserve Note?:</strong><br><strong>National Bank Note?:</strong><br><strong>Fancy serial type:</strong><br><strong>Printing error?:</strong><br><strong>Security feature:</strong><br><strong>Condition:</strong><br><strong>Reference used:</strong><br><strong>Photos taken?:</strong><br><strong>Professional authentication needed?:</strong></p>
+<hr>
+<h1>93. FINAL PAPER-CURRENCY HUNTING RULE</h1>
+<p>When a coin looks strange, you inspect the <strong>date, mintmark, weight, and
+design</strong>.</p>
+<p>When paper currency looks strange, inspect:</p>
+<p><strong>TYPE → SERIES → SIGNATURES → SEAL → DISTRICT → SERIAL → CONDITION →
+ERROR</strong></p>
+<p>That sequence will prevent a huge number of beginner mistakes.</p>
+<p>The best currency hunters don&#39;t just memorize &quot;valuable bills.&quot;</p>
+<p>They learn to recognize <strong>how U.S. currency was manufactured, numbered,
+signed, sealed, issued, and replaced</strong>.</p>
+<p>Once you understand those systems, the unusual notes start becoming much
+easier to spot.</p>
+<hr>
+<h1>OFFICIAL REFERENCE SOURCES</h1>
+<p>For identification and authentication research, start with the U.S.
+Bureau of Engraving and Printing:</p>
+<ul>
+<li><strong>Circulating Currency</strong></li>
+<li><strong>Historical Currency</strong></li>
+<li><strong>Currency History</strong></li>
+<li><strong>Serial Numbers</strong></li>
+<li><strong>Denomination-specific currency pages</strong></li>
+</ul>
+<p>The BEP confirms that it currently prints $1, $2, $5, $10, $20,
+$50 and $100 notes, and provides official information about serial
+numbers, security features, historical issues, and currency types.</p>
+<p>For collectible attribution and grading, use established numismatic
+references and professional grading services rather than relying solely
+on social-media posts or online marketplace asking prices.</p>
+<hr>
+<h1>94. EXPANDED FIELD GUIDE: HOW TO ACTUALLY HUNT PAPER MONEY</h1>
+<p>This section turns the identification material above into a practical
+roll-hunting and cash-sorting system.</p>
+<h2>The Golden Rule</h2>
+<p><strong>Do not try to decide what a note is worth while you are still
+identifying it.</strong></p>
+<p>First identify the note. Then determine whether it is a recognized
+variety, scarce issue, fancy serial, star note, or genuine error. Only
+after that should you research value.</p>
+<hr>
+<h1>95. THREE LEVELS OF FINDS</h1>
+<p>Use three mental buckets while sorting.</p>
+<h2>LEVEL A --- STOP IMMEDIATELY</h2>
+<p>Set the note aside and do not spend it if you find:</p>
+<ul>
+<li>A genuine serial-number mismatch</li>
+<li>A major printing error</li>
+<li>A large-size note</li>
+<li>A Demand Note</li>
+<li>A National Bank Note</li>
+<li>A Gold Certificate</li>
+<li>An early Silver Certificate</li>
+<li>An early United States Note</li>
+<li>A high-denomination note</li>
+<li>A note that appears to be a major rarity</li>
+<li>A suspected counterfeit</li>
+<li>A note with an unusual production feature you cannot explain</li>
+</ul>
+<h2>LEVEL B --- PULL AND RESEARCH</h2>
+<p>Set aside:</p>
+<ul>
+<li>Star notes</li>
+<li>Older $2 notes</li>
+<li>1935 and 1957 Silver Certificates</li>
+<li>Older red-seal notes</li>
+<li>Fancy serial numbers</li>
+<li>Very low serial numbers</li>
+<li>Interesting signature combinations</li>
+<li>Crisp older notes</li>
+<li>Unusual seals</li>
+<li>Dramatic cutting or alignment abnormalities</li>
+<li>Older Federal Reserve Notes</li>
+<li>Notes with unusual district combinations</li>
+</ul>
+<h2>LEVEL C --- KEEP ONLY IF YOU COLLECT THEM</h2>
+<p>These include:</p>
+<ul>
+<li>Mildly interesting serial numbers</li>
+<li>Common star notes</li>
+<li>Ordinary circulated $2 notes</li>
+<li>Common older-design Federal Reserve Notes</li>
+<li>Personal-date serial numbers</li>
+<li>Minor printing variations</li>
+<li>Slightly uneven margins</li>
+</ul>
+<p>The purpose of this three-level system is to prevent a beginner from
+filling an entire box with notes that have little collector demand.</p>
+<hr>
+<h1>96. THE $1 NOTE --- DETAILED HUNTING GUIDE</h1>
+<p>The $1 is the most practical denomination for everyday hunting because
+enormous numbers circulate.</p>
+<h2>Highest-priority $1 finds</h2>
+<p>Pull and research:</p>
+<ul>
+<li>1935-series Silver Certificates</li>
+<li>1957-series Silver Certificates</li>
+<li>Star notes</li>
+<li>Barr signature notes</li>
+<li>Very low serial numbers</li>
+<li>Solid serial numbers</li>
+<li>True radars</li>
+<li>True repeaters</li>
+<li>True ladders</li>
+<li>Major serial-number errors</li>
+<li>Major printing errors</li>
+<li>Older large-size $1 notes</li>
+</ul>
+<h2>Important $1 distinction</h2>
+<p>A modern $1 Federal Reserve Note normally has:</p>
+<ul>
+<li>One letter</li>
+<li>Eight digits</li>
+<li>One suffix letter or star</li>
+</ul>
+<p>Example:</p>
+<p><code>B12345678C</code></p>
+<p>The first letter identifies the Federal Reserve Bank.</p>
+<p>Do not apply the modern $5-and-higher two-letter-prefix rule to the
+$1.</p>
+<h2>$1 Silver Certificates</h2>
+<p>The most common examples encountered by modern collectors are 1935 and
+1957 series notes.</p>
+<p>Common does not mean worthless, but common circulated examples should
+not automatically be treated as rare notes.</p>
+<p>Check:</p>
+<ul>
+<li>Series</li>
+<li>Signature combination</li>
+<li>Serial number</li>
+<li>Star</li>
+<li>Condition</li>
+<li>Variety</li>
+<li>Any unusual production characteristic</li>
+</ul>
+<h2>Barr notes</h2>
+<p>Series 1963B $1 Federal Reserve Notes bearing Joseph W. Barr&#39;s
+signature are a famous collectible signature combination.</p>
+<p>Do not identify a Barr note from the series alone. <strong>Look at the actual
+Secretary of the Treasury signature.</strong></p>
+<hr>
+<h1>97. THE $2 NOTE --- DETAILED HUNTING GUIDE</h1>
+<p>The $2 denomination is one of the best beginner hunting areas because
+many people overlook it.</p>
+<h2>Pull immediately</h2>
+<ul>
+<li>Large-size $2 notes</li>
+<li>1928-series red-seal notes</li>
+<li>1953-series red-seal notes</li>
+<li>1963-series red-seal notes</li>
+<li>Star notes</li>
+<li>Very low serial numbers</li>
+<li>Fancy serial numbers</li>
+<li>Major errors</li>
+<li>Extremely crisp older examples</li>
+</ul>
+<h2>Modern $2</h2>
+<p>The current $2 design dates to the Federal Reserve Note reintroduction
+in 1976.</p>
+<p>A 1976 $2 is not automatically rare.</p>
+<p>Check:</p>
+<ul>
+<li>Series</li>
+<li>District</li>
+<li>Serial number</li>
+<li>Star</li>
+<li>Condition</li>
+<li>Error</li>
+</ul>
+<h2>Common mistake</h2>
+<p>Do not assume that every red-seal $2 is a major rarity.</p>
+<p>Red seal identifies an issue family; the exact series and variety still
+matter.</p>
+<hr>
+<h1>98. THE $5 NOTE --- DETAILED HUNTING GUIDE</h1>
+<h2>Pull and research</h2>
+<ul>
+<li>1914 and other large-size Federal Reserve Notes</li>
+<li>Large-size United States Notes</li>
+<li>Silver Certificates</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Low serials</li>
+<li>Major errors</li>
+<li>Scarce signature combinations</li>
+<li>Very high-grade older notes</li>
+</ul>
+<h2>Modern $5 milestones</h2>
+<p>Useful design checkpoints include:</p>
+<ul>
+<li>1914--1990 style</li>
+<li>1990--1993 style</li>
+<li>1993--2000 style</li>
+<li>2000--2008 style</li>
+<li>2008--present style</li>
+</ul>
+<p>The 1990 security-thread/microprinting milestone is especially useful
+when learning modern currency evolution.</p>
+<hr>
+<h1>99. THE $10 NOTE --- DETAILED HUNTING GUIDE</h1>
+<h2>Pull and research</h2>
+<ul>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Silver Certificates</li>
+<li>United States Notes</li>
+<li>Federal Reserve Bank Notes</li>
+<li>Early Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Major errors</li>
+<li>Scarce signature combinations</li>
+</ul>
+<h2>Modern $10 checkpoints</h2>
+<p>Learn the visual differences among:</p>
+<ul>
+<li>1914--1990</li>
+<li>1990--2000</li>
+<li>2000--2006</li>
+<li>2006--present</li>
+</ul>
+<p>The security-thread and microprinting transition makes 1990s $10 notes
+particularly useful for learning production changes.</p>
+<hr>
+<h1>100. THE $20 NOTE --- DETAILED HUNTING GUIDE</h1>
+<h2>Pull and research</h2>
+<ul>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Silver Certificates</li>
+<li>United States Notes</li>
+<li>Federal Reserve Bank Notes</li>
+<li>Early Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Major errors</li>
+<li>Scarce signature combinations</li>
+</ul>
+<h2>Modern $20 checkpoints</h2>
 <p>Learn:</p>
 <ul>
-<li>Every major date</li>
-<li>Every mintmark</li>
-<li>Major varieties</li>
-<li>Common errors</li>
-<li>Weights</li>
-<li>Composition changes</li>
-<li>Major grading characteristics</li>
+<li>1914--1990</li>
+<li>1990--1998</li>
+<li>1998--2003</li>
+<li>2003--present</li>
 </ul>
-<p>After becoming familiar with one series, identifying abnormalities becomes much easier.</p>
+<p>The 2003 redesign introduced additional security features and is an
+important visual breakpoint.</p>
 <hr>
-<h1>84. The Normal-First Rule</h1>
-<p>When you see something unusual:</p>
-<h3>First ask:</h3>
-<blockquote>
-<p>What should this coin normally look like?</p>
-</blockquote>
-<p>Then ask:</p>
-<blockquote>
-<p>How is mine different?</p>
-</blockquote>
-<p>Then:</p>
-<blockquote>
-<p>Is that difference recognized?</p>
-</blockquote>
-<p>This prevents many false discoveries.</p>
-<hr>
-<h1>85. Did the Mint Make It?</h1>
-<p>Whenever something looks strange, ask:</p>
-<blockquote>
-<p>Could this have happened at the Mint?</p>
-</blockquote>
-<p>Examples:</p>
-<h3>Raised line</h3>
-<p>Could be:</p>
+<h1>101. THE $50 NOTE --- DETAILED HUNTING GUIDE</h1>
+<p>The $50 is less common in casual roll hunting than the $1, $5, $10,
+or $20, but every older example deserves attention.</p>
+<p>Pull:</p>
 <ul>
-<li>Die crack</li>
-<li>Die polish line</li>
-<li>Die marker</li>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Early Federal Reserve Notes</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Major errors</li>
+<li>Scarce signatures</li>
+<li>Very high-grade examples</li>
 </ul>
-<h3>Incuse line</h3>
-<p>Could be:</p>
+<p>Modern checkpoints include:</p>
 <ul>
-<li>Struck-through</li>
-<li>Damage</li>
-</ul>
-<h3>Missing design</h3>
-<p>Could be:</p>
-<ul>
-<li>Grease-filled die</li>
-<li>Weak strike</li>
-<li>Damage</li>
-<li>Variety</li>
-<li>Die deterioration</li>
-</ul>
-<h3>Wrong color</h3>
-<p>Could be:</p>
-<ul>
-<li>Natural composition</li>
-<li>Toning</li>
-<li>Environmental damage</li>
-<li>Plating</li>
-<li>Chemical alteration</li>
+<li>1914--1990</li>
+<li>1990s redesign</li>
+<li>1997 redesign</li>
+<li>2004 redesign</li>
 </ul>
 <hr>
-<h1>86. Why Is It Valuable?</h1>
-<p>Before calling a coin valuable, identify the reason.</p>
-<p>Potential reasons include:</p>
-<h3>Rarity</h3>
-<p>Few survivors.</p>
-<h3>Key date</h3>
-<p>Important scarce date.</p>
-<h3>Variety</h3>
-<p>Recognized die variety.</p>
-<h3>Error</h3>
-<p>Mint production mistake.</p>
-<h3>Condition</h3>
-<p>Very high grade.</p>
-<h3>Precious metal</h3>
-<p>Significant intrinsic value.</p>
-<h3>Historical importance</h3>
-<p>Important historical issue.</p>
-<h3>Eye appeal</h3>
-<p>Exceptional appearance.</p>
-<h3>Demand</h3>
-<p>Many collectors want it.</p>
-<p>If you cannot explain why a coin is valuable, research it further.</p>
-<hr>
-<h1>87. Common Beginner Mistakes</h1>
-<p>Avoid these mistakes:</p>
-<h3>Mistake 1: Cleaning coins</h3>
-<p>Don&#39;t.</p>
-<h3>Mistake 2: Believing internet price claims</h3>
-<p>Verify actual sales.</p>
-<h3>Mistake 3: Assuming old = rare</h3>
-<p>Age alone does not determine rarity.</p>
-<h3>Mistake 4: Assuming low mintage = expensive</h3>
-<p>Survival and demand matter.</p>
-<h3>Mistake 5: Calling machine doubling a doubled die</h3>
-<p>Learn the difference.</p>
-<h3>Mistake 6: Calling damage an error</h3>
-<p>Compare with known Mint characteristics.</p>
-<h3>Mistake 7: Ignoring weight</h3>
-<p>Weight can reveal major clues.</p>
-<h3>Mistake 8: Handling coins by the surfaces</h3>
-<p>Use the edges.</p>
-<h3>Mistake 9: Buying before researching</h3>
-<p>Research first.</p>
-<h3>Mistake 10: Trusting a single opinion</h3>
-<p>For valuable coins, seek multiple opinions.</p>
-<hr>
-<h1>88. Coin Identification Workflow</h1>
-<p>Use this process whenever you find something interesting.</p>
-<h2>Step 1 – Identify the denomination</h2>
-<p>Cent?</p>
-<p>Nickel?</p>
-<p>Dime?</p>
-<p>Quarter?</p>
-<p>Half?</p>
-<p>Dollar?</p>
-<h2>Step 2 – Identify the date</h2>
-<p>Record the exact year.</p>
-<h2>Step 3 – Identify the mintmark</h2>
-<p>Check carefully.</p>
-<h2>Step 4 – Identify the design</h2>
-<p>Determine the exact series/type.</p>
-<h2>Step 5 – Check composition</h2>
-<p>Is it:</p>
+<h1>102. THE $100 NOTE --- DETAILED HUNTING GUIDE</h1>
+<p>The $100 is one of the most historically diverse denominations.</p>
+<h2>Pull and research</h2>
 <ul>
-<li>Copper?</li>
-<li>Bronze?</li>
-<li>Zinc?</li>
-<li>Nickel?</li>
-<li>Silver?</li>
-<li>Clad?</li>
-<li>Gold?</li>
+<li>Large-size notes</li>
+<li>Gold Certificates</li>
+<li>Silver Certificates</li>
+<li>United States Notes</li>
+<li>Early Federal Reserve Notes</li>
+<li>1914 Federal Reserve Notes</li>
+<li>1918 Federal Reserve Notes</li>
+<li>1928 and later issues</li>
+<li>Star notes</li>
+<li>Fancy serials</li>
+<li>Major errors</li>
+<li>Scarce signatures</li>
 </ul>
-<h2>Step 6 – Weigh it</h2>
-<p>Compare with the expected weight.</p>
-<h2>Step 7 – Measure it</h2>
-<p>Check diameter and thickness if necessary.</p>
-<h2>Step 8 – Examine the edge</h2>
-<p>Look for:</p>
+<h2>Security-feature milestone</h2>
+<p>Series 1990 $100 notes were the first U.S. notes to receive the new
+security thread and microprinting features introduced in that period.</p>
+<p>Modern $100 design checkpoints include:</p>
 <ul>
-<li>Reeding</li>
-<li>Lettering</li>
-<li>Copper core</li>
-<li>Clipping</li>
-<li>Damage</li>
-</ul>
-<h2>Step 9 – Examine the surfaces</h2>
-<p>Look for:</p>
-<ul>
-<li>Doubling</li>
-<li>Cracks</li>
-<li>Chips</li>
-<li>Clashes</li>
-<li>Polish lines</li>
-<li>Errors</li>
-<li>Damage</li>
-</ul>
-<h2>Step 10 – Compare with references</h2>
-<p>Do not rely solely on visual memory.</p>
-<h2>Step 11 – Determine rarity</h2>
-<p>Research the exact variety or error.</p>
-<h2>Step 12 – Estimate value</h2>
-<p>Consider:</p>
-<ul>
-<li>Grade</li>
-<li>Demand</li>
-<li>Recent sales</li>
-<li>Certification</li>
-<li>Rarity</li>
+<li>1914--1990</li>
+<li>1990--1996</li>
+<li>1996--2013</li>
+<li>2013--present</li>
 </ul>
 <hr>
-<h1>89. Special-Coin Checklist</h1>
-<p>When examining a potentially valuable coin, ask:</p>
-<h3>Identification</h3>
+<h1>103. LARGE-SIZE NOTES --- MASTER PULL LIST</h1>
+<p>Large-size currency is generally recognizable immediately because it is
+physically larger than modern notes.</p>
+<p>Approximate dimensions:</p>
+<p><strong>Large size:</strong> 7.375 × 3.125 inches</p>
+<p><strong>Small size:</strong> 6.14 × 2.61 inches</p>
+<p>If a note is substantially larger than a modern bill, stop and identify
+it before doing anything else.</p>
+<h2>Large-size note families worth learning</h2>
 <ul>
-<li><input disabled="" type="checkbox"> Correct denomination?</li>
-<li><input disabled="" type="checkbox"> Correct date?</li>
-<li><input disabled="" type="checkbox"> Correct mintmark?</li>
-<li><input disabled="" type="checkbox"> Correct design?</li>
+<li>United States Notes</li>
+<li>Silver Certificates</li>
+<li>Gold Certificates</li>
+<li>Treasury Notes / Treasury Coin Notes</li>
+<li>Federal Reserve Notes</li>
+<li>Federal Reserve Bank Notes</li>
+<li>National Bank Notes</li>
+<li>Demand Notes</li>
+<li>Fractional Currency</li>
 </ul>
-<h3>Physical measurements</h3>
-<ul>
-<li><input disabled="" type="checkbox"> Correct weight?</li>
-<li><input disabled="" type="checkbox"> Correct diameter?</li>
-<li><input disabled="" type="checkbox"> Correct thickness?</li>
-<li><input disabled="" type="checkbox"> Correct edge?</li>
-</ul>
-<h3>Variety</h3>
-<ul>
-<li><input disabled="" type="checkbox"> Doubled die?</li>
-<li><input disabled="" type="checkbox"> RPM?</li>
-<li><input disabled="" type="checkbox"> OMM?</li>
-<li><input disabled="" type="checkbox"> Small Date?</li>
-<li><input disabled="" type="checkbox"> Large Date?</li>
-<li><input disabled="" type="checkbox"> Close/Wide Date?</li>
-<li><input disabled="" type="checkbox"> Reverse variety?</li>
-<li><input disabled="" type="checkbox"> Die crack?</li>
-<li><input disabled="" type="checkbox"> Die chip?</li>
-<li><input disabled="" type="checkbox"> Die clash?</li>
-</ul>
-<h3>Error</h3>
-<ul>
-<li><input disabled="" type="checkbox"> Wrong planchet?</li>
-<li><input disabled="" type="checkbox"> Off-center?</li>
-<li><input disabled="" type="checkbox"> Broadstrike?</li>
-<li><input disabled="" type="checkbox"> Clip?</li>
-<li><input disabled="" type="checkbox"> Struck-through?</li>
-<li><input disabled="" type="checkbox"> Brockage?</li>
-<li><input disabled="" type="checkbox"> Multiple strike?</li>
-<li><input disabled="" type="checkbox"> Transitional error?</li>
-</ul>
-<h3>Condition</h3>
-<ul>
-<li><input disabled="" type="checkbox"> Original surfaces?</li>
-<li><input disabled="" type="checkbox"> Cleaning?</li>
-<li><input disabled="" type="checkbox"> Scratches?</li>
-<li><input disabled="" type="checkbox"> Corrosion?</li>
-<li><input disabled="" type="checkbox"> Environmental damage?</li>
-<li><input disabled="" type="checkbox"> Strong luster?</li>
-<li><input disabled="" type="checkbox"> Good strike?</li>
-<li><input disabled="" type="checkbox"> Attractive toning?</li>
-</ul>
-<h3>Research</h3>
-<ul>
-<li><input disabled="" type="checkbox"> Confirmed by a reference?</li>
-<li><input disabled="" type="checkbox"> Recent auction sales checked?</li>
-<li><input disabled="" type="checkbox"> Population data checked?</li>
-<li><input disabled="" type="checkbox"> Authentication considered?</li>
-</ul>
+<p>Large-size currency is a field of its own. Exact type, Friedberg number,
+signatures, seal, district, and condition are often necessary for
+attribution.</p>
 <hr>
-<h1>90. Final Advice</h1>
-<p>Coin collecting rewards patience.</p>
-<p>The most valuable skill is not spotting a rare coin instantly.</p>
-<p>It is learning to recognize when something deserves further investigation.</p>
-<p>A good collector develops a habit of:</p>
-<blockquote>
-<p><strong>Identify → Measure → Compare → Research → Verify → Preserve</strong></p>
-</blockquote>
-<p>Do not clean first.</p>
-<p>Do not assume.</p>
-<p>Do not rely on a viral social-media post.</p>
-<p>Do not decide value based on one photograph.</p>
-<p>Learn what normal coins look like.</p>
-<p>Learn the specifications.</p>
-<p>Learn the major dates.</p>
-<p>Learn the varieties.</p>
-<p>Learn the common errors.</p>
-<p>And most importantly:</p>
-<blockquote>
-<p><strong>Enjoy the hunt.</strong></p>
-</blockquote>
-<p>You do not need to own expensive coins to be a serious collector.</p>
-<p>A coin found in pocket change can teach you just as much about minting, history, metallurgy, economics, and manufacturing as a rare certified coin worth thousands of dollars.</p>
+<h1>104. CERTIFICATE IDENTIFICATION --- DO NOT STOP AT THE SEAL</h1>
+<p>Seal color is a clue, not a complete identification.</p>
+<h2>Blue seal</h2>
+<p>Often associated with Silver Certificates.</p>
+<p>But:</p>
+<p><strong>Blue seal alone does not tell you the exact value or rarity.</strong></p>
+<h2>Gold/orange seal</h2>
+<p>Often associated with Gold Certificates.</p>
+<p>Again:</p>
+<p><strong>Identify the exact issue.</strong></p>
+<h2>Red seal</h2>
+<p>Often associated with United States Notes / Legal Tender Notes.</p>
+<p>Again:</p>
+<p><strong>Identify the exact series.</strong></p>
+<h2>Green seal</h2>
+<p>Commonly associated with Federal Reserve Notes.</p>
+<p>The green seal by itself does not make a note common or rare.</p>
 <hr>
-<h1>Quick Reference: Most Important Rules</h1>
+<h1>105. FRIEDBERG NUMBERS --- WHY ADVANCED COLLECTORS USE THEM</h1>
+<p>Collectors and dealers frequently use Friedberg numbers, usually written
+as <strong>Fr.</strong> followed by a number, to identify specific U.S. paper-money
+varieties.</p>
+<p>Example format:</p>
+<p><code>Fr. 236</code></p>
+<p>A Friedberg number can distinguish varieties that share the same general
+series and denomination.</p>
+<p>When researching a potentially valuable note, record:</p>
 <ol>
-<li><strong>Never clean collectible coins.</strong></li>
-<li><strong>Handle coins by the edges.</strong></li>
-<li><strong>Use weight as an early diagnostic tool.</strong></li>
-<li><strong>Check the date and mintmark first.</strong></li>
-<li><strong>Learn the normal design before hunting varieties.</strong></li>
-<li><strong>Distinguish die varieties from Mint errors.</strong></li>
-<li><strong>Distinguish machine doubling from true doubled dies.</strong></li>
-<li><strong>Do not confuse post-Mint damage with errors.</strong></li>
-<li><strong>Use reputable references.</strong></li>
-<li><strong>Check completed sales rather than asking prices.</strong></li>
-<li><strong>Use professional authentication for expensive or questionable coins.</strong></li>
-<li><strong>Store coins in PVC-free/inert materials.</strong></li>
-<li><strong>Keep an inventory of valuable coins.</strong></li>
-<li><strong>Photograph important pieces.</strong></li>
-<li><strong>Research before buying or selling.</strong></li>
-<li><strong>Do not assume every old coin is rare.</strong></li>
-<li><strong>Do not assume every low-mintage coin is valuable.</strong></li>
-<li><strong>Condition can dramatically change value.</strong></li>
-<li><strong>Varieties and errors can be worth far more than ordinary examples.</strong></li>
-<li><strong>When something looks unusual, investigate it rather than immediately declaring it rare.</strong></li>
+<li>Denomination</li>
+<li>Series</li>
+<li>Note type</li>
+<li>Friedberg number if known</li>
+<li>Signature combination</li>
+<li>Federal Reserve district</li>
+<li>Serial number</li>
+<li>Star status</li>
+<li>Condition</li>
+<li>Error or variety</li>
+</ol>
+<p><strong>Do not guess a Friedberg number from memory.</strong></p>
+<p>Use a current specialized catalog or trusted attribution source.</p>
+<hr>
+<h1>106. SIGNATURES --- BUILD YOUR OWN REFERENCE SYSTEM</h1>
+<p>Do not attempt to memorize every signature combination at once.</p>
+<p>Instead, build a table for each denomination.</p>
+<hr>
+<p>  Denomination   Series    Secretary   Treasurer   District   Star?     Notes</p>
+<hr>
+<p>  $1                                                                   </p>
+<p>  $2                                                                   </p>
+<p>  $5                                                                   </p>
+<p>  $10                                                                  </p>
+<p>  $20                                                                  </p>
+<p>  $50                                                                  </p>
+<h2>  $100                                                                 </h2>
+<h2>Signature-hunting strategy</h2>
+<p>When you find an older note:</p>
+<p><strong>Series → Secretary → Treasurer → District → Serial range → Condition</strong></p>
+<p>Then research the exact combination.</p>
+<p>This is much safer than relying on a list of &quot;old-looking signatures.&quot;</p>
+<hr>
+<h1>107. FEDERAL RESERVE DISTRICT IDENTIFICATION</h1>
+<p>There are 12 Federal Reserve Banks.</p>
+<p>  Letter   Bank</p>
+<hr>
+<p>  A        Boston
+  B        New York
+  C        Philadelphia
+  D        Cleveland
+  E        Richmond
+  F        Atlanta
+  G        Chicago
+  H        St. Louis
+  I        Minneapolis
+  J        Kansas City
+  K        Dallas
+  L        San Francisco</p>
+<h2>Modern $5--$100 notes</h2>
+<p>The second serial-number letter identifies the issuing Federal Reserve
+Bank.</p>
+<p>The note also has a Federal Reserve indicator such as:</p>
+<p><code>A1</code></p>
+<p><code>B2</code></p>
+<p><code>C3</code></p>
+<p>and so on.</p>
+<p>These two systems should agree.</p>
+<h2>$1 and $2</h2>
+<p>The serial-number system is different. Do not use the $5--$100
+two-letter-prefix rule on these denominations.</p>
+<hr>
+<h1>108. SERIAL-NUMBER PATTERN SCORECARD</h1>
+<p>Instead of treating every &quot;cool number&quot; equally, classify it.</p>
+<h2>Tier 1 --- Strong</h2>
+<ul>
+<li>00000001</li>
+<li>00000002</li>
+<li>00000003</li>
+<li>00000007</li>
+<li>11111111</li>
+<li>22222222</li>
+<li>33333333</li>
+<li>12345678</li>
+<li>87654321</li>
+<li>Strong true radar</li>
+<li>Strong true repeater</li>
+<li>Major serial-number error</li>
+</ul>
+<h2>Tier 2 --- Good</h2>
+<ul>
+<li>00000010</li>
+<li>00000100</li>
+<li>00001000</li>
+<li>10101010</li>
+<li>12121212</li>
+<li>12341234</li>
+<li>11223344</li>
+<li>Strong birthday</li>
+<li>Seven-of-a-kind</li>
+<li>Strong year pattern</li>
+</ul>
+<h2>Tier 3 --- Interesting</h2>
+<ul>
+<li>Partial ladder</li>
+<li>Near solid</li>
+<li>Weak repeater</li>
+<li>Personal date</li>
+<li>Recognizable year</li>
+<li>Mild repeated pairs</li>
+</ul>
+<h3>Important</h3>
+<p>This is a <strong>hunting priority system, not a price guide</strong>.</p>
+<p>The market may value two apparently similar serial numbers very
+differently.</p>
+<hr>
+<h1>109. SERIAL NUMBERS THAT BEGIN WITH ZERO</h1>
+<p>Leading zeroes are important.</p>
+<p>Treat:</p>
+<p><code>00001234</code></p>
+<p>as an eight-digit serial number.</p>
+<p>Do not rewrite it as:</p>
+<p><code>1234</code></p>
+<p>When recording a note, preserve every digit exactly as printed.</p>
+<hr>
+<h1>110. SERIAL-NUMBER ERROR TRIAGE</h1>
+<p>If the two serial numbers do not match:</p>
+<h3>Step 1</h3>
+<p>Photograph both.</p>
+<h3>Step 2</h3>
+<p>Check whether one is actually a star replacement.</p>
+<h3>Step 3</h3>
+<p>Compare the complete serials, including letters.</p>
+<h3>Step 4</h3>
+<p>Check the note&#39;s denomination and series.</p>
+<h3>Step 5</h3>
+<p>Do not alter the note.</p>
+<h3>Step 6</h3>
+<p>Seek specialist attribution.</p>
+<p>A genuine mismatched serial-number error can be substantially more
+important than an ordinary fancy serial.</p>
+<hr>
+<h1>111. ERROR OR DAMAGE?</h1>
+<p>This is one of the most important skills in paper-money collecting.</p>
+<h2>More likely to be a production error</h2>
+<ul>
+<li>Printing clearly missing where it should exist</li>
+<li>A fold that caused a displaced print impression</li>
+<li>Dramatic cutting that exposes neighboring-note design</li>
+<li>Genuine offset transfer</li>
+<li>Clearly doubled or misplaced printing</li>
+<li>Serial-number mismatch produced during printing</li>
+<li>Major misregistration</li>
+<li>Missing design components</li>
+</ul>
+<h2>More likely to be damage</h2>
+<ul>
+<li>Ink rubbed off by handling</li>
+<li>Chemical bleaching</li>
+<li>Writing</li>
+<li>Tape residue</li>
+<li>Glue</li>
+<li>Tears</li>
+<li>Artificial folds</li>
+<li>Washed paper</li>
+<li>Trimmed edges</li>
+<li>Stains caused after printing</li>
+</ul>
+<h3>The test</h3>
+<p>Ask:</p>
+<p><strong>Can the strange feature be explained by something that happened after
+the note left the printing process?</strong></p>
+<p>If yes, be cautious about calling it an error.</p>
+<hr>
+<h1>112. CUTTING-ERROR CHECK</h1>
+<p>A genuine cutting error is not simply a note with a crooked-looking
+edge.</p>
+<p>Look for evidence that the note was cut incorrectly relative to the
+original sheet layout.</p>
+<p>Strong clues include:</p>
+<ul>
+<li>Part of a neighboring note&#39;s design</li>
+<li>Dramatically abnormal margins</li>
+<li>Design elements cut into the border</li>
+<li>A clearly displaced cut line</li>
+<li>A combination of unusual margins and neighboring-note evidence</li>
+</ul>
+<p>Minor unevenness should not automatically be called an error.</p>
+<hr>
+<h1>113. OFFSET ERROR CHECK</h1>
+<p>A suspected offset should be evaluated for:</p>
+<ul>
+<li>Mirrored appearance</li>
+<li>Correct ink color</li>
+<li>Corresponding design shapes</li>
+<li>Appropriate placement</li>
+<li>Evidence that the transferred ink originated from the printing
+process</li>
+</ul>
+<p>Random stains, fingerprints, ink from another object, and chemical marks
+are not automatically offsets.</p>
+<hr>
+<h1>114. FOLDOVER ERROR CHECK</h1>
+<p>A true foldover error should show evidence that the paper was folded
+when printing occurred.</p>
+<p>Look for:</p>
+<ul>
+<li>Missing design where the fold blocked the impression</li>
+<li>Printing transferred onto the folded portion</li>
+<li>An abnormal margin caused by the folded sheet</li>
+<li>A consistent relationship between the fold and the displaced/missing
+print</li>
+</ul>
+<p>An ordinary crease acquired during circulation is not a foldover error.</p>
+<hr>
+<h1>115. STAR-NOTE HUNTING --- A BETTER METHOD</h1>
+<p>Do not simply collect every star note and assume they are rare.</p>
+<p>Record:</p>
+<ul>
+<li>Denomination</li>
+<li>Series</li>
+<li>District</li>
+<li>Serial range</li>
+<li>Star suffix</li>
+<li>Condition</li>
+<li>Whether the run appears limited</li>
+<li>Whether the note has another desirable feature</li>
+</ul>
+<h2>Star + fancy serial</h2>
+<p>A star note with a strong fancy serial deserves extra attention.</p>
+<h2>Star + error</h2>
+<p>A genuine production error combined with a star replacement feature may
+deserve specialist attribution.</p>
+<hr>
+<h1>116. CONDITION --- A MORE PRACTICAL APPROACH</h1>
+<p>For hunting purposes, ask these questions:</p>
+<h3>1. Are there folds?</h3>
+<p>Count and inspect them.</p>
+<h3>2. Are there corner bends?</h3>
+<p>A bent corner may affect grade.</p>
+<h3>3. Are there tears?</h3>
+<p>Record location and size.</p>
+<h3>4. Are there stains?</h3>
+<p>Do not clean them.</p>
+<h3>5. Is the paper crisp?</h3>
+<p>Crispness can matter greatly for collectible notes.</p>
+<h3>6. Is there writing?</h3>
+<p>Writing generally affects desirability.</p>
+<h3>7. Are there pinholes?</h3>
+<p>Especially important on older notes.</p>
+<h3>8. Has the note been repaired?</h3>
+<p>Tape, glue, pressing, trimming, and other repairs can materially affect
+collector value.</p>
+<hr>
+<h1>117. STORAGE --- FIELD-READY SYSTEM</h1>
+<p>For notes you intend to keep:</p>
+<ul>
+<li>Use archival-quality currency holders</li>
+<li>Avoid PVC</li>
+<li>Keep notes flat</li>
+<li>Keep them away from direct sunlight</li>
+<li>Avoid excessive humidity</li>
+<li>Avoid adhesives</li>
+<li>Avoid rubber bands</li>
+<li>Avoid paper clips</li>
+<li>Avoid tape</li>
+<li>Avoid lamination</li>
+</ul>
+<h2>Label each holder</h2>
+<p>Write the identification on the holder or a separate inventory record
+rather than writing on the currency.</p>
+<p>Recommended label:</p>
+<p><code>$1 — Series 1957 — Silver Certificate — Star — Serial XXXXXXXX — Condition: circulated</code></p>
+<hr>
+<h1>118. YOUR PAPER-MONEY INVENTORY DATABASE</h1>
+<p>For serious hunting, create a spreadsheet with these columns:</p>
+<p>  Field             What to record</p>
+<hr>
+<p>  Inventory ID      Your own identifier
+  Denomination      $1, $2, etc.
+  Note type         FRN, SC, USN, etc.
+  Series            Exact series
+  Fr. number        If known
+  Secretary         Exact name
+  Treasurer         Exact name
+  District          FRB
+  Serial #1         Complete
+  Serial #2         Complete
+  Star              Yes/No
+  Serial pattern    Radar, repeater, etc.
+  Seal              Color/type
+  Error             Description
+  Condition         Your preliminary assessment
+  Source            Catalog/reference used
+  Purchase/source   Bank, roll, estate, etc.
+  Cost basis        Optional
+  Photos            File name
+  Authentication    Yes/No
+  Notes             Anything unusual</p>
+<p>This turns casual hunting into a searchable collection.</p>
+<hr>
+<h1>119. PHOTOGRAPHING NOTES FOR RESEARCH</h1>
+<p>Take photographs in this order:</p>
+<ol>
+<li>Full front</li>
+<li>Full back</li>
+<li>Left serial</li>
+<li>Right serial</li>
+<li>Treasury seal</li>
+<li>Federal Reserve seal/indicator</li>
+<li>Series year</li>
+<li>Signatures</li>
+<li>Error area</li>
+<li>Edges</li>
+<li>Corners</li>
+<li>Any unusual markings</li>
+</ol>
+<p>Use even lighting and avoid glare.</p>
+<p>Do not write directly on the note to identify it.</p>
+<hr>
+<h1>120. WHEN TO USE PROFESSIONAL GRADING</h1>
+<p>Consider professional authentication/grading when:</p>
+<ul>
+<li>The note appears rare</li>
+<li>The note may have a major error</li>
+<li>The note is an expensive historical issue</li>
+<li>Authenticity is uncertain</li>
+<li>Condition is important to value</li>
+<li>You are preparing to sell a significant note</li>
+<li>A dealer or buyer questions authenticity</li>
+<li>The note appears dramatically different from normal examples</li>
+</ul>
+<p>Do not spend large amounts on grading simply because a note is old.</p>
+<hr>
+<h1>121. AUTHENTICATION BEFORE VALUE</h1>
+<p>Use this sequence:</p>
+<p><strong>AUTHENTIC?</strong></p>
+<p>↓</p>
+<p><strong>WHAT TYPE?</strong></p>
+<p>↓</p>
+<p><strong>WHAT SERIES?</strong></p>
+<p>↓</p>
+<p><strong>WHAT VARIETY?</strong></p>
+<p>↓</p>
+<p><strong>WHAT FRIEDBERG NUMBER?</strong></p>
+<p>↓</p>
+<p><strong>WHAT SIGNATURE COMBINATION?</strong></p>
+<p>↓</p>
+<p><strong>WHAT DISTRICT?</strong></p>
+<p>↓</p>
+<p><strong>WHAT SERIAL?</strong></p>
+<p>↓</p>
+<p><strong>WHAT CONDITION?</strong></p>
+<p>↓</p>
+<p><strong>ERROR OR VARIETY?</strong></p>
+<p>↓</p>
+<p><strong>WHAT IS THE MARKET?</strong></p>
+<p>This order prevents one of the most common collecting mistakes: looking
+at an asking price before knowing exactly what the note is.</p>
+<hr>
+<h1>122. MARKET-PRICE WARNING</h1>
+<p>Online marketplace asking prices are not the same thing as realized
+prices.</p>
+<p>When researching value, distinguish:</p>
+<ul>
+<li>Asking price</li>
+<li>Sold price</li>
+<li>Auction realization</li>
+<li>Dealer offer</li>
+<li>Insurance value</li>
+<li>Catalog estimate</li>
+</ul>
+<p>For serious notes, prioritize documented sales and recognized numismatic
+references.</p>
+<hr>
+<h1>123. COMMON BEGINNER MISTAKES</h1>
+<h2>Mistake 1: &quot;It&#39;s old, so it is valuable.&quot;</h2>
+<p>Not necessarily.</p>
+<h2>Mistake 2: &quot;It&#39;s a star, so it is rare.&quot;</h2>
+<p>Not necessarily.</p>
+<h2>Mistake 3: &quot;It has a cool serial, so it is worth hundreds.&quot;</h2>
+<p>Not necessarily.</p>
+<h2>Mistake 4: &quot;Blue seal means rare.&quot;</h2>
+<p>No.</p>
+<h2>Mistake 5: &quot;Red seal means rare.&quot;</h2>
+<p>No.</p>
+<h2>Mistake 6: &quot;The margin is crooked, so it is an error.&quot;</h2>
+<p>Not necessarily.</p>
+<h2>Mistake 7: &quot;The note looks different, so it is an error.&quot;</h2>
+<p>Compare it with normal production examples.</p>
+<h2>Mistake 8: &quot;I can clean it.&quot;</h2>
+<p>Do not.</p>
+<h2>Mistake 9: &quot;I found the value on eBay.&quot;</h2>
+<p>Check completed sales and specialized references.</p>
+<h2>Mistake 10: &quot;I only need the serial number.&quot;</h2>
+<p>You need the entire note attribution.</p>
+<hr>
+<h1>124. THE 10-SECOND BANK-TELLER CHECK</h1>
+<p>When receiving a note in everyday circulation:</p>
+<h3>Look at the front</h3>
+<ul>
+<li>Denomination</li>
+<li>Series</li>
+<li>Serial</li>
+<li>Star</li>
+<li>Seal</li>
+<li>Signatures</li>
+</ul>
+<h3>Flip it</h3>
+<ul>
+<li>Design</li>
+<li>Major printing abnormality</li>
+<li>Cutting abnormality</li>
+<li>Missing print</li>
+</ul>
+<h3>If anything is unusual</h3>
+<p><strong>Pull it.</strong></p>
+<p>Research later.</p>
+<hr>
+<h1>125. THE 60-SECOND ADVANCED CHECK</h1>
+<p>If a note passes the first screen:</p>
+<ol>
+<li>Identify type.</li>
+<li>Confirm denomination.</li>
+<li>Confirm series.</li>
+<li>Read both serials.</li>
+<li>Check star.</li>
+<li>Identify Federal Reserve district.</li>
+<li>Read signatures.</li>
+<li>Check seal.</li>
+<li>Check serial pattern.</li>
+<li>Inspect printing.</li>
+<li>Inspect margins.</li>
+<li>Inspect condition.</li>
+<li>Photograph it.</li>
+<li>Record it.</li>
+<li>Research exact variety.</li>
 </ol>
 <hr>
-<h1>Reference Organizations</h1>
-<p>For serious research, consult authoritative numismatic sources such as:</p>
+<h1>126. THE &quot;DO NOT SPEND&quot; MASTER LIST</h1>
+<p>Do not casually spend a note that is:</p>
 <ul>
-<li>United States Mint</li>
-<li>Professional Coin Grading Service (PCGS)</li>
-<li>Numismatic Guaranty Company (NGC)</li>
-<li>American Numismatic Association (ANA)</li>
-<li>Whitman Publishing references</li>
-<li>Variety-specific specialist references</li>
-<li>Auction archives and realized-price databases</li>
+<li>Pre-1929 large size</li>
+<li>A Demand Note</li>
+<li>A National Bank Note</li>
+<li>A Gold Certificate</li>
+<li>An early Silver Certificate</li>
+<li>An early United States Note</li>
+<li>A Federal Reserve Bank Note</li>
+<li>A high denomination</li>
+<li>A suspected major error</li>
+<li>A mismatched-serial note</li>
+<li>A major fancy serial</li>
+<li>An unusually low serial</li>
+<li>A scarce-looking star note</li>
+<li>A note with an unusual signature combination</li>
+<li>A note whose authenticity is uncertain</li>
 </ul>
-<p>Always verify important claims against more than one source when possible.</p>
 <hr>
-<h1>End of Guide</h1>
-<p><strong>U.S. Coin Collecting: General Tips &amp; Reference Guide</strong></p>
-<p>A practical reference for identifying, researching, collecting, preserving, and understanding United States coins.</p>
+<h1>127. HISTORICAL CURRENCY ISSUE FAMILIES</h1>
+<p>The major federal issue families include:</p>
+<p>  Issue                        Approximate period</p>
 <hr>
-<p>This comprehensive guide has been successfully saved to the workspace and is now available for use in the info dropdown menu. The content provides extensive details on identifying, grading, storing, and evaluating U.S. coins, making it an excellent reference resource for collectors at all levels.</p>
+<p>  Demand Notes                 1861--1862
+  United States Notes          1862--1994 issue family
+  Fractional Currency          1862--1876
+  National Bank Notes          1863--1938
+  Gold Certificates            1865--1936
+  Silver Certificates          1878--1965
+  Treasury Coin Notes          1890--1899
+  Federal Reserve Notes        1914--present
+  Federal Reserve Bank Notes   1915--1945</p>
+<p>These dates identify broad issue families. They do <strong>not</strong> replace exact
+series and variety attribution.</p>
+<hr>
+<h1>128. IMPORTANT: &quot;LEGAL TENDER&quot; IS NOT A COLLECTOR-GRADE DESCRIPTION</h1>
+<p>&quot;Legal tender&quot; describes a legal status, not a rarity level.</p>
+<p>A note can be:</p>
+<ul>
+<li>Legal tender and common</li>
+<li>Legal tender and scarce</li>
+<li>Legal tender and historically important</li>
+<li>Legal tender and extremely rare</li>
+</ul>
+<p>Do not use legal-tender status as a substitute for identification.</p>
+<hr>
+<h1>129. IMPORTANT: &quot;STAR NOTE&quot; IS NOT A VALUE CATEGORY</h1>
+<p>A star tells you something about the production/replacement process.</p>
+<p>It does not by itself tell you:</p>
+<ul>
+<li>How rare the note is</li>
+<li>How valuable it is</li>
+<li>How many survive</li>
+<li>What grade it deserves</li>
+</ul>
+<p>Always identify the exact issue.</p>
+<hr>
+<h1>130. IMPORTANT: &quot;ERROR&quot; IS NOT A VALUE CATEGORY</h1>
+<p>A genuine error can range from minor to spectacular.</p>
+<p>Ask:</p>
+<ul>
+<li>What printing operation produced the error?</li>
+<li>How dramatic is it?</li>
+<li>Is it unquestionably genuine?</li>
+<li>How many examples are known?</li>
+<li>Does the error affect an important design element?</li>
+<li>Is the note otherwise desirable?</li>
+<li>What condition is it in?</li>
+</ul>
+<hr>
+<h1>131. SPECIALIST TERMS WORTH LEARNING</h1>
+<p>As you progress, learn:</p>
+<ul>
+<li>Friedberg number / Fr. number</li>
+<li>Mule</li>
+<li>Overprint</li>
+<li>Misalignment</li>
+<li>Misregistration</li>
+<li>Offset</li>
+<li>Foldover</li>
+<li>Obstruction</li>
+<li>Missing print</li>
+<li>Cutting error</li>
+<li>Serial-number error</li>
+<li>Star replacement</li>
+<li>Plate position</li>
+<li>Face plate</li>
+<li>Back plate</li>
+<li>Treasury seal</li>
+<li>Federal Reserve seal</li>
+<li>Signature combination</li>
+<li>Large size</li>
+<li>Small size</li>
+<li>Legal Tender / United States Note</li>
+<li>National Bank Note</li>
+<li>Federal Reserve Bank Note</li>
+<li>Federal Reserve Note</li>
+<li>Silver Certificate</li>
+<li>Gold Certificate</li>
+<li>Treasury Note</li>
+<li>Fractional Currency</li>
+</ul>
+<p>The more of this vocabulary you understand, the easier it becomes to
+research a note accurately.</p>
+<hr>
+<h1>132. RESEARCH SOURCES --- PRIORITY ORDER</h1>
+<p>For identification:</p>
+<h3>1. U.S. Currency Education Program</h3>
+<p>Use it for:</p>
+<ul>
+<li>Current designs</li>
+<li>Security features</li>
+<li>Historical timeline</li>
+<li>Serial-number basics</li>
+<li>Denomination information</li>
+</ul>
+<h3>2. Bureau of Engraving and Printing</h3>
+<p>Use it for:</p>
+<ul>
+<li>Production information</li>
+<li>Historical currency</li>
+<li>Serial numbers</li>
+<li>Printing facilities</li>
+<li>Currency issue history</li>
+</ul>
+<h3>3. Specialized numismatic catalogs</h3>
+<p>Use them for:</p>
+<ul>
+<li>Friedberg numbers</li>
+<li>Signature varieties</li>
+<li>Serial ranges</li>
+<li>Detailed issue attribution</li>
+</ul>
+<h3>4. Professional grading services</h3>
+<p>Use them for:</p>
+<ul>
+<li>Authentication information</li>
+<li>Population data</li>
+<li>Certified examples</li>
+<li>Error attribution</li>
+<li>Market research</li>
+</ul>
+<h3>5. Auction archives</h3>
+<p>Use realized sales to understand the market.</p>
+<h3>6. Marketplace listings</h3>
+<p>Use cautiously.</p>
+<p>An unsold asking price is not proof of market value.</p>
+<hr>
+<h1>133. MASTER RESEARCH CARD</h1>
+<p>Copy this for every interesting note:</p>
+<pre><code class="language-text">PAPER MONEY RESEARCH CARD
+
+Denomination:
+Note type:
+Series:
+Friedberg number:
+Secretary:
+Treasurer:
+Federal Reserve district:
+Federal Reserve indicator:
+Serial #1:
+Serial #2:
+Star:
+Serial pattern:
+Seal:
+Large or small size:
+Printing facility, if identifiable:
+Error/variety:
+Condition:
+Repairs/damage:
+Authentication:
+Reference #1:
+Reference #2:
+Comparable sales:
+Estimated market range:
+Final identification:
+</code></pre>
+<hr>
+<h1>134. FINAL ADVANCED RULE</h1>
+<p>When you find an unusual note, do not ask:</p>
+<p><strong>&quot;How much is this worth?&quot;</strong></p>
+<p>Ask:</p>
+<p><strong>&quot;Exactly what is this?&quot;</strong></p>
+<p>That question leads to:</p>
+<p><strong>Type → Series → Variety → Signatures → District → Serial → Condition →
+Error → Authentication → Market</strong></p>
+<p>That is the workflow that separates casual &quot;old money&quot; hunting from
+serious U.S. paper-money collecting.</p>
+<hr>
+<h1>135. CURRENT OFFICIAL REFERENCE CHECKPOINT</h1>
+<p>The U.S. Currency Education Program currently identifies seven
+circulating Federal Reserve denominations:</p>
+<ul>
+<li>$1</li>
+<li>$2</li>
+<li>$5</li>
+<li>$10</li>
+<li>$20</li>
+<li>$50</li>
+<li>$100</li>
+</ul>
+<p>It also provides denomination-specific history and authentication
+guidance.</p>
+<p>For current serial-number rules, remember:</p>
+<ul>
+<li>$1 and $2 retain the one-letter/eight-digit/letter-or-star format.</li>
+<li>Modern $5 through $100 Federal Reserve Notes use a two-letter
+prefix before the eight digits.</li>
+<li>On those modern notes, the first letter relates to the series and
+the second identifies the issuing Federal Reserve Bank.</li>
+<li>The final letter may be replaced by a star for a replacement note.</li>
+</ul>
+<p>Always verify unusual notes against current official and specialized
+references rather than relying on an old checklist.</p>
+<hr>
+<h1>136. MASTER POCKET CHECKLIST</h1>
+<pre><code class="language-text">PAPER MONEY HUNT
+
+[ ] Old?
+[ ] Large size?
+[ ] $2?
+[ ] Blue seal?
+[ ] Red seal?
+[ ] Gold/orange seal?
+[ ] Silver Certificate?
+[ ] Gold Certificate?
+[ ] United States Note?
+[ ] National Bank Note?
+[ ] Federal Reserve Bank Note?
+[ ] Star?
+[ ] Low serial?
+[ ] Solid?
+[ ] Near solid?
+[ ] Radar?
+[ ] Repeater?
+[ ] Ladder?
+[ ] Binary?
+[ ] Birthday?
+[ ] Year?
+[ ] Seven-of-a-kind?
+[ ] Serial mismatch?
+[ ] Missing print?
+[ ] Offset?
+[ ] Foldover?
+[ ] Cutting error?
+[ ] Seal error?
+[ ] Misregistration?
+[ ] Major ink error?
+[ ] Unusual signatures?
+[ ] Unusual district?
+[ ] Crisp/high grade?
+[ ] Photograph taken?
+[ ] Research completed?
+</code></pre>
+<hr>
+<h1>137. EDITORIAL NOTE FOR FUTURE EXPANSION</h1>
+<p>This guide is intentionally a <strong>field guide</strong>, not a complete Friedberg
+catalog.</p>
+<p>A truly exhaustive U.S. paper-money catalog would require
+denomination-by-denomination tables containing every major series,
+signature combination, district, star variety, Friedberg number, print
+range, and known error.</p>
+<p>The best way to build that material is as a separate reference section
+so that the hunting guide remains usable in the field while the catalog
+remains searchable and updateable.</p>
+<hr>
+<h1>138. SOURCE AND VERIFICATION NOTES</h1>
+<p>The expanded material was checked against current U.S. government
+currency information, including the U.S. Currency Education Program and
+the Bureau of Engraving and Printing, with particular attention to
+serial-number rules, historical issue families, denomination histories,
+and authentication features.</p>
+<p>Particular attention was given to:</p>
+<ul>
+<li>Current circulating denominations</li>
+<li>Serial-number structure</li>
+<li>Federal Reserve district identification</li>
+<li>Star/replacement notes</li>
+<li>1929 large-size/small-size transition</li>
+<li>Historical currency issue families</li>
+<li>Security-thread and microprinting milestones</li>
+<li>$2 reintroduction</li>
+<li>High-denomination note history</li>
+<li>Gold Certificate and Silver Certificate history</li>
+<li>Modern denomination design checkpoints</li>
+</ul>
+<p>Where collector terminology is subjective, this guide deliberately uses
+language such as <strong>&quot;interesting,&quot; &quot;desirable,&quot; &quot;pull and research,&quot;</strong>
+and <strong>&quot;may be collectible&quot;</strong> rather than assigning unsupported dollar
+values.</p>
+<p>For exact variety attribution, use a current specialized U.S.
+paper-money catalog and, when appropriate, professional
+authentication/grading.</p>
 </div>`;
-function showCoinTips() {
+function showNoteTips() {
  const wrap = el('div', { className: 'info-guide-wrap',
    style: 'max-height:72vh; overflow-y:auto; padding-right:8px;' });
- wrap.innerHTML = COIN_TIPS_GUIDE_HTML;
- createModal('modal-info-coin', 'Coin Collecting Tips', wrap, null);
-}
-
-// --- Note (Paper Currency) Collecting Tips -------------------------------
-function showNoteTips() {
- const body = _sectionBody(
- 'Note Collecting Tips',
- 'US paper currency (notes) have their own grading and rarity rules.',
- [
- { heading: 'Basics', list: [
- 'Grade by the standard 1–70 scale; centering, margins, and color are key',
- 'Star notes (★) are replacement notes — scarcer and more desirable',
- 'Low serial numbers (00000001x) and fancy serials (radar, ladder, solid) command premiums',
- 'Friedberg numbers (Fr. 230, etc.) identify the exact type',
- ]},
- { heading: 'What to look for', list: [
- 'Egyptian / Emerald Bookmark errors and misprints',
- 'Web press errors and cutting errors',
- 'Older large-size notes (pre-1929) and National Bank Notes',
- 'Star notes with low print runs (check the BEP production tables)',
- ]},
- { heading: 'Care', list: [
- 'Store flat in acid-free currency sleeves — never fold',
- 'Keep out of direct light to prevent fading',
- 'Avoid humidity; use silica packets in storage boxes',
- ]},
- ]
- );
- createModal('modal-info-note', 'Note Collecting Tips', body, null);
+ wrap.innerHTML = PAPER_GUIDE_HTML;
+ createModal('modal-info-' + 'notetips', 'Paper Currency Guide', wrap, null);
 }
 
 // --- Famous Coin Stories --------------------------------------------------
-async function showFamousStories() {
- const overlay = createModal('modal-info-stories', 'Famous Coin Stories',
- el('p', { className: 'info-intro' }, 'Loading stories…'), null);
- try {
- const data = await fetchStories();
- const body = el('div', { className: 'info-section-body' });
- const stories = (data.stories || []).filter(s => s.category === 'Famous Coin Stories' || !s.category);
- if (stories.length === 0 && data.stories) stories.push(...data.stories);
- stories.forEach(s => {
- body.appendChild(el('h4', { className: 'info-subhead' }, s.title));
- const c = el('div', { className: 'info-story' });
- c.innerHTML = s.content || '';
- body.appendChild(c);
- });
- const box = overlay.querySelector('.modal-body');
- if (box) box.replaceChildren(body);
- } catch (err) {
- const box = overlay.querySelector('.modal-body');
- if (box) box.textContent = 'Failed to load stories. Please try again later.';
- }
-}
-
-function fetchStories() {
- if (_storiesCache) return Promise.resolve(_storiesCache);
- return fetch('data/stories.json')
- .then(r => r.ok ? r.json() : { stories: [] })
- .then(d => { _storiesCache = d; return d; })
- .catch(() => ({ stories: [] }));
-}
-
-// --- Roll Hunting Tips ----------------------------------------------------
+const ROLL_GUIDE_HTML = `<style>
+.cc-guide h1{font-size:1.15em;margin:1em 0 .4em;color:var(--color-accent,#c9a227);}
+.cc-guide h2{font-size:1.05em;margin:1em 0 .35em;}
+.cc-guide h3{font-size:.95em;margin:.8em 0 .3em;}
+.cc-guide p{font-size:.88em;line-height:1.5;margin:.3em 0;}
+.cc-guide ul,.cc-guide ol{margin:.3em 0 .6em 1.2em;font-size:.88em;}
+.cc-guide li{margin:.15em 0;}
+.cc-guide blockquote{border-left:3px solid var(--color-accent,#c9a227);padding-left:.7em;margin:.5em 0;opacity:.9;}
+.cc-guide code{background:rgba(128,128,128,.2);padding:.05em .3em;border-radius:3px;}
+.cc-guide hr{border:none;border-top:1px solid var(--color-border-light,#444);margin:.8em 0;}
+.cc-guide strong{color:var(--color-accent,#c9a227);}
+.cc-guide a{color:var(--color-accent,#c9a227);}
+.cc-guide table{border-collapse:collapse;margin:.5em 0;font-size:.85em;}
+.cc-guide th,.cc-guide td{border:1px solid var(--color-border-light,#444);padding:3px 8px;}
+</style><div class="cc-guide"><h1>U.S. Coin Roll-Hunting Master Field Guide</h1>
+<h2>A beginner-to-advanced reference for finding keys, semi-keys, varieties, errors, silver, and condition rarities</h2>
+<p><strong>Scope:</strong> Primarily U.S. circulating coins, with emphasis on coins a roll hunter can realistically encounter.</p>
+<p><strong>How to use this book:</strong> Start with the denomination chapter for the coin in your hand. Use the pull list as triage, then use the diagnostics to determine <em>why</em> a coin is interesting.</p>
+<blockquote>
+<p><strong>Important:</strong> Weight, color, magnetism, and magnification are screening tools—not authentication. Major rarities and valuable errors should be professionally authenticated.</p>
+</blockquote>
+<hr>
+<h1>1. The Roll Hunter&#39;s Method</h1>
+<p>For every coin, ask:</p>
+<ol>
+<li>What denomination is it?  </li>
+<li>What year?  </li>
+<li>What mintmark?  </li>
+<li>Is the composition unusual?  </li>
+<li>Is it a proof?  </li>
+<li>Is the design/type unusual?  </li>
+<li>Is there a recognized variety for this date?  </li>
+<li>Is there a genuine mint error?  </li>
+<li>Is it unusually well preserved?  </li>
+<li>Does it need closer examination?</li>
+</ol>
+<p>Do not begin with <strong>&quot;Is this worth money?&quot;</strong> Begin with <strong>&quot;What exactly is this coin?&quot;</strong></p>
+<hr>
+<h1>2. Core Terminology</h1>
+<h2>Key date</h2>
+<p>A particularly scarce date/mint combination important to completing a series.</p>
+<h2>Semi-key</h2>
+<p>A date/mint combination noticeably scarcer than ordinary dates but generally below the principal keys. Definitions vary by reference and grade.</p>
+<h2>Better date</h2>
+<p>A flexible collector term for a date deserving more attention than a common issue.</p>
+<h2>Low mintage</h2>
+<p>A coin with low original production. Low mintage does <strong>not</strong> automatically mean rare today; survival matters.</p>
+<h2>Die variety</h2>
+<p>A repeatable difference caused by the die(s) used to strike coins. Examples: doubled die, repunched mintmark, overmintmark, overdate, hub/design subtype, and some die clashes.</p>
+<h2>Mint error</h2>
+<p>An abnormal result of manufacture. Examples: wrong planchet, off-center, broadstrike, clip, struck-through, brockage, double strike, and missing clad layer.</p>
+<h2>Die state</h2>
+<p>The condition of a die at a particular point in its life. A die can progress from an early state to cracked, heavily cracked, and finally broken/shattered states.</p>
+<hr>
+<h1>3. Variety vs. Error vs. Damage</h1>
+<h3>Die variety</h3>
+<p>The die itself contains the unusual feature. A 1955 Lincoln doubled die is an example; the same die can strike many coins with the same feature.</p>
+<h3>Mint error</h3>
+<p>Something abnormal happened during manufacture, such as a wrong planchet or off-center strike.</p>
+<h3>Post-mint damage</h3>
+<p>Something happened after the coin left the Mint: scratches, gouges, bent rims, chemical stains, filing, grinding, heat damage, etc.</p>
+<p><strong>Rule of thumb:</strong> A die crack normally appears as a raised line on the coin because the die is the negative image. An ordinary scratch is normally incuse. Always inspect the entire feature rather than relying on one rule.</p>
+<hr>
+<h1>4. Doubling: The Biggest Beginner Trap</h1>
+<h2>True doubled die</h2>
+<p>A doubled die is created during die manufacture. The coin repeatedly shows the doubled design. Look for distinct secondary design elements, separation, and consistent spread.</p>
+<h2>Machine doubling</h2>
+<p>Machine doubling happens during striking. It commonly looks flat, shelf-like, or like a design edge has been pushed down. It is generally <strong>not</strong> the valuable doubled-die variety collectors seek.</p>
+<blockquote>
+<p>Never call a coin a doubled die merely because something looks doubled under magnification.</p>
+</blockquote>
+<hr>
+<h1>5. Weights, Metals, and Composition</h1>
+<h2>Current U.S. Mint specifications</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Denomination</th>
+<th align="right">Weight</th>
+<th align="right">Diameter</th>
+<th align="left">Composition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">Cent</td>
+<td align="right"><strong>2.500 g</strong></td>
+<td align="right">19.05 mm</td>
+<td align="left">2.5% copper / 97.5% zinc</td>
+</tr>
+<tr>
+<td align="left">Nickel</td>
+<td align="right"><strong>5.000 g</strong></td>
+<td align="right">21.21 mm</td>
+<td align="left">75% copper / 25% nickel</td>
+</tr>
+<tr>
+<td align="left">Dime</td>
+<td align="right"><strong>2.268 g</strong></td>
+<td align="right">17.91 mm</td>
+<td align="left">91.67% copper / 8.33% nickel overall</td>
+</tr>
+<tr>
+<td align="left">Quarter</td>
+<td align="right"><strong>5.670 g</strong></td>
+<td align="right">24.26 mm</td>
+<td align="left">91.67% copper / 8.33% nickel overall</td>
+</tr>
+<tr>
+<td align="left">Half dollar</td>
+<td align="right"><strong>11.340 g</strong></td>
+<td align="right">30.61 mm</td>
+<td align="left">91.67% copper / 8.33% nickel overall</td>
+</tr>
+<tr>
+<td align="left">Dollar</td>
+<td align="right"><strong>8.100 g</strong></td>
+<td align="right">26.49 mm</td>
+<td align="left">copper-based manganese/brass alloy</td>
+</tr>
+</tbody></table>
+<p><strong>2026 note:</strong> The Mint&#39;s current annual-set penny is still 2.50 g copper-plated zinc, but it is produced for collectible sets rather than ordinary circulating production. Half dollars are primarily produced for numismatic products, though they remain legal tender. citeturn0search0</p>
+<h3>Why weight matters</h3>
+<p>Weight can flag possible silver, steel, bronze, wrong planchets, missing clad layers, foreign planchets, or counterfeits.</p>
+<h3>Why weight is not proof</h3>
+<p>Wear, damage, plating, counterfeit construction, scale error, and normal tolerances can affect measurements. Use weight as a <strong>screening test</strong>.</p>
+<hr>
+<h1>6. Cents</h1>
+<h2>6.1 Composition timeline</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Issue</th>
+<th align="left">Composition</th>
+<th align="right">Weight</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1909-1942 Wheat</td>
+<td align="left">95% copper / 5% zinc</td>
+<td align="right">3.11 g</td>
+</tr>
+<tr>
+<td align="left">1943</td>
+<td align="left">Zinc-coated steel</td>
+<td align="right">2.70 g</td>
+</tr>
+<tr>
+<td align="left">1944-1946 shell-case bronze</td>
+<td align="left">Copper alloy</td>
+<td align="right">3.11 g</td>
+</tr>
+<tr>
+<td align="left">1947-1981</td>
+<td align="left">95% copper / 5% zinc</td>
+<td align="right">3.11 g</td>
+</tr>
+<tr>
+<td align="left">1982 bronze</td>
+<td align="left">95% copper / 5% zinc</td>
+<td align="right">3.11 g</td>
+</tr>
+<tr>
+<td align="left">1982 zinc</td>
+<td align="left">Copper-plated zinc</td>
+<td align="right">2.50 g</td>
+</tr>
+<tr>
+<td align="left">1983-present</td>
+<td align="left">Copper-plated zinc</td>
+<td align="right">2.50 g</td>
+</tr>
+</tbody></table>
+<h2>6.2 Indian Head cents</h2>
+<p><strong>Pull every Indian Head cent.</strong> Especially research 1877, 1908-S, and 1909-S.</p>
+<h2>6.3 Wheat cents</h2>
+<p><strong>Pull every Wheat cent.</strong> Then inspect date and mint.</p>
+<h3>Major keys</h3>
+<table>
+<thead>
+<tr>
+<th align="left">Date</th>
+<th align="left">Diagnostic</th>
+<th align="left">Level</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">1909-S VDB</td>
+<td align="left">VDB on reverse</td>
+<td align="left">Major key</td>
+</tr>
+<tr>
+<td align="left">1909-S</td>
+<td align="left">S mintmark</td>
+<td align="left">Key</td>
+</tr>
+<tr>
+<td align="left">1914-D</td>
+<td align="left">D mintmark</td>
+<td align="left">Major key</td>
+</tr>
+<tr>
+<td align="left">1922 No D</td>
+<td align="left">Denver issue with absent/obscured D</td>
+<td align="left">Major variety</td>
+</tr>
+<tr>
+<td align="left">1931-S</td>
+<td align="left">S mintmark</td>
+<td align="left">Major key</td>
+</tr>
+</tbody></table>
+<h3>Better/semi-key dates to research</h3>
+<p>1911-D, 1912-D, 1912-S, 1913-D, 1913-S, 1914-S, 1915-D, 1915-S, 1916-S, 1917-S, 1918-D, 1918-S, 1919-D, 1919-S, 1921-S, 1923-S, 1924-D, 1924-S, 1925-D, 1926-D, 1926-S, 1927-D, 1927-S, 1928-S, 1929-D, 1929-S, 1930-S.</p>
+<p><strong>Note:</strong> Semi-key labels vary by grade and reference.</p>
+<h2>6.4 1909-S VDB</h2>
+<p>Turn the coin over and inspect below the wheat stalks for <strong>VDB</strong>. Pull every candidate.</p>
+<h2>6.5 1922 No D</h2>
+<p>Denver was the only Mint striking Lincoln cents in 1922. Some Denver dies developed problems that caused the D to become extremely weak or disappear.</p>
+<p><strong>Beginner warning:</strong> &quot;I cannot see the D&quot; is not enough. Weak-D pieces, damage, and genuine No D varieties must be separated by diagnostics.</p>
+<h2>6.6 1943 steel cent</h2>
+<p>Normal: zinc-coated steel, about <strong>2.70 g</strong>. Search for suspected <strong>1943 bronze</strong> cents. A genuine bronze example is an extraordinary error and should be authenticated.</p>
+<h2>6.7 1944 steel cent</h2>
+<p>Normal 1944 cents are bronze/shell-case bronze, about <strong>3.11 g</strong>. A genuine steel 1944 is an extraordinary off-metal error.</p>
+<h2>6.8 1955 Doubled Die Obverse</h2>
+<p>Inspect the date, LIBERTY, and IN GOD WE TRUST. The genuine variety has strong, unmistakable doubling. Major authentication candidate.</p>
+<h2>6.9 1960 Small Date / Large Date</h2>
+<p>Both 1960 and 1960-D have Small Date and Large Date varieties. The 1960-D also has a recognized Small Date over Large Date variety. Use the shape, proportions, alignment, and spacing of the date—not wear alone—to distinguish them.</p>
+<h2>6.10 1969-S Doubled Die Obverse</h2>
+<p>Inspect date, LIBERTY, and IN GOD WE TRUST. This is heavily counterfeited and frequently confused with machine doubling. A genuine candidate deserves professional authentication.</p>
+<h2>6.11 1970-S Small Date</h2>
+<p>A genuine Small Date is a distinct date-hub variety. A useful diagnostic is the relationship of the top of the <strong>7</strong> to the other numerals, along with the shape of the 7 and LIBERTY. Do not diagnose from one feature alone.</p>
+<h2>6.12 1970-S Large Date Doubled Die Obverse</h2>
+<p>Inspect Large Date examples for strong doubling on the date, LIBERTY, and motto. Compare with recognized diagnostics.</p>
+<h2>6.13 1972 Doubled Die Obverse</h2>
+<p>Inspect LIBERTY, IN GOD WE TRUST, and the date. There are multiple 1972 doubled dies; identify the exact variety rather than simply writing &quot;1972 DDO.&quot;</p>
+<h2>6.14 1982 — the essential cent-hunting year</h2>
+<p>Both bronze and zinc cents were made.</p>
+<ul>
+<li>Bronze: <strong>~3.11 g</strong>  </li>
+<li>Zinc: <strong>~2.50 g</strong>  </li>
+<li>Date styles: Large Date and Small Date</li>
+</ul>
+<p>Pull every 1982 until you have identified <strong>date style + composition + mint</strong>. A bronze 1982 is not automatically rare; rarity depends on the exact combination.</p>
+<h2>6.15 1983 Doubled Die Reverse</h2>
+<p>Inspect reverse lettering and compare against recognized diagnostics.</p>
+<h2>6.16 1984 Doubled Ear</h2>
+<p>Inspect Lincoln&#39;s ear. Separate genuine doubled-ear diagnostics from scratches, contact marks, and die chips.</p>
+<h2>6.17 1988 Reverse of 1989</h2>
+<p>A recognized reverse hub/design-transition variety. Compare against known diagnostics.</p>
+<h2>6.18 1992 Close AM</h2>
+<p>Inspect <strong>AMERICA</strong> on the reverse. The 1992 and 1992-D Close AM varieties use the reverse design associated with 1993. The bases of A and M are unusually close, and the FG position is a useful secondary diagnostic. Both Philadelphia and Denver examples are known and are extremely scarce. citeturn0search1turn0search5</p>
+<h2>6.19 1995 Doubled Die Obverse</h2>
+<p>Inspect LIBERTY, IN GOD WE TRUST, and date for strong recognized doubling.</p>
+<h2>6.20 1998-2000 Close AM / Wide AM</h2>
+<p>For 1998-2000 business strikes, the important scarce varieties are <strong>Wide AM</strong> reverses. The 1999 Wide AM is particularly important. Always identify the exact year, mint, finish, and reverse before attributing the variety.</p>
+<h2>6.21 2009 Bicentennial cents</h2>
+<p>Four reverse designs were issued. Save one of each, then inspect for doubled dies, cuds, die chips, off-centers, broadstrikes, and proofs.</p>
+<h2>6.22 Modern Shield cents</h2>
+<p>Search for major doubled dies, cuds, major die cracks, clashes, off-centers, broadstrikes, wrong planchets, and missing plating. Tiny plating blisters are not automatically major errors.</p>
+<hr>
+<h1>7. Nickels</h1>
+<h2>7.1 Normal composition</h2>
+<p>Most Jefferson nickels are <strong>75% copper / 25% nickel</strong>, <strong>5.00 g</strong>.</p>
+<h2>7.2 Wartime silver nickels, 1942-1945</h2>
+<p>Composition: <strong>56% copper / 35% silver / 9% manganese</strong>. Weight: <strong>5.00 g</strong>. Large P, D, or S above Monticello is the key visual clue. Philadelphia&#39;s P appeared on a U.S. circulation coin for the first time on this issue.</p>
+<p>Pull every one.</p>
+<h2>7.3 Buffalo nickels</h2>
+<p>Pull every Buffalo. Research especially 1913-D/S, 1914-D/S, 1915-S, 1916-D, 1917-S, 1918-D/S, 1921-S, 1924-S, 1926-S, 1927-S, 1929-D/S, 1930-S, and 1931-S.</p>
+<h2>7.4 1913 Buffalo Type 1 / Type 2</h2>
+<h3>Type 1</h3>
+<p>Reverse shows the buffalo standing on a <strong>raised mound</strong>.</p>
+<h3>Type 2</h3>
+<p>The ground/mound design was redesigned, including the denomination area, to reduce wear.</p>
+<p>If you find a 1913 Buffalo, identify the type before returning it.</p>
+<h2>7.5 1916/16 Buffalo</h2>
+<p>Major doubled-die date variety. Inspect the date closely.</p>
+<h2>7.6 1937-D Three-Legged Buffalo</h2>
+<p>Heavy die polishing after a clash removed much of the buffalo&#39;s front leg. Do not simply count legs; inspect the leg, hoof, belly, and surrounding diagnostics.</p>
+<h2>7.7 1935 Doubled Die Reverse</h2>
+<p>Inspect reverse lettering and compare to a recognized example.</p>
+<h2>7.8 Jefferson key dates</h2>
+<p>Research 1938-D, 1938-S, 1939-D, 1939-S, and 1950-D.</p>
+<h2>7.9 Wartime varieties</h2>
+<p>Pay special attention to <strong>1943/2-P, 1943-P Doubled Eye, and 1945-P Doubled Die Reverse</strong>. These are recognized varieties.</p>
+<h2>7.10 Full Steps</h2>
+<p>Inspect the steps beneath Monticello. A sharp coin with uninterrupted steps can be substantially more desirable in high grade. Save exceptionally sharp examples.</p>
+<hr>
+<h1>8. Dimes</h1>
+<h2>8.1 Mercury dimes</h2>
+<p>Pull every Mercury dime. Major dates include 1916-D, 1921, 1921-D, 1926-S, 1931-D, and 1931-S.</p>
+<h2>8.2 Silver Roosevelt dimes</h2>
+<p>All normal Roosevelt dimes dated <strong>1946-1964</strong> are <strong>90% silver / 10% copper</strong> and weigh <strong>2.50 g</strong>.</p>
+<h2>8.3 Better Roosevelt dates</h2>
+<p>Research 1949-S, 1950-S, 1955, 1955-D, 1955-S, 1956-D, 1958-D, 1959-D, 1960-D, 1961-D, 1962-D, and 1963-D, with condition in mind.</p>
+<h2>8.4 1964-D variety hunting</h2>
+<p>Recognized varieties include RPM FS-501, MPM FS-502, RPM FS-503 through FS-506, and DDR FS-801 through FS-803. PCGS lists these and also distinguishes Full Bands examples.</p>
+<p>This is an excellent example of why a silver hunter should not automatically stop at pulling the silver.</p>
+<h2>8.5 Full Bands</h2>
+<p>Inspect the horizontal torch bands. A very sharp Roosevelt with complete band separation can be much more desirable in high grade. Save exceptionally sharp examples.</p>
+<hr>
+<h1>9. Quarters</h1>
+<h2>9.1 Standing Liberty quarters</h2>
+<p>Pull every one. Research 1916, 1919-D/S, 1920-D/S, 1921, 1923-S, 1924-S, 1926-S, and 1927-S.</p>
+<h2>9.2 1918/7-S</h2>
+<p>Classic overdate. Look for the underlying 7 beneath the final 8.</p>
+<h2>9.3 Barber quarters</h2>
+<p>Pull every Barber. Especially research 1896-S, 1901-S, 1904-S, and 1913-S.</p>
+<h2>9.4 Silver Washington quarters</h2>
+<p>Regular Washington quarters from <strong>1932-1964</strong> are <strong>90% silver / 10% copper</strong> and weigh <strong>6.25 g</strong>.</p>
+<h2>9.5 1932-D and 1932-S</h2>
+<p>Both are major keys. Pull immediately.</p>
+<h2>9.6 1950-D/S and 1950-S/D</h2>
+<p>Recognized overmintmark varieties. Inspect the mintmark closely.</p>
+<h2>9.7 1942-D doubled die</h2>
+<p>Inspect the obverse for recognized doubling and compare with attribution references.</p>
+<h2>9.8 1964-D doubled die reverse</h2>
+<p>Inspect reverse lettering and compare with recognized diagnostics.</p>
+<h2>9.9 1965 silver quarter</h2>
+<p>Normal 1965 quarter: <strong>5.67 g clad</strong>. A silver-planchet candidate will be around <strong>6.25 g</strong>. A genuine 1965 quarter struck on a silver planchet is a major transitional error. Weigh suspicious examples.</p>
+<h2>9.10 1970-S wrong-planchet candidates</h2>
+<p>If a 1970-S quarter is unusually small, oddly colored, has a strange edge, or abnormal weight, isolate it and investigate.</p>
+<h2>9.11 1976 Bicentennial quarters</h2>
+<p>Save P, D, S, proofs, silver issues, type varieties, and major errors.</p>
+<h2>9.12 State quarter varieties</h2>
+<h3>2004-D Wisconsin Extra Leaf</h3>
+<p>Inspect the corn ear. Recognized forms are <strong>Extra Leaf High</strong> and <strong>Extra Leaf Low</strong>. These are die varieties, not scratches.</p>
+<h3>2005-P Minnesota</h3>
+<p>Numerous doubled-die varieties exist. The famous extra-tree appearance is doubling; do not count trees without matching exact diagnostics.</p>
+<hr>
+<h1>10. Half Dollars</h1>
+<h2>1964</h2>
+<p><strong>90% silver</strong>, <strong>12.50 g</strong>. Pull all.</p>
+<h2>1965-1969</h2>
+<p><strong>40% silver</strong>, <strong>11.50 g</strong>. Pull all.</p>
+<h2>1970-D</h2>
+<p>Only released in mint sets. Not for circulation. Pull it.</p>
+<h2>Proofs</h2>
+<p>Inspect 1964 proofs, Accented Hair, cameo/deep-cameo candidates, major varieties, and errors.</p>
+<hr>
+<h1>11. Eisenhower Dollars</h1>
+<h2>11.1 1972-P Type 1 / Type 2 / Type 3</h2>
+<p>The three reverse types are primarily distinguished by the <strong>earth/map details</strong>.</p>
+<h3>Type 1</h3>
+<p>Early reverse with less accurately rendered map/island details.</p>
+<h3>Type 2</h3>
+<p>Intermediate reverse with revised map details.</p>
+<h3>Type 3</h3>
+<p>Final reverse with more refined geography.</p>
+<p><strong>Beginner method:</strong> Learn the three reference images first; then learn the geographic diagnostics. The important lesson is that 1972-P is not one uniform reverse.</p>
+<h2>11.2 1976 Type 1 / Type 2</h2>
+<p>Bicentennial Ike dollars have different reverse hub varieties. Compare against recognized examples.</p>
+<h2>11.3 Silver Ikes</h2>
+<p>Some S-mint collector issues contain 40% silver. <strong>S does not automatically mean silver.</strong> Identify the exact issue.</p>
+<hr>
+<h1>12. Susan B. Anthony Dollars</h1>
+<h2>12.1 1979-P Near Date / Wide Rim</h2>
+<p>Normal 1979-P: date farther from rim. Wide Rim/Near Date: date much closer to rim.</p>
+<p><strong>Why both names?</strong> Wide Rim describes the rim relationship; Near Date describes the date&#39;s position. They refer to the same important variety.</p>
+<h2>12.2 1979-S Type 1 / Type 2</h2>
+<p>These are <strong>proof</strong> varieties. Type 1 has a filled/blobby S; Type 2 has a clearer, more defined S. Type 2 is scarcer. Do not apply this proof diagnostic indiscriminately to ordinary business strikes.</p>
+<h2>12.3 1981-S Type 1 / Type 2</h2>
+<p>These are <strong>proof</strong> varieties distinguished by the S mintmark punch. Type 2 uses the newer, clearer S and is the scarcer variety.</p>
+<hr>
+<h1>13. Sacagawea and Native American Dollars</h1>
+<p>Search for 2000-P Cheerios, Wounded Eagle, doubled dies, cuds, major die chips, clashes, off-centers, broadstrikes, wrong planchets, and edge errors.</p>
+<h2>13.1 2000-P Cheerios</h2>
+<p>Special 2000-P dollars distributed in Cheerios promotions can have enhanced reverse detail. Do not identify one from the date alone; compare the exact reverse diagnostics.</p>
+<h2>13.2 Wounded Eagle</h2>
+<p>Recognized reverse variety. Look for the diagnostic line across the eagle&#39;s breast and compare with a trusted reference.</p>
+<hr>
+<h1>14. Presidential Dollars</h1>
+<p>The edge is critical. Look for missing, doubled, partial, or misaligned edge lettering.</p>
+<p><strong>Warning:</strong> Weak edge lettering is not automatically an error. Study the complete edge.</p>
+<hr>
+<h1>15. Morgan and Peace Dollars</h1>
+<p>These are unlikely modern roll finds but should be recognized instantly.</p>
+<h2>Morgan</h2>
+<p>Learn major keys: 1879-CC, 1889-CC, 1892-S, 1893, 1893-CC, 1893-S, 1894, 1895, 1895-O, 1895-S, 1903-O, and 1903-S.</p>
+<h3>VAM</h3>
+<p>Morgan varieties use the VAM system. Diagnostics can involve date position, mintmark, doubling, clashes, die breaks, polishing, and lettering.</p>
+<h2>Peace</h2>
+<p>Important dates include 1921, 1927-D, 1928, and 1934-S.</p>
+<hr>
+<h1>16. Proofs</h1>
+<p>Proofs are specially manufactured collector coins. Clues include mirror-like fields, frosted design, sharp detail, and often an S mintmark on modern issues.</p>
+<p><strong>Pull every proof.</strong> Then check date, variety, contrast, and errors.</p>
+<hr>
+<h1>17. Die Cracks, Die Chips, and Cuds</h1>
+<h2>Die crack</h2>
+<p>A crack in the die. Because the die is the negative image, it normally appears as a <strong>raised line</strong> on the coin.</p>
+<h2>Die chip</h2>
+<p>A small piece of die breaks away, producing a <strong>raised blob/lump</strong>.</p>
+<h2>Cud</h2>
+<p>A large die break involving the edge, usually producing a substantial raised area connected to the rim.</p>
+<h3>Why a die crack can appear on many coins</h3>
+<p>One die can strike thousands or far more coins. If it cracks and stays in service, the same crack can repeat on many coins. As the die deteriorates, the crack may lengthen and grow into a larger break. Repeated markers can therefore act like a fingerprint and identify die states.</p>
+<hr>
+<h1>18. Major Mint Error Types</h1>
+<ul>
+<li><strong>Off-center:</strong> planchet not centered in collar.  </li>
+<li><strong>Broadstrike:</strong> struck without normal collar containment.  </li>
+<li><strong>Clip:</strong> missing planchet material.  </li>
+<li><strong>Wrong planchet:</strong> struck on a blank intended for another denomination.  </li>
+<li><strong>Missing clad layer:</strong> one clad layer is absent.  </li>
+<li><strong>Struck-through:</strong> foreign material came between die and planchet.  </li>
+<li><strong>Brockage:</strong> a coin transfers an incuse/mirrored design to another planchet.  </li>
+<li><strong>Double strike:</strong> receives a second strike.  </li>
+<li><strong>Die clash:</strong> dies hit one another without a planchet between them.  </li>
+<li><strong>Cud:</strong> major die break.</li>
+</ul>
+<hr>
+<h1>19. Wrong-Planchet Investigation</h1>
+<p>For a suspicious coin, record:</p>
+<ol>
+<li>Weight  </li>
+<li>Diameter  </li>
+<li>Thickness  </li>
+<li>Edge appearance  </li>
+<li>Color  </li>
+<li>Magnetic behavior  </li>
+<li>Design/strike characteristics</li>
+</ol>
+<p>Example: normal quarter <strong>5.67 g</strong> versus a suspected silver-planchet quarter around <strong>6.25 g</strong>.</p>
+<p><strong>Weight is a clue, not proof.</strong></p>
+<hr>
+<h1>20. Condition Rarities</h1>
+<p>A common date can become scarce in exceptional condition.</p>
+<h3>Lincoln cents</h3>
+<p>Look for original red color, strong strike, and minimal marks.</p>
+<h3>Jefferson nickels</h3>
+<p>Look for Full Steps.</p>
+<h3>Roosevelt dimes</h3>
+<p>Look for Full Bands.</p>
+<h3>Washington quarters</h3>
+<p>Look for strong strike, original luster, and minimal contact marks.</p>
+<p>If a modern coin looks <em>shockingly new</em>, save it.</p>
+<hr>
+<h1>21. Things Usually NOT Rare</h1>
+<p>Usually do not treat these as major discoveries:</p>
+<ul>
+<li>Random scratches  </li>
+<li>Rim dents  </li>
+<li>Flattened rims  </li>
+<li>Machine doubling  </li>
+<li>Tiny die chips  </li>
+<li>Plating bubbles  </li>
+<li>Chemical discoloration  </li>
+<li>Polishing marks  </li>
+<li>Heat damage  </li>
+<li>Post-mint holes  </li>
+<li>Gouges</li>
+</ul>
+<hr>
+<h1>22. Beginner Date-Priority System</h1>
+<h2>Tier A — Pull immediately</h2>
+<p>Silver; war nickels; Indian Heads; Wheat cents; Buffalo nickels; Mercury dimes; Barber coins; Standing Liberty quarters; Walking Liberty halves; Franklin halves; Morgan dollars; Peace dollars; major keys; obvious proofs; obvious major errors.</p>
+<h2>Tier B — Stop and investigate</h2>
+<p>1982 cents; 1960 cents; 1970-S cents; 1972 cents; 1992 cents; 1998-2000 cents; 1964-D dimes; 1976 quarters/Ikes; 1979-P SBA dollars; 1979-S SBA proofs; 1981-S SBA proofs; 1972-P Ikes; Wisconsin Extra Leaf; Minnesota doubled-die candidates.</p>
+<h2>Tier C — Save if unusually nice</h2>
+<p>Modern high-grade coins; Full Steps nickels; Full Bands dimes; sharp quarters; strongly lustrous cents; uncirculated older coins.</p>
+<hr>
+<h1>23. Practical Attribution Workflow</h1>
+<p>When a coin looks unusual, do not jump directly to a variety name.</p>
+<h3>Step 1 — Establish the normal coin</h3>
+<p>Identify denomination, date, mint, composition, and normal design.</p>
+<h3>Step 2 — Document it</h3>
+<p>Record weight, diameter, thickness if relevant, edge appearance, and magnetic behavior.</p>
+<h3>Step 3 — Photograph it</h3>
+<p>Take full obverse/reverse photos plus a close-up of the suspected diagnostic. Photograph the edge for errors.</p>
+<h3>Step 4 — Compare with a normal example</h3>
+<p>This is one of the fastest ways to separate a real variety/error from damage.</p>
+<h3>Step 5 — Identify the mechanism</h3>
+<p>Ask whether the feature came from a different die/hub, an abnormal planchet, an abnormal striking event, or something that happened after the coin left the Mint.</p>
+<h3>Step 6 — Attribute before valuing</h3>
+<p>Do not use an auction listing or asking price to decide what the coin is. First establish the exact variety/error; then research value.</p>
+<h2>Edge-first diagnostics</h2>
+<p>The edge can reveal silver versus clad construction, missing clad layer, unusual thickness, broadstrike/collar problems, altered edges, and Presidential-dollar edge-lettering errors.</p>
+<h2>Photography checklist</h2>
+<p>For an important candidate, save: full obverse, full reverse, edge, diagnostic close-up, weight/measurement record, and a comparison with a normal coin.</p>
+<h1>23. Equipment</h1>
+<h2>Essential</h2>
+<ul>
+<li>5x-10x loupe  </li>
+<li>Accurate digital scale  </li>
+<li>Bright neutral lighting  </li>
+<li>Coin tray  </li>
+<li>Non-PVC holders  </li>
+<li>Notebook or spreadsheet</li>
+</ul>
+<h2>Helpful</h2>
+<ul>
+<li>Digital calipers  </li>
+<li>USB microscope  </li>
+<li>Camera/phone  </li>
+<li>Variety reference  </li>
+<li>Small magnet</li>
+</ul>
+<h3>Never use</h3>
+<ul>
+<li>Knives  </li>
+<li>Needles  </li>
+<li>Sandpaper  </li>
+<li>Metal polish  </li>
+<li>Abrasive cloth  </li>
+<li>Chemical cleaners</li>
+</ul>
+<hr>
+<h1>24. Coin Identification Worksheet</h1>
+<p><strong>Denomination:</strong><br><strong>Year:</strong><br><strong>Mint:</strong><br><strong>Weight:</strong><br><strong>Diameter:</strong><br><strong>Magnetic?:</strong><br><strong>Composition:</strong><br><strong>Type:</strong><br><strong>Obverse variety:</strong><br><strong>Reverse variety:</strong><br><strong>Mintmark variety:</strong><br><strong>Error?:</strong><br><strong>Die crack/chip/cud?:</strong><br><strong>Condition:</strong><br><strong>Proof?:</strong><br><strong>Reference used:</strong><br><strong>Photos taken?:</strong><br><strong>Authentication needed?:</strong></p>
+<hr>
+<h1>25. When to Get Professional Authentication</h1>
+<p>Get professional attribution/authentication when a coin might be:</p>
+<ul>
+<li>1909-S VDB  </li>
+<li>1914-D  </li>
+<li>1922 No D  </li>
+<li>1955 DDO  </li>
+<li>1969-S DDO  </li>
+<li>1970-S DDO  </li>
+<li>1972 DDO  </li>
+<li>1943 bronze  </li>
+<li>1944 steel  </li>
+<li>1965 silver quarter  </li>
+<li>Major wrong-planchet error  </li>
+<li>Major doubled die  </li>
+<li>Valuable Morgan VAM  </li>
+<li>Important proof variety</li>
+</ul>
+<p>The cost of authentication can be small compared with the risk of selling a genuine rarity as a common coin—or paying a premium for a counterfeit.</p>
+<hr>
+<h1>26. The Golden Rules</h1>
+<ol>
+<li><strong>Never clean a coin you think may be valuable.</strong>  </li>
+<li><strong>Weigh suspicious coins.</strong>  </li>
+<li><strong>Learn mintmarks.</strong>  </li>
+<li><strong>Learn composition changes.</strong>  </li>
+<li><strong>Do not confuse machine doubling with doubled dies.</strong>  </li>
+<li><strong>Do not confuse damage with mint errors.</strong>  </li>
+<li><strong>Learn the exact diagnostics for each variety.</strong>  </li>
+<li><strong>Save exceptionally nice examples.</strong>  </li>
+<li><strong>Photograph suspicious coins before excessive handling.</strong>  </li>
+<li><strong>Never rely on a single social-media photograph to authenticate a major rarity.</strong></li>
+</ol>
+<hr>
+<h1>27. Master Pull List</h1>
+<h2>CENTS</h2>
+<p><strong>Pull:</strong> Indian Head; Wheat; 1909-S; 1909-S VDB; 1914-D; 1922 No D candidates; 1931-S; 1943 steel; 1955 DDO candidates; 1969-S DDO candidates; 1970-S Small Date candidates; 1970-S DDO candidates; 1972 DDO candidates; all 1982s until attributed; 1983 DDR candidates; 1984 Doubled Ear candidates; 1988 Reverse of 1989; 1992 Close AM; 1995 DDO; 1998-2000 AM varieties; major modern errors.</p>
+<h2>NICKELS</h2>
+<p><strong>Pull:</strong> Buffalo; 1938-D; 1938-S; 1939-D; 1939-S; 1950-D; every 1942-1945 silver nickel; 1916/16; 1937-D 3-Legged candidates; 1943/2-P; 1943-P Doubled Eye; 1945-P DDR; Full Steps candidates.</p>
+<h2>DIMES</h2>
+<p><strong>Pull:</strong> Barber; Mercury; 1916-D; 1921; 1921-D; 1926-S; 1931-D; 1931-S; all 1946-1964 silver; 1964-D varieties; Full Bands candidates.</p>
+<h2>QUARTERS</h2>
+<p><strong>Pull:</strong> Barber; Standing Liberty; 1918/7-S; 1932-D; 1932-S; all 1932-1964 silver; 1950-D/S; 1950-S/D; 1942-D DDO candidates; 1964-D DDR candidates; 1965 heavy/silver candidates; 1970-S unusual-planchet candidates; 1976 varieties; 2004-D Wisconsin Extra Leaf; 2005-P Minnesota varieties.</p>
+<h2>HALF DOLLARS</h2>
+<p><strong>Pull:</strong> Barber; Walking Liberty; Franklin; 1964; 1965-1970; 1970-D; proofs; major errors.</p>
+<h2>DOLLARS</h2>
+<p><strong>Pull:</strong> Morgan; Peace; silver Eisenhower; 1972-P; 1976 varieties; 1979-P SBA; 1979-S proof; 1981-S proof; 2000-P Sacagawea; Presidential edge errors.</p>
+<hr>
+<h1>28. Final Mindset</h1>
+<p>The best roll hunters do not merely memorize lists. They learn to recognize <strong>manufacturing clues</strong>.</p>
+<p>When you see a strange coin, ask:</p>
+<blockquote>
+<p><strong>What happened at the Mint that could have created this?</strong></p>
+</blockquote>
+<p>If the answer is <strong>&quot;a die was different,&quot;</strong> you may have a variety.</p>
+<p>If the answer is <strong>&quot;the blank was wrong,&quot;</strong> you may have an error.</p>
+<p>If the answer is <strong>&quot;the die cracked,&quot;</strong> you may have a die-state marker.</p>
+<p>If the answer is <strong>&quot;someone damaged it after it was made,&quot;</strong> you probably have damage.</p>
+<p>That is the fundamental skill that turns roll hunting from sorting coins into actual numismatic research.</p>
+<h1>Verification and Maintenance Note</h1>
+<p>This guide should be treated as a living field reference. Major rarity diagnostics should be rechecked against current specialist references before buying, selling, or authenticating a coin. U.S. Mint specifications and production practices can change; the Mint&#39;s current 2026 specifications are reflected in this edition. citeturn0search0</p>
+<p>&nbsp;</p>
+</div>`;
 function showRollHunting() {
- const denoms = [
- { h: 'Pennies (1¢)', list: [
- '1909-S VDB — first year, key date',
- '1914-D — low mintage',
- '1922 (no D) — error, all 1922 cents came from Denver',
- '1943 copper — major error (should be steel); worth six figures',
- '1944 steel — error (should be copper)',
- '1955, 1969-S, 1972 doubled dies — strong doubling',
- 'Wheat cents (pre-1959) for copper melt; 1982 is the date to check (small/large date, zinc vs copper)',
- ]},
- { h: 'Nickels (5¢)', list: [
- '1913 Liberty Head — only 5 known, legendary',
- '1937-D "3-legged" buffalo — missing front leg',
- '1942–1945 War Nickels — 35% silver (large mint mark above Monticello)',
- '1950-D — key date',
- ]},
- { h: 'Dimes (10¢)', list: [
- 'Pre-1965 Roosevelt & Mercury — 90% silver',
- '1894-S Barber — 24 minted, among the rarest US coins',
- '1916-D Mercury — key date',
- '1982 (no mint mark) — error; all 1982 dimes should have a mark',
- ]},
- { h: 'Quarters (25¢)', list: [
- 'Pre-1965 — 90% silver',
- '1932-D / 1932-S — first-year keys',
- '1970 — no 1970-D quarter was ever minted; a 1970-D is a famous error',
- '1976 Bicentennial — silver versions only in mint/proof sets',
- ]},
- { h: 'Half Dollars (50¢)', list: [
- '1964 Kennedy — 90% silver',
- '1965–1970 Kennedy — 40% silver',
- '1970-D Kennedy — low mintage, key date',
- '1982 (no mint mark) — error; all 1982 halves should have a mark',
- 'Franklin and Walking Liberty halves — 90% silver pre-1964',
- ]},
- { h: 'Dollars ($1)', list: [
- 'Morgan (1878–1921) & Peace (1921–1935) — 90% silver',
- 'Eisenhower 1971–1976 (40% silver in proofs/souvenir sets)',
- '2000 "Cheerios" Sacagawea — enhanced tail feathers error',
- '2000 Wide AM — reverse design spacing error',
- ]},
- { h: 'Errors to look for in ANY denomination', list: [
- 'Doubled dies (strong, offset lettering/date)',
- 'Off-center strikes & broadstrikes',
- 'Clipped planchets & wrong-planchet strikes',
- 'Repunched / missing mint marks',
- 'Mules (mismatched obverse/reverse)',
- ]},
- ];
-
- const body = _sectionBody(
- 'Roll Hunting Tips',
- 'What key dates and errors to look for when searching bank rolls and circulation.',
- denoms
- );
- createModal('modal-info-roll', 'Roll Hunting Tips', body, null);
+ const wrap = el('div', { className: 'info-guide-wrap',
+   style: 'max-height:72vh; overflow-y:auto; padding-right:8px;' });
+ wrap.innerHTML = ROLL_GUIDE_HTML;
+ createModal('modal-info-' + 'rollhunting', 'Coin Roll-Hunting Guide', wrap, null);
 }
 
 // --- Privacy & Reporting Bugs --------------------------------------------
