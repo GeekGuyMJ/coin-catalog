@@ -2274,10 +2274,14 @@ export function openCoinDetailModal(coinId) {
         }
         
         const getDisplayImgSrc = (side) => {
+            // Per-coin rows (list + album share them) MUST win over type configs so the
+            // modal's image matches the slot the user clicked.
+            const coinObv = coin.obv_image;
+            const coinRev = coin.rev_image;
             const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
             const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-            const obv = specObv || mainCfg.obv_image;
-            const rev = specRev || mainCfg.rev_image;
+            const obv = coinObv || specObv || mainCfg.obv_image;
+            const rev = coinRev || specRev || mainCfg.rev_image;
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
             if (src && !src.includes('?')) src += '';
             return src;
