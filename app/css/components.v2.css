@@ -4556,3 +4556,13 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     .guide-popup-title { font-size: 1.15rem; }
     .guide-popup-body { font-size: 0.9rem; }
 }
+/* ── Card resize handles: parent must be the positioning context ─────────────── */
+.dashboard-grid .dashboard-card,
+.card {
+    position: relative;
+}
+
+/* ── Scroll stability: stop the viewport from jumping when content expands above ── */
+html, body {
+    overflow-anchor: none;
+}
