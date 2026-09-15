@@ -1326,10 +1326,9 @@ function buildCoinRow(coin) {
             dp.classList.add("open");
             detailBtn.textContent = "\u25b2 Less";
             row.classList.add("is-expanded");
-            // Only rebuild slots (with photos) when inventory >= 1
-            if (qty >= 1) {
-                rebuildSlots();
-            }
+            // Always refresh the slots area; buildCoinSlots returns "" when qty is 0,
+            // which clears the stale Data Entries UI after the last coin is removed.
+            rebuildSlots();
             // If qty is 0 and there's a historical note, auto-open it
             if (qty === 0 && refToggle && rd) {
                 rd.style.display = "block";
