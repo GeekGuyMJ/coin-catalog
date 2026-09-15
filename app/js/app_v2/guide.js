@@ -80,17 +80,19 @@ const TOUR_STEPS = [
         }
     },
     {
-        selector: null, // dynamic: the + stepper of the VDB row
-        placement: 'below',
+        selector: null, // dynamic: the + stepper of the VDB row — USER taps +
+        placement: 'above',
         title: 'Track How Many You Own',
-        body: 'Use the \u201c+\u201d and \u201c\u2212\u201d buttons to record how many of a coin you own. Each press updates your totals and the detail area below.',
+        body: 'Tap the \u201c+\u201d on the 1909-S (VDB) row to record that you own one. The detail area below then adds a data entry for that coin.',
+        awaitClick: true,
+        isOpen: () => { const s = document.querySelector('#section-USCoinageLargeSmallCent .stepper[data-coin-id="155"] .stepper-value'); return s && parseInt(s.textContent, 10) > 0; },
         before: async () => {
             await switchToList();
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
             await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
-            await ensureCoinRowOpen('155', true); // open panel + historical note so full area is visible
-            const wrapper = findCoinRowWrapper('155');
-            if (wrapper) await scrollToEl(wrapper);
+            await ensureCoinRowOpen('155', true); // panel + note visible so the + area is shown clearly
+            const stepper = document.querySelector('#section-USCoinageLargeSmallCent .stepper[data-coin-id="155"]');
+            if (stepper) await scrollToEl(stepper);
         }
     },
     {
@@ -110,7 +112,7 @@ const TOUR_STEPS = [
     },
     {
         selector: '#group-united-states .view-toggle-btn[title="Album view"]',
-        placement: 'below',
+        placement: 'above',
         title: 'Switch to Album View',
         body: 'Tap \u201cAlbum\u201d to see your collection as a real stamp-style album of coin slots instead of a list.',
         awaitClick: true,
@@ -219,8 +221,8 @@ function resolveTarget() {
         case 4: { // 1909-S (VDB) coin ROW WRAPPER (includes expanded historical notes)
             return findCoinRowWrapper('155');
         }
-        case 5: { // + stepper of VDB row — highlight the whole wrapper so detail panel + stepper are in the hole
-            return findCoinRowWrapper('155');
+        case 5: { // the + stepper itself — cue sits on the + button
+            return document.querySelector('#section-USCoinageLargeSmallCent .stepper[data-coin-id="155"]');
         }
         case 6: { // coin detail panel wrapper (notes + data entries area)
             return findCoinRowWrapper('155');
