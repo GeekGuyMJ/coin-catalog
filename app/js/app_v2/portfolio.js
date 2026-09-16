@@ -576,15 +576,19 @@ function buildSpotTrendCard(prices) {
     return card;
 }
 
+let _dashboardRenderGeneration = 0;
+
 export async function renderDashboard() {
+    const generation = ++_dashboardRenderGeneration;
+    var prices = getSpotPrices();
+    // Finish asynchronous work before touching the live grid. Concurrent
+    // inventory refreshes must never append several sets of dashboard cards.
+    var sc = await buildSpotPricesCard(prices);
+    if (generation !== _dashboardRenderGeneration) return;
     var c = document.getElementById('dashboard-grid');
     if (!c) return;
-    var scrollY = window.scrollY;
-    var currentHeight = c.offsetHeight;
-    if (currentHeight > 0) c.style.minHeight = currentHeight + 'px';
     c.innerHTML = '';
     var p = _portfolioData || {};
-    var prices = getSpotPrices();
 
     // Load visibility preferences
     var vis = {};
@@ -598,8 +602,7 @@ export async function renderDashboard() {
     var pc = buildPortfolioBreakdownCard(p);
     if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
 
-    // Spot prices card — SECOND card by default (shows loading state if no data yet).
-    var sc = await buildSpotPricesCard(prices);
+    // Spot prices card — prepared before the synchronous DOM update.
     if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
 
     // Bullion card - uses raw bullion individual entries
@@ -646,10 +649,7 @@ export async function renderDashboard() {
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
     applyDashboardSizes();
-    requestAnimationFrame(function() { 
-        if (c) c.style.minHeight = '';
-        window.scrollTo(0, scrollY); 
-    });
+    // The grid is replaced synchronously; no delayed scroll correction.
 }
 
 function buildWishlistCard(wishlist) {
