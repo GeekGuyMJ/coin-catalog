@@ -2242,6 +2242,15 @@ export function openCoinDetailModal(coinId) {
                 if (coin) break;
             }
         }
+        // Fall back to the album's own loaded cache — album.js stores coins under
+        // _albumLoaded and openCoinDetailModal was looking only at live section state,
+        // which is why an album click could open an empty detail (no images).
+        if (!coin && window.__albumCache) {
+            for (const k of Object.keys(window.__albumCache)) {
+                const hit = (window.__albumCache[k] || []).find(c => c.id === coinId);
+                if (hit) { coin = hit; break; }
+            }
+        }
         if (!coin) return;
         
         // build row to get dp
