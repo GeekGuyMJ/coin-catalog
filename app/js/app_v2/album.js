@@ -202,6 +202,7 @@ export async function renderAlbumView(sectionName) {
             coins = await fetchCoinsForSection(sectionName);
             setCoinsForSection(sectionName, coins);
             _albumLoaded[sectionName] = coins;
+            try { (window.__albumCache ||= {})[sectionName] = coins; } catch (_) {}
         } catch (err) {
             const gridArea = container.querySelector('#album-grid-area');
             if (gridArea) gridArea.innerHTML = `<p class="text-muted" style="padding:1rem">
