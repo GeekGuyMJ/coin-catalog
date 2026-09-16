@@ -2292,8 +2292,8 @@ export function openCoinDetailModal(coinId) {
             const obv = coinObv || specObv || mainCfg.obv_image;
             const rev = coinRev || specRev || mainCfg.rev_image;
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
-            if (src && !src.includes('?')) src += '';
-            return src;
+            // Resolve the final choice once, including type-config fallbacks.
+            return resolveImageUrl(src);
         };
         
         const initialSrc = getDisplayImgSrc(currentSide);
