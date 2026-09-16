@@ -572,7 +572,10 @@ function buildSpotTrendCard(prices) {
     canvas.addEventListener('pointerdown', function(e) { try { canvas.setPointerCapture(e.pointerId); } catch (x) {} var r = canvas.getBoundingClientRect(); cursorT = xToT(e.clientX - r.left, canvas.clientWidth); update(); });
     canvas.addEventListener('pointermove', function(e) { if (e.buttons === 0) return; var r = canvas.getBoundingClientRect(); cursorT = xToT(e.clientX - r.left, canvas.clientWidth); update(); });
 
-    requestAnimationFrame(function() { update(); });
+    // Populate the size-affecting text before insertion; only canvas drawing
+    // needs the attached element's width on the next animation frame.
+    rebuildReadout();
+    requestAnimationFrame(function() { draw(); });
     return card;
 }
 
@@ -587,6 +590,11 @@ export async function renderDashboard() {
     if (generation !== _dashboardRenderGeneration) return;
     var c = document.getElementById('dashboard-grid');
     if (!c) return;
+    // Preserve container height during rebuild so sibling sections
+    // (catalog/album) do not shift when the dashboard re-renders
+    // on inventory changes.
+    const minH = c.offsetHeight;
+    if (minH > 0) c.style.minHeight = minH + 'px';
     c.innerHTML = '';
     var p = _portfolioData || {};
 
@@ -649,7 +657,8 @@ export async function renderDashboard() {
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
     applyDashboardSizes();
-    // The grid is replaced synchronously; no delayed scroll correction.
+    // Remove min-height so the grid can shrink after this rebuild
+    requestAnimationFrame(() => { c.style.minHeight = ''; });
 }
 
 function buildWishlistCard(wishlist) {
