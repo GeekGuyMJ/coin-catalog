@@ -1927,12 +1927,10 @@ function updateStepperDisplay(coinId, qty) {
 // Listen for updates from the details modal
 // Listen for inventory updates — update stepper displays without rebuilding DOM
 window.addEventListener('cc-inventory-updated', async (e) => {
-    // If reason is already provided, assume state was updated before dispatching.
+    // Read state module for getInventoryTotalQty only — do not refresh
+    // inventory here: callers already updated state, and re-refreshing
+    // would double-fire renderDashboard and cause visible layout shifts.
     const stateMod = await import('./state.js');
-    if (!e.detail || !e.detail.reason) {
-        const newInv = await fetchInventory();
-        stateMod.setInventory(newInv);
-    }
     const affectedCoinId = e.detail && e.detail.coinId;
     
     // Update stepper displays for all coin rows
