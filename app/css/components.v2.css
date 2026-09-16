@@ -4306,8 +4306,8 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
 }
 .guide-click-cue-ring {
     position: absolute;
-    left: var(--cue-cx, 0);
-    top:  var(--cue-cy, 0);
+    left: 0;
+    top: 0;
     width: 30px;
     height: 30px;
     margin-left: -15px;
@@ -4316,13 +4316,12 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     border-radius: 50%;
     box-shadow: 0 0 0 4px rgba(0,0,0,0.45), 0 0 12px var(--color-accent, #c9a227);
     animation: guide-cue-ripple 1.1s ease-out infinite;
-    /* The ring is the click target marker — show it as such */
     pointer-events: none;
 }
 .guide-click-cue-pointer {
     position: absolute;
-    left: calc(var(--cue-cx, 0) + 22px);
-    top:  var(--cue-cy, 0);
+    left: 22px;
+    top: 0;
     transform: translateY(-50%);
     background: var(--color-bg-card, #1a1a1a);
     color: var(--color-accent, #c9a227);
