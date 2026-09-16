@@ -603,9 +603,10 @@ async function _setHoleQty(coinId, holeElement, newQty) {
             while (guard++ < 50) {
                 const entries = getInventoryEntries(coinId);
                 if (!entries || !entries.length) break;
-                // Pass the inventory entry PK (inv_id), NOT coinId (coin_ref_id).
-                // The backend route /api/inventory/<int:inv_id> expects the UserInventory primary key.
-                try { await deleteInventoryEntry(entries[0].id); } catch (_) { /* non-fatal */ }
+                // deleteInventoryEntry(coinRefId) now resolves the
+                // inv_id internally (self-hosted needs inv_id,
+                // local uses coinRefId). Pass coin_ref_id.
+                try { await deleteInventoryEntry(coinId); } catch (_) { /* non-fatal */ }
                 _newQty = 0;
                 try { const fresh = await fetchInventory(); setInventory(fresh); } catch (_) {}
             }
@@ -623,9 +624,10 @@ async function _setHoleQty(coinId, holeElement, newQty) {
                 if (target) {
                     const ne = (target.quantity || 0) - 1;
                     if (ne <= 0) {
-                        // Pass the inventory entry PK (inv_id), NOT coinId (coin_ref_id).
-                        // The backend route /api/inventory/<int:inv_id> expects the UserInventory primary key.
-                        await deleteInventoryEntry(target.id);
+                        // deleteInventoryEntry(coinRefId) now resolves the
+                        // inv_id internally (self-hosted needs inv_id,
+                        // local uses coinRefId). Pass coin_ref_id.
+                        await deleteInventoryEntry(coinId);
                     } else {
                         const result = await updateInventory(coinId, { id: target.id, quantity: ne });
                         if (!result || result.status === 'error') {
