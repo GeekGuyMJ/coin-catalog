@@ -1747,9 +1747,7 @@ select optgroup {
     transform: scale(1.04);
 }
 
-.album-hole:active {
-    transform: scale(0.97);
-}
+
 
 /* The circular slot */
 .album-hole-slot {

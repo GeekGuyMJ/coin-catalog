@@ -663,11 +663,8 @@ window.addEventListener('resize', () => {
         positionBubble(el.getBoundingClientRect());
     }
 });
-window.addEventListener('scroll', () => {
-    if (!isRunning) return;
-    const el = resolveTarget();
-    if (el) positionSpotlight(el);
-}, { passive: true });
+// scroll listener removed: it fought the click scroll and caused bounce
+
 
 // Interactive steps: when the user clicks ANYWHERE while a click-gated step is
 // pending (e.g. tapping the highlighted header), re-run rendering so the
