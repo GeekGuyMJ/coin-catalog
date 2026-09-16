@@ -166,7 +166,9 @@ function ensureDom() {
     // for the user's click — points at exactly where to tap.
     clickCue = document.createElement('div');
     clickCue.className = 'guide-click-cue';
-    clickCue.innerHTML = '<span class="guide-click-cue-ring"></span><span class="guide-click-cue-label">Tap here</span>';
+    clickCue.innerHTML =
+        '<span class="guide-click-cue-ring" aria-hidden="true"></span>' +
+        '<span class="guide-click-cue-pointer" aria-hidden="true"><i class="guide-click-cue-arrow"></i> click</span>';
     clickCue.style.display = 'none';
     document.body.appendChild(overlay);
     document.body.appendChild(spotlight);
@@ -439,20 +441,17 @@ function positionSpotlight(el) {
             const inc = el.querySelector('[data-action="stepper-inc"]');
             if (inc) cueEl = inc;
         }
-        // Measure AFTER layout has settled, then place using plain centering math
-        // (no CSS transform dependency, which was silently landing the cue off-center
-        // when the stylesheet version on the server was older than the JS).
+        // Ring is centered EXACTLY on the element the user must click. The label is
+        // an arrow badge anchored to the ring's right edge pointing back at it.
         requestAnimationFrame(() => {
             if (!isRunning) return;
             const rr = cueEl.getBoundingClientRect();
-            const cw = clickCue.offsetWidth || 120;
-            const ch = clickCue.offsetHeight || 36;
-            const cx = Math.round(rr.left + rr.width / 2 - cw / 2);
-            const cy = Math.round(rr.top + rr.height / 2 - ch / 2);
+            const cx = Math.round(rr.left + rr.width / 2);
+            const cy = Math.round(rr.top + rr.height / 2);
             const vw = window.innerWidth, vh = window.innerHeight;
-            clickCue.style.left = Math.max(4, Math.min(cx, vw - cw - 4)) + 'px';
-            clickCue.style.top = Math.max(4, Math.min(cy, vh - ch - 4)) + 'px';
-            clickCue.style.display = 'flex';
+            clickCue.style.setProperty('--cue-cx', Math.max(16, Math.min(cx, vw - 90)) + 'px');
+            clickCue.style.setProperty('--cue-cy', Math.max(20, Math.min(cy, vh - 40)) + 'px');
+            clickCue.style.display = 'block';
         });
     } else {
         clickCue.style.display = 'none';
