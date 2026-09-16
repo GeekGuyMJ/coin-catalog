@@ -432,11 +432,28 @@ function positionSpotlight(el) {
     spotlight.style.height = h + 'px';
     spotlight.style.display = 'block';
     if (step && step.awaitClick && !isStepOpen()) {
-        // Center the tap cue over the highlighted target (header bar / row).
-        const rr = el.getBoundingClientRect();
-        clickCue.style.left = (rr.left + rr.width / 2) + 'px';
-        clickCue.style.top = (rr.top + rr.height / 2) + 'px';
-        clickCue.style.display = 'flex';
+        // Aim the tap cue at the exact interactive element. For the stepper step
+        // that's the + button; for album it's the Album toggle button itself.
+        let cueEl = el;
+        if (currentStep === 5) {
+            const inc = el.querySelector('[data-action="stepper-inc"]');
+            if (inc) cueEl = inc;
+        }
+        // Measure AFTER layout has settled, then place using plain centering math
+        // (no CSS transform dependency, which was silently landing the cue off-center
+        // when the stylesheet version on the server was older than the JS).
+        requestAnimationFrame(() => {
+            if (!isRunning) return;
+            const rr = cueEl.getBoundingClientRect();
+            const cw = clickCue.offsetWidth || 120;
+            const ch = clickCue.offsetHeight || 36;
+            const cx = Math.round(rr.left + rr.width / 2 - cw / 2);
+            const cy = Math.round(rr.top + rr.height / 2 - ch / 2);
+            const vw = window.innerWidth, vh = window.innerHeight;
+            clickCue.style.left = Math.max(4, Math.min(cx, vw - cw - 4)) + 'px';
+            clickCue.style.top = Math.max(4, Math.min(cy, vh - ch - 4)) + 'px';
+            clickCue.style.display = 'flex';
+        });
     } else {
         clickCue.style.display = 'none';
     }
