@@ -633,10 +633,10 @@ async function _setHoleQty(coinId, holeElement, newQty) {
         }
 
         // Refresh local inventory state
-        try {
-            const fresh = await fetchInventory();
-            setInventory(fresh);
-        } catch { /* non-critical */ }
+        // NOTE: callers that dispatch cc-inventory-updated already
+        // refresh inventory via fetchInventory()+setInventory(fresh).
+        // Do not refresh again here — that double-fires renderDashboard
+        // and causes a visible layout shift.
 
         // Re-render just this hole (image + xN badge) so it stays in sync.
         // Use the authoritative _newQty we just computed so the slot updates
