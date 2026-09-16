@@ -735,24 +735,16 @@ async function _ccUpdateHoleInPlace(coinId) {
 }
 
 window.addEventListener('cc-inventory-updated', async () => {
-    // Preserve scroll position to prevent page jump
-    const scrollY = window.scrollY;
-
-    // _activeContainer is not a module variable; resolve the live album container
-    // from the DOM (catalog-container) so the re-render actually has a target.
-    const _albumEl = document.getElementById('catalog-container');
-    if (_albumEl && _activeSection) {
-        try { await renderAlbumView(_activeSection); }
-        catch (rerr) { console.warn('[album] re-render on update failed:', rerr); }
-    }
-
-    // Refresh album grids that are currently visible (inline album mode)
+    // Update only changed album holes in place instead of re-rendering
+    // the entire grid (a full re-render yanks layout and visibly jumps
+    // the page). Then refresh visible inline/standalone grids to stay
+    // in sync with the new inventory state.
+    const changedId = arguments[0]?.detail?.coinId;
+    try { await _ccUpdateHoleInPlace(changedId); } catch (_) { /* non-fatal */ }
     try {
         const fresh = await fetchInventory();
         setInventory(fresh);
     } catch { /* non-critical */ }
-
-    // Re-render all currently open inline album grids
     const inlinePromises = Array.from(document.querySelectorAll('.type-content.open.album-inline')).map(async (container) => {
         const typeWrapper = container.closest('.type-wrapper');
         if (!typeWrapper) return;
@@ -762,15 +754,11 @@ window.addEventListener('cc-inventory-updated', async () => {
         const header = typeWrapper.querySelector('.type-header');
         const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
         if (secName && mainType) {
-            // Clear the cache so we get fresh data
             if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
             await renderAlbumType(secName, mainType, container, header);
         }
     });
-    
     await Promise.all(inlinePromises);
-
-    // Also update the standalone album grid area if visible
     const gridArea = document.getElementById('album-grid-area');
     if (gridArea && _activeSection) {
         const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
@@ -779,8 +767,6 @@ window.addEventListener('cc-inventory-updated', async () => {
             if (container) renderAlbumGrid(container, _activeSection, coins);
         }
     }
-    
-    window.scrollTo(0, scrollY);
 });
 
 window.addEventListener('cc-image-updated', async () => {
