@@ -2084,7 +2084,7 @@ export async function promoteToDefaultLocal(coinType, side) {
 
 
 export async function saveToCoinBankLocal(data) {
-    const { coin_type, side, image, is_personal, tags } = data;
+    const { coin_type, side, image, is_personal, tags, section } = data;
     if (!coin_type || !side || !image) {
         return { status: "error", message: "coin_type, side, and image are required" };
     }

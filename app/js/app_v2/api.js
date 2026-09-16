@@ -59,6 +59,7 @@ import {
     deleteCoinBankImageLocal,
     factoryResetImagesLocal,
     savePricingRulesLocal,
+    savePortfolioHistoryLocal,
     searchCoinsLocal,
     fetchAllCoinsLocal,
     getFullBackupLocal,
@@ -341,8 +342,34 @@ export const deleteCoinBankImage = isSelfHosted
     })
     : wrap(deleteCoinBankImageLocal);
 export const factoryResetImages    = wrap(factoryResetImagesLocal);
-export const savePricingRules      = wrap(savePricingRulesLocal);
+export const savePricingRules = isSelfHosted
+    ? async (data) => serverFetch('/api/pricing_rules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            coin_type: data.coin_type,
+            base_price: data.base_price,
+            key_price: data.key_price
+        })
+    })
+    : wrap(savePricingRulesLocal);
 export const searchCoins           = wrap(searchCoinsLocal);
+export const savePortfolioHistory = isSelfHosted
+    ? async (data) => serverFetch('/api/portfolio/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            date: data.date,
+            total_value: data.total_value,
+            gold_spot: data.gold_spot,
+            silver_spot: data.silver_spot,
+            copper_spot: data.copper_spot,
+            platinum_spot: data.platinum_spot,
+            palladium_spot: data.palladium_spot,
+            coin_count: data.coin_count
+        })
+    })
+    : wrap(savePortfolioHistoryLocal);
 export const updateCoinBankImageInfo = isSelfHosted
     ? async (data) => serverFetch('/api/coin_bank_images/rename', {
         method: 'POST',
