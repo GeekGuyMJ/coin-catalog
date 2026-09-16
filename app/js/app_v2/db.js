@@ -906,11 +906,9 @@ export async function updateInventoryLocal(coinRefId, data) {
     }
 }
 
-export async function deleteInventoryEntryLocal(coinRefId) {
-    const inv = await db.user_inventory.where('coin_ref_id').equals(Number(coinRefId)).first();
-    if (inv) {
-        await db.user_inventory.delete(inv.id);
-    }
+export async function deleteInventoryEntryLocal(entryId) {
+    // Match DELETE /api/inventory/<inv_id>: never interpret a row ID as a coin ID.
+    await db.user_inventory.delete(Number(entryId));
     return { status: "deleted" };
 }
 
