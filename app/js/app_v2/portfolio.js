@@ -584,17 +584,15 @@ let _dashboardRenderGeneration = 0;
 export async function renderDashboard() {
     const generation = ++_dashboardRenderGeneration;
     var prices = getSpotPrices();
-    // Finish asynchronous work before touching the live grid. Concurrent
-    // inventory refreshes must never append several sets of dashboard cards.
+    // Capture the current height BEFORE the async card builds so
+    // we can lock the dashboard to this exact height while rebuilding.
+    // This prevents the album/catalog sections from shifting when the
+    // dashboard re-renders on inventory changes.
+    const c = document.getElementById('dashboard-grid');
+    const lockH = c ? c.offsetHeight : 0;
     var sc = await buildSpotPricesCard(prices);
     if (generation !== _dashboardRenderGeneration) return;
-    var c = document.getElementById('dashboard-grid');
-    if (!c) return;
-    // Preserve container height during rebuild so sibling sections
-    // (catalog/album) do not shift when the dashboard re-renders
-    // on inventory changes.
-    const minH = c.offsetHeight;
-    if (minH > 0) c.style.minHeight = minH + 'px';
+    if (c && lockH > 0) c.style.minHeight = lockH + 'px';
     c.innerHTML = '';
     var p = _portfolioData || {};
 
