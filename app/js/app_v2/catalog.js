@@ -132,7 +132,7 @@ export function renderSections(visibleSections) {
         const firstSectionHeader = firstCountryGroup.querySelector('.section-header');
         if (firstSectionHeader) {
             const sectionName = firstSectionHeader.dataset.section;
-            if (sectionName && !_expandedSections.has(sectionName) && !sectionName.includes('Half Cent')) {
+            if (sectionName && !_expandedSections.has(sectionName) && !sectionName.includes('Half Cent') && sectionName !== 'US Coinage — Large & Small Cent') {
                 expandSection(sectionName);
             }
         }
