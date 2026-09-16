@@ -28,7 +28,7 @@ import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, a
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
-import { getInventoryEntries, getInventoryTotalQty, setInventoryEntries, getWishlist, setWishlist } from './state.js';
+import { getInventoryEntries, getInventoryTotalQty, setInventoryEntries, setInventory, getWishlist, setWishlist } from './state.js';
 
 // --- Expanded State Preservation ---
 const _expandedSections = new Set();
@@ -1809,7 +1809,7 @@ async function handleStepperChange(coinId, delta) {
     _pendingStepperCoins.add(coinId);
     
     try {
-        const entries = getInventoryEntries(coinId) || [];
+        const entries = (getInventoryEntries(coinId) || []).map(entry => ({ ...entry }));
         const totalQty = getInventoryTotalQty(coinId);
         
         // We cannot drop below 0
@@ -1852,10 +1852,12 @@ async function handleStepperChange(coinId, delta) {
         };
         
         const result = await updateInventory(coinId, payload);
-        if (result && result.entry && result.entry.id) {
-            targetEntry.id = result.entry.id;
+        if (!result || result.status === 'error') {
+            throw new Error('Inventory update rejected');
         }
-        
+        // One authoritative refresh after persistence. New entries otherwise
+        // never enter state, so album actions mistakenly see an empty hole.
+        setInventory(await fetchInventory());
         window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId } }));
     } catch (err) {
         showToast(`Failed to save — ${err.message}`, 'error');

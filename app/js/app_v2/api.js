@@ -131,22 +131,9 @@ export const updateInventory = isSelfHosted
     }
     : wrap(updateInventoryLocal);
 
+// Delete exactly one inventory row by its primary key on either platform.
 export const deleteInventoryEntry = isSelfHosted
-    ? async (coinRefId) => {
-        // The DELETE route /api/inventory/<int:inv_id> needs the UserInventory
-        // primary key (inv_id), but callers pass coin_ref_id. Fetch all
-        // inventory keyed by coin_ref_id, find the entry, and delete by inv_id.
-        try {
-            const all = await serverFetch('/api/inventory');
-            const entries = all ? (all[coinRefId] || all[String(coinRefId)] || []) : [];
-            if (entries && entries.length > 0) {
-                return serverFetch('/api/inventory/' + entries[0].id, { method: 'DELETE' });
-            }
-            return { status: 'deleted' };
-        } catch (_) {
-            return { status: 'error' };
-        }
-    }
+    ? async (entryId) => serverFetch('/api/inventory/' + entryId, { method: 'DELETE' })
     : wrap(deleteInventoryEntryLocal);
 
 export const fetchTypeConfigs = isSelfHosted

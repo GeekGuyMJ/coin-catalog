@@ -596,19 +596,17 @@ async function _setHoleQty(coinId, holeElement, newQty) {
     try {
         if (newQty <= 0) {
             // Remove ALL inventory entries so the hole goes empty.
-            // deleteInventoryEntry() only touches IndexedDB, so we must refresh
-            // _state.inventory from IndexedDB after each delete (getInventoryEntries
-            // reads in-memory state) -- otherwise the loop never sees the deletion.
+            // Refresh authoritative inventory after each delete; the next
+            // iteration reads the updated in-memory entries on either platform.
             let guard = 0;
             while (guard++ < 50) {
                 const entries = getInventoryEntries(coinId);
                 if (!entries || !entries.length) break;
-                // deleteInventoryEntry(coinRefId) now resolves the
-                // inv_id internally (self-hosted needs inv_id,
-                // local uses coinRefId). Pass coin_ref_id.
-                try { await deleteInventoryEntry(coinId); } catch (_) { /* non-fatal */ }
+                // Delete the exact row, not a coin reference with a colliding ID.
+                await deleteInventoryEntry(entries[0].id);
                 _newQty = 0;
-                try { const fresh = await fetchInventory(); setInventory(fresh); } catch (_) {}
+                const fresh = await fetchInventory();
+                setInventory(fresh);
             }
         } else {
             const entries = getInventoryEntries(coinId);
@@ -624,10 +622,8 @@ async function _setHoleQty(coinId, holeElement, newQty) {
                 if (target) {
                     const ne = (target.quantity || 0) - 1;
                     if (ne <= 0) {
-                        // deleteInventoryEntry(coinRefId) now resolves the
-                        // inv_id internally (self-hosted needs inv_id,
-                        // local uses coinRefId). Pass coin_ref_id.
-                        await deleteInventoryEntry(coinId);
+                        // Remove only the depleted inventory row.
+                        await deleteInventoryEntry(target.id);
                     } else {
                         const result = await updateInventory(coinId, { id: target.id, quantity: ne });
                         if (!result || result.status === 'error') {
