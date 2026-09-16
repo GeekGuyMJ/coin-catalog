@@ -736,11 +736,10 @@ async function _ccUpdateHoleInPlace(coinId) {
 
 window.addEventListener('cc-inventory-updated', async (e) => {
     const changedId = e?.detail?.coinId;
+    // _setHoleQty already fetches and sets inventory (dispatches
+    // this event), so don't refresh again — that double-fires the
+    // dashboard rebuild and causes a visible layout shift.
     try { await _ccUpdateHoleInPlace(changedId); } catch (_) { /* non-fatal */ }
-    try {
-        const fresh = await fetchInventory();
-        setInventory(fresh);
-    } catch { /* non-critical */ }
     const inlinePromises = Array.from(document.querySelectorAll('.type-content.open.album-inline')).map(async (container) => {
         const typeWrapper = container.closest('.type-wrapper');
         if (!typeWrapper) return;
@@ -815,34 +814,9 @@ window.addEventListener('cc-settings-changed', (e) => {
     }
 });
 
-window.addEventListener('cc-inventory-updated', async (e) => {
-    const detail = (e && e.detail) || {};
-    const changedId = detail.coinId;
-    if (await _ccUpdateHoleInPlace(changedId)) return;
-    const gridArea = document.getElementById('album-grid-area');
-    if (gridArea && _activeSection) {
-        const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
-        if (coins) {
-            const container = gridArea.closest('.album-layout')?.parentElement;
-            if (container) renderAlbumGrid(container, _activeSection, coins);
-        }
-    }
-    // Re-render inline album grids (album-type view) too
-    document.querySelectorAll('.type-content.open.album-inline').forEach(async (container) => {
-        const typeWrapper = container.closest('.type-wrapper');
-        if (!typeWrapper) return;
-        const sectionCard = typeWrapper.closest('.section-card');
-        if (!sectionCard) return;
-        const secName = sectionCard.dataset.section;
-        const header = typeWrapper.querySelector('.type-header');
-        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
-        if (secName && mainType) {
-            if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
-            await renderAlbumType(secName, mainType, container, header);
-        }
-    });
-});
-
+// ============================================================
+// Album-specific image update handler
+// ============================================================
 window.addEventListener('cc-album-options-changed', () => {
     // Re-render standalone album grid if visible
     const gridArea = document.getElementById('album-grid-area');
