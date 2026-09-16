@@ -580,15 +580,13 @@ async function showCurrent() {
     const step = TOUR_STEPS[currentStep];
     const atStart = isStepOpen();
     if (step.before) { try { await step.before(); } catch (e) { console.warn('[guide]', e); } }
-    // Static steps scroll after `before`; interactive steps keep the spotlight on
-    // the collapsed target (bubble + tap-cue show where to click instead).
-    if (!step.awaitClick) {
-        const target = resolveTarget();
-        if (target) {
-            smartScroll(target);
-            await new Promise(r => setTimeout(r, 80));
-        }
-    }
+    // Wait for the app's DOM to settle BEFORE reading positions: two layout frames
+    // plus a fixed delay so collapsible areas have reached their target height.
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+    await new Promise(r => setTimeout(r, 300));
+    const target = resolveTarget();
+    if (!step.awaitClick && target) await smartScroll(target);
     renderStep();
     // Poll until the target reaches its "open" state, then scroll+spotlight the
     // freshly-expanded element and re-render the full bubble (Next returns).
@@ -689,24 +687,13 @@ document.addEventListener('click', () => {
         if (t) smartScroll(t).then(() => setTimeout(() => isRunning && renderStep(), 150));
         else setTimeout(() => isRunning && renderStep(), 150);
         clearTimeout(_settleTimer);
-        // Rows rebuild/asynchronously reflow after the click (new qty, detail area
-        // grows). Re-measure once more so the spotlight tracks the final position.
+        // ONE settle pass: let the app's reflow finish, then position once. The
+        // previous two delayed passes caused the visible down-then-up bounce.
         setTimeout(() => {
-            if (!isRunning) return;
-            const liveEl = resolveTarget();
-            if (liveEl) {
-                positionSpotlight(liveEl);
-                positionBubble(liveEl.getBoundingClientRect());
-            }
-        }, 350);
-        setTimeout(() => {
-            if (!isRunning) return;
-            const liveEl = resolveTarget();
-            if (liveEl) {
-                positionSpotlight(liveEl);
-                positionBubble(liveEl.getBoundingClientRect());
-            }
-        }, 800);
+            if (!isRunning || !resolveTarget()) return;
+            positionSpotlight(resolveTarget());
+            positionBubble(resolveTarget().getBoundingClientRect());
+        }, 260);
     }, 60);
 }, true);
 
