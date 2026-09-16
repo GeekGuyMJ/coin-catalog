@@ -734,12 +734,8 @@ async function _ccUpdateHoleInPlace(coinId) {
     return updated;
 }
 
-window.addEventListener('cc-inventory-updated', async () => {
-    // Update only changed album holes in place instead of re-rendering
-    // the entire grid (a full re-render yanks layout and visibly jumps
-    // the page). Then refresh visible inline/standalone grids to stay
-    // in sync with the new inventory state.
-    const changedId = arguments[0]?.detail?.coinId;
+window.addEventListener('cc-inventory-updated', async (e) => {
+    const changedId = e?.detail?.coinId;
     try { await _ccUpdateHoleInPlace(changedId); } catch (_) { /* non-fatal */ }
     try {
         const fresh = await fetchInventory();
