@@ -441,16 +441,17 @@ function positionSpotlight(el) {
             const inc = el.querySelector('[data-action="stepper-inc"]');
             if (inc) cueEl = inc;
         }
-        // Ring is centered EXACTLY on the element the user must click. The label is
-        // an arrow badge anchored to the ring's right edge pointing back at it.
+        // The cue container is position:fixed; JS pins its origin to the exact
+        // center of the target element. Children (ring + arrow label) are
+        // absolutely anchored to the container's 0,0.
         requestAnimationFrame(() => {
             if (!isRunning) return;
             const rr = cueEl.getBoundingClientRect();
             const cx = Math.round(rr.left + rr.width / 2);
             const cy = Math.round(rr.top + rr.height / 2);
             const vw = window.innerWidth, vh = window.innerHeight;
-            clickCue.style.setProperty('--cue-cx', Math.max(16, Math.min(cx, vw - 90)) + 'px');
-            clickCue.style.setProperty('--cue-cy', Math.max(20, Math.min(cy, vh - 40)) + 'px');
+            clickCue.style.left = Math.max(20, Math.min(cx, vw - 24)) + 'px';
+            clickCue.style.top = Math.max(24, Math.min(cy, vh - 28)) + 'px';
             clickCue.style.display = 'block';
         });
     } else {
@@ -688,6 +689,24 @@ document.addEventListener('click', () => {
         if (t) smartScroll(t).then(() => setTimeout(() => isRunning && renderStep(), 150));
         else setTimeout(() => isRunning && renderStep(), 150);
         clearTimeout(_settleTimer);
+        // Rows rebuild/asynchronously reflow after the click (new qty, detail area
+        // grows). Re-measure once more so the spotlight tracks the final position.
+        setTimeout(() => {
+            if (!isRunning) return;
+            const liveEl = resolveTarget();
+            if (liveEl) {
+                positionSpotlight(liveEl);
+                positionBubble(liveEl.getBoundingClientRect());
+            }
+        }, 350);
+        setTimeout(() => {
+            if (!isRunning) return;
+            const liveEl = resolveTarget();
+            if (liveEl) {
+                positionSpotlight(liveEl);
+                positionBubble(liveEl.getBoundingClientRect());
+            }
+        }, 800);
     }, 60);
 }, true);
 
