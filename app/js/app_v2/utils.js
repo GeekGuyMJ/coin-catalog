@@ -464,3 +464,4 @@ export function placeholderCoinSvg() {
     </svg>`;
     return 'data:image/svg+xml;base64,' + btoa(svg);
 }
+# Cache invalidation Thu Sep 17 12:07:56 UTC 2026
