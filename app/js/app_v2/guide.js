@@ -9,7 +9,71 @@
  * Relaunchable from the info menu. "Don't show again" persists to localStorage.
  */
 
+import { closeModalLegacy } from './modals.js';
+
 export const GUIDE_STORAGE_KEY = 'cc-guide-dismissed';
+
+// Album details use the legacy modal stack. Keep its lifecycle intact: closing
+// through that API releases both the backdrop and the body's scroll lock.
+let albumModal = null;
+let albumModalObserver = null;
+let albumModalStyles = null;
+
+function restoreAlbumModalLayout() {
+    if (!albumModalStyles) return;
+    for (const [element, style] of albumModalStyles) {
+        if (style === null) element.removeAttribute('style');
+        else element.setAttribute('style', style);
+    }
+    albumModalStyles = null;
+}
+
+function watchAlbumModal() {
+    const layer = document.getElementById('modal-layer');
+    if (!layer || albumModalObserver) return;
+    albumModalObserver = new MutationObserver(() => {
+        if (!isRunning || currentStep !== 8) return;
+        const opened = layer.querySelector('.modal-overlay.open[id^="modal-coin-detail-"]');
+        if (opened === albumModal) return;
+        restoreAlbumModalLayout();
+        albumModal = opened;
+        if (opened) {
+            albumModalStyles = [opened, opened.querySelector('.modal-box'), opened.querySelector('.modal-body')]
+                .filter(Boolean).map(element => [element, element.getAttribute('style')]);
+        }
+        renderStep();
+        // The modal entrance animation scales its box; measure again once it
+        // finishes, not while its temporary transform is still shrinking it.
+        const tracked = opened;
+        setTimeout(() => {
+            if (!isRunning || currentStep !== 8 || albumModal !== tracked) return;
+            const target = resolveTarget();
+            if (target) { positionSpotlight(target); positionBubble(target.getBoundingClientRect()); }
+        }, 350);
+    });
+    albumModalObserver.observe(layer, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+}
+
+function leaveAlbumModal() {
+    albumModalObserver?.disconnect();
+    albumModalObserver = null;
+    restoreAlbumModalLayout();
+    if (albumModal?.classList.contains('open')) closeModalLegacy(albumModal.id);
+    albumModal = null;
+}
+
+function layoutAlbumModal() {
+    if (!albumModal) return;
+    // Reserve a separate top band for the bubble. The complete dialog is lit;
+    // long detail content scrolls inside it rather than under the tour controls.
+    const top = bubble.offsetHeight + 32;
+    const height = Math.max(80, window.innerHeight - top - 16);
+    Object.assign(albumModal.style, { padding: `${top}px 16px 16px`, alignItems: 'flex-start', boxSizing: 'border-box' });
+    const box = albumModal.querySelector('.modal-box');
+    if (box) Object.assign(box.style, { maxHeight: `${height}px`, margin: '0', display: 'flex', flexDirection: 'column' });
+    const body = albumModal.querySelector('.modal-body');
+    if (body) Object.assign(body.style, { overflowY: 'auto', minHeight: '0', flex: '1 1 auto' });
+}
 
 // ============================================================
 // Tour steps. Each step has:
@@ -229,7 +293,8 @@ function resolveTarget() {
         case 6: { // coin detail panel wrapper (notes + data entries area)
             return findCoinRowWrapper('155');
         }
-        case 8: { // Lincoln Wheat album inline grid
+        case 8: { // Lincoln Wheat album inline grid or its opened detail dialog
+            if (albumModal) return albumModal.querySelector('.modal-box');
             const card = document.getElementById('section-USCoinageLargeSmallCent');
             const inlines = card?.querySelectorAll('.type-content.album-inline');
             for (const c of inlines || []) {
@@ -406,6 +471,7 @@ async function switchToList() {
 // ---- positioning ----------------------------------------------------
 
 function positionSpotlight(el) {
+    layoutAlbumModal();
     const step = TOUR_STEPS[currentStep];
     let hEl = el;
 
@@ -427,7 +493,7 @@ function positionSpotlight(el) {
     // top portion of the element and rely on the bubble copy to explain the rest.
     const CLAMP = Math.round(window.innerHeight * 0.62);
     let h = r.height;
-    if (h > CLAMP) h = CLAMP;
+    if (!albumModal && h > CLAMP) h = CLAMP;
     spotlight.style.top = Math.max(0, r.top) + 'px';
     spotlight.style.left = r.left + 'px';
     spotlight.style.width = r.width + 'px';
@@ -467,6 +533,12 @@ function positionBubble(targetRect) {
     const bh = bubble.offsetHeight;
     const step = TOUR_STEPS[currentStep];
     const prefer = step.placement || 'auto';
+    if (albumModal) {
+        bubble.style.left = Math.max(16, (vw - bw) / 2) + 'px';
+        bubble.style.top = '16px';
+        bubble.className = 'guide-bubble arrow-top';
+        return;
+    }
 
     let left = targetRect.left + targetRect.width / 2 - bw / 2;
     let top;
@@ -530,7 +602,7 @@ function renderStep() {
 
     const body = document.createElement('div');
     body.className = 'guide-bubble-body';
-    body.textContent = step.body;
+    body.textContent = albumModal ? 'Here are your coin details. Scroll within this window to see every field. Next closes it and takes you to Settings.' : step.body;
 
     const footer = document.createElement('div');
     footer.className = 'guide-bubble-footer';
@@ -578,6 +650,7 @@ let _settleTimer = null;
 
 async function showCurrent() {
     const step = TOUR_STEPS[currentStep];
+    if (currentStep === 8) watchAlbumModal();
     const atStart = isStepOpen();
     if (step.before) { try { await step.before(); } catch (e) { console.warn('[guide]', e); } }
     // Wait for the app's DOM to settle BEFORE reading positions: two layout frames
@@ -616,6 +689,7 @@ async function showCurrent() {
 }
 
 function next() {
+    leaveAlbumModal();
     if (currentStep < TOUR_STEPS.length - 1) {
         currentStep++;
         showCurrent();
@@ -625,6 +699,7 @@ function next() {
 }
 
 function back() {
+    leaveAlbumModal();
     if (currentStep > 0) {
         currentStep--;
         showCurrent();
@@ -632,6 +707,8 @@ function back() {
 }
 
 function stopTour() {
+    leaveAlbumModal();
+    clearTimeout(_settleTimer);
     isRunning = false;
     if (overlay) overlay.classList.remove('is-active');
     if (spotlight) spotlight.style.display = 'none';
