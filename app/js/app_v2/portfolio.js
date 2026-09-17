@@ -641,12 +641,12 @@ export async function renderDashboard() {
     if (g2) { if (vis['card-gallery'] === false) g2.style.display='none'; addDragHandle(g2); c.appendChild(g2); }
 
     // Completion ("Percentage Finished") — second-from-last by default.
-    var cc = buildCompletionCard(getSections());
-    if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
-
     // Support card - always render, respects visibility toggle
     var sup = buildSupportCard();
     if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup); }
+
+    var cc = buildCompletionCard(getSections());
+    if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
 
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
