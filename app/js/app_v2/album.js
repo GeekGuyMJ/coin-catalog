@@ -634,11 +634,14 @@ async function _setHoleQty(coinId, holeElement, newQty) {
             }
         }
 
-        // Refresh local inventory state
-        // NOTE: callers that dispatch cc-inventory-updated already
-        // refresh inventory via fetchInventory()+setInventory(fresh).
-        // Do not refresh again here — that double-fires renderDashboard
-        // and causes a visible layout shift.
+        // Refresh local inventory state. The _state.inventory map and
+        // the derived getInventoryTotalQty()/getInventoryEntries()
+        // helpers must reflect the deletion so the hole's visual state
+        // (owned/missing) and reload-consistency remain correct.
+        // cc-inventory-updated callers still refresh the dashboard view;
+        // this refresh keeps the underlying state consistent without
+        // duplicating the dashboard rebuild.
+        void fetchInventory().then(fresh => setInventory(fresh)).catch(() => {});
 
         // Re-render just this hole (image + xN badge) so it stays in sync.
         // Use the authoritative _newQty we just computed so the slot updates
