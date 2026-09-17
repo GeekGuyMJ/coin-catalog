@@ -584,15 +584,11 @@ let _dashboardRenderGeneration = 0;
 export async function renderDashboard() {
     const generation = ++_dashboardRenderGeneration;
     var prices = getSpotPrices();
-    // Capture the current height BEFORE the async card builds so
-    // we can lock the dashboard to this exact height while rebuilding.
-    // This prevents the album/catalog sections from shifting when the
-    // dashboard re-renders on inventory changes.
     const c = document.getElementById('dashboard-grid');
-    const lockH = c ? c.offsetHeight : 0;
+    if (!c) return;
     var sc = await buildSpotPricesCard(prices);
     if (generation !== _dashboardRenderGeneration) return;
-    if (c && lockH > 0) c.style.minHeight = lockH + 'px';
+    // The DOM commit below is synchronous; no height lock is needed.
     c.innerHTML = '';
     var p = _portfolioData || {};
 
@@ -655,8 +651,7 @@ export async function renderDashboard() {
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
     applyDashboardSizes();
-    // Remove min-height so the grid can shrink after this rebuild
-    requestAnimationFrame(() => { c.style.minHeight = ''; });
+
 }
 
 function buildWishlistCard(wishlist) {
