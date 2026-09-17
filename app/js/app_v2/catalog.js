@@ -1571,7 +1571,7 @@ function buildStepper(coinId, qty) {
         dataset: { action: 'stepper-dec', coinId },
     }, '−');
 
-    const val = el('span', { className: 'stepper-value', 'aria-live': 'polite' }, String(qty));
+    const val = el('button', { className: 'stepper-value', type: 'button', 'aria-live': 'polite', 'aria-label': 'Edit quantity', title: 'Click to enter quantity', dataset: { action: 'stepper-edit', coinId }, style: 'background:transparent;border:0;font:inherit;cursor:text;padding:0;' }, String(qty));
     val.style.color = qty > 0 ? 'var(--color-accent)' : '';
 
     const inc = el('button', {
@@ -1760,6 +1760,9 @@ async function handleCatalogClick(e) {
         return;
     }
 
+    const editBtn = target.closest('[data-action="stepper-edit"]');
+    if (editBtn) { e.stopPropagation(); editStepperQuantity(editBtn); return; }
+
     // Stepper +
     const incBtn = target.closest('[data-action="stepper-inc"]');
     if (incBtn) {
@@ -1804,6 +1807,47 @@ async function handleCatalogClick(e) {
  */
 let _pendingStepperCoins = new Set();
 
+/** Edit the total without rebuilding the row or disturbing keyboard focus. */
+function editStepperQuantity(button) {
+    const coinId = Number(button.dataset.coinId);
+    if (_pendingStepperCoins.has(coinId)) return;
+    const input = el('input', {
+        type: 'text', inputmode: 'numeric', 'aria-label': 'Quantity',
+        className: 'stepper-input',
+        style: 'width:4ch;min-width:28px;max-width:72px;font:inherit;text-align:center;padding:0;border:0;background:transparent;color:inherit;'
+    });
+    input.value = String(getInventoryTotalQty(coinId));
+    button.hidden = true;
+    button.after(input);
+    let finished = false;
+    const finish = async (cancel = false) => {
+        if (finished) return;
+        finished = true;
+        const raw = input.value.trim();
+        input.remove();
+        button.hidden = false;
+        if (cancel) return;
+        const quantity = Number(raw);
+        if (!/^\d+$/.test(raw) || !Number.isSafeInteger(quantity)) {
+            showToast('Enter a whole number of zero or more.', 'error');
+            return;
+        }
+        await handleStepperChange(coinId, quantity - getInventoryTotalQty(coinId));
+    };
+    input.addEventListener('click', e => e.stopPropagation());
+    input.addEventListener('keydown', e => {
+        e.stopPropagation();
+        if (e.key === 'Enter' || e.key === 'Escape') {
+            e.preventDefault();
+            void finish(e.key === 'Escape');
+            button.focus({ preventScroll: true });
+        }
+    });
+    input.addEventListener('blur', () => { void finish(); });
+    input.focus({ preventScroll: true });
+    input.select();
+}
+
 async function handleStepperChange(coinId, delta) {
     if (_pendingStepperCoins.has(coinId)) return;
     _pendingStepperCoins.add(coinId);
@@ -1812,48 +1856,28 @@ async function handleStepperChange(coinId, delta) {
         const entries = (getInventoryEntries(coinId) || []).map(entry => ({ ...entry }));
         const totalQty = getInventoryTotalQty(coinId);
         
-        // We cannot drop below 0
-        if (delta < 0 && totalQty <= 0) return;
-
-        // Determine WHICH entry to modify.
-        // Prefer modifying a "generic" copy (no grade, no notes, no photo)
-        let targetEntry = entries.find(e => !e.grade && !e.notes && !e.personal_photo);
-        
+        if (!Number.isSafeInteger(delta) || totalQty + delta < 0 || delta === 0) return;
+        // Prefer unannotated copies; only consume detailed copies if necessary.
+        const generic = entry => !entry.grade && !entry.notes && !entry.personal_photo
+            && !entry.purchase_price && !entry.current_value && !entry.date_acquired;
+        const writes = [];
         if (delta > 0) {
-            // Increment
-            if (targetEntry) {
-                targetEntry.quantity += 1;
-            } else {
-                // No generic copy found, simulate a new one
-                targetEntry = { coin_ref_id: coinId, quantity: 1 };
-                entries.push(targetEntry);
-            }
+            const target = entries.find(generic) || { coin_ref_id: coinId, quantity: 0 };
+            writes.push({ ...target, quantity: target.quantity + delta });
         } else {
-            // Decrement
-            if (!targetEntry) {
-                // No generic copy, just decrement the last entry we have
-                targetEntry = entries[entries.length - 1];
+            let remaining = -delta;
+            const ordered = [...entries.filter(generic), ...entries.filter(e => !generic(e)).reverse()];
+            for (const entry of ordered) {
+                const removed = Math.min(remaining, entry.quantity);
+                if (removed > 0) writes.push({ ...entry, quantity: entry.quantity - removed });
+                remaining -= removed;
+                if (remaining === 0) break;
             }
-            targetEntry.quantity -= 1;
         }
-
-        const newTotalQty = totalQty + delta;
-        updateStepperDisplay(coinId, newTotalQty);
-
-        const payload = {
-            id: targetEntry.id, // may be undefined for new entries
-            coin_ref_id: coinId,
-            quantity: targetEntry.quantity,
-            grade: targetEntry.grade || '',
-            purchase_price: targetEntry.purchase_price || 0,
-            current_value: targetEntry.current_value || 0,
-            date_acquired: targetEntry.date_acquired || '',
-            notes: targetEntry.notes || ''
-        };
-        
-        const result = await updateInventory(coinId, payload);
-        if (!result || result.status === 'error') {
-            throw new Error('Inventory update rejected');
+        updateStepperDisplay(coinId, totalQty + delta);
+        for (const entry of writes) {
+            const result = await updateInventory(coinId, entry);
+            if (!result || result.status === 'error') throw new Error('Inventory update rejected');
         }
         // One authoritative refresh after persistence. New entries otherwise
         // never enter state, so album actions mistakenly see an empty hole.
@@ -1861,7 +1885,8 @@ async function handleStepperChange(coinId, delta) {
         window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId } }));
     } catch (err) {
         showToast(`Failed to save — ${err.message}`, 'error');
-        // Rollback: restore the previous quantity display
+        // Reconcile even a partially completed multi-entry update.
+        try { setInventory(await fetchInventory()); } catch (_) { /* Keep last known state offline. */ }
         const totalQty = getInventoryTotalQty(coinId);
         updateStepperDisplay(coinId, totalQty);
     } finally {
@@ -1947,7 +1972,9 @@ window.addEventListener('cc-inventory-updated', async (e) => {
         }
         const detailBtn = row.querySelector('.coin-row-detail-toggle');
         if (detailBtn) {
-            detailBtn.style.display = newQty > 0 ? '' : 'none';
+            // Details also contain historical notes at zero quantity. Keep
+            // the control in the row so ownership changes cannot reflow it.
+            detailBtn.style.display = '';
             // Auto-close details panel if quantity drops to 0
             if (newQty === 0) {
                 const wrapper = row.closest('.coin-row-wrapper');
