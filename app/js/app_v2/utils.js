@@ -72,7 +72,11 @@ export function resolveImageUrl(url) {
     if (/^(https?:)?\/\//i.test(url) || url.startsWith('data:') || !url.startsWith('/')) {
         return url;
     }
-    // Root-absolute path → re-base under the app directory.
+    // /data/images/ paths are served directly by nginx — do not re-base them.
+    if (url.startsWith("/data/images/")) {
+        return url;
+    }
+    // Other root-absolute paths → re-base under the app directory.
     return _APP_BASE + url;
 }
 
