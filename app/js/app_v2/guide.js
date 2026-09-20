@@ -649,6 +649,7 @@ function renderStep() {
 let _settleTimer = null;
 
 async function showCurrent() {
+    _closeAnyImageModal();
     const step = TOUR_STEPS[currentStep];
     if (currentStep === 8) watchAlbumModal();
     const atStart = isStepOpen();
@@ -708,6 +709,8 @@ function back() {
 
 function stopTour() {
     leaveAlbumModal();
+    _removeImageBlock();
+    _closeAnyImageModal();
     clearTimeout(_settleTimer);
     isRunning = false;
     if (overlay) overlay.classList.remove('is-active');
@@ -719,10 +722,46 @@ function stopTour() {
 
 // ---- public API -----------------------------------------------------
 
+const _TOUR_BLOCK_CLASS = 'cc-guide-block-image-clicks';
+let _tourImageBlockHandler = null;
+
+function _installImageBlock() {
+    if (_tourImageBlockHandler) return;
+    // Capture-phase listener: during the tour, swallow any click that would open
+    // the image-interaction modal (view-img) so it doesn't cover the tour bubble.
+    _tourImageBlockHandler = (e) => {
+        const trigger = e.target && e.target.closest
+            ? e.target.closest('[data-action="view-img"]') : null;
+        if (trigger) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }
+    };
+    document.addEventListener('click', _tourImageBlockHandler, true);
+}
+
+function _removeImageBlock() {
+    if (!_tourImageBlockHandler) return;
+    document.removeEventListener('click', _tourImageBlockHandler, true);
+    _tourImageBlockHandler = null;
+}
+
+function _closeAnyImageModal() {
+    // If the image lightbox snuck open anyway, close it so the tour isn't blocked.
+    const img = document.getElementById('modal-image-interaction');
+    if (img && img.classList.contains('open')) {
+        import('./modals.js').then(m => m.closeModalLegacy ? m.closeModalLegacy('modal-image-interaction') : null);
+    }
+}
+
 export function startTour() {
     ensureDom();
     currentStep = 0;
     isRunning = true;
+    _installImageBlock();
+    _closeAnyImageModal();
+
     overlay.classList.add('is-active');
     spotlight.style.display = 'block';
     bubble.style.display = 'block';
@@ -755,6 +794,7 @@ document.addEventListener('click', () => {
     // state, scroll to it, expand the spotlight over the expanded content, and
     // re-render the full bubble (Next returns). NEVER re-run step.before here —
     // that hook ensures the target is closed and would undo the user's click.
+    _closeAnyImageModal();
     setTimeout(() => {
         if (!isRunning || !isStepOpen()) return;
         const t = resolveTarget();
