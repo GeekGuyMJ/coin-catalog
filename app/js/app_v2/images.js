@@ -864,15 +864,24 @@ export async function executeImageAssignment() {
                 // type-config case. The old guard `configs_written>0 && updated===0`
                 // skipped the "fill all of this type" path (where updated>0), so only
                 // the clicked coin repainted and the rest required a refresh.
+                // Type-level assignment: batch scopes. On self-hosted the backend
+                // returns new_url (the URL it wrote). On public (local-first)
+                // assignImageLocal returns only {status:'success'} — no new_url —
+                // so key off the scope + uploaded image instead. Both paths then
+                // repaint below from the freshly-refetched type configs.
                 const isTypeLevelAssignment =
-                    (scope === 'all' || scope === 'empty_only') && !!result.new_url;
+                    (scope === 'all' || scope === 'empty_only') &&
+                    !!(result.new_url || activeContext.b64);
                 if (isTypeLevelAssignment) {
                     const targetMainType = getMainType(activeContext.typeStr);
                     const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
                     // Prefer result.new_url (the actual URL the backend assigned) over the
                     // type-config lookup — for "fill all" the per-coin rows get new URLs
                     // that may not appear in the (refetched) type-config map.
+                    const sectionQualified = activeContext.section
+                        ? (activeContext.section + ' — ' + activeContext.typeStr) : null;
                     const newImageUrl = result.new_url ||
+                                       updatedConfigs[sectionQualified]?.[field] ||
                                        updatedConfigs[activeContext.typeStr]?.[field] || 
                                        updatedConfigs[targetMainType]?.[field];
                                        
