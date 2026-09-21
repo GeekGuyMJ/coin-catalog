@@ -39,8 +39,9 @@ const FILTERS = [
     { id: 'hide_proofs',  label: 'Hide Proofs',  getState: () => getFilterHideProofs(),  toggle: () => toggleFilterHideProofs() },
     { id: 'hide_errors',  label: 'Hide Errors',  getState: () => getFilterHideErrors(),  toggle: () => toggleFilterHideErrors() },
     { id: 'key_dates',    label: 'Key Dates',    getState: () => getFilterKeyDatesOnly(), toggle: () => toggleFilterKeyDatesOnly() },
-    { id: 'min_year',     label: 'Min Year',     getState: () => getMinYear(),           setState: (v) => setMinYear(v) },
-    { id: 'max_year',     label: 'Max Year',     getState: () => getMaxYear(),           setState: (v) => setMaxYear(v) },
+    // NOTE: Min/Max Year are deliberately NOT pills. They are number inputs
+    // (#min-year-input / #max-year-input + dual slider) wired in initYearRange();
+    // pill entries for them had no toggle handler and threw on click.
 ];
 
 const SORT_MODES = [
