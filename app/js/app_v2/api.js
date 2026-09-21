@@ -173,7 +173,12 @@ export const assignImage = async (data) => {
         try { await assignImageLocal(data); } catch (_) { /* non-fatal */ }
     }
     
-    return { status: body.status || 'success', message: body.message, updated: body.updated };
+    // Return the FULL backend body — images.js gates its immediate re-paint on
+    // result.new_url / result.configs_written. Stripping those fields forced a
+    // page refresh to see any batch ("fill all of this type") image assignment.
+    return { status: body.status || 'success', message: body.message,
+             updated: body.updated, configs_written: body.configs_written,
+             new_url: body.new_url };
 };
 
 export const fetchCoinBankImages = isSelfHosted

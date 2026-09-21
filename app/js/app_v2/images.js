@@ -831,6 +831,22 @@ export async function executeImageAssignment() {
             // Soft re-render: refetch type configs (images live there) and
             // rerender sections — preserves all accordion/scroll state.
             try {
+                // FIRST refresh the affected section's coins from the source of
+                // truth (server on self-hosted, IndexedDB after assignImageLocal
+                // on public). Without this, the cc-image-updated re-render below
+                // painted rows from the stale section cache — old image URLs —
+                // which is why assignments only appeared after a page refresh.
+                const sectionToRefresh = activeContext.section || '';
+                if (sectionToRefresh) {
+                    try {
+                        const { fetchCoinsForSection } = await import('./api.js');
+                        const { setCoinsForSection } = await import('./state.js');
+                        const fresh = await fetchCoinsForSection(sectionToRefresh);
+                        setCoinsForSection(sectionToRefresh, fresh);
+                    } catch (secErr) {
+                        console.warn('[images] Could not refresh section coins:', secErr);
+                    }
+                }
                 const updatedConfigs = await fetchTypeConfigs();
                 setTypeConfigs(updatedConfigs);
                 // For personal photos, also refresh inventory state so re-render picks up changes
