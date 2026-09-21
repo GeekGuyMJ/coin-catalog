@@ -1844,8 +1844,16 @@ export async function _getCoimageGroupMembers(coinType, side, section) {
     const allConfigs = await db.coin_type_config.toArray();
     const isRev = (side === 'rev' || side === 'proof_rev');
 
-    // Helper: qualify a coin_type if it's a colliding type
-    const qualify = (t) => (section && _COLLIDING_TYPES.has(t)) ? (section + ' — ' + t) : t;
+    // Helper: qualify a coin_type if it's a colliding type — including
+    // dash-VARIANTS of colliding series (e.g. "Seated Liberty - Arrows" is a
+    // variant of the cross-denomination "Seated Liberty" name; the UI stores
+    // its config under the section-qualified key).
+    const qualify = (t) => {
+        if (!section) return t;
+        const base = t.split(' - ')[0].trim();
+        if (_COLLIDING_TYPES.has(t) || _COLLIDING_TYPES.has(base)) return (section + ' — ' + t);
+        return t;
+    };
 
     // === REVERSE: group by base name ===
     if (isRev) {
@@ -1977,7 +1985,12 @@ export async function assignImageLocal(data) {
         const members = await _getCoimageGroupMembers(coin_type, side, section);
         const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
         const sideKey = sideMap[side] || "obv_image";
-        const qualify = (t) => (section && _COLLIDING_TYPES.has(t)) ? (section + ' — ' + t) : t;
+        const qualify = (t) => {
+        if (!section) return t;
+        const base = t.split(' - ')[0].trim();
+        if (_COLLIDING_TYPES.has(t) || _COLLIDING_TYPES.has(base)) return (section + ' — ' + t);
+        return t;
+    };
         
         for (const _m of members) {
             const memberType = qualify(_m);
