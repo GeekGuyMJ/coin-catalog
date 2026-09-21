@@ -1943,20 +1943,27 @@ export async function _getCoimageGroupMembers(coinType, side, section) {
         }
     }
 
-    // Fallback: dash-separated sub-type pattern
+    // Dash-separated sub-type pattern — ONLY for series that share ONE obverse
+    // across their subtypes (program families: State Quarters, ATB, etc.).
+    // Design variants like "Seated Liberty - Arrows" vs "Seated Liberty - No
+    // Stars" have DIFFERENT obverses: they must group EXACT so "all of this
+    // type" fills just that variant's years (Matthew, 2026-09-17). Mirrors the
+    // backend's SHARED_OBVERSE_SERIES rule in routes/images.py.
     const dashIdx = coinType.indexOf(' - ');
     if (dashIdx > 0) {
         const prefix = coinType.substring(0, dashIdx);
-        const members = [coinType];
-        for (const cfg of allConfigs) {
-            if (cfg.coin_type === coinType) continue;
-            if (cfg.coin_type.startsWith(prefix + ' - ') || 
-                cfg.coin_type.startsWith(prefix + '_-_') ||
-                cfg.coin_type.startsWith(prefix.replace(/ /g, '_') + '_-_')) {
-                members.push(cfg.coin_type);
+        if (_SERIES_WITH_SHARED_OBVERSE.has(prefix)) {
+            const members = [coinType];
+            for (const cfg of allConfigs) {
+                if (cfg.coin_type === coinType) continue;
+                if (cfg.coin_type.startsWith(prefix + ' - ') ||
+                    cfg.coin_type.startsWith(prefix + '_-_') ||
+                    cfg.coin_type.startsWith(prefix.replace(/ /g, '_') + '_-_')) {
+                    members.push(cfg.coin_type);
+                }
             }
+            if (members.length > 1) return members.map(qualify);
         }
-        if (members.length > 1) return members.map(qualify);
     }
 
     return [qualify(coinType)];
