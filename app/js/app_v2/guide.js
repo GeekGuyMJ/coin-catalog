@@ -210,6 +210,7 @@ const TOUR_STEPS = [
 // ============================================================
 
 let currentStep = 0;
+let _navDirection = 'forward'; // 'forward' | 'back'
 let overlay = null;
 let spotlight = null;
 let bubble = null;
@@ -582,10 +583,22 @@ function positionBubble(targetRect) {
 
 function renderStep() {
     const step = TOUR_STEPS[currentStep];
-    const el = resolveTarget();
+    let el = resolveTarget();
     if (!el) {
-        // Skip to next step if target missing
-        next();
+        // Target not in the DOM YET — album grids and freshly expanded
+        // sections render asynchronously. Retrying briefly prevents a step
+        // from being silently skipped (the 2026-09-22 "step 9 skipped" report);
+        // only skip after the target has stayed missing for a full second.
+        let tries = 0;
+        const retry = () => {
+            if (!isRunning) return;
+            const t2 = resolveTarget();
+            if (t2) { renderStep(); return; }
+            if (++tries < 20) { setTimeout(retry, 50); return; }
+            console.warn('[guide] target missing, skipping step', currentStep + 1);
+            next();
+        };
+        setTimeout(retry, 50);
         return;
     }
 
@@ -659,6 +672,18 @@ async function showCurrent() {
     const step = TOUR_STEPS[currentStep];
     if (currentStep === 8) watchAlbumModal();
     const atStart = isStepOpen();
+    // BACK-navigation: a completed interactive step (target already open) must
+    // NOT have its target re-closed by before() — re-closing made Back feel
+    // broken (bubble changed but Next vanished, forcing the user to redo the
+    // action they had already completed).
+    if (_navDirection === 'back' && step.awaitClick && atStart) {
+        await new Promise(requestAnimationFrame);
+        await new Promise(requestAnimationFrame);
+        renderStep();
+        const t0 = resolveTarget();
+        if (t0) { positionSpotlight(t0); positionBubble(t0.getBoundingClientRect()); }
+        return;
+    }
     if (step.before) { try { await step.before(); } catch (e) { console.warn('[guide]', e); } }
     // Wait for the app's DOM to settle BEFORE reading positions: two layout frames
     // plus a fixed delay so collapsible areas have reached their target height.
@@ -699,6 +724,7 @@ function next() {
     leaveAlbumModal();
     if (currentStep < TOUR_STEPS.length - 1) {
         currentStep++;
+        _navDirection = 'forward';
         showCurrent();
     } else {
         stopTour();
@@ -709,6 +735,7 @@ function back() {
     leaveAlbumModal();
     if (currentStep > 0) {
         currentStep--;
+        _navDirection = 'back';
         showCurrent();
     }
 }
