@@ -75,6 +75,11 @@ function openGalleryLightbox(src, caption) {
     lb.classList.add('is-active');
 }
 
+// Cache of the last loaded photos (see renderGalleryCard): lets the card be
+// built in its settled state on dashboard rebuilds so the async fill never
+// changes its height (the 14px down-then-up "bounce" after +/- stepper clicks).
+let _photosCache = null;
+
 export function renderGalleryCard() {
     const card = el('div', {
         className: 'card dashboard-card gallery-card',
@@ -118,6 +123,27 @@ export function renderGalleryCard() {
         'No pictures yet. Capture or upload photos of your coin folders, slabs, or anything you want to document.');
     card.appendChild(emptyMsg);
 
+    // Apply the last-known photo state SYNCHRONOUSLY so the card is born at its
+    // final height. Without this, the card renders with both grid and empty
+    // message visible, then the async loadPhotos() hides one of them — a 14px
+    // height change that visibly bounces the catalog below the dashboard.
+    if (_photosCache) {
+        try {
+            const cachedCat = _photosCache.photos.filter((ph) => (ph.category || 'Pictures') === activeCategory);
+            if (!cachedCat.length) {
+                grid.style.display = 'none';
+                emptyMsg.style.display = '';
+            } else {
+                emptyMsg.style.display = 'none';
+                grid.style.display = '';
+            }
+            countBadge.textContent = _photosCache.photos.length + ' item' + (_photosCache.photos.length !== 1 ? 's' : '');
+        } catch (_) { /* fall through to async load */ }
+    } else {
+        // First render ever: empty state is the settled state until photos load.
+        grid.style.display = 'none';
+    }
+
     // Capture / Upload controls
     const controls = el('div', { style: 'display:flex;gap:8px;flex-shrink:0;align-items:center;flex-wrap:wrap;' });
 
@@ -148,6 +174,7 @@ export function renderGalleryCard() {
             console.error('[gallery] load failed', e);
             photos = [];
         }
+        _photosCache = { photos };
         const inCat = photos.filter((p) => (p.category || 'Pictures') === activeCategory);
         const total = photos.length;
         countBadge.textContent = total + ' item' + (total !== 1 ? 's' : '');
