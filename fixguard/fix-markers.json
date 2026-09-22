@@ -16,7 +16,8 @@
    "editStepperQuantity",
    "getTypeConfig(coin.coin_type, coin.section)",
    "setInventory(await fetchInventory())",
-   "fetchTypeConfigs"
+   "fetchTypeConfigs",
+   "autoOpenTypesInAlbumMode"
   ],
   "app/js/app_v2/db.js": [
    "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
@@ -76,7 +77,7 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 315,
-  "frontend/sw.js": 313
+  "app/sw.js": 316,
+  "frontend/sw.js": 314
  }
 }
