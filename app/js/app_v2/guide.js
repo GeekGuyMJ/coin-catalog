@@ -807,13 +807,29 @@ document.addEventListener('click', () => {
         if (t) smartScroll(t).then(() => setTimeout(() => isRunning && renderStep(), 150));
         else setTimeout(() => isRunning && renderStep(), 150);
         clearTimeout(_settleTimer);
-        // ONE settle pass: let the app's reflow finish, then position once. The
-        // previous two delayed passes caused the visible down-then-up bounce.
-        setTimeout(() => {
-            if (!isRunning || !resolveTarget()) return;
-            positionSpotlight(resolveTarget());
-            positionBubble(resolveTarget().getBoundingClientRect());
-        }, 260);
+        // Settle loop: keep repositioning while the layout is still moving.
+        // The app's own post-click reflow (inventory fetch, dashboard rebuild,
+        // accordion resize) can land AFTER a single fixed-delay pass, leaving the
+        // spotlight stranded mid-page. Track the target rect; stop once it has
+        // been stable for three consecutive frames (bounded to ~1.5s so the loop
+        // can never run away).
+        const t0 = performance.now();
+        let last = null, stable = 0;
+        const settle = () => {
+            if (!isRunning) return;
+            const el = resolveTarget();
+            if (!el) return;
+            positionSpotlight(el);
+            positionBubble(el.getBoundingClientRect());
+            const r = el.getBoundingClientRect();
+            const key = Math.round(r.top) + 'x' + Math.round(r.height);
+            stable = (last === key) ? stable + 1 : 0;
+            last = key;
+            if (stable < 3 && (performance.now() - t0) < 1500) {
+                requestAnimationFrame(settle);
+            }
+        };
+        requestAnimationFrame(settle);
     }, 60);
 }, true);
 
