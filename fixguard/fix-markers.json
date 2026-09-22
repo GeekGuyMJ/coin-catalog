@@ -1,0 +1,82 @@
+{
+ "_comment": "Regression guard registry. files: markers that MUST be present in deployed bytes. absent: strings that must NOT appear. order: build-order rules. public_only: markers only on public. sw_min: minimum SW cache versions. When deliberately re-implementing a fix, update this registry IN THE SAME CHANGE and on BOTH apps.",
+ "files": {
+  "app/css/components.v2.css": [
+   "guide-spotlight",
+   "guide-popup"
+  ],
+  "app/js/app_v2/album.js": [
+   "fetchInventory().then"
+  ],
+  "app/js/app_v2/api.js": [
+   "new_url: body.new_url"
+  ],
+  "app/js/app_v2/catalog.js": [
+   "stepper-edit",
+   "editStepperQuantity",
+   "getTypeConfig(coin.coin_type, coin.section)",
+   "setInventory(await fetchInventory())",
+   "fetchTypeConfigs"
+  ],
+  "app/js/app_v2/db.js": [
+   "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
+   "_COLLIDING_TYPES.has(base)",
+   "factoryResetDataLocal",
+   "assignImageLocal"
+  ],
+  "app/js/app_v2/gallery.js": [
+   "_photosCache",
+   "renderGalleryCard"
+  ],
+  "app/js/app_v2/guide.js": [
+   "_installImageBlock",
+   "_closeAnyImageModal",
+   "currentStep === 5",
+   "requestAnimationFrame(settle)"
+  ],
+  "app/js/app_v2/images.js": [
+   "result.new_url || activeContext.b64",
+   "Could not refresh section coins",
+   "sectionQualified"
+  ],
+  "app/js/app_v2/infoDropdown.js": [
+   "Take the Tour"
+  ],
+  "app/js/app_v2/main.js": [
+   "first_launch"
+  ],
+  "app/js/app_v2/portfolio.js": [
+   "_dashboardRenderGeneration",
+   "renderGalleryCard"
+  ],
+  "app/js/app_v2/search.js": [
+   "initYearRange"
+  ],
+  "app/js/app_v2/utils.js": [
+   "_APP_BASE",
+   "resolveImageUrl"
+  ]
+ },
+ "absent": {
+  "app/js/app_v2/search.js": [
+   "label: 'Min Year'",
+   "label: 'Max Year'"
+  ]
+ },
+ "order": {
+  "app/js/app_v2/portfolio.js": {
+   "before": "var cc = buildCompletionCard",
+   "after": "var sup = buildSupportCard",
+   "why": "Completion card second-from-last, Support last by default"
+  }
+ },
+ "public_only": {
+  "app/js/app_v2/api.js": [
+   "assignImage = isSelfHosted"
+  ]
+ },
+ "sw_min": {
+  "app/sw.js": 315,
+  "frontend/sw.js": 313
+ }
+}
