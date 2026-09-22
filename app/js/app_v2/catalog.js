@@ -1127,8 +1127,10 @@ function buildCoinRow(coin) {
         thumbWrap.classList.add("show-rev");
     }
     
-    var specificCfg = getTypeConfig(coin.coin_type);
-    var mainCfg = getTypeConfig(getMainType(coin.coin_type));
+    // Section-qualified lookup FIRST (prevents cross-denomination bleed AND
+    // picks up the per-variant config written by image assignment), then bare.
+    var specificCfg = getTypeConfig(coin.coin_type, coin.section);
+    var mainCfg = getTypeConfig(getMainType(coin.coin_type), coin.section);
     // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
     var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
     var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
@@ -2301,8 +2303,8 @@ export function openCoinDetailModal(coinId) {
         const totalQty = state.getInventoryTotalQty(coinId);
 
         const mainType = getMainType(coin.coin_type);
-        const mainCfg = state.getTypeConfig(mainType) || {};
-        const specificCfg = state.getTypeConfig(coin.coin_type) || {};
+        const mainCfg = state.getTypeConfig(mainType, coin.section) || {};
+        const specificCfg = state.getTypeConfig(coin.coin_type, coin.section) || {};
         
         let currentSide = localStorage.getItem(`cc-flipped-${coinId}`);
         if (!currentSide) {
