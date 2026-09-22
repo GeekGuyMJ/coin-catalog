@@ -130,10 +130,17 @@ def audit_live(errors):
                 url = base + 'css/' + name
             else:
                 url = base + name
-            try:
-                text = fetch(url)
-            except Exception as e:
-                fail(f'{tag} {url}: fetch failed {e}', errors)
+            text = None
+            for _attempt in range(2):
+                try:
+                    text = fetch(url)
+                    break
+                except Exception as e:
+                    last_err = e
+            if text is None:
+                # Two consecutive fetch failures = likely a real outage; report it
+                # (distinct from a marker regression, but still worth an alert).
+                fail(f'{tag} {url}: unreachable after retry ({last_err})', errors)
                 continue
             lab = f'live-{tag}:{name}'
             check_text(lab, text, errors)
