@@ -9,7 +9,8 @@
    "fetchInventory().then"
   ],
   "app/js/app_v2/api.js": [
-   "new_url: body.new_url"
+   "new_url: body.new_url",
+   "searchCoinsLocal(url.searchParams)"
   ],
   "app/js/app_v2/catalog.js": [
    "stepper-edit",
@@ -82,7 +83,7 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 317,
+  "app/sw.js": 319,
   "frontend/sw.js": 315
  }
 }
