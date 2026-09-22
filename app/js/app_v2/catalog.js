@@ -376,6 +376,30 @@ function buildSectionCard(sec) {
  *
  * @param {string} sectionName
  */
+/**
+ * In album/folder view, a section showing only collapsed type headers looks
+ * like an EMPTY album ("no nickels" report): the grids render only when a
+ * type accordion is open, and setCatalogViewMode re-renders only already-open
+ * types. Auto-open every type accordion after a section renders in album mode
+ * so the album is visible immediately, like a physical album page.
+ * @param {HTMLElement} sectionContent - the .section-content just rendered.
+ */
+function autoOpenTypesInAlbumMode(sectionContent) {
+    const mode = getCatalogViewMode();
+    if (mode !== 'album' && mode !== 'folder') return;
+    const headers = sectionContent.querySelectorAll('.type-wrapper > .type-header');
+    headers.forEach((h, idx) => {
+        // Stagger slightly so each album grid renders with breathing room.
+        setTimeout(() => {
+            const tw = h.closest('.type-wrapper');
+            const content = tw?.querySelector('.type-content');
+            if (content && !content.classList.contains('open')) {
+                h.click();
+            }
+        }, idx * 120);
+    });
+}
+
 async function expandSection(sectionName) {
     const sectionId = 'section-' + sectionName.replace(/[^a-zA-Z0-9]/g, '');
     const card = document.getElementById(sectionId);
@@ -401,6 +425,7 @@ async function expandSection(sectionName) {
     const cached = getCoinsForSection(sectionName);
     if (cached) {
         renderTypeAccordions(content, cached);
+        autoOpenTypesInAlbumMode(content);
         return;
     }
 
@@ -411,6 +436,7 @@ async function expandSection(sectionName) {
         const coins = await fetchCoinsForSection(sectionName);
         setCoinsForSection(sectionName, coins);
         renderTypeAccordions(content, coins);
+        autoOpenTypesInAlbumMode(content);
         refreshSectionHeaderExample(sectionName, coins);
     } catch (err) {
         content.innerHTML = `<p class="text-muted" style="padding:1rem">
@@ -2144,6 +2170,12 @@ export async function setCatalogViewMode(mode) {
     renderSections();
     // After DOM is rebuilt, render album inline for any expanded type sections
     if (mode === 'album' || mode === 'folder') {
+        // First, auto-open every type in every OPEN section so the album grids
+        // render immediately (switching to album view with collapsed types
+        // previously showed empty headers — "no nickels").
+        document.querySelectorAll('.section-content.open').forEach(function(sectionContent) {
+            autoOpenTypesInAlbumMode(sectionContent);
+        });
         container.querySelectorAll('.type-content.open').forEach(function(typeContent) {
             var typeWrapper = typeContent.closest('.type-wrapper');
             if (!typeWrapper) return;
