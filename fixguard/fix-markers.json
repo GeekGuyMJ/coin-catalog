@@ -33,7 +33,9 @@
    "_installImageBlock",
    "_closeAnyImageModal",
    "currentStep === 5",
-   "requestAnimationFrame(settle)"
+   "requestAnimationFrame(settle)",
+   "_navDirection",
+   "retry, 50"
   ],
   "app/js/app_v2/images.js": [
    "result.new_url || activeContext.b64",
@@ -62,6 +64,9 @@
   "app/js/app_v2/search.js": [
    "label: 'Min Year'",
    "label: 'Max Year'"
+  ],
+  "app/js/app_v2/catalog.js": [
+   "renderAlbumType(firstCoinSection"
   ]
  },
  "order": {
@@ -77,7 +82,7 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 316,
-  "frontend/sw.js": 314
+  "app/sw.js": 317,
+  "frontend/sw.js": 315
  }
 }
