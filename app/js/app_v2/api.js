@@ -156,7 +156,8 @@ export const fetchStatus = isSelfHosted
     : wrap(fetchStatusLocal);
 
 // Image APIs — assignImage already uses originalFetch (server-backed)
-export const assignImage = async (data) => {
+export const assignImage = isSelfHosted
+    ? async (data) => {
     const res = await originalFetch('/api/assign_image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -164,22 +165,24 @@ export const assignImage = async (data) => {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) return { status: 'error', error: body.error || ('HTTP ' + res.status) };
-    
-    // Only call local sync for specific_coin/specific_item scopes.
-    // For 'all' and 'empty_only', backend writes per-coin images directly
-    // and fetchCoinsForSectionLocal syncs them correctly from server.
-    const scope = (data && data.scope) || 'all';
-    if (scope === 'specific_coin' || scope === 'specific_item') {
-        try { await assignImageLocal(data); } catch (_) { /* non-fatal */ }
-    }
-    
+
     // Return the FULL backend body — images.js gates its immediate re-paint on
-    // result.new_url / result.configs_written. Stripping those fields forced a
-    // page refresh to see any batch ("fill all of this type") image assignment.
+    // result.new_url / result.configs_written.
     return { status: body.status || 'success', message: body.message,
              updated: body.updated, configs_written: body.configs_written,
              new_url: body.new_url };
-};
+    }
+    : async (data) => {
+    // Local-first (GitHub Pages has no backend): assignImageLocal writes the
+    // image into the IndexedDB coin_type_config / coins_reference directly.
+    // Posting to GitHub Pages would fail with HTTP 405 — Pages only serves GET.
+    try {
+        return await assignImageLocal(data);
+    } catch (e) {
+        console.error('Local DB API Error:', e);
+        return { status: 'error', error: e.message || 'Local assignment failed' };
+    }
+    };
 
 export const fetchCoinBankImages = isSelfHosted
     ? async (params = {}) => {
