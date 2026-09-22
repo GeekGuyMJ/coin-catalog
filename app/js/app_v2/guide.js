@@ -485,6 +485,12 @@ function positionSpotlight(el) {
             const h = findLincolnWheatHeader();
             const tw = h?.closest('.type-wrapper');
             if (tw) hEl = tw;
+        } else if (step.awaitClick && currentStep === 5) {
+            // The user just tapped "+" on the stepper: the detail area under the
+            // row gains a data entry, so extend the highlight over the whole
+            // row + its expanded detail panel immediately — not only after Next.
+            const w = findCoinRowWrapper('155');
+            if (w) hEl = w;
         }
     }
     const r = hEl.getBoundingClientRect();
