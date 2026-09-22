@@ -21,10 +21,11 @@ import {
 
 import {
     getSections, getCoinsForSection, setCoinsForSection,
-    getTypeConfig,
+    getTypeConfig, setTypeConfigs,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchTypeConfigs,
+} from './api.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
