@@ -417,7 +417,17 @@ if (!isSelfHosted) {
 
             if (path === '/api/status') { data = await fetchStatusLocal(); }
             else if (path === '/api/coins/sections') { data = await fetchSectionsLocal(); }
-            else if (path === '/api/coins') { data = await fetchCoinsForSectionLocal(url.searchParams.get('section') || ''); }
+            else if (path === '/api/coins') {
+                const q = url.searchParams.get('q');
+                if (q !== null && q !== '') {
+                    // Search request from search.js — fetchCoinsForSectionLocal
+                    // only filters by section and IGNORES q, which made every
+                    // public-app search return nothing. Route to the real search.
+                    data = await searchCoinsLocal(url.searchParams);
+                } else {
+                    data = await fetchCoinsForSectionLocal(url.searchParams.get('section') || '');
+                }
+            }
             else if (path.startsWith('/api/coins/')) { data = await fetchCoinLocal(path.substring('/api/coins/'.length)); }
             else if (path === '/api/inventory') {
                 if (method === 'POST') { data = await updateInventoryLocal(body); }
