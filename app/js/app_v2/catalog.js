@@ -2004,17 +2004,10 @@ window.addEventListener('cc-inventory-updated', async (e) => {
             // Details also contain historical notes at zero quantity. Keep
             // the control in the row so ownership changes cannot reflow it.
             detailBtn.style.display = '';
-            // Auto-close details panel if quantity drops to 0
-            if (newQty === 0) {
-                const wrapper = row.closest('.coin-row-wrapper');
-                if (wrapper) {
-                    const dp = wrapper.querySelector('.coin-detail-panel');
-                    if (dp && dp.classList.contains('open')) {
-                        dp.classList.remove('open');
-                        detailBtn.textContent = "▼ Details";
-                    }
-                }
-            }
+            // Quantity dropping to zero must NOT collapse the open details
+            // panel — only the Data Entries area is removed (rebuildSlots /
+            // slot-clear logic below handles that when qty becomes 0). The
+            // historical note and the panel's open state stay put.
         }
     });
 
