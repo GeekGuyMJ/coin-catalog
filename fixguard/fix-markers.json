@@ -69,7 +69,8 @@
    "label: 'Max Year'"
   ],
   "app/js/app_v2/catalog.js": [
-   "renderAlbumType(firstCoinSection"
+   "renderAlbumType(firstCoinSection",
+   "Auto-close details panel if quantity drops to 0"
   ]
  },
  "order": {
@@ -85,7 +86,7 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 320,
-  "frontend/sw.js": 316
+  "app/sw.js": 321,
+  "frontend/sw.js": 317
  }
 }
