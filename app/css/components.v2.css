@@ -2713,7 +2713,14 @@ select optgroup {
     border-bottom: 1px solid var(--color-border-light);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    /* Still scrolls when there are many instance tabs, but the scrollbar
+       itself never shows (a thin track sat under the row even with few
+       tabs and looked out of place — removed per Matthew 2026-09-22). */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.coin-instance-tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .coin-instance-tabs-label {
