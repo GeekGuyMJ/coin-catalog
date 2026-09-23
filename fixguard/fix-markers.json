@@ -3,7 +3,9 @@
  "files": {
   "app/css/components.v2.css": [
    "guide-spotlight",
-   "guide-popup"
+   "guide-popup",
+   "scrollbar-width: none",
+   ".coin-instance-tabs::-webkit-scrollbar"
   ],
   "app/js/app_v2/album.js": [
    "fetchInventory().then"
@@ -83,7 +85,7 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 319,
-  "frontend/sw.js": 315
+  "app/sw.js": 320,
+  "frontend/sw.js": 316
  }
 }
