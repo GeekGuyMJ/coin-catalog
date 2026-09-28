@@ -105,7 +105,24 @@ if ('serviceWorker' in navigator) {
         // prepend it so the splash coins load on both self-hosted ("/") and public
         // ("/coin-catalog/app/") deployments.
         (function() {
-            var APP_BASE = location.pathname.replace(/\/app\/.*$/, '') + '/app';
+            // 2026-09-28: the old form was
+            //     location.pathname.replace(/\/app\/.*$/, '') + '/app'
+            // which hardcodes GitHub Pages' sub-path. On a ROOT domain
+            // (coin-catalog.pages.dev) the regex does not match, so APP_BASE
+            // became "/app", which the browser resolved against the ORIGIN as
+            // https://app/images/... -- a different domain -- and the header
+            // logo plus the tour popup logo both failed to load.
+            //
+            // Derive the base from where this document actually lives, the
+            // same way js/app_v2/utils.js does with import.meta.url, so the
+            // app is correct at any sub-path AND at a domain root.
+            var APP_BASE = (function () {
+                var p = location.pathname;
+                // strip the filename if present, keep the directory
+                var dir = p.replace(/[^/]*$/, '');
+                dir = dir.replace(/\/+$/, '');
+                return dir;   // '' at a domain root, '/coin-catalog/app' on Pages
+            })();
             var coins = [
                 APP_BASE + '/images/coin_gold1.png',
                 APP_BASE + '/images/coin_gold_proof1.png',
