@@ -316,7 +316,12 @@
     transition:       all 0.2s ease;
 }
 .year-input {
-    width:            90px;
+    /* 2026-09-28: was a fixed `width: 90px`, which left the year boxes
+       using only ~14% of a wide filter bar while the pills wrapped onto
+       their own line. Now they share the spare space on the row. */
+    flex:             1 1 90px;
+    min-width:        90px;
+    max-width:        160px;
     -moz-appearance:  textfield; /* Firefox */
     appearance:       textfield; /* Standard */
 }
@@ -335,9 +340,13 @@
 }
 
 .filter-pills {
-    display:   flex;
-    gap:       var(--space-2);
-    flex-wrap: wrap;
+    display: flex;
+    gap:     var(--space-2);
+    /* 2026-09-28: let the pill group flow BESIDE the year boxes on a wide
+       row instead of always starting a new line, so the empty space to
+       the right of the year inputs is actually used. */
+    flex:     1 1 auto;
+    min-width: 320px;
 }
 
 .filter-pill {
@@ -951,6 +960,12 @@
 
 .finance-grid {
     display:               grid;
+    /* 2026-09-28: the 130px floor is CORRECT and must stay. Lowering it to
+       104px made things worse: auto-fit then "fit" two columns into a
+       183-251px card and shrank the second track to 45-102px, which is
+       narrower than the item's own text, so the value clipped
+       ("$300.0", "$104.40"). The real problem was never the floor, it was
+       the item refusing to shrink -- handled below. */
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap:                   var(--space-3);
     font-size:             var(--font-size-sm);
@@ -1024,6 +1039,26 @@
 .finance-item.grand-total .finance-value {
     font-size: var(--font-size-2xl);
     color:     var(--color-accent);
+}
+
+/* 2026-09-28: stop a finance value from forcing its track wider than the
+   track is. Long currency strings used to set a min-content floor that the
+   grid could not satisfy, so the item overflowed and the card grew a
+   horizontal scrollbar (which is what clipped the Portfolio total). The
+   value now shrinks to fit its track instead of pushing the layout. */
+.finance-item .finance-label {
+    /* labels wrap rather than forcing a wide track */
+    overflow-wrap: anywhere;
+    hyphens:       auto;
+}
+.finance-item .finance-value {
+    min-width:  0;
+    max-width:  100%;
+    font-size:  clamp(0.78rem, 2.6cqi + 0.62rem, var(--font-size-sm));
+    overflow-wrap: anywhere;
+}
+#card-portfolio .finance-grid {
+    container-type: inline-size;
 }
 
 /* =========================================================================
@@ -1451,6 +1486,18 @@ select optgroup {
 @media (max-width: 768px) {
     .finance-grid { grid-template-columns: 1fr; }
     .finance-item.grand-total { grid-column: span 1; }
+
+    /* 2026-09-28: search bar stacks cleanly on small screens -- the year
+       boxes go full width rather than sitting as two small boxes with a
+       gap, and the pills keep their own line. */
+    .year-input {
+        flex:       1 1 100%;
+        max-width:  none;
+    }
+    .filter-pills {
+        flex:       1 1 100%;
+        min-width:  0;
+    }
 
     .coin-thumb { width: 28px; height: 28px; }
     .coin-thumb.obv { margin-right: -8px; }
@@ -2345,8 +2392,12 @@ select optgroup {
         max-width: 100%;
     }
     #card-portfolio .finance-grid {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
+        /* 2026-09-28: was `overflow-x: auto`, which hid a real layout
+           overflow behind a scrollbar and clipped the Portfolio total
+           ("$300.0"). The grid now fits its column at every width, so
+           scroll is removed rather than left as a workaround. */
+        overflow-x:       visible;
+        -webkit-overflow-scrolling: auto;
     }
     #card-portfolio .finance-item {
         font-size: 0.75em;
@@ -3544,6 +3595,9 @@ select optgroup {
    ========================================================================= */
 .dashboard-grid {
     display: grid;
+    /* 2026-09-28: 4 equal columns down to 768px left every card only
+       177-335px wide, which is what clipped the Portfolio total. Two
+       columns below 1100px and one below 700px give the cards real room. */
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 16px;
     padding: 16px;
@@ -4596,4 +4650,72 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
 /* ── Scroll stability: stop the viewport from jumping when content expands above ── */
 html, body {
     overflow-anchor: none;
+}
+
+/* 2026-09-28: fewer dashboard columns on narrower screens so cards are
+   not crushed to ~180px (see the portfolio note at the end of this file). */
+@media (max-width: 1100px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+@media (max-width: 700px) {
+    .dashboard-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+
+/* =========================================================================
+   2026-09-28 portfolio: single column in a narrow card
+   -------------------------------------------------------------------------
+   The dashboard is `repeat(4, minmax(0, 1fr))` all the way down to 768px,
+   which leaves the Portfolio card only 177-335px wide. Inside that card,
+   `.finance-grid`'s `repeat(auto-fit, minmax(130px, 1fr))` decided TWO
+   130px tracks "fit" in e.g. 183px, built them, and let `1fr` crush the
+   second track to 45px -- narrower than "$3,407.72" or the label above it.
+   The item overflowed and `overflow-x: auto` turned that into a horizontal
+   scrollbar that clipped the total to "$300.0".
+
+   Fix: make the GRID one column until the CARD is genuinely wide enough
+   for two, measured on the card itself via a container query, with a
+   viewport fallback for engines without container-query support.
+   ========================================================================= */
+
+.dashboard-card {
+    container-type: inline-size;
+    container-name: card;
+}
+
+/* The broken band is a 177-335px card. Below 360px, one column. */
+@container card (max-width: 360px) {
+    .finance-grid {
+        grid-template-columns: 1fr;
+    }
+    .finance-item.grand-total {
+        grid-column: span 1;
+    }
+}
+
+/* Engines without container queries still get a sane viewport fallback. */
+@supports not (container-type: inline-size) {
+    @media (max-width: 1100px) {
+        #card-portfolio .finance-grid {
+            grid-template-columns: 1fr;
+        }
+        #card-portfolio .finance-item.grand-total {
+            grid-column: span 1;
+        }
+    }
+}
+
+/* Never let a value dictate the track width; let it shrink to fit. */
+#card-portfolio .finance-item .finance-value {
+    min-width:        0;
+    max-width:        100%;
+    overflow-wrap:    anywhere;
+}
+
+#card-portfolio .finance-item .finance-label {
+    overflow-wrap:    anywhere;
 }
