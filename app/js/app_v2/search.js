@@ -23,7 +23,7 @@ import {
     getWishlist,
 } from './state.js';
 
-import { fetchCoinsForSection } from './api.js';
+import { fetchCoinsForSection, isSelfHosted } from './api.js';
 import { renderSections } from './catalog.js';
 import {
     getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear, resolveImageUrl,
@@ -199,7 +199,19 @@ export async function triggerSearch() {
     try {
         let results;
 
-        if (q) {
+        // 2026-09-28: the search branch used to require the BACKEND for any
+        // text query:
+        //     if (q) { fetch('/api/coins?q=...') }
+        // Both public deployments are static hosts, so /api/coins 404s,
+        // resp.json() rejects, and the render is abandoned -- search returned
+        // 0 results even though 565 rows matched. Identical on GitHub Pages
+        // and Cloudflare Pages; the self-hosted app was unaffected because it
+        // has the API. Browsing/filtering worked because the `else` branch
+        // is entirely client-side.
+        //
+        // Now the backend is used only when it exists (self-hosted); every
+        // static deployment filters locally.
+        if (q && isSelfHosted) {
             // Backend search
             const params = new URLSearchParams();
             params.set('q', q);
@@ -216,12 +228,30 @@ export async function triggerSearch() {
             const resp = await fetch('/api/coins?' + params.toString());
             results = await resp.json();
         } else {
-            // Filters only — fetch all sections, filter client-side
+            // Filters and/or text — fetch all sections, filter client-side
             results = [];
             const sections = getSections();
             for (const sec of sections) {
                 const coins = await fetchCoinsForSection(sec.section);
                 results = results.concat(coins);
+            }
+            if (q) {
+                // Mirror the backend's match fields: type, year, mint mark,
+                // notes, denomination and section. Case-insensitive.
+                const needle = q.toLowerCase();
+                results = results.filter(c => {
+                    const hay = [
+                        c.coin_type, c.year, c.mint_mark, c.notes,
+                        c.denomination, c.section, c.ref_notes,
+                        c.grade, c.metal
+                    ];
+                    for (const v of hay) {
+                        if (v === null || v === undefined) continue;
+                        if (String(v).toLowerCase().indexOf(needle) !== -1)
+                            return true;
+                    }
+                    return false;
+                });
             }
             if (getFilterHideProofs())   results = results.filter(c => !c.is_proof);
             if (getFilterHideErrors())   results = results.filter(c => !c.is_error);
