@@ -10,7 +10,13 @@
 // ============================================================
 // Environment detection
 // ============================================================
-const isSelfHosted = location.hostname.includes('opaleye-bluegill.ts.net') || 
+// 2026-09-28: exported. search.js needs this to decide whether the text
+// query can be answered by the backend at all -- on a static host
+// (GitHub Pages, Cloudflare Pages) /api/coins does not exist, so the
+// search MUST filter client-side. Previously this was module-private, and
+// importing it produced a LOAD-TIME SyntaxError that killed the whole
+// search module on every host.
+export const isSelfHosted = location.hostname.includes('opaleye-bluegill.ts.net') || 
                      location.hostname.includes('192.168.0.115') ||
                      location.hostname === 'localhost';
 
