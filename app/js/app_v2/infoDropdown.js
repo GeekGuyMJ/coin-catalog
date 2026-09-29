@@ -3439,9 +3439,11 @@ function showImageSources() {
     're-adds an image you deleted.'));
   wrap.appendChild(foot);
 
-  createModal('info-image-sources', 'Image Sources', wrap,
-    [el('button', { className: 'btn', onclick: () => closeModal('info-image-sources') },
-      'Close')]);
+  // 2026-09-29: 4th arg is a CSS class string or a single element -- NOT an
+  // array. Passing an array made createModal call footer.appendChild(array),
+  // which throws. Every other Info section passes null and relies on the
+  // header close button.
+  createModal('modal-info-image-sources', 'Image Sources', wrap, null);
 }
 
 // --- Privacy & Reporting Bugs --------------------------------------------
