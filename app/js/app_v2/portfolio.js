@@ -3,7 +3,7 @@
  * Dashboard cards: Completion, Portfolio (V1-style), Bullion, Spot, Scrap, Paper, Custom
  */
 
-import { el } from './utils.js';
+import { el, resolveImageUrl } from './utils.js';
 import { renderGalleryCard } from './gallery.js';
 import { onChange, getSpotPrices, getInventory, getSections,
     getScrapMetal, getPaperCurrency, getCustomCategories, getOtherCollectables,
@@ -786,7 +786,19 @@ function buildEmptyPortfolioCard() {
     var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio'});
     card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
     var body = el('div',{style:'width:100%; min-width:0; padding:12px 4px; text-align:center; color:var(--color-text-muted); font-size:0.9em; line-height:1.5; word-break:normal; overflow-wrap:normal; white-space:normal;'});
-    body.appendChild(el('div',{style:'font-size:2em; margin-bottom:6px;'},'\uD83E\uDE99'));
+    // 2026-09-29: this was a \uD83E\uDE99 gold-coin emoji, which rendered as
+    // a yellow coin rather than anything belonging to the app. Use the real
+    // app icon instead. The path goes through resolveImageUrl so it
+    // re-bases correctly on every host (self-hosted root, GitHub Pages
+    // /coin-catalog/app/, Cloudflare Pages root).
+    var icon = el('img', {
+        src: resolveImageUrl('/icons/icon-512.png'),
+        alt: '', 'aria-hidden': 'true',
+        width: 48, height: 48,
+        style: 'width:48px; height:48px; object-fit:contain; ' +
+               'margin:0 auto 10px; display:block; opacity:0.9;'
+    });
+    body.appendChild(icon);
     body.appendChild(el('div',{},'Your portfolio is empty.'));
     body.appendChild(el('div',{style:'margin-top:4px;'},'Add coins from the catalog, enter bullion, or record paper currency to see your total value here.'));
     card.appendChild(body);
