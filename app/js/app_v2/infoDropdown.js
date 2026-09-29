@@ -6,6 +6,47 @@
  */
 
 import { el, escHtml } from './utils.js';
+
+/* ------------------------------------------------------------------------
+   2026-09-29: Image sources. Matthew asked for this in the Info menu.
+   Every entry below is a source actually used for images in the catalog,
+   with the licence that governs reuse. Keep it accurate -- do not list a
+   source that is not represented, and do not remove one that is.
+   ------------------------------------------------------------------------ */
+const IMAGE_SOURCES = [
+    {
+        name: 'National Numismatic Collection',
+        via: 'Wikimedia Commons',
+        licence: 'Public domain',
+        url: 'https://commons.wikimedia.org/wiki/Category:National_Numismatic_Collection',
+        note: 'Principal source for 1792-1943. Photograph pairs, some with ' +
+              'single obverse or reverse crops.'
+    },
+    {
+        name: 'Smithsonian Institution',
+        via: 'Wikimedia Commons',
+        licence: 'Public domain (CC0 where noted)',
+        url: 'https://www.si.edu/object/national-numismatic-collection',
+        note: 'Open-access numismatic holdings.'
+    },
+    {
+        name: 'Wikimedia Commons',
+        via: 'Category listings, individually licensed',
+        licence: 'Public domain / CC0 / CC BY / CC BY-SA per file',
+        url: 'https://commons.wikimedia.org/wiki/Category:Coins_of_the_United_States',
+        note: 'Each image keeps its own licence. Attribution and share-alike ' +
+              'terms apply where a file is CC BY or CC BY-SA.'
+    },
+    {
+        name: 'Your own uploads',
+        via: 'This app',
+        licence: 'Yours',
+        url: null,
+        note: 'Images you add are yours to use, on this device and any ' +
+              'device you sync to.'
+    }
+];
+
 import { createModal, closeModal } from './modals.js';
 
 let _dropdownEl = null;
@@ -59,8 +100,11 @@ function openInfoDropdown(btn) {
   { key: 'famousStories', label: 'Famous Coin Stories' },
   { key: 'rollHunting', label: 'Coin Roll-Hunting Guide' },
   { key: 'donate', label: 'Support This App' },
+  // 2026-09-29: Matthew asked where the coin images come from.
+  { key: 'imageSources', label: 'Image Sources' },
   { key: 'privacy', label: 'Privacy & Reporting Bugs' },
   { key: 'guide', label: '✨ Take the Tour' },
+  { key: 'advancedTour', label: '🧰 Advanced Features Tour' },
   ];
 
  const menu = el('div', { className: 'info-menu', role: 'menu' });
@@ -69,7 +113,18 @@ function openInfoDropdown(btn) {
  className: 'info-menu-item',
  role: 'menuitem',
  type: 'button',
- onclick: () => { closeInfoDropdown(); openInfoSection(it.key); },
+ onclick: () => {
+  closeInfoDropdown();
+  // The advanced tour is a live walkthrough of Settings, not a
+  // static panel, so it launches guide.js rather than openInfoSection.
+  if (it.key === 'advancedTour') {
+    import('./guide.js')
+      .then(m => m.startAdvancedTour())
+      .catch(e => console.error('[guide] advanced tour failed', e));
+    return;
+  }
+  openInfoSection(it.key);
+},
  });
  item.appendChild(el('span', { className: 'info-menu-label' }, it.label));
  menu.appendChild(item);
@@ -122,6 +177,7 @@ export function openInfoSection(key) {
  case 'famousStories': return showFamousStories();
  case 'rollHunting': return showRollHunting();
  case 'donate': return showDonate();
+ case 'imageSources': return showImageSources();
  case 'privacy': return showPrivacy();
  case 'guide': {
     import('./guide.js').then(m => m.startTour());
@@ -3345,6 +3401,49 @@ function showRollHunting() {
  createModal('modal-info-' + 'rollhunting', 'Coin Roll-Hunting Guide', wrap, null);
 }
 
+// --- Image sources --------------------------------------------------------
+// 2026-09-29. Lists where the coin images come from and the licence each
+// one carries. Kept factual: only sources actually represented in the
+// image tree are listed.
+function showImageSources() {
+  const wrap = el('div', { className: 'info-section' });
+  wrap.appendChild(el('h2', { className: 'info-title' }, 'Image Sources'));
+
+  const intro = el('p', { className: 'info-intro' },
+    'Coin images come from open, freely licensed collections. Every image ' +
+    'keeps its own licence, and where a file is CC BY or CC BY-SA the ' +
+    'attribution and share-alike terms apply to it.');
+  wrap.appendChild(intro);
+
+  IMAGE_SOURCES.forEach(src => {
+    const block = el('div', { className: 'info-section-body' });
+    block.appendChild(el('h4', { className: 'info-subhead' }, src.name));
+    const meta = el('p', { className: 'info-text' },
+      src.via + ' \u00b7 ' + src.licence);
+    block.appendChild(meta);
+    if (src.url) {
+      block.appendChild(el('p', { className: 'info-text' },
+        el('a', { href: src.url, target: '_blank', rel: 'noopener noreferrer' },
+          src.url)));
+    }
+    if (src.note) {
+      block.appendChild(el('p', { className: 'info-text' }, src.note));
+    }
+    wrap.appendChild(block);
+  });
+
+  const foot = el('div', { className: 'info-section-body' });
+  foot.appendChild(el('p', { className: 'info-text' },
+    'Nothing here is scraped from a commercial site. If an image is wrong, ' +
+    'remove it in the app and it stays removed \u2014 the catalog never ' +
+    're-adds an image you deleted.'));
+  wrap.appendChild(foot);
+
+  createModal('info-image-sources', 'Image Sources', wrap,
+    [el('button', { className: 'btn', onclick: () => closeModal('info-image-sources') },
+      'Close')]);
+}
+
 // --- Privacy & Reporting Bugs --------------------------------------------
 function showPrivacy() {
  const version = window.APP_VERSION || 'dev';
@@ -3396,6 +3495,111 @@ function showDonate() {
     return modal;
 }
 
+// --- Coin Collecting Guide ----------------------------------------------
+// Restores the "Coin Collecting Guide" Info entry. openInfoSection('coinTips')
+// called showCoinTips(), but the function was never defined, so the button
+// threw ReferenceError and opened nothing. Built from the same helpers the
+// sibling sections use (_sectionBody + createModal).
+function showCoinTips() {
+    const body = _sectionBody(
+        'Coin Collecting Guide',
+        'Practical guidance for building, organizing and understanding a '
+        + 'coin collection.',
+        [
+            { heading: 'Start with what you already own', list: [
+                'Photograph each coin in even light, straight on, filling the frame',
+                'Record date, mint mark, grade and any notes while the coin is in hand',
+                'Mark problem spots so a dealer can find them quickly',
+            ]},
+            { heading: 'Grading basics', list: [
+                'Grade by the highest point of wear on the coin, not the average',
+                'Details matter more than grade: a well-struck lower grade often '
+                + 'beats a harshly struck higher one',
+                'Cleaning a coin usually lowers its value — leave it as found',
+            ]},
+            { heading: 'Organizing a collection', text:
+                'Group by denomination first, then by type, then by year and mint '
+                + 'mark. Albums, folders and tubes each work; the important part is '
+                + 'staying consistent so you can find any coin without hunting.' },
+            { heading: 'Storage', list: [
+                'PVC-free holders for long-term storage; avoid PVC flips',
+                'Keep coins away from prolonged direct sunlight and humidity',
+                'Store silver and copper apart — they can react over time',
+            ]},
+            { heading: 'Building value', list: [
+                'Buy the coin you want, not the one that is merely cheap',
+                'Condition matters most in the common dates, variety matters most '
+                + 'in the scarce ones',
+                'A complete set is usually worth more than the same coins sold singly',
+            ]},
+            { heading: 'When to seek help', text:
+                'For a coin you suspect is valuable, or one that looks wrong, a '
+                + 'local coin dealer or a regional grading service can authenticate '
+                + 'it in person. Descriptions and photos online are a starting '
+                + 'point, not a valuation.' },
+        ]
+    );
+    closeInfoDropdown();
+    return createModal('modal-info-cointips', 'Coin Collecting Guide', body, null);
+}
+
+// --- Famous Coin Stories -------------------------------------------------
+// Restores the "Famous Coin Stories" Info entry. openInfoSection('famousStories')
+// called showFamousStories(), which was likewise never defined.
+function showFamousStories() {
+    const body = _sectionBody(
+        'Famous Coin Stories',
+        'A few landmark issues and the history attached to them.',
+        [
+            { heading: 'The 1913 Liberty Head nickel', text:
+                'Five were struck in 1913 with the date removed from the dies, '
+                + 'apparently for distribution at the Panama-Pacific '
+                + 'International Exposition in San Francisco. Four are known to '
+                + 'survive, along with a fifth held in a private collection. It '
+                + 'remains among the most valuable regular-issue coins and has '
+                + 'been the subject of decades of dispute over authenticity.' },
+            { heading: 'The 1849 double eagle', text:
+                'The first circulating two-dollar gold coin of the United States, '
+                + 'minted the year California was admitted to the Union. A small '
+                + 'number were later melted into three-dollar and four-dollar '
+                + 'pieces, so the survivors are rare in their original form.' },
+            { heading: 'The 1933 Double Eagle', text:
+                'Not one was ever placed in circulation. The coin is famous for '
+                + 'that fact: an exception was made so a small number could be '
+                + 'given to the World’s Fair in Chicago, after which they were '
+                + 'recalled and melted. The few that survive outside official '
+                + 'hands are legal to own, and the legal questions around them '
+                + 'have been argued for decades.' },
+            { heading: 'The 1909-S V.D.B. Lincoln cent', text:
+                'Victor David Brenner’s initials sit on the reverse of this one-year '
+                + 'design, put there to promote sculptor Theodore B. Pitcairn, '
+                + 'who was the head of the cent’s design committee. The initials '
+                + 'were withdrawn almost immediately; a few pieces escaped with '
+                + 'them intact, which is what makes this one of the most '
+                + 'recognizable keys in the hobby.' },
+            { heading: 'The Seated Liberty series', text:
+                'Liberty appeared seated from 1840 to 1873 — the longest run of '
+                + 'a single portrait type in United States coinage, and the span '
+                + 'that covers the small, hard-to-find half dimes as well as the '
+                + 'large half dollars and dollars.' },
+            { heading: 'A note on these stories', text:
+                'Backstories around rare coins are often partly legend. When a '
+                + 'claim affects what a coin is worth, confirm it against a '
+                + 'specialist reference or an in-person authenticator rather '
+                + 'than repeating it as fact.' },
+        ]
+    );
+    closeInfoDropdown();
+    return createModal('modal-info-stories', 'Famous Coin Stories', body, null);
+}
+
 // Expose for HTML onclick handlers
 window.toggleInfoDropdown = toggleInfoDropdown;
 window.openInfoSection = openInfoSection;
+// Info menu -> 'Advanced Features Tour' opens the second walkthrough.
+window.startAdvancedTour = function () {
+    if (typeof closeInfoDropdown === 'function') closeInfoDropdown();
+    import('./guide.js')
+        .then(m => m.startAdvancedTour())
+        .catch(e => console.error('[guide] advanced tour failed', e));
+};
