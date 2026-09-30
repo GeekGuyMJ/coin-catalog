@@ -935,6 +935,146 @@ function getVisibleBullionMetals() {
     } catch(e) { return {}; }
 }
 
+
+/* ================================================================
+   Collapsible entry forms.                                2026-09-30
+   Every card that can accept new entries keeps its form behind
+   an Add button. Clicking it reveals the form and the card grows
+   to exactly the size it had before; submitting or cancelling
+   collapses it again. The open state is remembered per card, so
+   a half-filled form survives a reload instead of vanishing.
+
+   The submit handlers captured their field refs onto the button
+   (btn._catSel, btn._nameIn, ...) when the form was built, so
+   hiding the form cannot orphan them, and a successful save
+   re-renders the card -- which returns it to collapsed for free.
+   ================================================================ */
+var _FORM_FOLD_KEY = 'cc-card-form-open';
+
+function _formOpenState() {
+    try { return JSON.parse(localStorage.getItem(_FORM_FOLD_KEY) || '{}'); }
+    catch (e) { return {}; }
+}
+
+function _formIsOpen(key) { return !!_formOpenState()[key]; }
+
+function _formSetOpen(key, open) {
+    var st = _formOpenState();
+    if (open) { st[key] = 1; } else { delete st[key]; }
+    try { localStorage.setItem(_FORM_FOLD_KEY, JSON.stringify(st)); }
+    catch (e) { /* private mode: fold state is best-effort */ }
+}
+
+/**
+ * Wire a card's form to an Add button.
+ *   form   the .v1-form element
+ *   addBtn the existing .v1-add-btn (kept, given the toggle role)
+ *   key    unique per card, e.g. 'paper'
+ *   label  the collapsed-state label, e.g. 'Add Banknote'
+ */
+function _foldCardForm(form, addBtn, key, label) {
+    if (!form || !addBtn) return;
+    var _FIELDS = 'input:not([type=file]), select, textarea';
+    form.id = form.id || ('fold-' + key);
+
+    // The Add button is width:100%, so Cancel needs a flex ROW or it
+    // wraps onto its own line and the card stays tall. The row is what
+    // shows when collapsed; the form is a sibling of it.
+    var row = el('div', { className: 'v1-form-actions' });
+    var cancel = el('button', {
+        className: 'v1-cancel-btn',
+        type: 'button',
+        style: 'display:none;'
+    }, 'Cancel');
+
+    addBtn.type = 'button';
+    addBtn.setAttribute('aria-expanded', 'false');
+    addBtn.setAttribute('aria-controls', form.id);
+
+    var setOpen = function(open) {
+        if (open) {
+            form.style.display = '';
+            row.style.display = '';
+            cancel.style.display = '';
+            addBtn.setAttribute('aria-expanded', 'true');
+        } else {
+            // Collapsed: one full-width Add button and nothing else.
+            form.style.display = 'none';
+            cancel.style.display = 'none';
+            addBtn.setAttribute('aria-expanded', 'false');
+        }
+    };
+
+    var toggle = function() {
+        var willOpen = form.style.display === 'none';
+        setOpen(willOpen);
+        _formSetOpen(key, willOpen);
+        if (willOpen) {
+            form._foldBase = snapshot();
+            var f = form.querySelector(_FIELDS);
+            if (f && f.focus) setTimeout(function(){ try { f.focus(); } catch (e) {} }, 0);
+        }
+    };
+
+    // While collapsed the existing Add button opens the form instead of
+    // submitting. While open it submits exactly as before, so no
+    // behaviour changes for anyone mid-entry.
+    addBtn._submitHandler = addBtn.onclick;
+    addBtn.addEventListener('click', function (e) {
+        if (form.style.display === 'none') {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle();
+        }
+        // otherwise: fall through, the existing handler submits
+    }, true);
+
+    // "Has the user typed anything?" must compare against the form's
+    // INITIAL state. A <select> sitting on its first option and a
+    // pre-checked checkbox both have values, so a naive non-empty test
+    // fires the confirm on a pristine form -- and the native confirm()
+    // blocks the page, which is exactly what happened.
+    var snapshot = function () {
+        var m = {};
+        Array.prototype.forEach.call(form.querySelectorAll(_FIELDS), function (f, i) {
+            m[i] = (f.type === 'checkbox' || f.type === 'radio') ? !!f.checked
+                                                             : (f.value || '');
+        });
+        return m;
+    };
+    var dirty = function (base) {
+        var now = snapshot();
+        return Object.keys(now).some(function (k) { return now[k] !== base[k]; });
+    };
+
+    cancel.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (dirty(form._foldBase || snapshot()) &&
+            !window.confirm('Discard what you typed?')) return;
+        form.reset && form.reset();
+        setOpen(false);
+        _formSetOpen(key, false);
+        addBtn.focus();
+    });
+
+    // Escape closes, from anywhere inside the form
+    form.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); cancel.click(); }
+    });
+
+    // Move Add into the row behind Cancel, and put the row where Add was.
+    var host = addBtn.parentNode;
+    if (host) {
+        host.insertBefore(row, addBtn);
+        row.appendChild(cancel);
+        row.appendChild(addBtn);
+    }
+
+    // restore the remembered state, defaulting to closed
+    setOpen(_formIsOpen(key));
+}
+
 function buildBullionCard(items, p, prices) {
     if (!Array.isArray(items)) items = [];
     var card = el('div', { className: 'card dashboard-card bullion-card', id: 'card-bullion', style: 'display:flex;flex-direction:column;' });
@@ -1082,7 +1222,8 @@ function buildBullionCard(items, p, prices) {
     addBtn._prices = prices;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'bullion', 'Add Bullion Entry');;
     return card;
 }
 
@@ -1333,7 +1474,8 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     addBtn._notesIn = notesIn;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'bulk', 'Add Bulk Entry');;
     return card;
 }
 
@@ -1832,7 +1974,8 @@ function buildScrapMetalCard(items, prices) {
     addBtn._customPurIn = customPurIn;
     addBtn._prices = prices;
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'scrap', 'Add Scrap Item');;
     return card;
 }
 
@@ -2001,7 +2144,8 @@ function buildPaperCurrencyCard(items) {
     addBtn.getRevImage = () => revBase64;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'paper', 'Add Banknote');;
     return card;
 }
 
@@ -2126,7 +2270,8 @@ function buildCustomCategoriesCard(categories, collectables) {
     addBtn.getPhoto = () => photoBase64;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'collect', 'Add Item');;
     return card;
 }
 
