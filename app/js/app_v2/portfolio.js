@@ -1063,12 +1063,28 @@ function _foldCardForm(form, addBtn, key, label) {
         if (e.key === 'Escape') { e.preventDefault(); cancel.click(); }
     });
 
-    // Move Add into the row behind Cancel, and put the row where Add was.
-    var host = addBtn.parentNode;
+    // The row must END UP AS A SIBLING of the form, not inside it.
+    //
+    // Putting it inside .v1-form meant the collapsed state's
+    // `form.style.display = 'none'` hid the Add button along with the
+    // entry rows. Every card measured 0x0 for its button and the
+    // "Add your first entry below" text pointed at nothing clickable.
+    // addBtn is a CHILD of form (form.appendChild(addBtn) in every card),
+    // so addBtn.parentNode IS the form. Putting the row inside the form is
+    // what hid the button, and inserting it as a sibling needs the form's
+    // own parent -- get that from the form, not from the button.
+    //
+    // Getting this wrong threw:
+    //   NotFoundError: Failed to execute 'insertBefore' on 'Node':
+    //   The node before which the new node is to be inserted is not a
+    //   child of this node.
+    // which killed the render after card-portfolio, leaving 1 of 12 cards
+    // on the page.
+    var host = form.parentNode;
     if (host) {
-        host.insertBefore(row, addBtn);
         row.appendChild(cancel);
-        row.appendChild(addBtn);
+        row.appendChild(addBtn);      // moves the button OUT of the form
+        host.insertBefore(row, form);  // now both share a parent
     }
 
     // restore the remembered state, defaulting to closed

@@ -4803,6 +4803,12 @@ html, body {
     align-items: center;
     gap: 0;
     margin-top: 2px;
+    /* the entry rows follow this when open; give them breathing room */
+    margin-bottom: 0;
+}
+/* when the form is closed the Add button is the last thing in the card */
+.v1-form-actions:last-child {
+    margin-top: 4px;
 }
 .v1-form-actions .v1-add-btn {
     flex: 1 1 auto;
