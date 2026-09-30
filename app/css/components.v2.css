@@ -4719,3 +4719,69 @@ html, body {
 #card-portfolio .finance-item .finance-label {
     overflow-wrap:    anywhere;
 }
+
+/* ================================================================
+   Header logo size — ONE ladder, width only.                2026-09-30
+   Replaces four conflicting rules:
+     .header-logo                            105px  (default)
+     #app-header .header-logo                 60px  (max-width: 768px)
+     #app-header .header-logo                 45px  (max-width: 480px)
+     #app-header .header-inner .header-logo   60px  (max-width: 900px and
+                                                   orientation: landscape)
+   The landscape query made the size depend on the window's SHAPE, so
+   dragging a corner flipped it small/big/small/big. Width alone is the
+   real constraint, and a phone held landscape is simply wider, so it gets
+   the larger logo anyway — the original intent, without the flicker.
+   Monotonic: exactly one change, at 768px. The 45px phone size now
+   actually applies (it was overridden by a 60px !important in a later file).
+   ================================================================ */
+#app-header .header-logo,
+#app-header .header-inner .header-logo,
+#app-header #header-coin-img {
+    width: 105px !important;
+    height: 105px !important;
+    min-width: 105px !important;
+    min-height: 105px !important;
+    max-width: 105px !important;
+    max-height: 105px !important;
+    aspect-ratio: 1 / 1 !important;
+    object-fit: cover !important;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    #app-header .header-logo,
+    #app-header .header-inner .header-logo,
+    #app-header #header-coin-img {
+        width: 60px !important;
+        height: 60px !important;
+        min-width: 60px !important;
+        min-height: 60px !important;
+        max-width: 60px !important;
+        max-height: 60px !important;
+        aspect-ratio: 1 / 1 !important;
+        object-fit: cover !important;
+        border-radius: 50%;
+        margin: 0 0 -20px 0 !important;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 480px) {
+    #app-header .header-logo,
+    #app-header .header-inner .header-logo,
+    #app-header #header-coin-img {
+        width: 45px !important;
+        height: 45px !important;
+        min-width: 45px !important;
+        min-height: 45px !important;
+        max-width: 45px !important;
+        max-height: 45px !important;
+        aspect-ratio: 1 / 1 !important;
+        object-fit: cover !important;
+        border-radius: 50%;
+        margin: 0 0 -12px 0 !important;
+        flex-shrink: 0;
+    }
+}
