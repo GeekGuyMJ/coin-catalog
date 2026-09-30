@@ -649,6 +649,13 @@ export async function renderDashboard() {
     var sup = buildSupportCard();
     if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup); }
 
+    // 2026-09-30: plain-language backup card (Matthew). One sentence
+    // stating where the data lives, one button to act on it.
+    var bkp = buildBackupCard();
+    if (vis['card-backup'] === false) bkp.style.display = 'none';
+    addDragHandle(bkp);
+    c.appendChild(bkp);
+
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
     applyDashboardSizes();
@@ -737,6 +744,175 @@ function buildWishlistCard(wishlist) {
     };
     card.appendChild(manageBtn);
     
+    return card;
+}
+
+
+/* ================================================================
+   Backup card: state the situation in one sentence.      2026-09-30
+   Every capability here already exists in Settings -> Cloud Sync.
+   The problem was discoverability, not capability: "Cloud Sync"
+   inside a dropdown of 18 items, phrased in provider terms, does not
+   tell anyone that losing this device means losing the collection.
+   ================================================================ */
+function buildBackupCard() {
+    const card = el('div', {
+        className: 'card dashboard-card backup-card',
+        id: 'card-backup',
+        style: 'display:flex;flex-direction:column;'
+    });
+    card.appendChild(el('div', { className: 'card-title' }, 'Your Backup'));
+
+    const body = el('div', { style: 'display:flex;flex-direction:column;gap:10px;flex:1;' });
+    const status = el('div', { className: 'settings-text', style: 'font-size:0.85em;line-height:1.5;' });
+    const actions = el('div', { style: 'display:flex;flex-direction:column;gap:8px;' });
+    body.appendChild(status);
+    body.appendChild(actions);
+    card.appendChild(body);
+
+    const openSync = () => import('./settingsDropdown.js')
+        .then(m => m.showCloudSyncModal())
+        .catch(() => import('./modals.js').then(m => m.showCloudSyncModal && m.showCloudSyncModal()));
+
+    const paint = async () => {
+        let sync;
+        try { sync = await import('./sync.js'); } catch (e) { sync = null; }
+        actions.innerHTML = '';
+
+        if (!sync) {
+            status.textContent = 'Backup options are unavailable right now.';
+            return;
+        }
+
+        const provider = sync.getCurrentProvider();
+        const authed = provider ? sync.getProviderAuthState(provider.id) : null;
+        const isSignedIn = !!(provider && authed && (authed.accessToken || authed.token || authed.connected));
+
+        if (!isSignedIn) {
+            status.textContent =
+                'Your data is saved on this device only. If this device is lost or '
+                + 'reset, your collection goes with it. Sign in to keep a backup.';
+            actions.appendChild(el('button', {
+                className: 'btn-primary',
+                style: 'width:100%;',
+                onclick: openSync
+            }, 'Set Up Backup'));
+            return;
+        }
+
+        const auto = sync.isAutoBackupEnabled();
+        const hours = sync.getAutoBackupHours();
+        if (auto) {
+            status.textContent = 'Your collection is backed up automatically'
+                + (hours ? ' every ' + hours + ' hour' + (hours === 1 ? '' : 's') : '')
+                + '. You can also restore it at any time.';
+        } else {
+            status.textContent =
+                'You are signed in to ' + (provider.name || 'your cloud') + ', but '
+                + 'backups only happen when you ask. Turn on automatic backups so '
+                + 'you do not have to remember.';
+        }
+
+        // backup now
+        actions.appendChild(el('button', {
+            className: 'btn-secondary',
+            style: 'width:100%;',
+            onclick: async (e) => {
+                const b = e.currentTarget;
+                const old = b.textContent;
+                b.textContent = 'Backing up...';
+                b.disabled = true;
+                try {
+                    await sync.syncToCloud();
+                    b.textContent = 'Backed Up';
+                } catch (err) {
+                    b.textContent = 'Backup Failed';
+                }
+                setTimeout(() => { b.textContent = old; b.disabled = false; }, 2200);
+            }
+        }, 'Back Up Now'));
+
+        // automatic backups, on/off with its own interval
+        const autoBtn = el('button', {
+            className: auto ? 'btn-secondary' : 'btn-primary',
+            style: 'width:100%;',
+            onclick: () => {
+                sync.setAutoBackupEnabled(!sync.isAutoBackupEnabled());
+                paint();
+            }
+        }, auto ? 'Turn Off Automatic Backups' : 'Turn On Automatic Backups');
+        actions.appendChild(autoBtn);
+
+        if (auto) {
+            const row = el('div', { style: 'display:flex;align-items:center;gap:8px;' });
+            row.appendChild(el('label', { style: 'font-size:0.82em;flex:1;' }, 'Every'));
+            const sel = el('select', {
+                style: 'padding:4px 8px;font-size:0.85em;background:var(--color-bg-card);'
+                     + 'color:var(--color-text-main);border:1px solid var(--color-border-light);'
+                     + 'border-radius:6px;',
+                onchange: (e) => {
+                    sync.setAutoBackupHours(parseInt(e.target.value, 10));
+                    paint();
+                }
+            }, [1, 3, 6, 12, 24].map(h => el('option',
+                { value: h, selected: h === hours }, h + 'h')));
+            row.appendChild(sel);
+            row.appendChild(el('span', { style: 'font-size:0.82em;' }, 'or less often'));
+            actions.appendChild(row);
+        }
+
+        // recovery
+        actions.appendChild(el('button', {
+            className: 'btn-secondary',
+            style: 'width:100%;',
+            onclick: (e) => {
+                const b = e.currentTarget;
+                if (b.dataset.armed === '1') {
+                    delete b.dataset.armed;
+                    b.textContent = 'Recover From Backup';
+                    b.classList.remove('btn-primary');
+                    return;
+                }
+                // Restoring overwrites local data, so make it deliberate.
+                b.dataset.armed = '1';
+                b.textContent = 'Tap again to confirm — this replaces this device\u2019s data';
+                b.classList.add('btn-primary');
+                setTimeout(() => {
+                    if (b.dataset.armed === '1') {
+                        delete b.dataset.armed;
+                        b.textContent = 'Recover From Backup';
+                        b.classList.remove('btn-primary');
+                    }
+                }, 6000);
+            },
+            ondblclick: null
+        }, 'Recover From Backup'));
+        // the actual restore runs on the second click
+        actions.lastChild.addEventListener('click', async (e) => {
+            const b = e.currentTarget;
+            if (b.dataset.armed !== '1') return;   // first click only armed it
+            b.textContent = 'Recovering...';
+            b.disabled = true;
+            try {
+                await sync.syncFromCloud();
+                b.textContent = 'Recovered';
+                setTimeout(() => location.reload(), 900);
+            } catch (err) {
+                b.textContent = 'Recovery Failed';
+                b.disabled = false;
+                setTimeout(() => { b.textContent = 'Recover From Backup'; }, 2200);
+            }
+        }, true);
+
+        actions.appendChild(el('button', {
+            style: 'width:100%;background:transparent;border:none;color:var(--color-text-muted);'
+                 + 'font-size:0.8em;cursor:pointer;text-decoration:underline;',
+            onclick: openSync
+        }, 'More backup options'));
+    };
+
+    paint();
+    card._backupRepaint = paint;
     return card;
 }
 

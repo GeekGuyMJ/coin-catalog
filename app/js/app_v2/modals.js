@@ -1022,6 +1022,7 @@ function buildCardVisibilityRows() {
         { id: 'card-paper', label: 'Paper Currency', desc: 'Paper currency entries and value' },
         { id: 'card-custom', label: 'Custom Categories', desc: 'Other collectables and categories' },
         { id: 'card-wishlist', label: 'Wishlist', desc: 'Display target grade, price, notes, and acquired state' },
+        { id: 'card-backup', label: 'Backup', desc: 'Plain-language backup, auto-backup and recovery' },
         { id: 'card-gallery', label: 'Photos & Documents', desc: 'Capture or upload pictures to document your collection' },
         { id: 'card-search', label: 'Search Bar', desc: 'Full-text search and year filters' },
     ];
