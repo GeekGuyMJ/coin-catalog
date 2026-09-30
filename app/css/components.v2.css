@@ -4840,3 +4840,59 @@ html, body {
 .dashboard-card .v1-form:not([style*="display: none"]) {
     margin-top: 4px;
 }
+
+/* ================================================================
+   Long reference guides (searchable, collapsible).     2026-09-30
+   ================================================================ */
+.info-longguide { display: flex; flex-direction: column; gap: 8px; }
+.info-guide-search {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 0.9em;
+    background: var(--color-bg-input, var(--color-bg-card));
+    color: var(--color-text-main);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-base, 6px);
+}
+.info-guide-search:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+.info-guide-count {
+    font-size: 0.78em;
+    color: var(--color-text-muted);
+}
+.info-guide-sections { display: flex; flex-direction: column; gap: 2px; }
+.info-guide-sec { border-bottom: 1px solid var(--color-border-light); }
+.info-guide-h {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 2px;
+    background: transparent;
+    border: none;
+    color: var(--color-text-main);
+    font-size: 0.88em;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+.info-guide-hn { flex: 1; }
+.info-guide-hc { flex: 0 0 auto; transition: transform 120ms; }
+.info-guide-h[aria-expanded="false"] .info-guide-hc { transform: rotate(-90deg); }
+.info-guide-b { padding: 0 2px 10px 2px; }
+.info-guide-b .info-text { margin: 0 0 6px 0; }
+.info-li { margin: 0 0 4px 14px; font-size: 0.85em; line-height: 1.45; }
+.info-guide-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8em;
+    margin: 4px 0 8px 0;
+}
+.info-guide-tbl th, .info-guide-tbl td {
+    text-align: left;
+    padding: 3px 6px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+.info-guide-tbl th { color: var(--color-text-muted); font-weight: 600; }
