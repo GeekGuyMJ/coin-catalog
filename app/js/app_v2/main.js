@@ -326,13 +326,81 @@ async function fetchSpotPricesBackground() {
 // PWA install prompt
 // ============================================================
 
+/* ================================================================
+   Install vs. Google Play                                 2026-09-30
+   The public build must not offer PWA install: Google Play is
+   the phone path, and offering both asks the user to choose
+   between two different answers to the same question.
+
+   PUBLIC IS DETECTED AT RUNTIME, not by a separate build, because
+   the self-hosted copy is Matthew's own working app and must keep
+   the install button. Two signals:
+
+     1. <html data-publish-target="public">   authoritative, written
+        by the deploy
+     2. the host is not a private name        defensive, so a copy
+        deployed somewhere else does not start offering a Play
+        link that has no store page
+
+   The Play button is DISABLED and hidden until PLAY_STORE_URL holds
+   a real listing. Shipping an enabled button that goes nowhere is
+   worse than shipping no button, so the URL is deliberately empty.
+   ================================================================ */
+const PLAY_STORE_URL = '';   // set to a real listing when the app is published
+
+function isPublicBuild() {
+    const flag = document.documentElement.getAttribute('data-publish-target');
+    if (flag === 'public') return true;
+    // defensive: treat an ordinary public hostname as public
+    const h = window.location.hostname || '';
+    return !(/\.(ts\.net|local|lan|home|internal)$/.test(h) ||
+              /^localhost$|^127\./.test(h) ||
+              /^192\.168\./.test(h) ||
+              /^10\./.test(h));
+}
+
+function initPlayStoreLink() {
+    const play = document.getElementById('btn-play');
+    const install = document.getElementById('btn-install');
+    const isPublic = isPublicBuild();
+
+    // Suppress PWA install on the public build by never revealing the
+    // button. beforeinstallprompt is the only thing that shows it, and
+    // the appinstalled handler hides it again.
+    if (isPublic && install) {
+        install.dataset.suppressed = '1';
+        install.style.display = 'none';
+        install.setAttribute('aria-hidden', 'true');
+        install.setAttribute('hidden', '');
+    }
+
+    if (!play) return;
+
+    if (isPublic && PLAY_STORE_URL) {
+        play.disabled = false;
+        play.removeAttribute('aria-disabled');
+        play.setAttribute('title', 'Get the Android app on Google Play');
+        play.onclick = function () {
+            window.open(PLAY_STORE_URL, '_blank', 'noopener');
+        };
+        play.style.display = 'inline-flex';
+    } else if (isPublic) {
+        // Not published yet. Keep it hidden rather than offering a
+        // dead button; the title documents why it is here.
+        play.title = 'The Android app is not published yet';
+        play.style.display = 'none';
+    }
+    play.dataset.publicBuild = isPublic ? '1' : '0';
+}
+
+
 let _installPrompt = null;
 
 window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     _installPrompt = e;
     const btn = document.getElementById('btn-install');
-    if (btn) btn.style.display = 'inline-flex';
+    if (btn && !btn.dataset.suppressed) btn.style.display = 'inline-flex';
 });
 
 window.addEventListener('appinstalled', () => {
@@ -340,6 +408,8 @@ window.addEventListener('appinstalled', () => {
     const btn = document.getElementById('btn-install');
     if (btn) btn.style.display = 'none';
 });
+
+initPlayStoreLink();
 
 window.triggerPWAInstall = async () => {
     if (!_installPrompt) return;
@@ -383,7 +453,9 @@ function fitHeader() {
         for (const id of hideable) {
             const b = document.getElementById(id);
             if (!b) continue;
-            if (id === 'btn-install') b.style.display = installVisible ? '' : 'none';
+            if (id === 'btn-install') {
+            b.style.display = (installVisible && !b.dataset.suppressed) ? '' : 'none';
+        }
         }
         return;
     }
@@ -392,7 +464,9 @@ function fitHeader() {
     for (const id of hideable) {
         const b = document.getElementById(id);
         if (!b) continue;
-        if (id === 'btn-install') b.style.display = installVisible ? '' : 'none';
+        if (id === 'btn-install') {
+            b.style.display = (installVisible && !b.dataset.suppressed) ? '' : 'none';
+        }
         else b.style.display = '';
     }
 

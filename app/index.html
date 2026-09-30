@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-publish-target="public">
 <head>
 <script>
 if ('serviceWorker' in navigator) {
@@ -183,6 +183,25 @@ if ('serviceWorker' in navigator) {
         </div>
 
         <div class="header-right">
+            <!-- 2026-09-30 Matthew: the public app must not offer PWA
+                 install. Google Play is the phone path instead. The Play
+                 button ships DISABLED and hidden until PLAY_STORE_URL is a
+                 real listing -- a "coming soon" button that goes nowhere is
+                 worse than no button. See main.js: initPlayStoreLink(). -->
+            <button id="btn-play" class="btn-header" style="display:none"
+                    disabled aria-disabled="true"
+                    title="The Android app is not published yet"
+                    aria-label="Android app (coming soon)">
+                <!-- Google Play triangle -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M3.6 1.8a1.4 1.4 0 0 0-.6 1.15v18.1c0 .47.22.89.6 1.15l.09.08 10.1-10.13v-.22L3.7 1.72l-.1.08z"/>
+                    <path d="M17.3 14.28l-3.57-3.57v-.25l3.58-3.58.08.05 4.25 2.41c1.21.69 1.21 1.81 0 2.5l-4.25 2.4-.09.04z"/>
+                    <path d="M17.38 14.23l-3.65-3.64-10.66 10.66c.4.42.94.47 1.6.05l12.71-7.07z" opacity=".85"/>
+                    <path d="M17.38 9.85L4.67 2.78c-.66-.42-1.2-.37-1.6.05l10.66 10.66 3.65-3.64z" opacity=".7"/>
+                </svg>
+                <span>Android App</span>
+            </button>
+
             <button id="btn-install" class="btn-header" style="display:none" onclick="triggerPWAInstall()" aria-label="Install app">
                 <!-- Download/install icon -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
