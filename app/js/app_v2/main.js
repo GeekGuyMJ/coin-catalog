@@ -470,136 +470,13 @@ function initViewToggle() {
 // Layout Toggle — Dashboard Grid
 // ============================================================
 
-/* ================================================================
-   Balanced layout: pack cards into rows of similar height.
-                                          2026-09-30
-   A fourth option on the dashboard layout button. Cards are grouped
-   so a row's members are within BAL_TOLERANCE of each other in
-   natural height, and each card gets an explicit column span so the
-   row fills the width exactly. A card much taller than its
-   neighbours ends up in a row by itself, which puts the wasted space
-   in a row with one card rather than stretching three short cards.
-
-   main.js is a MODULE, so these identifiers are not on window. Inside
-   this module a bare reference resolves; a window. lookup would report
-   the function missing while it works fine.
-
-   Re-packing uses a MutationObserver on #app-main, a stable ancestor,
-   because the grid element itself can be re-created. That one
-   mechanism covers save, delete, toggle, filter and layout changes,
-   so no render function needs patching -- renderDashboard is in fact
-   a DIFFERENT function in three different modules.
-   ================================================================ */
-var BAL_TOLERANCE = 1.45;   // 1.0 = exact match, 1.45 = generous
-
-function packBalancedRows() {
-    var grid = document.getElementById('dashboard-grid');
-    if (!grid || !grid.classList.contains('layout-balanced')) return;
-
-    var cards = Array.prototype.slice.call(
-        grid.querySelectorAll(':scope > .dashboard-card'));
-    if (!cards.length) return;
-
-    // A card measured while spanning 2 columns was NARROW and therefore
-    // taller than it should be, so the previous pack must be undone
-    // before measuring. Clear, force a reflow, then measure.
-    cards.forEach(function (c) { c.style.gridColumn = ''; });
-    cards.forEach(function (c) { c.style.alignSelf = 'start'; });
-    void grid.offsetHeight;
-    var heights = cards.map(function (c) { return c.getBoundingClientRect().height; });
-
-    var cols = getComputedStyle(grid).gridTemplateColumns
-                 .split(' ').filter(Boolean).length || 1;
-
-    // Group into rows of similar height.
-    //
-    // A card much TALLER than the row so far starts a new row. The
-    // first card always seeds its own row -- seeding curMax at 0 made
-    // "h > curMax * tol" false for everything after a tall first card,
-    // so the row never closed (measured: rowSizes [12]).
-    var rows = [], cur = [], curMax = 0;
-    for (var i = 0; i < cards.length; i++) {
-        var h = heights[i];
-        if (cur.length && h > curMax * BAL_TOLERANCE) {
-            rows.push(cur);
-            cur = [];
-            curMax = 0;
-        }
-        cur.push(i);
-        if (h > curMax) curMax = h;
-    }
-    if (cur.length) rows.push(cur);
-
-    // Emit spans so each row fills the width exactly and never overflows.
-    rows.forEach(function (row) {
-        var k = row.length;
-        if (k >= cols) {
-            row.forEach(function (i) { cards[i].style.gridColumn = 'span 1'; });
-            return;
-        }
-        var base = Math.floor(cols / k), extra = cols % k, used = 0;
-        row.forEach(function (i, j) {
-            var span = base + (j < extra ? 1 : 0);
-            used += span;
-            cards[i].style.gridColumn = 'span ' + span;
-        });
-        if (used < cols && row.length) {
-            // integer division left a gap; give the slack to one card
-            var last = row[row.length - 1];
-            var have = parseInt((cards[last].style.gridColumn.match(/\d+/) || [1])[0], 10);
-            cards[last].style.gridColumn = 'span ' + (have + (cols - used));
-        }
-    });
-
-    cards.forEach(function (c) { c.style.alignSelf = ''; });
-}
-
-function scheduleBalancedPack() {
-    var grid = document.getElementById('dashboard-grid');
-    if (!grid || !grid.classList.contains('layout-balanced')) return;
-    clearTimeout(scheduleBalancedPack._t);
-    scheduleBalancedPack._t = setTimeout(function () {
-        // two frames: one for layout, one for the spans to settle
-        requestAnimationFrame(function () { requestAnimationFrame(packBalancedRows); });
-    }, 80);
-}
-
-function initBalancedLayout() {
-    var host = document.getElementById('app-main') || document.body;
-    if (!host || host._balObserved) return;
-    host._balObserved = true;
-    new MutationObserver(scheduleBalancedPack).observe(host, {
-        childList: true, subtree: true
-    });
-    // An observer only fires on a MUTATION, so the first pack has to be
-    // asked for explicitly.
-    scheduleBalancedPack();
-}
-
-/* Poll for the grid at module load rather than relying on applyLayout,
-   whose call site was being missed (grid._balObserved was false in the
-   browser even with the class correctly applied). */
-function initBalancedWhenReady() {
-    if (document.getElementById('dashboard-grid')) { initBalancedLayout(); return; }
-    var tries = 0;
-    var t = setInterval(function () {
-        if (document.getElementById('dashboard-grid') || ++tries > 150) {
-            clearInterval(t);
-            initBalancedLayout();
-        }
-    }, 100);
-}
-
 function initLayoutToggle() {
     const btn = document.getElementById('btn-layout');
     if (!btn) return;
     
     // Three modes: Grid (default auto-fill), Compact (2-col equal), List (single column)
-    // 2026-09-30: 'Balanced' packs rows by height so one tall card
-    // does not stretch its neighbours. See packBalancedRows().
-    const layouts    = ['layout-grid', 'layout-compact', 'layout-list',
-                        'layout-balanced'];
-    const layoutNames = ['Grid', 'Compact', 'List', 'Balanced'];
+    const layouts    = ['layout-grid', 'layout-compact', 'layout-list'];
+    const layoutNames = ['Grid', 'Compact', 'List'];
     let currentIdx = parseInt(localStorage.getItem('cc-dashboard-layout') || '0', 10);
     if (isNaN(currentIdx) || currentIdx < 0 || currentIdx >= layouts.length) currentIdx = 0;
 
@@ -614,20 +491,11 @@ function initLayoutToggle() {
         grid.classList.remove(...layouts);
         grid.classList.add(layouts[currentIdx]);
         updateButtonLabel();
-        initBalancedLayout();
-        requestAnimationFrame(function () { requestAnimationFrame(packBalancedRows); });
     };
     
     // Apply after grid is rendered
     setTimeout(applyLayout, 100);
 
-    // Re-pack on resize: the column count changes, and so does every
-    // card's natural height, so a pack made at the old width is wrong.
-    let _balT = null;
-    window.addEventListener('resize', () => {
-        clearTimeout(_balT);
-        _balT = setTimeout(packBalancedRows, 180);
-    });
     
     btn.addEventListener('click', () => {
         currentIdx = (currentIdx + 1) % layouts.length;
@@ -641,7 +509,6 @@ function initLayoutToggle() {
 // User Guide Modal — First-time user onboarding
 // Initialize the first-launch popup + guided tour
 initFirstLaunch();
-initBalancedWhenReady();
 
 
 // ============================================================
