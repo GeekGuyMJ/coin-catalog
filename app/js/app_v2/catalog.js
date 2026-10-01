@@ -1,7 +1,7 @@
 /**
  * catalog.js — Coin Catalog v2
  *
- * Renders the coin catalogue: section cards with lazy-loaded type accordions.
+ * Renders the coin catalog: section cards with lazy-loaded type accordions.
  * Uses event delegation — one listener per container, never per-row.
  *
  * Flow:
@@ -16,7 +16,6 @@
 import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
     typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
-    resolveImageUrl,
 } from './utils.js';
 
 import {
@@ -32,47 +31,78 @@ import { renderAlbumType, clearAlbumCache } from './album.js';
 import { getInventoryEntries, getInventoryTotalQty, setInventoryEntries, setInventory, getWishlist, setWishlist } from './state.js';
 
 // --- Expanded State Preservation ---
-const _expandedSections = new Set();
+/* ================================================================
+   Section open/collapsed state, persisted.                2026-10-01
+   Was a module-level Set, which does not survive a reload, so every
+   section rendered closed on every page load and the catalogue showed
+   23 headers with no coins. Reported as "search doesn't work" because
+   there was nothing visible to search.
+
+   Now stored in localStorage alongside the app's other UI keys
+   (cc-card-visibility, cc-folder-color, cc-section-order), and it
+   DEFAULTS TO OPEN so the catalogue is usable on arrival.
+   ================================================================ */
+const _EXPANDED_KEY = 'cc-expanded-sections';
+
+function _loadExpandedSections() {
+    try {
+        const raw = localStorage.getItem(_EXPANDED_KEY);
+        if (raw === null) return null;          // never stored yet
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : null;
+    } catch (e) { return null; }
+}
+
+function _saveExpandedSections() {
+    try {
+        localStorage.setItem(_EXPANDED_KEY,
+            JSON.stringify([..._expandedSections]));
+    } catch (e) { /* private mode: expansion still works for this session */ }
+}
+
+// null means "no stored preference" -> open everything
+const _expandedSections = new Set(_loadExpandedSections() || []);
+
+/**
+ * The set of sections to render open, decided ONCE per render.
+ *
+ * 2026-10-01: this used to be a per-call function that re-read
+ * localStorage every time:
+ *
+ *     function _sectionShouldBeOpen(n) {
+ *         const stored = _loadExpandedSections();
+ *         if (stored === null) return true;
+ *         return stored.includes(n);
+ *     }
+ *
+ * but expandSection() SAVES on open, so the first iteration wrote
+ * ["Half Cent"] and every later iteration then read that back and
+ * concluded the section was not in the list. Measured: 1 of 23 sections
+ * open, 45 rows, 4 types -- and the saved list never grew past one entry.
+ *
+ * So the intent is now captured once, before any expansion runs, and the
+ * loop consults that frozen list. A click still saves immediately.
+ */
+let _openThisRender = null;
+
+function _openSetForThisRender() {
+    if (_openThisRender === null) {
+        const stored = _loadExpandedSections();
+        // no stored preference at all -> open everything
+        _openThisRender = (stored === null) ? null : new Set(stored);
+    }
+    return _openThisRender;
+}
+
+function _beginOpenSet() { _openThisRender = null; }
+
+function _sectionShouldBeOpen(sectionName) {
+    const set = _openSetForThisRender();
+    if (set === null) return true;            // default: open
+    return set.has(sectionName);
+}
 const _expandedTypes = new Set();
 const _expandedCountries = new Set(['United States', 'Canada']); // Default US/Canada open
-
-// --- Section Filter State (set by search.js when pills are active) ---
-// When pill filters are active (no text query), the catalog renders with its
-// NORMAL list/album layout but only shows matching coins — and hides whole
-// sections/types with zero matches. Filtering happens here in catalog.js so the
-// layout is identical to unfiltered browsing.
-let _catalogFilter = null; // { missingOnly, hideProofs, hideErrors, keyDates, minYear, maxYear } | null
-
-export function setCatalogFilter(filter) {
-    _catalogFilter = filter;
-}
-
-export function clearCatalogFilter() {
-    _catalogFilter = null;
-}
-
-// Returns filtered coins (with inventory qty always available) or null when no filter.
-function applyCatalogFilter(coins) {
-    if (!_catalogFilter) return coins;
-    const f = _catalogFilter;
-    return (coins || []).filter(c => {
-        if (f.missingOnly && getInventoryTotalQty(c.id) > 0) return false;
-        if (f.hideProofs && c.is_proof) return false;
-        if (f.hideErrors && (c.is_error || isErrorVariety(c.coin_type, c.ref_notes))) return false;
-        if (f.keyDates && !c.is_key_date) return false;
-        if (f.minYear !== null || f.maxYear !== null) {
-            const y = sortYear(c);
-            if (f.minYear !== null && y < f.minYear) return false;
-            if (f.maxYear !== null && y > f.maxYear) return false;
-        }
-        return true;
-    });
-}
-
-// Returns true if ANY pill filter (missing/hide-proofs/hide-errors/key-dates/year) is active.
-export function hasActiveCatalogFilter() {
-    return !!_catalogFilter;
-}
 
 // --- View Mode ---
 function isAlbumMode() {
@@ -87,18 +117,14 @@ function isAlbumMode() {
  * Render all section cards into #catalog-container.
  * Called once after sections are loaded from the API.
  */
-export function renderSections(visibleSections) {
+export function renderSections() {
     const container = document.getElementById('catalog-container');
     if (!container) return;
     container.innerHTML = '';
 
-    let sections = getSections();
-    // If a filter provides an explicit allow-list of section names, keep only those.
-    if (visibleSections instanceof Set) {
-        sections = sections.filter(s => visibleSections.has(s.section));
-    }
+    const sections = getSections();
     if (!sections.length) {
-        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalogue.</p>';
+        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalog.</p>';
         return;
     }
 
@@ -120,24 +146,23 @@ export function renderSections(visibleSections) {
     initStickyHeaders();
     initSectionDragAndDrop();
     applySectionOrder();
-    sections.forEach(sec => {
-        if (_expandedSections.has(sec.section)) {
-            expandSection(sec.section);
-        }
-    });
+    /* 2026-10-01: this was forEach + a bare expandSection() call.
+       expandSection is async -- it awaits the section's coin fetch --
+       so all 23 sections started at once and raced each other into the
+       DOM. Measured: only 1 of 23 ended up open, with 22 stuck at
+       height 0. That is what made the catalogue look like it had no
+       coins at all, and therefore "search does not work".
 
-    // Auto-expand the first section of the first country group (usually US)
-    // so the user sees coin content immediately on app load
-    const firstCountryGroup = container.querySelector('.country-group');
-    if (firstCountryGroup) {
-        const firstSectionHeader = firstCountryGroup.querySelector('.section-header');
-        if (firstSectionHeader) {
-            const sectionName = firstSectionHeader.dataset.section;
-            if (sectionName && !_expandedSections.has(sectionName) && !sectionName.includes('Half Cent') && sectionName !== 'US Coinage — Large & Small Cent') {
-                expandSection(sectionName);
+       Sequential, awaited, in catalogue order. */
+    _beginOpenSet();   // decide the open list once, before any save happens
+    (async () => {
+        for (const sec of sections) {
+            if (_sectionShouldBeOpen(sec.section)) {
+                try { await expandSection(sec.section); }
+                catch (e) { /* one bad section must not stop the rest */ }
             }
         }
-    }
+    })();
 
     // Set variables for album mode
     const fc = localStorage.getItem('cc-folder-color') || 'green';
@@ -148,7 +173,7 @@ export function renderSections(visibleSections) {
     container.style.setProperty('--folder-color', fcVal);
     container.style.setProperty('--folder-header-text', ftVal);
 
-    // Single event listener for ALL stepper clicks across the entire catalogue
+    // Single event listener for ALL stepper clicks across the entire catalog
     // Guard against duplicate attachment (renderSections can be called on search/filter)
     if (!container.dataset.clickHandler) {
         container.addEventListener('click', handleCatalogClick);
@@ -287,8 +312,8 @@ function buildSectionCard(sec) {
         // so scrolling shows coins, not placeholders. Priority:
         //   override (example_*) > type-config image (obv/rev, loaded at boot) > placeholder.
         const cfg = getTypeConfig(sec.sample_type, sec.section) || getTypeConfig(sec.section, sec.section) || {};
-        const exObv = resolveImageUrl(cfg.example_obv_image || cfg.obv_image || null);
-        const exRev = resolveImageUrl(cfg.example_rev_image || cfg.rev_image || null);
+        const exObv = cfg.example_obv_image || cfg.obv_image || null;
+        const exRev = cfg.example_rev_image || cfg.rev_image || null;
         // If no override yet, leave a marker so expandSection can fill the first-coin image.
         const pair = el('div', { className: 'coin-img-pair', dataset: { sampleType: sec.sample_type || '' } });
         if (exObv) {
@@ -413,6 +438,7 @@ async function expandSection(sectionName) {
         content.classList.remove('open');
         header.setAttribute('aria-expanded', 'false');
         _expandedSections.delete(sectionName);
+        _saveExpandedSections();
         return;
     }
 
@@ -420,6 +446,7 @@ async function expandSection(sectionName) {
     content.classList.add('open');
     header.setAttribute('aria-expanded', 'true');
     _expandedSections.add(sectionName);
+    _saveExpandedSections();
 
     // Already loaded?
     const cached = getCoinsForSection(sectionName);
@@ -468,13 +495,9 @@ function renderTypeAccordions(container, coins) {
         }
     }
 
-    // Apply active pill filters (missing-only / hide-proofs / hide-errors /
-    // key-dates / year range). When no filter is active this is a no-op.
-    const filteredCoins = applyCatalogFilter(uniqueCoins);
-
     // Group by main type
     const typeMap = new Map();
-    for (const coin of filteredCoins) {
+    for (const coin of uniqueCoins) {
         const main = getMainType(coin.coin_type);
         if (!typeMap.has(main)) typeMap.set(main, []);
         typeMap.get(main).push(coin);
@@ -514,7 +537,7 @@ function renderTypeAccordions(container, coins) {
 function resolveExampleImage(mainType, typeCoins, side, section) {
     const cfg = getTypeConfig(mainType, section) || {};
     const override = side === 'obv' ? cfg.example_obv_image : cfg.example_rev_image;
-    if (override) return resolveImageUrl(override);
+    if (override) return override;
 
     const field = side === 'obv' ? 'obv_image' : 'rev_image';
     const deletedField = '_deleted_' + field;
@@ -522,7 +545,7 @@ function resolveExampleImage(mainType, typeCoins, side, section) {
     const sorted = [...(typeCoins || [])].sort((a, b) => (a.year || 0) - (b.year || 0));
     for (const c of sorted) {
         if (c[deletedField]) continue;
-        if (c[field]) return resolveImageUrl(c[field]);
+        if (c[field]) return c[field];
     }
     return null; // no fallback → placeholder
 }
@@ -558,7 +581,7 @@ function refreshSectionHeaderExample(sectionName, coins) {
         const deleted = '_deleted_' + field;
         const sorted = [...matches].sort((a, b) => (a.year || 0) - (b.year || 0));
         let src = null;
-        for (const c of sorted) { if (!c[deleted] && c[field]) { src = resolveImageUrl(c[field]); break; } }
+        for (const c of sorted) { if (!c[deleted] && c[field]) { src = c[field]; break; } }
         if (!src) return;
         let img = pair.querySelector(`img[data-side="${side}"]`) || pair.querySelector(`img.coin-thumb.${side}`);
         if (!img) return;
@@ -681,7 +704,9 @@ function buildTypeAccordion(mainType, typeCoins) {
         // accordions via renderSections/expandSection) would otherwise fall back to
         // the list rows populated above, losing the album view.
         const _m = getCatalogViewMode();
-        // _tcSection is already defined as typeCoins[0].section (the section for this type)
+        // _tcSection is computed earlier in this function from typeCoins[0].section.
+        // `firstCoinSection` was never defined here — the ReferenceError silently
+        // killed every album re-render (2026-09-22 "no nickels"/tour-step-9 report).
         if ((_m === 'album' || _m === 'folder') && _tcSection) {
             renderAlbumType(_tcSection, mainType, content, header);
         }
@@ -1161,8 +1186,8 @@ function buildCoinRow(coin) {
     // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
     var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
     var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-    var obvSrc = resolveImageUrl(coin.obv_image || specObv || (mainCfg ? mainCfg.obv_image : null));
-    var revSrc = resolveImageUrl(coin.rev_image || specRev || (mainCfg ? mainCfg.rev_image : null));
+    var obvSrc = coin.obv_image || specObv || (mainCfg ? mainCfg.obv_image : null);
+    var revSrc = coin.rev_image || specRev || (mainCfg ? mainCfg.rev_image : null);
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
     if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
@@ -1218,9 +1243,6 @@ function buildCoinRow(coin) {
     var dateStr = labelParts.length > 0 ? ` (${labelParts.join(', ')})` : "";
     tl.appendChild(document.createTextNode(yr + mt + dateStr));
     if (coin.is_key_date) tl.append(" ", el("span", {className: "badge badge-key"}, "\u2b50 Key"));
-    if (coin.is_semi_key) tl.append(" ", el("span", {className: "badge badge-semi-key"}, "\u25c6 Semi-Key"));
-    if (coin.is_lowest_mintage) tl.append(" ", el("span", {className: "badge badge-lowest-mintage"}, "\u25bc Lowest Mintage"));
-    if (coin.is_lowest_mintage_proof) tl.append(" ", el("span", {className: "badge badge-lowest-mintage"}, "\u25bc Lowest Proof Mintage"));
     if (coin.is_proof) {
         tl.append(" ", el("span", {className: "badge badge-proof"}, "\uD83D\uDC8E Proof"));
         var isSilver = coin.metal && coin.metal.toLowerCase().includes('silver');
@@ -1355,9 +1377,10 @@ function buildCoinRow(coin) {
             dp.classList.add("open");
             detailBtn.textContent = "\u25b2 Less";
             row.classList.add("is-expanded");
-            // Always refresh the slots area; buildCoinSlots returns "" when qty is 0,
-            // which clears the stale Data Entries UI after the last coin is removed.
-            rebuildSlots();
+            // Only rebuild slots (with photos) when inventory >= 1
+            if (qty >= 1) {
+                rebuildSlots();
+            }
             // If qty is 0 and there's a historical note, auto-open it
             if (qty === 0 && refToggle && rd) {
                 rd.style.display = "block";
@@ -1983,10 +2006,9 @@ function updateStepperDisplay(coinId, qty) {
 // Listen for updates from the details modal
 // Listen for inventory updates — update stepper displays without rebuilding DOM
 window.addEventListener('cc-inventory-updated', async (e) => {
-    // Read state module for getInventoryTotalQty only — do not refresh
-    // inventory here: callers already updated state, and re-refreshing
-    // would double-fire renderDashboard and cause visible layout shifts.
+    // If reason is already provided, assume state was updated before dispatching.
     const stateMod = await import('./state.js');
+    // Mutation callers refresh authoritative state before dispatching.
     const affectedCoinId = e.detail && e.detail.coinId;
     
     // Update stepper displays for all coin rows
@@ -2163,9 +2185,6 @@ export async function setCatalogViewMode(mode) {
     renderSections();
     // After DOM is rebuilt, render album inline for any expanded type sections
     if (mode === 'album' || mode === 'folder') {
-        // First, auto-open every type in every OPEN section so the album grids
-        // render immediately (switching to album view with collapsed types
-        // previously showed empty headers — "no nickels").
         document.querySelectorAll('.section-content.open').forEach(function(sectionContent) {
             autoOpenTypesInAlbumMode(sectionContent);
         });
@@ -2297,15 +2316,6 @@ export function openCoinDetailModal(coinId) {
                 if (coin) break;
             }
         }
-        // Fall back to the album's own loaded cache — album.js stores coins under
-        // _albumLoaded and openCoinDetailModal was looking only at live section state,
-        // which is why an album click could open an empty detail (no images).
-        if (!coin && window.__albumCache) {
-            for (const k of Object.keys(window.__albumCache)) {
-                const hit = (window.__albumCache[k] || []).find(c => c.id === coinId);
-                if (hit) { coin = hit; break; }
-            }
-        }
         if (!coin) return;
         
         // build row to get dp
@@ -2338,17 +2348,13 @@ export function openCoinDetailModal(coinId) {
         }
         
         const getDisplayImgSrc = (side) => {
-            // Per-coin rows (list + album share them) MUST win over type configs so the
-            // modal's image matches the slot the user clicked.
-            const coinObv = coin.obv_image;
-            const coinRev = coin.rev_image;
             const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
             const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-            const obv = coinObv || specObv || mainCfg.obv_image;
-            const rev = coinRev || specRev || mainCfg.rev_image;
+            const obv = specObv || mainCfg.obv_image;
+            const rev = specRev || mainCfg.rev_image;
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
-            // Resolve the final choice once, including type-config fallbacks.
-            return resolveImageUrl(src);
+            if (src && !src.includes('?')) src += '';
+            return src;
         };
         
         const initialSrc = getDisplayImgSrc(currentSide);

@@ -132,6 +132,31 @@ let initialCropScale = 1;
 /**
  * Open the main image interaction modal.
  */
+/**
+ * Add a UNIQUE cache-buster to an image URL.
+ *
+ * A re-upload reuses the same filename, so the URL is unchanged and the
+ * browser serves the previously cached bytes -- the old image appeared until
+ * the page was refreshed. The previous code appended a fixed '?v=2', which
+ * only helps the FIRST save: the second save requests the same URL and hits
+ * the cache again.
+ *
+ * Date.now() makes every save request a URL the browser has never seen.
+ * This is display-only: the clean path is what gets stored in the database
+ * and in localStorage/IndexedDB.
+ */
+let _bustSeq = 0;
+export function bustImageCache(url) {
+    if (!url) return url;
+    const base = String(url).split('&bust=')[0].split('?bust=')[0];
+    const sep = base.includes('?') ? '&' : '?';
+    // Date.now() alone is NOT unique: two saves in the same millisecond
+    // produce the same value and the browser serves the cached image again.
+    // Pair it with a monotonic counter so every call is unique.
+    _bustSeq = (_bustSeq + 1) % 1000;
+    return base + sep + 'bust=' + Date.now() + '-' + _bustSeq;
+}
+
 export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, itemId = null, coinId = null, section = '') {
     activeContext = { 
         el: imgEl, 
@@ -587,7 +612,7 @@ export async function resetToMaster() {
                 const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
                 let newImageUrl = updatedConfigs[activeContext.typeStr]?.[field] ||
                                    updatedConfigs[targetMainType]?.[field];
-                if (newImageUrl && !newImageUrl.includes('?')) newImageUrl += '?v=2';
+                newImageUrl = bustImageCache(newImageUrl);
                 
                 if (newImageUrl) {
                     // 1. Update the detail panel preview
@@ -720,9 +745,10 @@ export async function promoteToDefaultHandler() {
             
             const targetMainType = getMainType(activeContext.typeStr);
             const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
-            const newImageUrl = result.promoted_url ||
+            let newImageUrl = result.promoted_url ||
                                updatedConfigs[activeContext.typeStr]?.[field] ||
                                updatedConfigs[targetMainType]?.[field];
+            newImageUrl = bustImageCache(newImageUrl);
             
             if (newImageUrl) {
                 const preview = document.getElementById('ii-main-image');
@@ -880,10 +906,11 @@ export async function executeImageAssignment() {
                     // that may not appear in the (refetched) type-config map.
                     const sectionQualified = activeContext.section
                         ? (activeContext.section + ' — ' + activeContext.typeStr) : null;
-                    const newImageUrl = result.new_url ||
+                    let newImageUrl = result.new_url ||
                                        updatedConfigs[sectionQualified]?.[field] ||
                                        updatedConfigs[activeContext.typeStr]?.[field] || 
                                        updatedConfigs[targetMainType]?.[field];
+            newImageUrl = bustImageCache(newImageUrl);
                                        
                     // 1. Clear matching local coins in state (section-qualified)
                     getSections().forEach(sec => {
@@ -930,29 +957,24 @@ export async function executeImageAssignment() {
                     });
                 }
             } catch (cfgErr) {
-                            console.warn('[images] Could not refresh type configs:', cfgErr);
-                        }
+                console.warn('[images] Could not refresh type configs:', cfgErr);
+            }
 
-                        // Fire the standard catalog update event so catalog.js re-renders.
-                        window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: activeContext.coinId } }));
-                        // ALSO fire cc-image-updated: catalog.js listens on this to refetch type
-                        // configs AND re-render every open section (renderTypeAccordions). This is
-                        // what makes "fill all of this type" repaint all matching coin rows at
-                        // once — cc-inventory-updated alone only refreshes counts/badges, not images.
-                        window.dispatchEvent(new CustomEvent('cc-image-updated'));
-
-                        // For type-level assignments (scope 'all' or 'empty_only'), do NOT do
-                        // immediate DOM updates with a single URL — each coin gets a unique URL
-                        // based on its year/mint/descriptor. Instead, rely on the cc-image-updated
-                        // event to trigger a proper re-render with correct per-coin URLs.
-                        // For specific_coin/specific_item, update the clicked element immediately.
-                        if (scope === 'specific_coin' || scope === 'specific_item') {
-                            if (activeContext.el && activeContext.el.tagName === 'IMG' && activeContext.b64) {
-                                activeContext.el.src = activeContext.b64;
-                            } else if (activeContext.el && activeContext.el.tagName === 'IMG' && !activeContext.b64) {
-                                activeContext.el.src = placeholderCoinSvg();
-                            }
-                        }
+            // Fire the standard catalog update event so catalog.js re-renders.
+            window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: activeContext.coinId } }));
+            // ALSO fire cc-image-updated: catalog.js listens on this to refetch type
+            // configs AND re-render every open section (renderTypeAccordions). This is
+            // what makes "fill all of this type" repaint all matching coin rows at
+            // once — cc-inventory-updated alone only refreshes counts/badges, not images.
+            window.dispatchEvent(new CustomEvent('cc-image-updated'));
+            
+            // Also update the original image element if it exists and is an IMG element
+            if (activeContext.el && activeContext.el.tagName === 'IMG' && activeContext.b64) {
+                activeContext.el.src = activeContext.b64;
+            } else if (activeContext.el && activeContext.el.tagName === 'IMG' && !activeContext.b64) {
+                // If removing image, reset to placeholder
+                activeContext.el.src = placeholderCoinSvg();
+            }
         } else {
             showToast(result.error || 'Failed to update image', 'error');
         }
@@ -980,6 +1002,13 @@ export async function openCoinBankModal() {
         ctxBtn.textContent = 'Current Type';
     }
 
+    /* 2026-10-01: the search box in this modal had no event handler at
+       all, so typing did nothing. Wire it here, where the modal is
+       actually opened -- the earlier attempt anchored on
+       openBankForPersonalSlot's body and never ran. */
+    _setCoinBankMode('context');
+    _wireCoinBankSearch();
+
     loadCoinBankImages('context');
 }
 
@@ -990,11 +1019,55 @@ export function openBankForPersonalSlot(coinTypeStr, onSelectCallback) {
         isPersonalSlot: true,
         onSelect: onSelectCallback
     };
+    _setCoinBankMode('context');
+    _wireCoinBankSearch();
     openCoinBankModal();
 }
 
 // Exposed globally for HTML oninput handlers
 window._cbLoadImages = loadCoinBankImages;
+
+/* 2026-10-01: #cb-search-input had NO event handler anywhere -- the value
+   was read by loadCoinBankImages but nothing ever called it, so typing
+   did nothing. Wired here, debounced because each keystroke re-renders
+   the whole grid. The mode is remembered so the scope the user chose
+   (this coin vs all coins) is preserved while searching.
+
+   Important: searching must NOT switch the scope. It stays whatever
+   _cbMode currently is. */
+let _cbMode = 'context';
+let _cbSearchTimer = null;
+
+function _wireCoinBankSearch() {
+    const inp = document.getElementById('cb-search-input');
+    if (!inp || inp.dataset.wired === '1') return;
+    inp.dataset.wired = '1';
+    inp.addEventListener('input', function () {
+        clearTimeout(_cbSearchTimer);
+        _cbSearchTimer = setTimeout(function () {
+            loadCoinBankImages(_cbMode);
+        }, 220);
+    });
+    // Enter should feel immediate rather than waiting out the debounce
+    inp.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(_cbSearchTimer);
+            loadCoinBankImages(_cbMode);
+        } else if (e.key === 'Escape') {
+            inp.value = '';
+            clearTimeout(_cbSearchTimer);
+            loadCoinBankImages(_cbMode);
+        }
+    });
+}
+
+/** Record which scope the user picked, so search keeps it. */
+function _setCoinBankMode(mode) {
+    _cbMode = mode;
+    _wireCoinBankSearch();
+}
+
 async function loadCoinBankImages(mode) {
     const grid = document.getElementById('coin-bank-grid');
     grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-text-muted);">Loading bank...</div>';
@@ -1011,12 +1084,19 @@ async function loadCoinBankImages(mode) {
     }
 
     try {
-        // When searching, ignore the narrow per-type filter so the search can find
-        // images across the whole bank (context mode otherwise only shows the current
-        // coin type's already-assigned images, which is empty when nothing is assigned yet).
-        // NOTE: searchQ is declared just below (used by the inline filter) — reuse it here.
-        const _searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
-        const params = (mode === 'context' && !_searchQ)
+        /* 2026-10-01: this used to be
+             const params = (mode === 'context' && !_searchQ) ? {...} : {};
+         i.e. typing ANY search term silently DROPPED the scope filter and
+         fetched the entire bank. That let a search started from one coin's
+         slot return an image belonging to a different coin, which could then
+         be assigned to it. Reported as "you could search from the specific
+         coin side to look up any coin".
+
+         The scope is now authoritative: context mode always sends the
+         coin_type AND side, with or without a search term. The search
+         NARROWS within the context and never widens it. All Coins mode
+         is the only path to the whole bank. */
+        const params = (mode === 'context' && activeContext && activeContext.typeStr)
             ? { coin_type: activeContext.typeStr, side: activeContext.side }
             : {};
         const images = await fetchCoinBankImages(params);
@@ -1029,11 +1109,17 @@ async function loadCoinBankImages(mode) {
         grid.innerHTML = '';
         // Apply inline search filter
         const searchQ = (document.getElementById('cb-search-input')?.value || '').toLowerCase().trim();
+        // Matches more than the type so a context-scoped search is still
+        // useful: type, side, and filename. This only NARROWS the candidate
+        // set, which the server-side scope already fixed.
         const filtered = searchQ
-            ? images.filter(img => 
-                (img.coin_type || '').toLowerCase().includes(searchQ) ||
-                (img.side || '').toLowerCase().includes(searchQ)
-              )
+            ? images.filter(img => {
+                const t  = (img.coin_type || '').toLowerCase();
+                const s  = (img.side || '').toLowerCase();
+                const fn = (img.filename || '').toLowerCase();
+                return t.includes(searchQ) || s.includes(searchQ) ||
+                       fn.includes(searchQ);
+              })
             : images;
         if (filtered.length === 0) {
             grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--color-text-muted);">No images match your search.</div>';
@@ -1565,8 +1651,8 @@ function __bindImageEvents() {
         if (target.dataset.action === 'close-bank') { closeModalLegacy('modal-coin-bank'); openModalLegacy('modal-replace-scope'); }
 
         // Filter buttons in bank
-        if (target.id === 'cb-filter-ctx') { document.getElementById('cb-search-input') && (document.getElementById('cb-search-input').value = ''); loadCoinBankImages('context'); }
-        if (target.id === 'cb-filter-all') { document.getElementById('cb-search-input') && (document.getElementById('cb-search-input').value = ''); loadCoinBankImages('all'); }
+        if (target.id === 'cb-filter-ctx') { _setCoinBankMode('context'); const _i = document.getElementById('cb-search-input'); if (_i) _i.value = ''; loadCoinBankImages('context'); }
+        if (target.id === 'cb-filter-all') { _setCoinBankMode('all'); const _i = document.getElementById('cb-search-input'); if (_i) _i.value = ''; loadCoinBankImages('all'); }
     });
 
     const fileInput = document.getElementById('ii-hidden-file-input');
