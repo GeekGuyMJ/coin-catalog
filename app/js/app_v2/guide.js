@@ -202,8 +202,266 @@ const TOUR_STEPS = [
         title: 'Customize Everything',
         body: 'Settings is where you choose which cards and sections are visible and fine-tune the app. You can replay this tour anytime from the \u24d8 info menu.',
         before: async () => { await scrollToSelector('#btn-settings'); }
+    },
+    {
+        selector: '#btn-info',
+        placement: 'below',
+        title: 'The Info Menu',
+        body: 'The \u24d8 info menu holds the collecting guides, how values are worked out, famous coin stories, and a link to replay this tour. Everything written about coins lives here.',
+        before: async () => { await scrollToSelector('#btn-info'); }
+    },
+    {
+        selector: '#theme-selector',
+        placement: 'below',
+        title: 'Pick Your Theme',
+        body: 'The color theme dropdown sits in the header. Alongside the built-in themes there are three custom slots \u2014 Custom 1, 2 and 3 until you name them. Open the Theme Designer to change a slot\'s colors and give it any name you like; that name then shows up here and in the dropdown.',
+        before: async () => { await scrollToSelector('#theme-selector'); }
     }
 ];
+
+// Local element builder for the advanced tour. guide.js does not import the
+// app's el() helper (it lives in another module), so without this the tour
+// threw ReferenceError: el is not defined and never rendered.
+function el(tag, props, ...children) {
+    const node = document.createElement(tag);
+    if (props) {
+        for (const [k, v] of Object.entries(props)) {
+            if (v === null || v === undefined || v === false) continue;
+            if (k === 'className') node.className = v;
+            else if (k === 'textContent') node.textContent = v;
+            else if (k === 'innerHTML') node.innerHTML = v;
+            else if (k === 'style' && typeof v === 'object') Object.assign(node.style, v);
+            else if (k === 'dataset') Object.assign(node.dataset, v);
+            else if (k.startsWith('on') && typeof v === 'function') {
+                node.addEventListener(k.slice(2).toLowerCase(), v);
+            } else node.setAttribute(k, v);
+        }
+    }
+    for (const c of children.flat()) {
+        if (c === null || c === undefined || c === false) continue;
+        node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    }
+    return node;
+}
+
+// ============================================================
+// Advanced-features tour
+// ============================================================
+// A second, opt-in walkthrough for the parts of Settings that benefit from
+// a sentence of explanation. Separate from TOUR_STEPS so the main tour stays
+// short; reachable from the info menu via startAdvancedTour().
+
+const ADVANCED_STEPS = [
+    {
+        label: 'Export & Backup',
+        title: 'Take a Backup First',
+        body: 'Settings › Export & Backup writes a full copy of your collection. The ZIP holds everything including images; the JSON is the whole database as text. Grab one before any large change — it is the only thing that can put a collection back exactly as it was.',
+    },
+    {
+        label: 'Import & Restore',
+        title: 'Putting a Backup Back',
+        body: 'Restoring replaces what is currently in the app, so use it to recover rather than to merge. Take a fresh backup first, then choose the format that matches the file you are restoring from.',
+    },
+    {
+        label: 'Cloud Sync',
+        title: 'Automatic Cloud Backup',
+        body: 'Cloud Sync keeps a copy off this device using WebDAV, Google Drive or Dropbox, so the collection survives a lost phone or a reinstalled app. Enter the provider details once; the app can then back up and restore on demand.',
+    },
+    {
+        label: 'Pricing Rules',
+        title: 'How Coins Are Valued',
+        body: 'Pricing Rules set a base value for regular coins and a separate key-date value for scarcer ones, per denomination. These are the numbers the app multiplies by when it adds up a collection.',
+    },
+    {
+        label: 'Coin Image Bank',
+        title: 'The Coin Image Bank',
+        body: 'Every reference image in the app, searchable and reusable. Place one on a single coin, on a whole type, or on every empty slot of a type at once — the last is usually what you want after a new coin issue appears.',
+    },
+    {
+        label: 'Find Missing Images',
+        title: 'Filling Image Gaps',
+        body: 'Lists every coin still without a picture, section by section. It is the quickest way to see what is left, and pairs with the Coin Image Bank above.',
+    },
+    {
+        label: 'Completion Dashboard',
+        title: 'How Complete Is the Set?',
+        body: 'Scores the collection against every date the Mint struck, by type and denomination. Useful for spotting the cheap year to hunt for next, since gaps are where a collection is usually one coin away from complete.',
+    },
+    {
+        label: 'Print Checklist',
+        title: 'A Shopping List',
+        body: 'Prints the coins you are still missing, as a checklist to take to a dealer, a show, or to keep by the computer while working through it online.',
+    },
+];
+
+function openSettingsMenu() {
+    const b = document.getElementById('btn-settings');
+    if (b) b.click();
+}
+
+function closeSettingsMenu() {
+    const d = document.querySelector('.settings-dropdown.open');
+    if (d) d.remove();
+}
+
+function findSettingsItem(label) {
+    return Array.from(document.querySelectorAll('.settings-menu-item'))
+        .find(n => ((n.innerText || '').trim() === label))
+        || null;
+}
+
+let advEl = null, advBubble = null, advIndex = 0, advOpen = false;
+
+function advClose() {
+    advOpen = false;
+    if (advBubble) { advBubble.remove(); advBubble = null; }
+    if (advEl) { advEl.remove(); advEl = null; }
+    closeSettingsMenu();
+    document.body.classList.remove('guide-running');
+}
+
+function advRender() {
+    if (!advOpen) return;
+    const step = ADVANCED_STEPS[advIndex];
+
+    // ensure the settings menu is open and the right item is highlighted
+    openSettingsMenu();
+    const item = findSettingsItem(step.label);
+        // Bring the target into view before measuring, so the
+        // bubble is placed relative to a visible row instead of
+        // one below the fold (2026-09-27).
+        try { item.scrollIntoView({ block: 'center' }); }
+        catch (e) { /* older engines */ }
+    if (advEl) advEl.remove();
+    if (item) {
+        advEl = document.createElement('div');
+        advEl.id = 'guide-spotlight';
+        advEl.className = 'guide-spotlight advanced';
+        document.body.appendChild(advEl);
+        const r = item.getBoundingClientRect();
+        Object.assign(advEl.style, {
+            position: 'fixed', left: (r.left - 4) + 'px', top: (r.top - 4) + 'px',
+            width: (r.width + 8) + 'px', height: (r.height + 8) + 'px',
+            borderRadius: '8px', pointerEvents: 'none', zIndex: '999998',
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.55)'
+        });
+    }
+
+    if (advBubble) advBubble.remove();
+    advBubble = el('div', { className: 'guide-bubble advanced', id: 'guide-bubble' });
+    const header = el('div', { className: 'guide-bubble-header' });
+    header.appendChild(el('div', { className: 'guide-bubble-title' }, step.title));
+    const close = el('button', { className: 'guide-bubble-close', 'aria-label': 'Close' });
+    close.innerHTML = '&times;';
+    close.addEventListener('click', advClose);
+    header.appendChild(close);
+    advBubble.appendChild(header);
+    advBubble.appendChild(el('div', { className: 'guide-bubble-body' }, step.body));
+
+    const footer = el('div', { className: 'guide-bubble-footer' });
+    footer.appendChild(el('span', { className: 'guide-step-indicator' },
+        (advIndex + 1) + ' of ' + ADVANCED_STEPS.length));
+    const nav = el('div', { className: 'guide-bubble-nav' });
+    const back = el('button', { className: 'guide-btn' }, '← Back');
+    back.disabled = advIndex === 0;
+    back.addEventListener('click', () => { advIndex--; advRender(); });
+    const isLast = advIndex === ADVANCED_STEPS.length - 1;
+    const next = el('button', { className: 'guide-btn' + (isLast ? ' guide-btn-primary' : '') },
+        isLast ? 'Done' : 'Next →');
+    next.addEventListener('click', () => {
+        if (isLast) advClose(); else { advIndex++; advRender(); }
+    });
+    nav.appendChild(back); nav.appendChild(next);
+    footer.appendChild(nav);
+    advBubble.appendChild(footer);
+
+    advBubble.style.position = 'fixed';
+    advBubble.style.zIndex = '999999';
+    advBubble.style.maxWidth = '340px';
+    document.body.appendChild(advBubble);
+
+    // Place the bubble so it NEVER covers the item it highlights.
+    // The old logic flipped it to the LEFT of the item when there was no
+    // room on the right, which on a phone put the dialog directly on top
+    // of the highlighted Settings row (2026-09-27).
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const M = 12;            // edge margin
+    const GAP = 14;          // gap between the item and the bubble
+    advBubble.style.maxWidth = Math.min(340, vw - M * 2) + 'px';
+    advBubble.style.left = '0px';
+    advBubble.style.top = '0px';
+    const bw = advBubble.offsetWidth;
+    const bh = advBubble.offsetHeight;
+
+    if (item) {
+        const r = item.getBoundingClientRect();
+        const top = Math.max(M, r.top);
+        const bottom = r.bottom;
+        const rightRoom = vw - r.right - GAP - M;
+        const leftRoom = r.left - GAP - M;
+
+        const clampTop = (v) => Math.max(M, Math.min(v, vh - bh - M));
+
+        if (rightRoom >= bw) {
+            // 1. to the right of the item
+            advBubble.style.left = (r.right + GAP) + 'px';
+            advBubble.style.top = clampTop(r.top) + 'px';
+        } else if (bottom + GAP + bh + M <= vh) {
+            // 2. below the item, full width minus margins (mobile default)
+            advBubble.style.left = M + 'px';
+            advBubble.style.top = (bottom + GAP) + 'px';
+        } else if (top - GAP - bh >= M) {
+            // 3. above the item
+            advBubble.style.left = M + 'px';
+            advBubble.style.top = (top - GAP - bh) + 'px';
+        } else {
+            // 4. whichever side has room, clamped so it cannot land on the
+            //    target
+            if (leftRoom >= bw) {
+                advBubble.style.left = (r.left - GAP - bw) + 'px';
+            } else {
+                advBubble.style.left = M + 'px';
+            }
+            if (vh - bottom - GAP - M >= bh) {
+                advBubble.style.top = (bottom + GAP) + 'px';
+            } else if (top - GAP - M >= bh) {
+                advBubble.style.top = (top - GAP - bh) + 'px';
+            } else {
+                // Neither above nor below fits: sit at the BOTTOM of the
+                // screen rather than tracking the item down the page, so
+                // the bubble is always fully visible (2026-09-27).
+                advBubble.style.top = (vh - bh - M) + 'px';
+            }
+        }
+
+        // Final guarantee: if it still overlaps the target, pin it to the
+        // top edge rather than covering the row being explained.
+        const nb = advBubble.getBoundingClientRect();
+        const nr = item.getBoundingClientRect();
+        const overlaps = !(nb.right <= nr.left + 1 || nb.left >= nr.right - 1
+                        || nb.bottom <= nr.top + 1 || nb.top >= nr.bottom - 1);
+        if (overlaps) {
+            advBubble.style.left = M + 'px';
+            advBubble.style.top = (vh - bh - M >= 0 ? vh - bh - M : M) + 'px';
+        }
+        // And it must always be fully on screen.
+        advBubble.style.left = clampTop(advBubble.offsetLeft) + 'px';
+        advBubble.style.top = clampTop(advBubble.offsetTop) + 'px';
+    } else {
+        advBubble.style.left = M + 'px';
+        advBubble.style.top = Math.max(M, Math.min(80, vh - bh - M)) + 'px';
+    }
+}
+
+/** Entry point: the Info menu button calls this. */
+export function startAdvancedTour() {
+    if (typeof closeInfoDropdown === 'function') closeInfoDropdown();
+    advIndex = 0;
+    advOpen = true;
+    document.body.classList.add('guide-running');
+    advRender();
+}
 
 // ============================================================
 // DOM + positioning helpers
@@ -581,27 +839,37 @@ function positionBubble(targetRect) {
 
 // ---- rendering ------------------------------------------------------
 
-function renderStep() {
+function renderStep(allowNoTarget = false) {
     const step = TOUR_STEPS[currentStep];
     let el = resolveTarget();
+    if (!el && allowNoTarget) {
+        // The target never rendered. Still show the step so the user reads
+        // it; just no spotlight to aim at.
+        el = document.body;
+        spotlight.style.display = 'none';
+    }
     if (!el) {
         // Target not in the DOM YET — album grids and freshly expanded
-        // sections render asynchronously. Retrying briefly prevents a step
-        // from being silently skipped (the 2026-09-22 "step 9 skipped" report);
-        // only skip after the target has stayed missing for a full second.
+        // sections render asynchronously. 1 second proved too short: step 9
+        // ("Your Lincoln Wheat Album") was silently dropped on a slow load
+        // (Matthew, 2026-09-25). Retry for ~6s, and if the target still
+        // never appears SHOW the step centred without a spotlight rather
+        // than skipping past content the user was told they would see.
         let tries = 0;
         const retry = () => {
             if (!isRunning) return;
             const t2 = resolveTarget();
             if (t2) { renderStep(); return; }
-            if (++tries < 20) { setTimeout(retry, 50); return; }
-            console.warn('[guide] target missing, skipping step', currentStep + 1);
-            next();
+            if (++tries < 120) { setTimeout(retry, 50); return; }
+            console.warn('[guide] target never rendered for step',
+                         currentStep + 1, '— showing without spotlight');
+            renderStep(true);
         };
         setTimeout(retry, 50);
         return;
     }
 
+    spotlight.style.display = '';
     bubble.innerHTML = '';
     bubble.className = 'guide-bubble' + (step.awaitClick && !isStepOpen() ? ' guide-bubble-pointer' : '');
     clearTimeout(_settleTimer);
@@ -859,6 +1127,9 @@ document.addEventListener('click', () => {
         requestAnimationFrame(settle);
     }, 60);
 }, true);
+
+// Advanced tour entry point for the Info menu button.
+if (typeof window !== 'undefined') window.startAdvancedTour = startAdvancedTour;
 
 // ESC to exit
 document.addEventListener('keydown', (e) => {

@@ -286,44 +286,44 @@
 }
 
 [data-theme="custom1"] {
-    --color-bg-body:      var(--custom1-bg-body,      #1a1a2e);
-    --color-bg-card:      var(--custom1-bg-card,      #16213e);
-    --color-text-main:    var(--custom1-text-main,    #e0e0e0);
-    --color-text-muted:   var(--custom1-text-muted,   #a0a0a0);
-    --color-border:       var(--custom1-border,       #0f3460);
-    --color-border-light: var(--custom1-border-light, #0a2a4a);
-    --color-accent:       var(--custom1-accent,       #e94560);
-    --color-accent-text:  var(--custom1-accent-text,  #ffffff);
-    --color-header-bg:    var(--custom1-header-bg,    #0f3460);
-    --color-header-text:  var(--custom1-header-text,  #ffffff);
-    --color-accord-bg:    var(--custom1-accord-bg,    #0f3460);
-    --color-finance-bg:   var(--custom1-finance-bg,   #0a2a4a);
+    --color-bg-body:      var(--custom1-bg-body,      #0e1726);
+    --color-bg-card:      var(--custom1-bg-card,      #16233a);
+    --color-text-main:    var(--custom1-text-main,    #eef3fb);
+    --color-text-muted:   var(--custom1-text-muted,   #9fb0c9);
+    --color-border:       var(--custom1-border,       #2b3f5e);
+    --color-border-light: var(--custom1-border-light, #1c2c45);
+    --color-accent:       var(--custom1-accent,       #d8a54a);
+    --color-accent-text:  var(--custom1-accent-text,  #1a1204);
+    --color-header-bg:    var(--custom1-header-bg,    #0a1220);
+    --color-header-text:  var(--custom1-header-text,  #f2f6fc);
+    --color-accord-bg:    var(--custom1-accord-bg,    #1b2b45);
+    --color-finance-bg:   var(--custom1-finance-bg,   #132035);
 }
 [data-theme="custom2"] {
-    --color-bg-body:      var(--custom2-bg-body,      #1a1a2e);
-    --color-bg-card:      var(--custom2-bg-card,      #16213e);
-    --color-text-main:    var(--custom2-text-main,    #e0e0e0);
-    --color-text-muted:   var(--custom2-text-muted,   #a0a0a0);
-    --color-border:       var(--custom2-border,       #0f3460);
-    --color-border-light: var(--custom2-border-light, #0a2a4a);
-    --color-accent:       var(--custom2-accent,       #e94560);
-    --color-accent-text:  var(--custom2-accent-text,  #ffffff);
-    --color-header-bg:    var(--custom2-header-bg,    #0f3460);
-    --color-header-text:  var(--custom2-header-text,  #ffffff);
-    --color-accord-bg:    var(--custom2-accord-bg,    #0f3460);
-    --color-finance-bg:   var(--custom2-finance-bg,   #0a2a4a);
+    --color-bg-body:      var(--custom2-bg-body,      #f2ece1);
+    --color-bg-card:      var(--custom2-bg-card,      #fffdf9);
+    --color-text-main:    var(--custom2-text-main,    #1e1811);
+    --color-text-muted:   var(--custom2-text-muted,   #5f5343);
+    --color-border:       var(--custom2-border,       #b0a184);
+    --color-border-light: var(--custom2-border-light, #ddd0b8);
+    --color-accent:       var(--custom2-accent,       #8c2f39);
+    --color-accent-text:  var(--custom2-accent-text,  #fff6f2);
+    --color-header-bg:    var(--custom2-header-bg,    #1f1a13);
+    --color-header-text:  var(--custom2-header-text,  #f7f1e6);
+    --color-accord-bg:    var(--custom2-accord-bg,    #e8dfcd);
+    --color-finance-bg:   var(--custom2-finance-bg,   #f8f3e9);
 }
 [data-theme="custom3"] {
-    --color-bg-body:      var(--custom3-bg-body,      #1a1a2e);
-    --color-bg-card:      var(--custom3-bg-card,      #16213e);
-    --color-text-main:    var(--custom3-text-main,    #e0e0e0);
-    --color-text-muted:   var(--custom3-text-muted,   #a0a0a0);
-    --color-border:       var(--custom3-border,       #0f3460);
-    --color-border-light: var(--custom3-border-light, #0a2a4a);
-    --color-accent:       var(--custom3-accent,       #e94560);
-    --color-accent-text:  var(--custom3-accent-text,  #ffffff);
-    --color-header-bg:    var(--custom3-header-bg,    #0f3460);
-    --color-header-text:  var(--custom3-header-text,  #ffffff);
-    --color-accord-bg:    var(--custom3-accord-bg,    #0f3460);
-    --color-finance-bg:   var(--custom3-finance-bg,   #0a2a4a);
+    --color-bg-body:      var(--custom3-bg-body,      #101413);
+    --color-bg-card:      var(--custom3-bg-card,      #1a211f);
+    --color-text-main:    var(--custom3-text-main,    #e9f2ee);
+    --color-text-muted:   var(--custom3-text-muted,   #94a8a0);
+    --color-border:       var(--custom3-border,       #2f4a42);
+    --color-border-light: var(--custom3-border-light, #1e2c28);
+    --color-accent:       var(--custom3-accent,       #4fbfa0);
+    --color-accent-text:  var(--custom3-accent-text,  #05231c);
+    --color-header-bg:    var(--custom3-header-bg,    #0a100e);
+    --color-header-text:  var(--custom3-header-text,  #e3f1ec);
+    --color-accord-bg:    var(--custom3-accord-bg,    #1f2c28);
+    --color-finance-bg:   var(--custom3-finance-bg,   #16211e);
 }

@@ -209,7 +209,7 @@ export async function openAddCoinModal(sectionName) {
         }
     });
 
-    m.createModal('modal-add-user-coin', '＋ Add Coin to Catalogue', bodyWrap, footer);
+    m.createModal('modal-add-user-coin', '＋ Add Coin to Catalog', bodyWrap, footer);
 }
 
 /** Re-fetch and re-render a section so added coins appear immediately. */
