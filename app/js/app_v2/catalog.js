@@ -57,6 +57,13 @@ function _saveExpandedSections() {
     try {
         localStorage.setItem(_EXPANDED_KEY,
             JSON.stringify([..._expandedSections]));
+        window.__saveTrace = window.__saveTrace || [];
+        window.__saveTrace.push({
+            size: _expandedSections.size,
+            value: JSON.stringify([..._expandedSections]).slice(0, 70),
+            ms: Math.round(performance.now()),
+            stack: (new Error()).stack.split('\n').slice(1, 6).join(' <- '),
+        });
     } catch (e) { /* private mode: expansion still works for this session */ }
 }
 
@@ -156,12 +163,26 @@ export function renderSections() {
        Sequential, awaited, in catalogue order. */
     _beginOpenSet();   // decide the open list once, before any save happens
     (async () => {
-        for (const sec of sections) {
-            if (_sectionShouldBeOpen(sec.section)) {
+        window.__secTrace = window.__secTrace || [];
+        window.__secTrace.push({ev:'loop-start', n: sections.length,
+            ms: Math.round(performance.now())});
+        for (let i = 0; i < sections.length; i++) {
+            const sec = sections[i];
+            const want = _sectionShouldBeOpen(sec.section);
+            window.__secTrace.push({ev:'iter', i, name: sec.section, want,
+                stored: (function(){ try {
+                    return JSON.parse(localStorage.getItem('cc-expanded-sections')||'null');
+                } catch(e){ return 'ERR'; } })(),
+                ms: Math.round(performance.now())});
+            if (want) {
                 try { await expandSection(sec.section); }
-                catch (e) { /* one bad section must not stop the rest */ }
+                catch (e) { window.__secTrace.push({ev:'throw', i,
+                    msg: String(e).slice(0,120), ms: Math.round(performance.now())}); }
             }
         }
+        window.__secTrace.push({ev:'loop-end',
+            open: document.querySelectorAll('.section-card [aria-expanded="true"]').length,
+            ms: Math.round(performance.now())});
     })();
 
     // Set variables for album mode

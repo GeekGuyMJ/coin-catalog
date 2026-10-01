@@ -285,7 +285,7 @@ export async function _handleDropboxCallback() {
   const error = params.get('error');
   if (!code) return false;
   if (error) {
-    showToast('Dropbox auth cancelled: ' + error, 'warning');
+    showToast('Dropbox auth canceled: ' + error, 'warning');
     // Clean URL
     window.history.replaceState({}, '', _getRedirectUri().split('?')[0]);
     return false;
