@@ -4410,8 +4410,6 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
     0%, 100% { transform: translateY(-50%) translateX(0); }
     50%      { transform: translateY(-50%) translateX(4px); }
 }
-    100% { transform: scale(0.85); opacity: 1; }
-}
 
 @keyframes guide-arrow-pulse {
     0%, 100% { filter: drop-shadow(0 0 2px var(--color-accent, #c9a227)); }
@@ -4768,23 +4766,10 @@ html, body {
     }
 }
 
-@media (max-width: 480px) {
-    #app-header .header-logo,
-    #app-header .header-inner .header-logo,
-    #app-header #header-coin-img {
-        width: 45px !important;
-        height: 45px !important;
-        min-width: 45px !important;
-        min-height: 45px !important;
-        max-width: 45px !important;
-        max-height: 45px !important;
-        aspect-ratio: 1 / 1 !important;
-        object-fit: cover !important;
-        border-radius: 50%;
-        margin: 0 0 -12px 0 !important;
-        flex-shrink: 0;
-    }
-}
+/* 2026-10-01: the 480px 45px step is REMOVED.
+   The logo goes 105px -> 60px once, at 769px, and stays 60px.
+   Two steps read as the coin reacting to a drag (reported).
+   60px was verified to leave the title-bar buttons clear. */
 
 /* ================================================================
    Layout: Balanced                                      2026-09-30
@@ -4896,3 +4881,139 @@ html, body {
     border-bottom: 1px solid var(--color-border-light);
 }
 .info-guide-tbl th { color: var(--color-text-muted); font-weight: 600; }
+
+/* ================================================================
+   2026-10-01  LAYOUT FIXES (both measured, not guessed)
+   ================================================================ */
+
+/* ---------- (A) THE ALIGNMENT INVARIANT ------------------------
+   The coin may not extend left of the card below it, and it must
+   shrink exactly once.
+
+   Measured: the page gutter is exactly two values -- 32px above
+   768px and 14px at/below it (.container padding + .dashboard-grid
+   padding). The header ran its own ladder, 32px -> 4px, so at every
+   width below 769px the coin sat 10px to the LEFT of the card.
+   Above ~1560px the header-inner is wider than the container, so it
+   drifted RIGHT instead.
+
+   Same bug both ways: header and content column each owned the
+   gutter. It is now stated once and consumed by both, so the coin's
+   left edge IS the card's left edge by construction. */
+:root {
+    --page-gutter: 32px;
+}
+
+@media (max-width: 768px) {
+    :root {
+        --page-gutter: 14px;
+    }
+}
+
+#app-header .header-inner {
+    box-sizing: border-box;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: var(--page-gutter) !important;
+    padding-right: var(--page-gutter) !important;
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+    #app-header .header-inner {
+        padding-left: var(--page-gutter) !important;
+        padding-right: var(--page-gutter) !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #app-header {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    #app-header .header-inner {
+        padding-left: var(--page-gutter) !important;
+        padding-right: var(--page-gutter) !important;
+    }
+}
+
+/* ---------- (B) CARD HEADINGS USE THE FULL WIDTH -----------------
+   Measured at 700px: 7 of 13 card titles wrapped to 2-3 lines, which
+   is why the cards are taller than they need to be.
+
+   `.card-title` reserved 36px of right padding plus
+   `max-width: calc(100% - 40px)` to clear the absolute drag handle --
+   a reserve applied at EVERY width, even where the handle is nowhere
+   near the text. The text then wrapped at every word.
+
+   Now the handle is still cleared, but the title keeps the full width
+   and a heading that does not fit shrinks/ellipses on ONE line. */
+.dashboard-card .card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 100%;
+    padding-right: 0;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.dashboard-card .card-title > span,
+.dashboard-card .card-title > h2,
+.dashboard-card .card-title > h3 {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---------- (C) SPOT TIME RANGES ON ONE ROW ----------------------
+   portfolio.js built this row with an INLINE flex-wrap:wrap, which is
+   why 1D/1W/1M/1Y/10Y/All wrapped onto two rows. The inline style is
+   removed there too, so the markup stops contradicting the CSS. */
+.spot-period-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    margin-left: auto;
+}
+
+.spot-period-row > * {
+    flex: 0 0 auto;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+}
+
+@media (max-width: 900px) {
+    .spot-period-row {
+        gap: 2px;
+    }
+    .spot-period-row > * {
+        padding-left: 3px !important;
+        padding-right: 3px !important;
+        font-size: 0.9em;
+    }
+}
+
+/* ---------- (D) HEADER TRACKS THE CONTENT COLUMN ----------------
+   Measured above 1400px the header was wider than the content column:
+
+       vw=1920  main(w=1400, left=253)  header-inner(w=1905, left=0)
+       vw=1600  main(w=1400, left= 93)  header-inner(w=1585, left=0)
+
+   so the coin sat 93-253px left of the card. `.container` caps at
+   max-width:1400px and centres with auto margins; `.header-inner` did
+   neither. Give it the same box and the alignment holds at every
+   width -- the coin's left edge IS the card's left edge. */
+#app-header .header-inner {
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+    padding-left: var(--page-gutter) !important;
+    padding-right: var(--page-gutter) !important;
+}
