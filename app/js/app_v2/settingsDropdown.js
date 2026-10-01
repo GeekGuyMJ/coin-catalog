@@ -9,7 +9,7 @@ import { el, escHtml } from './utils.js';
 import { getSpotPrices } from './state.js';
 import { showToast } from './notifications.js';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
-import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
+import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, openResetDataModal, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
 
 let _dropdownEl = null;
 
@@ -87,7 +87,7 @@ function openSettingsDropdown(btn) {
  {key: 'customCard', label: 'Custom Dashboard Card', section: 'advanced' },
  
  // Danger Zone
- {key: 'purgeInventory', label: 'Purge All Inventory', section: 'danger' },
+ {key: 'purgeInventory', label: 'Reset Data / Images', section: 'danger' },
  ];
 
  // Group by section
@@ -193,7 +193,15 @@ export function openSettingsSection(key) {
  case 'customCard': showCustomCardModal(); break;
  
  // Danger Zone
- case 'purgeInventory': purgeInventory(); break;
+    /* 2026-10-01: went straight to purgeInventory(), which is a single
+       yes/no and deletes inventory with no choice offered. But
+       modals.js already has openResetDataModal() -- two options, each with
+       its own two-step confirm:
+           A) Factory Reset          full_reset  (data + images -> defaults)
+           B) Clear Data, Keep Images data_only  (data gone, images kept)
+       It was fully implemented and never called. Route the menu item at
+       it instead. purgeInventory() stays exported for other callers. */
+    case 'purgeInventory': openResetDataModal(); break;
  }
 }
 
