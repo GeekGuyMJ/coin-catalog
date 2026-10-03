@@ -40389,7 +40389,7 @@
     "ref_notes": null,
     "variety": null,
     "obv_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.obv.webp",
-    "rev_image": ""
+    "rev_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.rev.P.webp"
   },
   {
     "id": "2249",
@@ -40479,7 +40479,7 @@
     "ref_notes": null,
     "variety": null,
     "obv_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.obv.D.webp",
-    "rev_image": ""
+    "rev_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.rev.D.webp"
   },
   {
     "id": "2254",
@@ -40641,7 +40641,7 @@
     "ref_notes": "Clad Proof. Clad composition proof issue.",
     "variety": "Clad Proof",
     "obv_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.obv.S-proof.webp",
-    "rev_image": ""
+    "rev_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.rev.S-proof.webp"
   },
   {
     "id": "2263",
@@ -40659,7 +40659,7 @@
     "ref_notes": "Silver Proof. 90% silver proof issue.",
     "variety": "Silver Proof",
     "obv_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.obv.S-proof.2.webp",
-    "rev_image": ""
+    "rev_image": "/data/images/coins/25-cents.50-state-quarters-mississippi.2002.rev.S-proof.webp"
   },
   {
     "id": "2264",
