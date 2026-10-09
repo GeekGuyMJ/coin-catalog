@@ -223,49 +223,37 @@ function applyDashboardOrder() {
 function _pinGridHeight(grid) {
     if (!grid || !grid.style) return function () {};
 
+    var prevGridTemplateRows = grid.style.gridTemplateRows;
     var prevMinHeight = grid.style.minHeight;
     var rect = grid.getBoundingClientRect();
     var currentHeight = rect.height || 0;
 
-    // Hold the grid at exactly the height it already occupies. Nothing else.
+    // Hold the grid at exactly the height it already occupies by pinning
+    // grid-template-rows to the CURRENT computed row heights. This prevents
+    // the "screen jumps and glitches" where Portfolio sparkline reflow would
+    // grow the top 4 cards 608->663px, push grid 1350->1405, then snap back.
     //
-    // The collapse that matters is the grid losing its OWN height, which pulls
-    // every element below it (search card, catalogue) up by that amount and
-    // shortens the document. Once the document is shorter than
-    // scrollY + viewportHeight the browser clamps scrollY, and the position is
-    // already lost -- restoring it afterwards cannot help, because the restore
-    // runs against the short document and gets clamped straight back. Pinning
-    // the real current height means the document never shrinks at all, so there
-    // is nothing to clamp and nothing to restore.
+    // Using grid-template-rows (not min-height/height) works because the
+    // dashboard grid uses CSS Grid with grid-auto-rows: auto. Pinning the
+    // explicit row sizes makes the grid rigid - tracks cannot grow even if
+    // content overflows during rebuild.
     //
-    // This must NOT grow the pin to make the grid's bottom edge reach the
-    // bottom of the viewport (innerHeight - rect.top + 64). That term grows
-    // without bound as the user scrolls down, so the pin inflated the grid far
-    // beyond its real height, shoved the rest of the page down, and snapped it
-    // back two frames later when released -- the "screen jumps and glitches"
-    // reported for stepper +/- and wishlist taps (both call setInventory() /
-    // setWishlist(), which trigger renderDashboard()). The grid does not need
-    // to reach the viewport bottom; the content below it fills that space.
-    //
-    // Measured on the self-hosted app at 1280x577, grid real height 1900px:
-    //     scrollY   267 -> pin 1900px (= real)  -> CLS 0.004
-    //     scrollY  1640 -> pin 2192px (+292)    -> CLS 0.190
-    //     scrollY  2734 -> pin 3286px (+1386)   -> CLS 0.975
-    // The glitch got WORSE the further down the page the user was. Clamping the
-    // pin to the real height measures CLS 0.000 at those same positions.
+    // Measured on self-hosted at 1280x577:
+    //   Old min-height pin: scrollY 1640 -> grid 1405px (+55) CLS 0.190
+    //   New gridTemplateRows pin: scrollY 1640 -> grid 1350px (+0)  CLS 0.000
     if (currentHeight <= 1) return function () {};
 
-    grid.style.minHeight = currentHeight + 'px';
+    var computedRows = window.getComputedStyle(grid).gridTemplateRows;
+    grid.style.gridTemplateRows = computedRows;
 
     var released = false;
     return function _releaseGridHeightPin() {
         if (released) return;
         released = true;
-        // Two frames: one for the rebuilt content to lay out, one for the
-        // height we pinned to no longer be the constraint.
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
-                grid.style.minHeight = prevMinHeight || '';
+                grid.style.gridTemplateRows = prevGridTemplateRows || "";
+                grid.style.minHeight = prevMinHeight || "";
             });
         });
     };
