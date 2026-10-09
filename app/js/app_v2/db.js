@@ -809,8 +809,35 @@ export async function fetchCoinsForSectionLocal(sectionName) {
     }));
 }
 
+/**
+ * Look a coin up in `coins_reference` regardless of how its id was typed.
+ *
+ * `coins_reference` is seeded from data/coins.json, whose `id` values are JSON
+ * STRINGS, but rows written at runtime can carry NUMBERS -- and
+ * `user_inventory.coin_ref_id` is always a number. So `get(Number(id))` misses
+ * every seeded row and threw "Coin not found" on every wishlist press.
+ *
+ * Tries each plausible key form and returns the first hit, or undefined.
+ * Callers keep their own "not found" handling.
+ */
+async function _getCoinRefAny(coinId) {
+    const id = (typeof coinId === 'string') ? parseInt(coinId, 10) : coinId;
+    const tries = [coinId, id, String(id), String(coinId)];
+    for (const key of tries) {
+        if (key === null || key === undefined) continue;
+        let hit;
+        try {
+            hit = await db.coins_reference.get(key);
+        } catch (e) {
+            hit = undefined;
+        }
+        if (hit) return hit;
+    }
+    return undefined;
+}
+
 export async function fetchCoinLocal(coinId) {
-    const coin = await db.coins_reference.get(Number(coinId));
+    const coin = await _getCoinRefAny(coinId);
     if (!coin) throw new Error("Coin not found");
 
     const inv = await db.user_inventory.where('coin_ref_id').equals(Number(coinId)).first();
@@ -1647,7 +1674,10 @@ export async function saveWishlistLocal(data) {
 
 export async function addToWishlistLocal(coinId) {
     coinId = Number(coinId);
-    const coin = await db.coins_reference.get(coinId);
+    // 2026-10-09 (Matthew): was `get(coinId)` with a numeric key, which misses
+    // every row seeded from coins.json (string ids) -> "Coin not found" on
+    // every wishlist press. See _getCoinRefAny.
+    const coin = await _getCoinRefAny(coinId);
     if (!coin) throw new Error("Coin not found");
 
     const existing = await db.wishlist_item.where('coin_id').equals(coinId).first();
@@ -2701,7 +2731,7 @@ export async function fetchSpotHistoryLocal() {
 
 
 export async function deleteUserCoinLocal(id) {
-    const coin = await db.coins_reference.get(Number(id));
+    const coin = await _getCoinRefAny(id);
     if (!coin) return { status: 'not_found', id: Number(id) };
     if (!coin.user_added) {
         throw new Error('This coin is part of the master catalog and cannot be deleted');

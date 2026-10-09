@@ -730,6 +730,13 @@ function showCustomCardModal() {
  showToast('Custom card deleted', 'success');
  closeModal('modal-custom-card');
  showCustomCardModal();
+ // 2026-10-09 (Matthew): the CREATE handler repaints the dashboard but DELETE
+ // did not, so a deleted card stayed on screen until a manual reload. Measured:
+ // store went 5 -> 4 while the dashboard still rendered 5 rows. Repaint here
+ // too, matching the create path.
+ import('./portfolio.js').then(function(m) {
+ if (m.renderDashboard) m.renderDashboard();
+ });
  }
  }, 'Delete'),
  ]))
@@ -744,6 +751,7 @@ function showCustomCardModal() {
  el('input', { 
  type: 'text', 
  id: 'custom-card-title', 
+ className: 'v1-input',
  placeholder: 'e.g., "My Silver Stack"',
  required: true
  })
@@ -752,7 +760,7 @@ function showCustomCardModal() {
  // Data Source
  el('div', { className: 'form-group' }, [
  el('label', {}, 'Data Source'),
- el('select', { id: 'custom-card-source' }, [
+ el('select', { id: 'custom-card-source', className: 'v1-select' }, [
  ...dataSources.map(ds => el('option', { value: ds.id }, ds.label))
  ])
  ]),
@@ -760,7 +768,7 @@ function showCustomCardModal() {
  // Display Style
  el('div', { className: 'form-group' }, [
  el('label', {}, 'Display Style'),
- el('select', { id: 'custom-card-style' }, [
+ el('select', { id: 'custom-card-style', className: 'v1-select' }, [
  ...displayStyles.map(ds => el('option', { value: ds.id }, ds.label))
  ])
  ]),
@@ -771,6 +779,7 @@ function showCustomCardModal() {
  el('input', { 
  type: 'text', 
  id: 'custom-card-custom-value', 
+ className: 'v1-input',
  placeholder: 'Enter custom text or number'
  })
  ]),
@@ -781,6 +790,7 @@ function showCustomCardModal() {
  el('input', { 
  type: 'color', 
  id: 'custom-card-bg-color', 
+ className: 'cc-color-input',
  value: '#2d4a2d'
  })
  ]),
@@ -791,6 +801,7 @@ function showCustomCardModal() {
  el('input', { 
  type: 'color', 
  id: 'custom-card-text-color', 
+ className: 'cc-color-input',
  value: '#ffffff'
  })
  ]),

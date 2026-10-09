@@ -369,6 +369,28 @@ export const setPaperCurrency = (v) => { _paperCurrency = v; };
 // ---- Custom Categories State ----
 let _customCategories = [];
 export const getCustomCategories = () => _customCategories;
+
+/**
+ * User-defined dashboard cards (Settings -> Custom Dashboard Card).
+ *
+ * The creator modal has always WRITTEN `cc-custom-cards` but nothing read it,
+ * so a created card saved, toasted success, and never rendered. This accessor
+ * is the one place that knows the key -- renderDashboard() goes through here
+ * rather than touching localStorage directly.
+ *
+ * @returns {Array<Object>} saved card definitions; [] when absent or corrupt.
+ */
+export const getCustomDashboardCards = () => {
+    try {
+        const raw = localStorage.getItem('cc-custom-cards');
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter(c => c && c.title) : [];
+    } catch (e) {
+        console.warn('[state] could not read cc-custom-cards:', e);
+        return [];
+    }
+};
 export const setCustomCategories = (v) => { _customCategories = v; };
 
 // ---- Other Collectables State ----

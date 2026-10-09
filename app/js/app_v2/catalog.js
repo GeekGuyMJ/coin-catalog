@@ -67,8 +67,20 @@ function _saveExpandedSections() {
     } catch (e) { /* private mode: expansion still works for this session */ }
 }
 
-// null means "no stored preference" -> open everything
-const _expandedSections = new Set(_loadExpandedSections() || []);
+// 2026-10-09 (Matthew): a NEW install starts with every section CLOSED.
+//
+// It used to be "no stored preference -> open everything", but expandSection()
+// PERSISTS the open set as it runs, so on a fresh install the render loop opened
+// the first section, that write created the key, and every later iteration read
+// the growing list back. Measured on a cleared profile: 23 sections, exactly ONE
+// open ('US Coinage — Half Cent'), which reads as a stray open section rather
+// than a default. Seeding the key to [] on first run makes the default explicit
+// and stable; an explicit click still opens and persists as before.
+const _storedExpanded = _loadExpandedSections();
+if (_storedExpanded === null) {
+    try { localStorage.setItem(_EXPANDED_KEY, '[]'); } catch (e) { /* private mode */ }
+}
+const _expandedSections = new Set(_storedExpanded || []);
 
 /**
  * The set of sections to render open, decided ONCE per render.
@@ -95,8 +107,11 @@ let _openThisRender = null;
 function _openSetForThisRender() {
     if (_openThisRender === null) {
         const stored = _loadExpandedSections();
-        // no stored preference at all -> open everything
-        _openThisRender = (stored === null) ? null : new Set(stored);
+        // 2026-10-09 (Matthew): an absent/absent-on-first-run preference now
+        // means CLOSED, not open. The set is always a Set, so the
+        // "set === null -> open everything" branch below is gone: a new install
+        // opens nothing, and a returning user sees exactly what they left open.
+        _openThisRender = new Set(stored || []);
     }
     return _openThisRender;
 }
@@ -104,9 +119,8 @@ function _openSetForThisRender() {
 function _beginOpenSet() { _openThisRender = null; }
 
 function _sectionShouldBeOpen(sectionName) {
-    const set = _openSetForThisRender();
-    if (set === null) return true;            // default: open
-    return set.has(sectionName);
+    // Default is CLOSED on a new install (Matthew, 2026-10-09).
+    return _openSetForThisRender().has(sectionName);
 }
 const _expandedTypes = new Set();
 const _expandedCountries = new Set(['United States', 'Canada']); // Default US/Canada open

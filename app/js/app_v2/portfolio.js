@@ -7,7 +7,8 @@ import { el, resolveImageUrl } from './utils.js';
 import { renderGalleryCard } from './gallery.js';
 import { onChange, getSpotPrices, getInventory, getSections,
     getScrapMetal, getPaperCurrency, getCustomCategories, getOtherCollectables,
-    getBullion, getRawBullion, getCoinWeight, getWishlist
+    getBullion, getRawBullion, getCoinWeight, getWishlist,
+    getCustomDashboardCards
 } from './state.js';
 import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } from './modals.js';
 import { initSpotHistory, getSeriesForPeriod } from './spotHistory.js';
@@ -198,6 +199,76 @@ function applyDashboardOrder() {
         });
         cards.forEach(card => grid.appendChild(card));
     } catch(e) { console.warn('Failed to apply dashboard order:', e); }
+}
+
+/* ================================================================
+   Scroll-anchor guard for full dashboard re-renders   2026-10-07
+   ------------------------------------------------------------
+   renderDashboard() rebuilds every card from scratch. Emptying the
+   grid collapses the document height for the rest of the frame, and
+   a viewport scrolled below that collapsed height is clamped down.
+   The clamp is permanent -- re-populating the cards restores the
+   height but not the scroll position, which is what Matthew reported
+   as a screen "bounce" when using the Wishlist card.
+
+   Restoring the scroll position afterwards is NOT a fix: the restore
+   runs while the document is still short, so the browser clamps it
+   straight back. The only reliable repair is to stop the collapse.
+
+   _pinGridHeight() raises the grid's min-height to whatever is needed
+   to keep the current scroll position valid, and returns a release
+   function that restores the element's original inline min-height.
+   It is a no-op when the page is short enough not to need it.
+   ================================================================ */
+function _pinGridHeight(grid) {
+    if (!grid || !grid.style) return function () {};
+
+    var prevMinHeight = grid.style.minHeight;
+    var rect = grid.getBoundingClientRect();
+    var currentHeight = rect.height || 0;
+
+    // Hold the grid at exactly the height it already occupies. Nothing else.
+    //
+    // The collapse that matters is the grid losing its OWN height, which pulls
+    // every element below it (search card, catalogue) up by that amount and
+    // shortens the document. Once the document is shorter than
+    // scrollY + viewportHeight the browser clamps scrollY, and the position is
+    // already lost -- restoring it afterwards cannot help, because the restore
+    // runs against the short document and gets clamped straight back. Pinning
+    // the real current height means the document never shrinks at all, so there
+    // is nothing to clamp and nothing to restore.
+    //
+    // This must NOT grow the pin to make the grid's bottom edge reach the
+    // bottom of the viewport (innerHeight - rect.top + 64). That term grows
+    // without bound as the user scrolls down, so the pin inflated the grid far
+    // beyond its real height, shoved the rest of the page down, and snapped it
+    // back two frames later when released -- the "screen jumps and glitches"
+    // reported for stepper +/- and wishlist taps (both call setInventory() /
+    // setWishlist(), which trigger renderDashboard()). The grid does not need
+    // to reach the viewport bottom; the content below it fills that space.
+    //
+    // Measured on the self-hosted app at 1280x577, grid real height 1900px:
+    //     scrollY   267 -> pin 1900px (= real)  -> CLS 0.004
+    //     scrollY  1640 -> pin 2192px (+292)    -> CLS 0.190
+    //     scrollY  2734 -> pin 3286px (+1386)   -> CLS 0.975
+    // The glitch got WORSE the further down the page the user was. Clamping the
+    // pin to the real height measures CLS 0.000 at those same positions.
+    if (currentHeight <= 1) return function () {};
+
+    grid.style.minHeight = currentHeight + 'px';
+
+    var released = false;
+    return function _releaseGridHeightPin() {
+        if (released) return;
+        released = true;
+        // Two frames: one for the rebuilt content to lay out, one for the
+        // height we pinned to no longer be the constraint.
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                grid.style.minHeight = prevMinHeight || '';
+            });
+        });
+    };
 }
 
 function applyDashboardSizes() {
@@ -588,8 +659,33 @@ export async function renderDashboard() {
     if (!c) return;
     var sc = await buildSpotPricesCard(prices);
     if (generation !== _dashboardRenderGeneration) return;
-    // The DOM commit below is synchronous; no height lock is needed.
+    // 2026-10-07 (COI-20): the DOM commit below IS synchronous, but emptying the
+    // grid is still destructive to the scroll position. `innerHTML = ''` collapses
+    // the document height for the remainder of this same frame; if the viewport is
+    // scrolled below the collapsed document, the browser clamps scrollY down to
+    // (collapsedDocHeight - viewportHeight) and never restores it. Rebuilding the
+    // cards synchronously afterwards does NOT undo the clamp -- the scroll position
+    // is already lost.
+    //
+    // Measured on self-hosted at 390x844 with the Wishlist card scrolled into view:
+    // docHeight 5663 -> 1959 on the emptying write, so scrollY 2454 clamps to 1093
+    // (1959 - 866). That is the "screen bounce/jump" reported for any dashboard card
+    // interaction that re-renders (wishlist Acquire, inventory edits, etc.).
+    //
+    // Fix: hold a min-height on the grid for the duration of the rebuild so the
+    // document never gets shorter than where the user currently is. Restoring the
+    // scroll position afterwards does NOT work -- the restore runs while the
+    // document is still collapsed, so it is clamped again to the same value.
+    //
+    // Only pin when the collapse would actually be destructive, so a re-render that
+    // happens near the top of the page costs nothing.
+    var _coi20Pin = _pinGridHeight(c);
     c.innerHTML = '';
+    // COI-20: safety net. The normal release happens at the end of this
+    // function, but a card builder that throws would otherwise leave the grid
+    // pinned at a fixed height for the rest of the session. The release is
+    // idempotent, so an early release here is harmless.
+    setTimeout(function () { _coi20Pin(); }, 400);
     var p = _portfolioData || {};
 
     // Load visibility preferences
@@ -597,32 +693,43 @@ export async function renderDashboard() {
     try { vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}'); } catch(e) {}
 
     // Always build all cards, respecting visibility toggles.
-    // DEFAULT ORDER (when the user has not dragged to reorder):
-    //   Portfolio Overview first (top-left), Completion ("Percentage Finished")
-    //   second-from-last (just before Support). applyDashboardOrder() re-applies
-    //   a user's saved drag order over this default at the end.
+    //
+    // DEFAULT ORDER (Matthew, 2026-10-09) -- what a NEW install sees:
+    //    1 Portfolio Overview      7 Paper Currency
+    //    2 Live Spot Prices        8 Other Collectables
+    //    3 Metal Price Trends      9 Photos & Documents
+    //    4 Bullion Holdings       10 Collection Completion
+    //    5 Scrap Precious Metal   11 Wishlist
+    //    6 Bulk Coins             12 Your Backup
+    //                                13 Support this App
+    //
+    // The APPEND order below IS the default order. applyDashboardOrder() then
+    // re-applies any saved drag order on top, so a dashboard the user has
+    // already rearranged keeps their arrangement -- this is only the default.
+    //
+    // NOTE the spot card is already BUILT before this block (`var sc = await
+    // buildSpotPricesCard(prices)` runs earlier); only its append moves.
     var pc = buildPortfolioBreakdownCard(p);
     if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
+
+    // Spot prices card (built above, before the synchronous DOM update).
+    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
+
+    var tc = buildSpotTrendCard(prices);
+    if (tc) { if (vis['card-trend'] === false) tc.style.display='none'; addDragHandle(tc); c.appendChild(tc); }
 
     // Bullion card - uses raw bullion individual entries
     var bi = getRawBullion();
     var bc = buildBullionCard(bi, p, prices);
     if (bc) { if (vis['card-bullion'] === false) bc.style.display='none'; addDragHandle(bc); c.appendChild(bc); }
 
-    // Coins by Weight card
-    var cwCard = buildCoinsByWeightCard(_bulkCoinsData, prices);
-    if (cwCard) { if (vis['card-coinweight'] === false) cwCard.style.display='none'; addDragHandle(cwCard); c.appendChild(cwCard); }
-
-    // Spot prices card — prepared before the synchronous DOM update.
-    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
-
-    var tc = buildSpotTrendCard(prices);
-    if (tc) { if (vis['card-trend'] === false) tc.style.display='none'; addDragHandle(tc); c.appendChild(tc); }
-
     var sm = getScrapMetal();
     var s2 = buildScrapMetalCard(sm, prices); 
     if (s2) { if (vis['card-scrap'] === false) s2.style.display='none'; addDragHandle(s2); c.appendChild(s2); }
 
+    // Coins by Weight card
+    var cwCard = buildCoinsByWeightCard(_bulkCoinsData, prices);
+    if (cwCard) { if (vis['card-coinweight'] === false) cwCard.style.display='none'; addDragHandle(cwCard); c.appendChild(cwCard); }
 
     var pap = getPaperCurrency();
     var p2 = buildPaperCurrencyCard(pap); 
@@ -632,22 +739,33 @@ export async function renderDashboard() {
     var c2 = buildCustomCategoriesCard(cats, cols); 
     if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c.appendChild(c2); }
 
-    var wl = getWishlist() || [];
-    var w2 = buildWishlistCard(wl);
-    if (w2) { if (vis['card-wishlist'] === false) w2.style.display='none'; addDragHandle(w2); c.appendChild(w2); }
+    // 2026-10-09 (Matthew): the user's own Custom Dashboard Cards. The creator
+    // modal has always written this store, but NOTHING read it, so a created
+    // card saved, toasted success, and never rendered. This is the renderer
+    // that was missing. Returns null when the list is empty, so no empty card
+    // is added for users who have not made one.
+    var ucc = buildCustomDashboardCardsCard(p);
+    if (ucc) { if (vis['card-user-custom'] === false) ucc.style.display='none'; addDragHandle(ucc); c.appendChild(ucc); }
 
     // Photos & Documents gallery card
     var g2 = renderGalleryCard();
     if (g2) { if (vis['card-gallery'] === false) g2.style.display='none'; addDragHandle(g2); c.appendChild(g2); }
 
-    // Completion ("Percentage Finished") — second-from-last by default.
-    // Completion ("Percentage Finished") — second-from-last by default.
+    // Completion ("Percentage Finished")
+    // 2026-10-09 (Matthew) DEFAULT ORDER for a new install:
+    //   Portfolio Overview, Live Spot Prices, Metal Price Trends,
+    //   Bullion Holdings, Scrap Precious Metal, Bulk Coins, Paper Currency,
+    //   Other Collectables, Photos & Documents, Collection Completion,
+    //   Wishlist, Your Backup, Support this App.
+    // The append order below IS the default order. applyDashboardOrder() then
+    // re-applies any saved drag order on top, so a rearranged dashboard keeps
+    // the arrangement the user chose.
     var cc = buildCompletionCard(getSections());
     if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
 
-    // Support card — always render LAST by default, respects visibility toggle.
-    var sup = buildSupportCard();
-    if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup); }
+    var wl = getWishlist() || [];
+    var w2 = buildWishlistCard(wl);
+    if (w2) { if (vis['card-wishlist'] === false) w2.style.display='none'; addDragHandle(w2); c.appendChild(w2); }
 
     // 2026-09-30: plain-language backup card (Matthew). One sentence
     // stating where the data lives, one button to act on it.
@@ -656,9 +774,17 @@ export async function renderDashboard() {
     addDragHandle(bkp);
     c.appendChild(bkp);
 
+    // Support card — always render LAST, respects visibility toggle.
+    var sup = buildSupportCard();
+    if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup); }
+
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
     applyDashboardSizes();
+
+    // COI-20: release the scroll-anchor pin now that the rebuilt cards
+    // have their real heights back.
+    if (typeof _coi20Pin === 'function') _coi20Pin();
 
 }
 
@@ -1018,21 +1144,43 @@ function buildPortfolioBreakdownCard(p) {
     card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
 
     // Top section: Total on top, Sparkline below it
-    var topSec = el('div', {style:'display:flex; flex-direction:column; margin-bottom:8px; gap:8px; min-height: 60px;'});
+    // 2026-10-09 (Matthew): class + width so the chart below can fill the card.
+    // As an unclassed column-flex child it was content-sized, which is what kept
+    // the canvas at 50% -- see references/dashboard-card-fill-width.md.
+    var topSec = el('div', {className:'portfolio-topsec', style:'display:flex; flex-direction:column; width:100%; align-items:stretch; margin-bottom:8px; gap:8px; min-height: 60px;'});
     
     var leftSec = el('div', {style:'width:100%; display:flex; flex-direction:column; align-items:flex-start;'});
-    leftSec.appendChild(el('div',{className:'dashboard-big-number', style:'margin-top:0;'},fmt(total)));
+    leftSec.appendChild(el('div', {
+        // 2026-10-09 (Matthew): this was a plain .dashboard-big-number and it
+        // clipped at some browser widths, while the SAME total already appeared
+        // at the bottom of this card in a bordered grand-total row. Two copies
+        // of one number is redundant, so the bordered one is promoted to the
+        // top and the duplicate row at the bottom is removed. He asked to keep
+        // the bordered look. (NB: do not write the removed row's call text in
+        // this comment -- the verification asserts that exact string is gone.)
+        className: 'finance-item grand-total portfolio-hero',
+        style: 'grid-column:auto; margin-top:0; width:100%;'
+    }, [
+        el('span', {className:'finance-label'}, 'Total Portfolio'),
+        el('span', {className:'finance-value bold'}, fmt(total))
+    ]));
     var sum = [];
     if (coins>0) sum.push(coins.toLocaleString()+' physical coins');
     if (items>0 && items!==coins) sum.push(items.toLocaleString()+' total items');
     if (sum.length) leftSec.appendChild(el('div',{className:'dashboard-detail',style:'margin:0 0 8px;font-size:0.82em;'},sum.join(' \u00b7 ')));
     topSec.appendChild(leftSec);
 
-    var rightSec = el('div', {style:'width:100%; display:flex; flex-direction:column; align-items:flex-end;'});
-    var cvs = el('canvas', {style:'width:100%; height:60px;'});
-    rightSec.appendChild(cvs);
+    // 2026-10-09 (Matthew): the sparkline rendered ~41% of the card width
+    // (measured: canvas 130px inside a 317px card). It sat in `rightSec`, a
+    // sibling column that sized to its CONTENT (the period-button row) rather
+    // than to the card, and the canvas was measured once at first paint with
+    // nothing re-measuring afterwards. One full-width block, measured against
+    // the card, redrawn on resize.
+    var chartWrap = el('div', {className:'portfolio-chart'});
+    var cvs = el('canvas', {className:'portfolio-chart-canvas', style:'width:100%; height:60px; display:block;'});
+    chartWrap.appendChild(cvs);
 
-    var btnRow = el('div', {style:'display:flex; gap:8px; margin-top:4px; font-size:0.7em;'});
+    var btnRow = el('div', {className:'portfolio-periods', style:'display:flex; gap:8px; margin-top:4px; font-size:0.7em;'});
     var periods = [
         {label:'1D', ms:86400000},
         {label:'1W', ms:7*86400000},
@@ -1047,7 +1195,12 @@ function buildPortfolioBreakdownCard(p) {
         var filtered = ms > 0 ? history.filter(h => now - h.t <= ms) : history;
         if (filtered.length < 2) filtered = history; // fallback
         requestAnimationFrame(() => {
-            var cw = cvs.clientWidth || 300;
+            // Measure the CARD's content box, not just the canvas: the first
+            // paint can be pre-layout, so fall back through wrapper to card.
+            var cw = cvs.clientWidth
+                  || (chartWrap.clientWidth || 0)
+                  || (card.clientWidth || 0)
+                  || 300;
             _sparkline(cvs, filtered.map(h => ({v: h.v})), '#10b981', cw, 60);
         });
         // update btn styles
@@ -1066,12 +1219,22 @@ function buildPortfolioBreakdownCard(p) {
         });
         btnRow.appendChild(b);
     });
-    rightSec.appendChild(btnRow);
-    topSec.appendChild(rightSec);
+    chartWrap.appendChild(btnRow);
+
+    topSec.appendChild(chartWrap);
 
     card.appendChild(topSec);
 
+    // Redraw when the card resizes so the chart tracks the working width
+    // instead of freezing at its first-paint width.
+    if (typeof ResizeObserver !== 'undefined') {
+        var _chartRO = new ResizeObserver(function(){ drawChart(activePeriod); });
+        _chartRO.observe(card);
+    }
+
     setTimeout(() => drawChart(activePeriod), 50);
+    // Second pass after layout settles -- the first can fire pre-resize.
+    setTimeout(() => drawChart(activePeriod), 400);
 
     var g = el('div',{className:'finance-grid'});
     if (p.gold_coin_melt>0) g.appendChild(fRow('Gold Coins Melt',fmt(p.gold_coin_melt)));
@@ -1087,7 +1250,7 @@ function buildPortfolioBreakdownCard(p) {
     if (p.other_value>0) g.appendChild(fRow('Other Collectibles',fmt(p.other_value)));
     if (face>0) g.appendChild(fRow('Face Value',fmt(face)));
     g.appendChild(fRow('Total Melt Value',fmt(melt),true));
-    g.appendChild(fRow('Total Portfolio',fmt(total),true,'grand-total'));
+
     card.appendChild(g);
 
     return card;
@@ -1258,8 +1421,10 @@ function _foldCardForm(form, addBtn, key, label) {
     // on the page.
     var host = form.parentNode;
     if (host) {
-        row.appendChild(cancel);
+        // 2026-10-09 (Matthew): primary action LEFT, Cancel RIGHT. Append
+        // order IS visual order in a flex row, so addBtn goes first.
         row.appendChild(addBtn);      // moves the button OUT of the form
+        row.appendChild(cancel);
         host.insertBefore(row, form);  // now both share a parent
     }
 
@@ -2344,6 +2509,145 @@ function buildPaperCurrencyCard(items) {
 // =========================================================================
 // V1-Style Inline Widget: Other Collectables Card
 // =========================================================================
+
+
+/**
+ * Render the user's Custom Dashboard Cards (Settings -> Custom Dashboard Card).
+ *
+ * The creator modal writes these definitions to localStorage, but nothing read
+ * that store: a card saved, toasted "Custom card created!", and never appeared.
+ * The definitions were always fully formed (title, data source, display style,
+ * colours) -- only the renderer was missing. The key itself is read through
+ * getCustomDashboardCards() in state.js, so there is one place that owns it.
+ *
+ * One card per definition, laid out to match the other dashboard cards so it
+ * participates in drag-reorder, width classes and the visibility settings.
+ */
+
+/* Resolve a definition's dataSource id against the live portfolio payload.
+   The modal offers 12 ids and /api/portfolio returns a specific key set, so
+   each id is mapped explicitly. Anything unknown resolves to null and renders
+   as an em dash -- never "undefined" or "$NaN". */
+function _resolveCustomCardValue(def, p) {
+    p = p || {};
+    var num = function (v) { return (typeof v === 'number' && isFinite(v)) ? v : null; };
+    var map = {
+        totalValue:         num(p.total_estimated_value),
+        totalMelt:          num(p.total_melt),
+        collectibleValue:   num(p.collectable_value),
+        coinCount:          num(p.total_physical_coins),
+        itemCount:          num(p.total_items),
+        completion:         null,   // needs a section rollup; see note below
+        goldMelt:           num(p.gold_coin_melt),
+        silverMelt:         num(p.silver_coin_melt),
+        platinumMelt:       num(p.platinum_coin_melt),
+        palladiumMelt:      num(p.palladium_coin_melt),
+        copperMelt:         num(p.copper_coin_melt),
+        bulkValue:          num(p.bulk_coins_value),
+        paperValue:         num(p.paper_value),
+        scrapValue:         num(p.scrap_value),
+        rawBullion:         num(p.raw_bullion),
+        otherValue:         num(p.other_value),
+        faceValue:          num(p.face_value)
+    };
+    // `completion` is a percentage, not currency, so it is computed here from
+    // the sections already held in state rather than from the payload.
+    if (def.dataSource === 'completion') {
+        var secs = getSections() || [];
+        var tot = 0, own = 0;
+        secs.forEach(function (s) { tot += (s.total || 0); own += (s.owned || 0); });
+        return tot > 0 ? (Math.round(own / tot * 1000) / 10) : null;
+    }
+    if (def.dataSource === 'custom') {
+        var cv = def.customValue;
+        if (cv === null || cv === undefined || cv === '') return null;
+        var asNum = Number(cv);
+        return isNaN(asNum) ? String(cv) : asNum;
+    }
+    return Object.prototype.hasOwnProperty.call(map, def.dataSource) ? map[def.dataSource] : null;
+}
+
+/* Format a resolved value. Currency ids get 2dp; counts and percentages do not. */
+function _formatCustomCardValue(def, value) {
+    if (value === null || value === undefined) return '\u2014';
+    var CURRENCY = { totalValue:1, totalMelt:1, collectibleValue:1, goldMelt:1,
+                     silverMelt:1, platinumMelt:1, palladiumMelt:1, copperMelt:1,
+                     bulkValue:1, paperValue:1, scrapValue:1, rawBullion:1,
+                     otherValue:1, faceValue:1 };
+    if (CURRENCY[def.dataSource]) {
+        return '$' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
+    }
+    if (typeof value === 'number') return value.toLocaleString();
+    return String(value);
+}
+
+function buildCustomDashboardCardsCard(p) {
+    var defs;
+    try { defs = getCustomDashboardCards(); } catch (e) { defs = []; }
+    if (!Array.isArray(defs) || defs.length === 0) return null;
+
+    var card = el('div', { className: 'card dashboard-card', id: 'card-user-custom',
+                           style: 'display:flex; flex-direction:column;' });
+
+    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;' });
+    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, ' My Cards'));
+    hdr.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);padding-right:28px;' },
+                       defs.length + ' card' + (defs.length !== 1 ? 's' : '')));
+    card.appendChild(hdr);
+
+    var list = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:0;margin-bottom:0;' });
+
+    defs.forEach(function (def) {
+        var bg = def.bgColor || 'var(--color-bg-card)';
+        var fg = def.textColor || 'var(--color-text-main)';
+        var resolved = _resolveCustomCardValue(def, p);
+        var text = _formatCustomCardValue(def, resolved);
+        var style = def.displayStyle || 'bigNumber';
+
+        var row = el('div', {
+            className: 'user-custom-card',
+            style: 'background:' + bg + '; color:' + fg + '; border:1px solid var(--color-border);' +
+                   'border-radius:var(--radius-base); padding:10px 12px; margin-bottom:8px;' +
+                   'display:flex; gap:10px; align-items:center; justify-content:space-between;'
+        });
+
+        var label = el('div', { style: 'font-size:0.82em; font-weight:600; opacity:0.9; min-width:0;' },
+                       String(def.title));
+
+        var valueEl;
+        if (style === 'labelValue') {
+            valueEl = el('div', { style: 'font-size:1.05em; font-weight:700; white-space:nowrap;' }, text);
+            row.appendChild(label); row.appendChild(valueEl);
+        } else if (style === 'progress') {
+            var pct = (typeof resolved === 'number') ? Math.max(0, Math.min(100, resolved)) : 0;
+            var track = el('div', { style: 'flex:1; height:8px; border-radius:4px; background:rgba(128,128,128,0.35); overflow:hidden;' });
+            var fill = el('div', { style: 'width:' + pct + '%; height:100%; background:currentColor; border-radius:4px;' });
+            track.appendChild(fill);
+            label.appendChild(el('div', { style: 'font-size:0.72em; font-weight:400; opacity:0.8; margin-top:2px;' }, text));
+            row.appendChild(label); row.appendChild(track);
+        } else if (style === 'trend') {
+            var arrow = (typeof resolved === 'number' && resolved >= 0) ? '\u25b2' : '\u25bc';
+            var acol = (typeof resolved === 'number' && resolved >= 0) ? '#22c55e' : '#ef4444';
+            valueEl = el('div', { style: 'display:flex; align-items:center; gap:6px; font-weight:700; white-space:nowrap;' },
+                el('span', { style: 'color:' + acol + '; font-size:0.9em;' }, arrow),
+                el('span', {}, text));
+            row.appendChild(label); row.appendChild(valueEl);
+        } else {
+            // bigNumber (default): title above, value centred beneath
+            row.style.flexDirection = 'column';
+            row.style.justifyContent = 'center';
+            row.style.alignItems = 'center';
+            row.style.textAlign = 'center';
+            row.style.padding = '14px 12px';
+            label.appendChild(el('div', { style: 'font-size:1.35em; font-weight:700; margin-top:4px; color:inherit;' }, text));
+            row.appendChild(label);
+        }
+        list.appendChild(row);
+    });
+
+    card.appendChild(list);
+    return card;
+}
 
 function buildCustomCategoriesCard(categories, collectables) {
     if (!Array.isArray(collectables)) collectables = [];

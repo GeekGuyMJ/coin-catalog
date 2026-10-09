@@ -2438,10 +2438,20 @@ select optgroup {
     .v1-form-row select {
         width: 100%;
     }
-    /* Card header value/count overflow */
+    /* Card header value/count overflow.
+       2026-10-09 (Matthew): this rule was also clamping the whole BODY of any
+       card whose .card-title is followed by a div. In "Your Backup" that div is
+       the card body, not a header badge, so the body was pinned to 50% of the
+       card and its button with it (measured: 115px of a 230px inner width,
+       where every other card used all 230). Exempt cards whose body follows
+       the title directly, so badge protection is kept everywhere else. */
     .dashboard-card .card-title + div {
         max-width: 50%;
         overflow: hidden;
+    }
+    .dashboard-card.backup-card .card-title + div {
+        max-width: none;
+        overflow: visible;
     }
     .dashboard-card .card-title + div span {
         white-space: nowrap;
@@ -5016,4 +5026,159 @@ html, body {
     box-sizing: border-box;
     padding-left: var(--page-gutter) !important;
     padding-right: var(--page-gutter) !important;
+}
+
+
+/* ---- Custom Dashboard Card modal: themed colour swatches (2026-10-09) ----
+   The two type=color inputs in the Custom Dashboard Card modal carried no
+   class, so they rendered the browser's default light chrome around the
+   swatch. They deliberately do NOT use .v1-input: that class sets a dark
+   background, which would hide the colour the user picked. Only the frame
+   around the swatch is themed here. */
+input[type="color"].cc-color-input {
+    width:         56px;
+    height:        32px;
+    padding:       3px;
+    background:    var(--color-bg-body);
+    border:        1px solid var(--color-border);
+    border-radius: var(--radius-base);
+    cursor:        pointer;
+    flex-shrink:   0;
+}
+input[type="color"].cc-color-input:hover { border-color: var(--color-accent); }
+
+
+/* =========================================================================
+   Dashboard polish (2026-10-09, Matthew)
+   ========================================================================= */
+
+/* The portfolio hero figure: the bordered grand-total treatment promoted to
+   the top of #card-portfolio, replacing the clipped plain big number.
+   min-width:0 + flex-wrap stop a long currency string from setting a
+   min-content floor wider than the card (the cause of the clipping). */
+#card-portfolio .portfolio-hero {
+    width:          100%;
+    grid-column:    auto;
+    display:        flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:            var(--space-2);
+    flex-wrap:      wrap;
+    min-width:      0;
+    margin-top:     0;
+    text-align:     left;
+}
+#card-portfolio .portfolio-hero .finance-label { flex: 0 0 auto; }
+#card-portfolio .portfolio-hero .finance-value {
+    min-width:      0;
+    overflow-wrap:  anywhere;
+    text-align:     right;
+}
+
+/* Sparkline spans the card's working width. It must not inherit a
+   content-sized column, so both the wrapper and the canvas are explicitly
+   full-width and the wrapper stretches its children. */
+/* Round 2 (2026-10-09): a COLUMN flex parent sizes children by CONTENT, and a
+   <canvas> has an intrinsic default of 300x150 CSS px. So `width:100%` resolved
+   against a content-sized parent and the chart settled at exactly 50% of the
+   card in the 820-1400px band (measured 119px of 238px). The parent has to be
+   told to fill, and the canvas has to be told not to be content-sized. */
+#card-portfolio > div:has(> .portfolio-chart),
+#card-portfolio .topsec {
+    width:      100%;
+    align-items: stretch;
+}
+#card-portfolio .portfolio-chart {
+    width:          100%;
+    max-width:      100%;
+    flex:           1 1 100%;
+    align-self:     stretch;
+    display:        flex;
+    flex-direction: column;
+    align-items:    stretch;
+    min-width:      0;
+}
+#card-portfolio .portfolio-chart-canvas {
+    width:          100% !important;
+    flex:           1 1 100%;
+    align-self:     stretch;
+    display:        block;
+    min-width:      0;
+    max-width:      100%;
+}
+
+/* The hero price must never clip. clamp() scales it with the card instead of
+   overflowing, and the label gives way first. */
+#card-portfolio .portfolio-hero .finance-value {
+    font-size:      clamp(0.95rem, 2.6cqw, var(--font-size-2xl));
+    white-space:    nowrap;
+    overflow:       hidden;
+    text-overflow:  ellipsis;
+}
+#card-portfolio .portfolio-hero .finance-label {
+    min-width:      0;
+    overflow:       hidden;
+    text-overflow:  ellipsis;
+    white-space:    nowrap;
+}
+/* THE fix for the 50% chart: .dashboard-card is a COLUMN flex container and
+   its align-items was `normal`, which sizes children to their CONTENT. That
+   made .portfolio-topsec content-width, and every 100% below it resolved
+   against that. Stretch the card's children so the chain actually fills.
+   2026-10-09 (Matthew) */
+#card-portfolio {
+    container-type: inline-size;
+    align-items:    stretch;
+}
+/* THE fix. A <canvas> has an INTRINSIC default size of 300x150 CSS px, so the
+   chain's max-content floor was 300px. In a 238px card flex-shrink cannot go
+   below that automatic minimum, and the chart settled at exactly 50%.
+   `width:100%` does NOT fix it (a percentage resolves against a parent being
+   sized by the same floor); `max-width:100%` caps the floor at the real parent
+   width so the whole chain can shrink to fill. Verified in-page: 119px -> 238px.
+   2026-10-09 (Matthew) */
+#card-portfolio .portfolio-topsec {
+    width:      100%;
+    max-width:  100%;
+    flex:       1 1 auto;
+    align-self: stretch;
+    min-width:  0;
+}
+#card-portfolio .portfolio-periods {
+    display:        flex;
+    gap:            8px;
+    margin-top:     4px;
+    flex-wrap:      wrap;
+}
+
+/* Button text: dark ink on the accent fill.
+   --color-accent-text is #ffffff in the dark theme, which is what read as
+   "too bright" against the blue. Dark ink stays legible on the accent fill in
+   every theme and matches the app's other secondary controls. */
+.v1-add-btn,
+.btn-primary {
+    color: #06121f;
+}
+.v1-add-btn:hover,
+.btn-primary:hover:not(:disabled) {
+    color: #06121f;
+}
+
+/* Primary on the LEFT, Cancel on the RIGHT (flex order is append order). */
+.v1-form-actions .v1-add-btn    { order: 1; }
+.v1-form-actions .v1-cancel-btn { order: 2; margin-left: 8px; }
+
+
+/* 2026-10-09 (Matthew): "Your Backup" body uses the full card width.
+   The narrow-viewport clamp above is exempted above; this restores the body to
+   the card's content box at every width. */
+#card-backup .card-title + div {
+    max-width: none;
+    overflow: visible;
+    width:          100%;
+    min-width:      0;
+}
+#card-backup .card-title + div > button,
+#card-backup .card-title + div button {
+    width:          100%;
 }
