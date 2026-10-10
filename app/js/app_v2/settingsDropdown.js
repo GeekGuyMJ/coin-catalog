@@ -640,7 +640,18 @@ export async function showCloudSyncModal() {
                             el('label', { style: 'flex:1;' }, 'Automatic cloud backup'),
                         ]),
                         el('p', { className: 'settings-text', style: 'font-size:0.9em; margin-top:8px;' },
-                            'Periodically back up your collection to ' + provider.name + ' while this app is open. Runs on load and every 10 minutes if the interval has elapsed.'),
+                            // 2026-10-10 (Matthew): "it says right above that it will do it
+                            // every time the app loads and every 10 minutes. That's confusing."
+                            // Both numbers were true but described two different things and
+                            // read as a contradiction next to the "Back up every N hours" picker:
+                            //   * every 10 minutes = how often the app CHECKS whether a backup
+                            //     is due (setInterval in sync.js startAutoBackupScheduler)
+                            //   * every N hours   = how often a backup is actually WRITTEN
+                            // A backup only fires if >= N hours have elapsed since the last one.
+                            // So say the two things separately, and say what happens on open.
+                            'Back up your collection to ' + provider.name + ' while the app is open. '
+                            + 'On open, a backup runs if one is due. After that the app checks every '
+                            + '10 minutes and writes a backup only once the interval below has passed.'),
                         el('div', { className: 'form-group', style: 'display:flex; align-items:center; gap:10px; margin-top:10px;' }, ...[
                             el('label', {}, 'Back up every'),
                             el('select', {

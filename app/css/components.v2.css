@@ -5098,13 +5098,33 @@ input[type="color"].cc-color-input:hover { border-color: var(--color-accent); }
     align-items:    stretch;
     min-width:      0;
 }
+/* 2026-10-10 (Matthew): "the screen still jumps every time a coin is added".
+   Traced to the sparkline canvas, not the grid. The canvas was
+   `flex: 1 1 100%; align-self: stretch` INSIDE .portfolio-chart, which is
+   itself `flex: 1 1 100%; align-self: stretch` inside .portfolio-topsec
+   (`flex: 1 1 auto`), all inside the grid track. The canvas height therefore
+   resolved against a container whose height depended on the canvas -- and
+   _pinGridHeight's pin changed that track, so the canvas re-measured itself.
+
+   Measured per-frame on a stepper +1:
+       pre-rebuild   canvas 60.1px  chart 84.9px  topsec 163.3px
+       PIN APPLIED   canvas 115.1px chart 139.9px topsec 168.0px   (+4.7)
+       pin released  canvas 60.1px  chart 84.9px  topsec 163.3px
+   That grow-then-snap is the bounce, and it fired on EVERY rebuild because
+   every counter/wishlist/album write calls setInventory() -> renderDashboard().
+
+   A canvas draws into a fixed pixel box; it must never be sized by its parent.
+   `flex: 0 0 auto` + an explicit height breaks the cycle. The inline style
+   in buildPortfolioBreakdownCard (height:60px) remains the single source of
+   truth, and _sparkline() re-asserts style.height on every redraw. */
 #card-portfolio .portfolio-chart-canvas {
     width:          100% !important;
-    flex:           1 1 100%;
+    flex:           0 0 auto;
     align-self:     stretch;
     display:        block;
     min-width:      0;
     max-width:      100%;
+    height:         60px;
 }
 
 /* The hero price must never clip. clamp() scales it with the card instead of

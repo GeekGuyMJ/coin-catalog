@@ -1427,8 +1427,19 @@ export async function fetchPortfolioLocal() {
             stats.bulk_coins_value += (wt / 2.5) * 0.01;
         } else if (mt === "Nickels") {
             stats.bulk_coins_value += (wt / 5.0) * 0.05;
-        } else if (mt === "SilverCoins90") {
+        } else if (mt === "SilverCoins90"
+                || mt === "EisenhowerSilver90"
+                || mt === "GoldenDollars") {
+            // 2026-10-10 (Matthew): Eisenhower 1971-2001 and the golden
+            // Sacagawea / Presidential dollars are 90% silver too. This MUST stay
+            // in step with calcCoinValue() in portfolio.js -- the card shows the
+            // per-entry melt while this computes the dashboard total, and a drift
+            // between the two makes the Bulk Coins header disagree with the
+            // Portfolio Overview figure.
             stats.bulk_coins_value += wt * 0.90 * (spot.silver || 0);
+        } else if (mt === "EisenhowerClad") {
+            // Cu-Ni clad Eisenhower: 8.0g/coin, ~$0.08 of base metal.
+            stats.bulk_coins_value += (wt / 8.0) * 0.08;
         } else if (mt === "CladDimes") {
             stats.bulk_coins_value += (wt / 2.268) * 0.10;
         } else if (mt === "CladQuarters") {

@@ -32,7 +32,7 @@ import {
 
 import { fetchCoinsForSection, updateInventory, fetchInventory, fetchTypeConfigs, deleteInventoryEntry } from './api.js';
 import { showToast } from './notifications.js';
-import { openImageInteractionModal } from './images.js';
+import { openImageInteractionModal, bustImageCache } from './images.js';
 
 // --- View state ---
 let _albumSections = new Set();       // sections expanded in album view
@@ -435,9 +435,10 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
     const obvImg = resolveImageUrl(coin.obv_image);
     const revImg = resolveImageUrl(coin.rev_image);
     let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
-    if (displayImg && !displayImg.includes('?')) {
-        displayImg += '?v=2';
-    }
+    // A re-upload reuses the same filename, so without a UNIQUE bust the
+    // browser serves the previously cached bytes and the album shows the
+    // OLD image until a refresh. See bustImageCache() in images.js.
+    displayImg = bustImageCache(displayImg);
 
     if (isOwned && displayImg) {
         const img = el('img', {
@@ -744,7 +745,23 @@ window.addEventListener('cc-inventory-updated', async (e) => {
     // _setHoleQty already fetches and sets inventory (dispatches
     // this event), so don't refresh again — that double-fires the
     // dashboard rebuild and causes a visible layout shift.
-    try { await _ccUpdateHoleInPlace(changedId); } catch (_) { /* non-fatal */ }
+    // 2026-10-10 (Matthew): "I don't like the white rectangle that flashes when
+    // a coin is added to the album." The in-place patch below updates the ONE hole
+    // that changed. But this listener then went on to re-render every open inline
+    // album AND the standalone grid -- and each of those does `container.innerHTML
+    // = ''` (renderAlbumType:154, renderAlbumLayout:224, renderAlbumGrid:313) before
+    // rebuilding. So the patch was thrown away one statement later: the DOM was torn
+    // down to nothing (white box) and the <img> re-fetched async.
+    //
+    // When a hole click supplies a coinId, the in-place patch is authoritative --
+    // renderCoinHoles() ran in the same task with the same fresh inventory, so the
+    // hole is already correct. Re-rendering anyway is pure churn.
+    if (changedId != null) {
+        const patched = await _ccUpdateHoleInPlace(changedId);
+        if (patched) return;   // the hole that the user clicked is now correct
+    } else {
+        try { await _ccUpdateHoleInPlace(changedId); } catch (_) { /* non-fatal */ }
+    }
     const inlinePromises = Array.from(document.querySelectorAll('.type-content.open.album-inline')).map(async (container) => {
         const typeWrapper = container.closest('.type-wrapper');
         if (!typeWrapper) return;
