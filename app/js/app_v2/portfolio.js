@@ -1585,9 +1585,11 @@ function getMetalLabel(metalType) {
         'CladDimes': 'Clad Dimes',
         'CladQuarters': 'Clad Quarters',
         'CladHalves': 'Clad Half Dollars',
-        // 2026-10-10 (Matthew)
-        'EisenhowerSilver90': 'Eisenhower Dollars (1971-2001, 90% silver)',
-        'EisenhowerClad': 'Eisenhower Dollars (2006+, clad)',
+        // 2026-10-10 (Matthew) -- CORRECTED. The Eisenhower series ended in
+        // 1978; every circulation strike is clad. The golden dollar types are
+        // clad too (no silver in either), so both are face value. See the
+        // note at the dropdown for the sources.
+        'EisenhowerClad': 'Eisenhower Dollars (1971-1978, clad)',
         'GoldenDollars': 'Golden Sacagawea & Presidential Dollars',
         'SilverCoins90': '90% Silver Coins',
         // Canada
@@ -1660,22 +1662,28 @@ function calcCoinValue(entry, prices) {
         coinCount = Math.round(grams / 11.34);
         val = coinCount * 0.50;
         detail = ' × 0.50';
-    } else if (entry.metal_type === 'SilverCoins90'
-            || entry.metal_type === 'EisenhowerSilver90'
-            || entry.metal_type === 'GoldenDollars') {
+    } else if (entry.metal_type === 'SilverCoins90') {
         // 90% silver coins: weight in grams → ozt.
-        // 2026-10-10 (Matthew): Eisenhower 1971-2001 and the golden Sacagawea /
-        // Presidential dollars are also 90% silver, so they use this same melt.
         var ozt = grams / 31.1035;
         val = ozt * (prices['silver_oz'] || 0) * 0.90;
         coinCount = null;
         detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
         isMelt = true;
     } else if (entry.metal_type === 'EisenhowerClad') {
-        // Cu-Ni clad: melt is only the intrinsic metal, a few cents each.
-        coinCount = Math.round(grams / 8.0);
-        val = coinCount * 0.08;
-        detail = ' × 0.08';
+        // 2026-10-10 (Matthew), corrected: the Eisenhower dollar ended in 1978
+        // and is copper-nickel clad in every circulation strike. Face value only.
+        // 22.68 g per coin (clad), $1.00 each.
+        coinCount = Math.round(grams / 22.68);
+        val = coinCount * 1.00;
+        detail = ' × $1.00 face';
+    } else if (entry.metal_type === 'GoldenDollars') {
+        // 2026-10-10 (Matthew), corrected: the Sacagawea and Presidential
+        // dollars contain NO SILVER -- 88.5% Cu / 6% Zn / 3.5% Mn / 2% Ni over
+        // a brass core, 8.100 g. The gold colour is the plating, not the metal.
+        // Face value only.
+        coinCount = Math.round(grams / 8.1);
+        val = coinCount * 1.00;
+        detail = ' × $1.00 face';
     }
     
     return { value: val, coinCount: coinCount, detail: detail, isMelt: isMelt };
@@ -1711,12 +1719,12 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
             groups[m].push(entry);
         });
 
-        // 2026-10-10 (Matthew): the three new dollar types must be in this list
-        // or their entries are never rendered -- the group loop below iterates
-        // metalOrder and skips anything not listed, so an entry whose metal_type
-        // is absent here silently vanishes from the card.
+        // 2026-10-10 (Matthew): any metal_type a user can pick MUST appear here
+        // or its entry is never rendered -- the group loop iterates metalOrder
+        // and skips anything not listed, so it vanishes with no error. Verified
+        // end-to-end after adding the dollar types for exactly this reason.
         var metalOrder = ['CopperPennies', 'ZincPennies', 'Nickels', 'CladDimes', 'CladQuarters', 'CladHalves',
-                          'EisenhowerSilver90', 'EisenhowerClad', 'GoldenDollars', 'SilverCoins90'];
+                          'EisenhowerClad', 'GoldenDollars', 'SilverCoins90'];
         var metalColors = {
             'CopperPennies': '#b45309',
             'ZincPennies': '#64748b',
@@ -1724,7 +1732,6 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
             'CladDimes': '#64748b',
             'CladQuarters': '#64748b',
             'CladHalves': '#64748b',
-            'EisenhowerSilver90': '#94a3b8',
             'EisenhowerClad': '#64748b',
             'GoldenDollars': '#d4af37',
             'SilverCoins90': '#94a3b8'
@@ -1737,7 +1744,10 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
             // Metal group header
             var metalLabelText = getMetalLabel(m);
             var spotDetailText = '';
-            if (m === 'SilverCoins90' || m === 'EisenhowerSilver90' || m === 'GoldenDollars') {
+            // 2026-10-10 (Matthew), corrected: only genuinely 90% silver streams
+            // get the silver spot line. Showing it on the golden dollars
+            // advertised them as silver, which they are not.
+            if (m === 'SilverCoins90') {
                 var sSpot = prices['silver_oz'] || 0;
                 spotDetailText = sSpot > 0 ? ` ($${sSpot.toFixed(2)}/oz silver)` : '';
             } else if (m === 'CopperPennies') {
@@ -1759,9 +1769,7 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
 
                 var calc = calcCoinValue(entry, prices);
                 var gramVal = entry.total_weight_grams || entry.weight_grams || 0;
-                var unit = entry.weight_unit || (entry.metal_type === 'SilverCoins90'
-                        || entry.metal_type === 'EisenhowerSilver90'
-                        || entry.metal_type === 'GoldenDollars' ? 'g' : 'lbs');
+                var unit = entry.weight_unit || (entry.metal_type === 'SilverCoins90' ? 'g' : 'lbs');
                 var displayWeight = '';
                 if (unit === 'lbs') {
                     displayWeight = (gramVal / 453.592).toFixed(2) + ' lbs';
@@ -1809,9 +1817,24 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     var metalSel = el('select', { className: 'v1-select', dataset: { field: 'be-metal' }, style: 'flex:1; min-width:120px;' });
     ['Copper Pennies 1959-1981', 'Zinc Pennies 1983-2025', 'Nickels', 'Clad Dimes', 'Clad Quarters', 'Clad Half Dollars',
      // 2026-10-10 (Matthew): add Eisenhower dollars and the golden Sacagawea /
-     // Presidential dollars. Eisenhower 1971-2001 is 90% silver, clad 2006+.
-     'Eisenhower Dollars (1971-2001, 90% silver)', 'Eisenhower Dollars (2006+, clad)',
-     'Golden Sacagawea & Presidential Dollars', '90% Silver Coins',
+     // Presidential dollars.
+     //
+     // CORRECTED after Matthew challenged the first pass, which was wrong on
+     // every one of these three. Verified against Wikipedia's Eisenhower /
+     // Sacagawea / Presidential dollar articles (Mass + Composition + Years of
+     // minting fields), 2026-10-10:
+     //
+     //   Eisenhower  1971-1978 ONLY. Circulation strikes are copper-nickel
+     //     CLAD -- "None in circulation strikes" for silver. The 40% silver
+     //     pieces are the 1971/1972 S-mint issues and are a numismatic
+     //     exception, not a bulk-stream denomination. So bulk = clad + face.
+     //     There are NO Eisenhower dollars after 1978 at all.
+     //   Sacagawea   8.100 g, 88.5% Cu / 6% Zn / 3.5% Mn / 2% Ni -- no silver
+     //     in it at all. The gold colour is a brass core, not precious metal.
+     //   Presidential same alloy and weight as the Sacagawea.
+     //
+     // Both golden dollar types are therefore CLAD + FACE VALUE.
+     'Eisenhower Dollars (1971-1978, clad)', 'Golden Sacagawea & Presidential Dollars', '90% Silver Coins',
      // Canada (small → large)
      'Canadian Copper Pennies 1920-1996', 'Canadian Zinc Pennies 1997-2012', 'Canadian Nickels', 'Canadian Silver Dimes (pre-1968)', 'Canadian Clad Dimes (1968+)', 'Canadian Silver Quarters (pre-1968)', 'Canadian Clad Quarters (1968+)', 'Canadian 50¢ Pieces', 'Canadian Loonies (1$)'].forEach(function(label) {
         metalSel.appendChild(el('option', { value: label }, label));
@@ -2952,9 +2975,8 @@ document.addEventListener('click', async function(e) {
                 'Clad Dimes': 'CladDimes',
                 'Clad Quarters': 'CladQuarters',
                 'Clad Half Dollars': 'CladHalves',
-                // 2026-10-10 (Matthew)
-                'Eisenhower Dollars (1971-2001, 90% silver)': 'EisenhowerSilver90',
-                'Eisenhower Dollars (2006+, clad)': 'EisenhowerClad',
+                // 2026-10-10 (Matthew), corrected year ranges
+                'Eisenhower Dollars (1971-1978, clad)': 'EisenhowerClad',
                 'Golden Sacagawea & Presidential Dollars': 'GoldenDollars',
                 '90% Silver Coins': 'SilverCoins90'
             };
