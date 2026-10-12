@@ -16,6 +16,7 @@
 import {
     getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
     typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
+    resolveImageUrl,
 } from './utils.js';
 
 import {
@@ -357,7 +358,7 @@ function buildSectionCard(sec) {
         // If no override yet, leave a marker so expandSection can fill the first-coin image.
         const pair = el('div', { className: 'coin-img-pair', dataset: { sampleType: sec.sample_type || '' } });
         if (exObv) {
-            const img = el('img', { className: 'coin-thumb obv', src: exObv, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
+            const img = el('img', { className: 'coin-thumb obv', src: resolveImageUrl(exObv), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
@@ -366,7 +367,7 @@ function buildSectionCard(sec) {
             pair.appendChild(ph);
         }
         if (exRev) {
-            const img = el('img', { className: 'coin-thumb rev', src: exRev, alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
+            const img = el('img', { className: 'coin-thumb rev', src: resolveImageUrl(exRev), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
@@ -668,7 +669,7 @@ function buildTypeAccordion(mainType, typeCoins) {
     if (exObv) {
         const imgObv = el("img", {
             className: "coin-thumb obv",
-            src: exObv,
+            src: resolveImageUrl(exObv),
             alt: mainType + " obverse",
             loading: "lazy",
             role: "button",
@@ -691,7 +692,7 @@ function buildTypeAccordion(mainType, typeCoins) {
     if (exRev) {
         const imgRev = el("img", {
             className: "coin-thumb rev",
-            src: exRev,
+            src: resolveImageUrl(exRev),
             alt: mainType + " reverse",
             loading: "lazy",
             role: "button",
@@ -1231,14 +1232,14 @@ function buildCoinRow(coin) {
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
     if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
-        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
+        var img = el("img", {className: "coin-row-thumb", src: resolveImageUrl(obvSrc), alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };
         thumbWrap.appendChild(img);
     } else {
         thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, section: coin.section || ''}}));
     }
     if (revSrc) {
-        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
+        var img2 = el("img", {className: "coin-row-thumb", src: resolveImageUrl(revSrc), alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img2.onerror = function() { img2.src = placeholderCoinSvg(); img2.classList.add("placeholder"); };
         thumbWrap.appendChild(img2);
     } else {
