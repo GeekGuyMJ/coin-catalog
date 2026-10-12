@@ -4101,6 +4101,7 @@ body.ready-mode-active .ready-badge { display: flex; }
     align-items: center;
     gap: 4px;
     max-width: 100%;
+    overflow: visible;
 }
 .spot-period-row > div {
     flex: 0 0 auto;
@@ -4993,6 +4994,7 @@ html, body {
     gap: 4px;
     width: 100%;
     margin-left: 0;
+    overflow: visible;
 }
 
 .spot-period-row > * {
@@ -5063,7 +5065,7 @@ input[type="color"].cc-color-input:hover { border-color: var(--color-accent); }
     width:          100%;
     grid-column:    auto;
     display:        flex;
-    align-items:     center;
+    align-items:     baseline;
     justify-content: space-between;
     gap:            var(--space-2);
     flex-wrap:      wrap;
