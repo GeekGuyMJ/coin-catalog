@@ -23,10 +23,11 @@ import {
     getWishlist,
 } from './state.js';
 
-import { fetchCoinsForSection, isSelfHosted } from './api.js';
+import { fetchCoinsForSection } from './api.js';
 import { renderSections } from './catalog.js';
 import {
-    getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear, resolveImageUrl,
+    getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear,
+    resolveImageUrl,
 } from './utils.js';
 import { showToast } from './notifications.js';
 
@@ -39,9 +40,8 @@ const FILTERS = [
     { id: 'hide_proofs',  label: 'Hide Proofs',  getState: () => getFilterHideProofs(),  toggle: () => toggleFilterHideProofs() },
     { id: 'hide_errors',  label: 'Hide Errors',  getState: () => getFilterHideErrors(),  toggle: () => toggleFilterHideErrors() },
     { id: 'key_dates',    label: 'Key Dates',    getState: () => getFilterKeyDatesOnly(), toggle: () => toggleFilterKeyDatesOnly() },
-    // NOTE: Min/Max Year are deliberately NOT pills. They are number inputs
-    // (#min-year-input / #max-year-input + dual slider) wired in initYearRange();
-    // pill entries for them had no toggle handler and threw on click.
+    { id: 'min_year',     label: 'Min Year',     getState: () => getMinYear(),           setState: (v) => setMinYear(v) },
+    { id: 'max_year',     label: 'Max Year',     getState: () => getMaxYear(),           setState: (v) => setMaxYear(v) },
 ];
 
 const SORT_MODES = [
@@ -199,19 +199,7 @@ export async function triggerSearch() {
     try {
         let results;
 
-        // 2026-09-28: the search branch used to require the BACKEND for any
-        // text query:
-        //     if (q) { fetch('/api/coins?q=...') }
-        // Both public deployments are static hosts, so /api/coins 404s,
-        // resp.json() rejects, and the render is abandoned -- search returned
-        // 0 results even though 565 rows matched. Identical on GitHub Pages
-        // and Cloudflare Pages; the self-hosted app was unaffected because it
-        // has the API. Browsing/filtering worked because the `else` branch
-        // is entirely client-side.
-        //
-        // Now the backend is used only when it exists (self-hosted); every
-        // static deployment filters locally.
-        if (q && isSelfHosted) {
+        if (q) {
             // Backend search
             const params = new URLSearchParams();
             params.set('q', q);
@@ -228,30 +216,12 @@ export async function triggerSearch() {
             const resp = await fetch('/api/coins?' + params.toString());
             results = await resp.json();
         } else {
-            // Filters and/or text — fetch all sections, filter client-side
+            // Filters only — fetch all sections, filter client-side
             results = [];
             const sections = getSections();
             for (const sec of sections) {
                 const coins = await fetchCoinsForSection(sec.section);
                 results = results.concat(coins);
-            }
-            if (q) {
-                // Mirror the backend's match fields: type, year, mint mark,
-                // notes, denomination and section. Case-insensitive.
-                const needle = q.toLowerCase();
-                results = results.filter(c => {
-                    const hay = [
-                        c.coin_type, c.year, c.mint_mark, c.notes,
-                        c.denomination, c.section, c.ref_notes,
-                        c.grade, c.metal
-                    ];
-                    for (const v of hay) {
-                        if (v === null || v === undefined) continue;
-                        if (String(v).toLowerCase().indexOf(needle) !== -1)
-                            return true;
-                    }
-                    return false;
-                });
             }
             if (getFilterHideProofs())   results = results.filter(c => !c.is_proof);
             if (getFilterHideErrors())   results = results.filter(c => !c.is_error);
@@ -317,9 +287,19 @@ function renderSearchResults(container, results, query) {
         return;
     }
 
+    // Deduplicate by coin ID (backend can return duplicates in certain conditions)
+    const seenIds = new Set();
+    const uniqueCoins = [];
+    for (const coin of results) {
+        if (!seenIds.has(coin.id)) {
+            seenIds.add(coin.id);
+            uniqueCoins.push(coin);
+        }
+    }
+
     // Group results by section
     const secMap = new Map();
-    for (const coin of results) {
+    for (const coin of uniqueCoins) {
         const sec = coin.section || 'Other';
         if (!secMap.has(sec)) secMap.set(sec, []);
         secMap.get(sec).push(coin);
@@ -333,7 +313,7 @@ function renderSearchResults(container, results, query) {
     header.className = 'search-results-header';
     header.innerHTML = ''
         + '<span class="search-results-count">'
-        + results.length + ' result' + (results.length === 1 ? '' : 's')
+        + uniqueCoins.length + ' result' + (uniqueCoins.length === 1 ? '' : 's')
         + (query ? ' for &ldquo;' + escHtml(query) + '&rdquo;' : '')
         + '</span>'
         + '<button class="btn-secondary" id="btn-clear-search" style="font-size:var(--font-size-xs);padding:4px 12px;">\u2715 Clear</button>';
@@ -408,11 +388,11 @@ function buildSearchRow(coin, mainType) {
     // --- Thumbnail ---
     const tw = document.createElement('div');
     tw.className = 'coin-row-thumb-wrap';
-    const imgSrc = resolveImageUrl(cfg.rev_image || cfg.obv_image || null);
+    const imgSrc = cfg.rev_image || cfg.obv_image || null;
     if (imgSrc) {
         const img = document.createElement('img');
         img.className = 'coin-row-thumb';
-        img.src = imgSrc;
+        img.src = resolveImageUrl(imgSrc);
         img.alt = '';
         img.loading = 'lazy';
         img.dataset.action = 'view-img';
