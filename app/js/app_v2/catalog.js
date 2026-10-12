@@ -625,7 +625,7 @@ function refreshSectionHeaderExample(sectionName, coins) {
         if (!src) return;
         let img = pair.querySelector(`img[data-side="${side}"]`) || pair.querySelector(`img.coin-thumb.${side}`);
         if (!img) return;
-        img.src = src;
+        img.src = resolveImageUrl(src);
         img.classList.remove('placeholder');
     });
 }
