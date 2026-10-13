@@ -1,4 +1,10 @@
-export async export function renderDashboard() {
+import { buildSpotPricesCard } from './portfolio-trend.js';
+import { buildBullionHoldingsCard } from './portfolio-cards-2.js';
+import { buildScrapMetalCard, buildPaperCurrencyCard } from './portfolio-cards-3a.js';
+import { buildCustomDashboardCardsCard, buildCustomCategoriesCard } from './portfolio-cards-3b.js';
+import { buildCompletionCard, buildWishlistCard, buildBackupCard, buildSupportCard } from './portfolio-cards-1.js';
+
+export async function renderDashboard() {
     const generation = ++_dashboardRenderGeneration;
     var prices = getSpotPrices();
     const c = document.getElementById('dashboard-grid');
