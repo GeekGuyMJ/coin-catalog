@@ -1,7 +1,41 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" data-publish-target="public">
 <head>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
+<script>
+if ('serviceWorker' in navigator) {
+  // Reload the page once a new service worker takes control, so deployed
+  // fixes actually apply to already-open tabs (otherwise the old JS keeps
+  // running in memory and the app appears "stuck" after an update).
+  var _ccReloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (_ccReloading) return;
+    _ccReloading = true;
+    location.reload();
+  });
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+      if (!reg) return;
+      // If a new worker is already waiting, activate it now and reload.
+      if (reg.waiting) {
+        reg.waiting.postMessage('skipWaiting');
+        // controllerchange handler above will reload.
+        return;
+      }
+      reg.addEventListener('updatefound', function () {
+        var installing = reg.installing;
+        if (!installing) return;
+        installing.addEventListener('statechange', function () {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            installing.postMessage('skipWaiting');
+          }
+        });
+      });
+      if (reg.update) { try { reg.update(); } catch (e) {} }
+    }).catch(function (e) { console.warn('[SW] register failed', e); });
+  });
+}
+</script>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
@@ -19,10 +53,17 @@
     <meta name="description" content="Track, value, and manage your coin and collectable collection with live metal prices and a complete 6,800+ US coin database.">
 
     <!-- Manifest -->
-    <link rel="manifest" href="/manifest.json">
-    <link rel="apple-touch-icon" href="/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <!-- Small sizes first, so a 16px tab picks the legible one -->
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+    <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon-64.png">
+    <link rel="shortcut icon" href="favicon.ico">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 
     <!-- Google Font — Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,9 +71,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="/css/base.css?v=1791825818">
-    <link rel="stylesheet" href="/css/themes.css?v=1791825818">
-    <link rel="stylesheet" href="/css/components.v2.css?v=1791825818">
+    <link rel="stylesheet" href="css/base.css?v=1786636458">
+    <link rel="stylesheet" href="css/themes.css?v=1786636458">
+    <link rel="stylesheet" href="css/components.v2.css?v=1791640696">
 
     <!--
         Theme is applied BEFORE paint to prevent a flash of the wrong theme.
@@ -65,27 +106,50 @@
 
     <script>
         // Cycle through coin images on each page load
+        // DEPLOYMENT-AGNOSTIC FIX (2026-08-24): the image list used root-absolute
+        // "/images/..." paths which 404 on the GitHub Pages sub-path
+        // (/coin-catalog/app/). Derive the app base from the current pathname and
+        // prepend it so the splash coins load on both self-hosted ("/") and public
+        // ("/coin-catalog/app/") deployments.
         (function() {
+            // 2026-09-28: the old form was
+            //     location.pathname.replace(/\/app\/.*$/, '') + '/app'
+            // which hardcodes GitHub Pages' sub-path. On a ROOT domain
+            // (coin-catalog.pages.dev) the regex does not match, so APP_BASE
+            // became "/app", which the browser resolved against the ORIGIN as
+            // https://app/images/... -- a different domain -- and the header
+            // logo plus the tour popup logo both failed to load.
+            //
+            // Derive the base from where this document actually lives, the
+            // same way js/app_v2/utils.js does with import.meta.url, so the
+            // app is correct at any sub-path AND at a domain root.
+            var APP_BASE = (function () {
+                var p = location.pathname;
+                // strip the filename if present, keep the directory
+                var dir = p.replace(/[^/]*$/, '');
+                dir = dir.replace(/\/+$/, '');
+                return dir;   // '' at a domain root, '/coin-catalog/app' on Pages
+            })();
             var coins = [
-                '/images/coin_gold1.png',
-                '/images/coin_gold_proof1.png',
-                '/images/coin_silver1.png',
-                '/images/coin_copper1.png',
-                '/images/coin_copper_proof1.png',
-                '/images/coin_copper_green1.png',
-                '/images/coin_copper_toned1.png',
-                '/images/coin_bronze1.png',
-                '/images/coin_bend1.png',
-                '/images/coin_bend2.png',
-                '/images/coin_bend3.png',
-                '/images/coin_chocolate1.png',
-                '/images/coin_chocolate2.png',
-                '/images/coin_dirty1.png',
-                '/images/coin_dirty2.png',
-                '/images/coin_dirty3.png',
-                '/images/coin_dirty4.png',
-                '/images/coin_dirty5.png',
-                '/icons/icon-512.png'
+                APP_BASE + '/images/coin_gold1.png',
+                APP_BASE + '/images/coin_gold_proof1.png',
+                APP_BASE + '/images/coin_silver1.png',
+                APP_BASE + '/images/coin_copper1.png',
+                APP_BASE + '/images/coin_copper_proof1.png',
+                APP_BASE + '/images/coin_copper_green1.png',
+                APP_BASE + '/images/coin_copper_toned1.png',
+                APP_BASE + '/images/coin_bronze1.png',
+                APP_BASE + '/images/coin_bend1.png',
+                APP_BASE + '/images/coin_bend2.png',
+                APP_BASE + '/images/coin_bend3.png',
+                APP_BASE + '/images/coin_chocolate1.png',
+                APP_BASE + '/images/coin_chocolate2.png',
+                APP_BASE + '/images/coin_dirty1.png',
+                APP_BASE + '/images/coin_dirty2.png',
+                APP_BASE + '/images/coin_dirty3.png',
+                APP_BASE + '/images/coin_dirty4.png',
+                APP_BASE + '/images/coin_dirty5.png',
+                APP_BASE + '/icons/icon-512.png'
             ];
             var pick = coins[Math.floor(Math.random() * coins.length)];
             function setCoinImages() {
@@ -107,7 +171,7 @@
          Splash screen — shown while JS loads and data fetches
     ================================================================ -->
     <div id="app-splash" aria-hidden="true" aria-live="polite">
-        <img class="splash-coin" id="splash-coin-anim" src="/icons/icon-512.png" alt="" aria-hidden="true">
+        <img class="splash-coin" id="splash-coin-anim" src="icons/icon-512.png" alt="" aria-hidden="true">
         <p class="splash-label">Loading...</p>
     </div>
 
@@ -125,6 +189,25 @@
         </div>
 
         <div class="header-right">
+            <!-- 2026-09-30 Matthew: the public app must not offer PWA
+                 install. Google Play is the phone path instead. The Play
+                 button ships DISABLED and hidden until PLAY_STORE_URL is a
+                 real listing -- a "coming soon" button that goes nowhere is
+                 worse than no button. See main.js: initPlayStoreLink(). -->
+            <button id="btn-play" class="btn-header" style="display:none"
+                    disabled aria-disabled="true"
+                    title="The Android app is not published yet"
+                    aria-label="Android app (coming soon)">
+                <!-- Google Play triangle -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M3.6 1.8a1.4 1.4 0 0 0-.6 1.15v18.1c0 .47.22.89.6 1.15l.09.08 10.1-10.13v-.22L3.7 1.72l-.1.08z"/>
+                    <path d="M17.3 14.28l-3.57-3.57v-.25l3.58-3.58.08.05 4.25 2.41c1.21.69 1.21 1.81 0 2.5l-4.25 2.4-.09.04z"/>
+                    <path d="M17.38 14.23l-3.65-3.64-10.66 10.66c.4.42.94.47 1.6.05l12.71-7.07z" opacity=".85"/>
+                    <path d="M17.38 9.85L4.67 2.78c-.66-.42-1.2-.37-1.6.05l10.66 10.66 3.65-3.64z" opacity=".7"/>
+                </svg>
+                <span>Android App</span>
+            </button>
+
             <button id="btn-install" class="btn-header" style="display:none" onclick="triggerPWAInstall()" aria-label="Install app">
                 <!-- Download/install icon -->
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -218,26 +301,20 @@
     <!-- ================================================================
          Main Content
     ================================================================ -->
-    <script type="module" src="/js/app_v2/utils.js"></script>
-    <script type="module" src="/js/app_v2/state.js"></script>
-    <script type="module" src="/js/app_v2/api.js"></script>
-    <script type="module" src="/js/app_v2/themes.js"></script>
-    <script type="module" src="/js/app_v2/catalog.js"></script>
-    <script type="module" src="/js/app_v2/inventory.js"></script>
-    <script type="module" src="/js/app_v2/modals.js"></script>
-    <script type="module" src="/js/app_v2/search.js"></script>
-    <script type="module" src="/js/app_v2/wishlist.js"></script>
-    <script type="module" src="/js/app_v2/images.js"></script>
-    <script type="module" src="/js/app_v2/album.js"></script>
-    <script type="module" src="/js/app_v2/portfolio_history.js"></script>
-    <script type="module" src="/js/app_v2/serverPrefs.js"></script>
-    <!-- Portfolio parts (split to stay under Cloudflare 50KB limit) -->
-    <script src="/js/app_v2/portfolio-part1.js"></script>
-    <script src="/js/app_v2/portfolio-part2.js"></script>
-    <script src="/js/app_v2/portfolio-part3.js"></script>
-    <script src="/js/app_v2/portfolio-part4.js"></script>
-    <script src="/js/app_v2/portfolio-part5.js"></script>
-    <script type="module" src="/js/app_v2/main.js"></script>
+    <script type="module" src="js/app_v2/utils.js"></script>
+    <script type="module" src="js/app_v2/state.js"></script>
+    <script type="module" src="js/app_v2/api.js"></script>
+    <script type="module" src="js/app_v2/themes.js"></script>
+    <script type="module" src="js/app_v2/catalog.js"></script>
+    <script type="module" src="js/app_v2/inventory.js"></script>
+    <script type="module" src="js/app_v2/modals.js"></script>
+    <script type="module" src="js/app_v2/search.js"></script>
+    <script type="module" src="js/app_v2/wishlist.js"></script>
+    <script type="module" src="js/app_v2/images.js"></script>
+    <script type="module" src="js/app_v2/album.js"></script>
+    <script type="module" src="js/app_v2/portfolio_history.js"></script>
+    <script type="module" src="js/app_v2/serverPrefs.js"></script>
+    <script type="module" src="js/app_v2/main.js"></script>
 <main id="app-main" class="container" role="main">
 
         <!-- Dashboard cards (portfolio, spot prices, etc.) rendered by JS -->
@@ -535,15 +612,5 @@
          Load order matters: utils → state → api → feature modules → main
     ================================================================ -->
 
-    <!-- Service worker registration - moved to end of body to prevent DOM exposure -->
-    <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function (reg) {
-          if (reg && reg.update) { try { reg.update(); } catch (e) {} }
-        }).catch(function (e) { console.warn('[SW] register failed', e); });
-      });
-    }
-    </script>
 </body>
 </html>
