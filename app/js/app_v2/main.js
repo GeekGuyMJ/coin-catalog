@@ -197,14 +197,8 @@ async function boot() {
         }
 
         // Init dashboard
-        // Init dashboard - load all portfolio modules
-        import { initPortfolio } from './portfolio-core.js';
-        import { renderDashboard } from './portfolio-render.js';
-        import { buildSpotTrendCard } from './portfolio-trend.js';
-        import { buildWishlistCard, buildBackupCard, buildSupportCard, buildCompletionCard, buildEmptyPortfolioCard, buildPortfolioBreakdownCard } from './portfolio-cards-1.js';
-        import { buildBullionCard, buildCoinsByWeightCard } from './portfolio-cards-2.js';
-        import { buildScrapMetalCard, buildPaperCurrencyCard } from './portfolio-cards-3a.js';
-        import { buildCustomDashboardCardsCard, buildCustomCategoriesCard } from './portfolio-cards-3b.js';
+        // Portfolio functions are loaded globally via portfolio-part*.js scripts
+        // Portfolio namespace is available as window.Portfolio
         initPortfolio();
 
         // Render the catalogue
