@@ -120,6 +120,23 @@ export function setProviderAuthState(providerId, state) {
   _saveAuthState();
 }
 
+/**
+ * True if the provider has a recorded auth state whose access token has
+ * already expired (or is within 60s of expiring). The Backup card uses this
+ * to render a "session expired — sign in again" state instead of misleading
+ * "Signed in to X". Pure read; does not mutate auth state. GGMJ-190 Bug 2.
+ *
+ * @param {string} providerId
+ * @returns {boolean}
+ */
+export function isProviderSessionExpired(providerId) {
+  const auth = getProviderAuthState(providerId);
+  if (!auth || !auth.authenticated) return false;
+  if (!auth.expiresAt) return false; // no expiry recorded (webdav, some dropbox flows)
+  // Same 60s buffer as _getGoogleAccessToken.
+  return Date.now() > auth.expiresAt - 60000;
+}
+
 // ============================================================
 // PKCE Utilities (for Dropbox and OneDrive)
 // ============================================================
@@ -475,6 +492,12 @@ export async function syncToCloud() {
   } catch (err) {
     console.error('Cloud sync failed:', err);
     showToast('Sync failed: ' + err.message, 'error');
+    // Surface the failure on the Your Backup dashboard card (not just toast) so
+    // an expired-session failure does not leave the card claiming "Signed in".
+    // GGMJ-190 Bug 2.
+    try {
+      window.dispatchEvent(new CustomEvent('backupSyncFailed', { detail: { op: 'backup', message: err && err.message ? String(err.message) : 'unknown' } }));
+    } catch (e) { /* non-DOM ctx */ }
   }
 }
 
@@ -518,6 +541,10 @@ export async function syncFromCloud() {
   } catch (err) {
     console.error('Cloud restore failed:', err);
     showToast('Restore failed: ' + err.message, 'error');
+    // Same surface-the-error-on-card hook as backup. GGMJ-190 Bug 2.
+    try {
+      window.dispatchEvent(new CustomEvent('backupSyncFailed', { detail: { op: 'restore', message: err && err.message ? String(err.message) : 'unknown' } }));
+    } catch (e) { /* non-DOM ctx */ }
   }
 }
 
@@ -534,6 +561,21 @@ export const AUTO_BACKUP_KEY = 'cc-autobackup-enabled';
 export const AUTO_BACKUP_HOURS_KEY = 'cc-autobackup-hours';
 const AUTO_BACKUP_STORE = 'cc-autobackup-store'; // last successful auto-backup ISO timestamps per provider
 
+/**
+ * Single source of truth for the auto-backup interval choices shown in BOTH
+ * the Your Backup dashboard card and the Cloud Sync settings modal.
+ * Both views must render this exact list so the two never disagree.
+ * GGMJ-190 Bug 3.
+ */
+export const AUTO_BACKUP_INTERVALS = [
+  { hours: 6,   label: '6 hours' },
+  { hours: 12,  label: '12 hours' },
+  { hours: 24,  label: 'Daily (24 hours)' },
+  { hours: 48,  label: 'Every 2 days' },
+  { hours: 72,  label: 'Every 3 days' },
+  { hours: 168, label: 'Weekly' },
+];
+
 export function isAutoBackupEnabled() {
   return localStorage.getItem(AUTO_BACKUP_KEY) === '1';
 }
@@ -545,11 +587,15 @@ export function getAutoBackupHours() {
 
 export function setAutoBackupEnabled(on) {
   localStorage.setItem(AUTO_BACKUP_KEY, on ? '1' : '0');
+  // Notify any open views (Your Backup card + Cloud Sync modal) so both repaint
+  // from the same source of truth. GGMJ-190 Bug 3.
+  try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
 }
 
 export function setAutoBackupHours(hours) {
   const clamped = Math.min(168, Math.max(1, parseInt(hours, 10) || 24));
   localStorage.setItem(AUTO_BACKUP_HOURS_KEY, String(clamped));
+  try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
 }
 
 function _getLastAutoBackup(providerId) {

@@ -571,6 +571,24 @@ export async function showCloudSyncModal() {
 
             panel.appendChild(el('div', { className: 'settings-section' }, [
                 el('h4', { className: 'settings-subhead' }, `${provider.name} Configuration`),
+
+                // GGMJ-190 Bug 1: put the primary Sign In / Re-authenticate button
+                // RIGHT HERE — at the very top of the provider config section,
+                // immediately after the heading, so it is never below the fold.
+                // Only shown for OAuth providers (WebDAV has no sign-in step).
+                currentProviderId !== 'webdav' ? el('div', { style: 'margin-bottom:12px;' }, [
+                    el('button', {
+                        className: 'btn-primary',
+                        style: 'width:100%;',
+                        onclick: async () => {
+                            const fn = provider.id === 'googleDrive' ? authenticateGoogleDrive
+                                : (provider.id === 'dropbox' ? authenticateDropbox : authenticateOneDrive);
+                            await fn();
+                            refreshCloudSyncPanel();
+                        }
+                    }, authState.authenticated ? 'Re-authenticate with ' + provider.name : 'Sign in with ' + provider.name),
+                ]) : null,
+
                 el('p', { className: 'settings-text' }, _safeText(provider.description)),
 
                 currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, [
@@ -599,18 +617,7 @@ export async function showCloudSyncModal() {
                             onchange: (e) => setProviderAuthState('webdav', { ...authState, password: e.target.value }),
                         })
                     ]),
-                ]) : el('div', { style: 'display:flex; flex-direction:column; gap:12px;' }, [
-                    el('p', { className: 'settings-text' }, 'Sign in with ' + provider.name + ' to back up and restore your collection. Uses a secure browser OAuth flow — no server required.'),
-                    el('button', {
-                        className: 'btn-primary',
-                        onclick: async () => {
-                            const fn = provider.id === 'googleDrive' ? authenticateGoogleDrive
-                                : (provider.id === 'dropbox' ? authenticateDropbox : authenticateOneDrive);
-                            await fn();
-                            refreshCloudSyncPanel();
-                        }
-                    }, authState.authenticated ? 'Re-authenticate with ' + provider.name : 'Sign in with ' + provider.name),
-                ]),
+                ]) : null,
             ]));
 
             // Sync Actions — WebDAV always; OAuth only after authentication
@@ -635,6 +642,9 @@ export async function showCloudSyncModal() {
                                 onchange: (e) => {
                                     setAutoBackupEnabled(e.target.checked);
                                     refreshCloudSyncPanel();
+                                    // Notify any open views (Your Backup card + Cloud Sync modal) so both repaint
+                                    // from the same source of truth. GGMJ-190 Bug 3.
+                                    try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
                                 }
                             }),
                             el('label', { style: 'flex:1;' }, 'Automatic cloud backup'),
@@ -656,8 +666,12 @@ export async function showCloudSyncModal() {
                             el('label', {}, 'Back up every'),
                             el('select', {
                                 style: 'max-width:150px;',
-                                onchange: (e) => { setAutoBackupHours(parseInt(e.target.value, 10)); },
-                                value: String(getAutoBackupHours()),
+                                onchange: (e) => {
+                                    setAutoBackupHours(parseInt(e.target.value, 10));
+                                    // Notify any open views (Your Backup card + Cloud Sync modal) so both repaint
+                                    // from the same source of truth. GGMJ-190 Bug 3.
+                                    try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
+                                }
                             }, ...[
                                 el('option', { value: '6' }, '6 hours'),
                                 el('option', { value: '12' }, '12 hours'),

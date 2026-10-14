@@ -900,9 +900,16 @@ function buildBackupCard() {
 
         const provider = sync.getCurrentProvider();
         const authed = provider ? sync.getProviderAuthState(provider.id) : null;
-        const isSignedIn = !!(provider && authed && (authed.accessToken || authed.token || authed.connected));
+        let isSignedIn = !!(provider && authed && (authed.accessToken || authed.token || authed.connected));
 
-        if (!isSignedIn) {
+        // GGMJ-190 Bug 2: a stored accessToken is not proof the session is live —
+        // OAuth tokens expire (Google's last 1 hour). If sync.js says the token
+        // is past its expiresAt, paint the "session expired" state instead of
+        // the signed-in state so Back Up Now does not silently fail.
+        const sessionExpired = !!(provider && sync.isProviderSessionExpired
+            && sync.isProviderSessionExpired(provider.id));
+
+        if (!isSignedIn && !sessionExpired) {
             status.textContent =
                 'Your data is saved on this device only. If this device is lost or '
                 + 'reset, your collection goes with it. Sign in to keep a backup.';
@@ -911,6 +918,26 @@ function buildBackupCard() {
                 style: 'width:100%;',
                 onclick: openSync
             }, 'Set Up Backup'));
+            return;
+        }
+
+        if (sessionExpired) {
+            // Token was issued but has expired. Tell the user IN THE CARD (not
+            // just on a failed backup attempt) and route them to the Cloud Sync
+            // modal to re-authenticate.
+            status.textContent =
+                'Your ' + (provider.name || 'cloud') + ' session has expired. '
+                + 'Sign in again to re-enable backups.';
+            actions.appendChild(el('button', {
+                className: 'btn-primary',
+                style: 'width:100%;',
+                onclick: openSync
+            }, 'Sign In Again'));
+            actions.appendChild(el('button', {
+                style: 'width:100%;background:transparent;border:none;color:var(--color-text-muted);'
+                     + 'font-size:0.8em;cursor:pointer;text-decoration:underline;',
+                onclick: openSync
+            }, 'More backup options'));
             return;
         }
 
@@ -927,6 +954,17 @@ function buildBackupCard() {
                 + 'you do not have to remember.';
         }
 
+        // GGMJ-190 Bug 2: if a previous backup/restore attempt just failed
+        // (usually an expired OAuth token the static paint did not catch), reflect
+        // that INLINE in the card instead of only as a toast. The flag is set by
+        // the backupSyncFailed listener wired up below.
+        if (card._backupLastError) {
+            status.textContent =
+                'Last ' + (card._backupLastError.op === 'restore' ? 'restore' : 'backup')
+                + ' failed: ' + card._backupLastError.message
+                + ' You may need to sign in again from Cloud Sync settings.';
+        }
+
         // backup now
         actions.appendChild(el('button', {
             className: 'btn-secondary',
@@ -936,11 +974,16 @@ function buildBackupCard() {
                 const old = b.textContent;
                 b.textContent = 'Backing up...';
                 b.disabled = true;
+                // Clear any previous failure - we are about to try again.
+                card._backupLastError = null;
                 try {
                     await sync.syncToCloud();
                     b.textContent = 'Backed Up';
                 } catch (err) {
                     b.textContent = 'Backup Failed';
+                    // Show the reason inline on the card (not just a toast).
+                    card._backupLastError = { op: 'backup', message: err && err.message ? String(err.message) : 'unknown' };
+                    paint();
                 }
                 setTimeout(() => { b.textContent = old; b.disabled = false; }, 2200);
             }
@@ -968,8 +1011,8 @@ function buildBackupCard() {
                     sync.setAutoBackupHours(parseInt(e.target.value, 10));
                     paint();
                 }
-            }, [1, 3, 6, 12, 24].map(h => el('option',
-                { value: h, selected: h === hours }, h + 'h')));
+            }, sync.AUTO_BACKUP_INTERVALS.map(opt => el('option',
+                { value: opt.hours, selected: opt.hours === hours }, opt.label)));
             row.appendChild(sel);
             row.appendChild(el('span', { style: 'font-size:0.82em;' }, 'or less often'));
             actions.appendChild(row);
@@ -1007,14 +1050,18 @@ function buildBackupCard() {
             if (b.dataset.armed !== '1') return;   // first click only armed it
             b.textContent = 'Recovering...';
             b.disabled = true;
+            // Clear any previous failure - we are about to try again.
+            card._backupLastError = null;
             try {
                 await sync.syncFromCloud();
                 b.textContent = 'Recovered';
                 setTimeout(() => location.reload(), 900);
             } catch (err) {
                 b.textContent = 'Recovery Failed';
+                // Show the reason inline on the card (not just a toast).
+                card._backupLastError = { op: 'restore', message: err && err.message ? String(err.message) : 'unknown' };
+                paint();
                 b.disabled = false;
-                setTimeout(() => { b.textContent = 'Recover From Backup'; }, 2200);
             }
         }, true);
 
@@ -1027,6 +1074,22 @@ function buildBackupCard() {
 
     paint();
     card._backupRepaint = paint;
+
+    // GGMJ-190 Bug 3: listen for auto-backup settings changes (from the Cloud Sync
+    // modal or another card instance) so both views always stay in sync.
+    // Also listen for backup/restore failures from sync.js to surface inline.
+    const handleSettingsChange = () => paint();
+    const handleSyncFailed = (e) => {
+      card._backupLastError = e.detail || { op: 'unknown', message: 'unknown' };
+      paint();
+    };
+    window.addEventListener('backupSettingsChanged', handleSettingsChange);
+    window.addEventListener('backupSyncFailed', handleSyncFailed);
+    // Cleanup so a recreated card doesn't leak listeners.
+    const originalRepaint = card._backupRepaint;
+    card._backupRepaint = () => {
+      originalRepaint && originalRepaint();
+    };
     return card;
 }
 
