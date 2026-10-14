@@ -185,6 +185,7 @@ button {
    ========================================================================= */
 
 #app-header {
+    overflow: hidden;
     background:      var(--color-header-bg);
     color:           var(--color-header-text);
     z-index:         200;
