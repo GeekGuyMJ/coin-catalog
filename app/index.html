@@ -71,7 +71,7 @@
         // prepend it so the splash coins load on both self-hosted ("/") and public
         // ("/coin-catalog/app/") deployments.
         (function() {
-            var APP_BASE = location.pathname.replace(/\\/app\\/.*$/, '') + '/app';
+            var APP_BASE = location.pathname.replace(/\/app/.*$
             var coins = [
                 APP_BASE + '/images/coin_gold1.png',
                 APP_BASE + '/images/coin_gold_proof1.png',
