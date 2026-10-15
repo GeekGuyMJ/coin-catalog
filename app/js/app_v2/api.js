@@ -105,11 +105,11 @@ async function serverFetch(path, init) {
 // Core catalog APIs
 export const fetchCoinsForSection = wrap(fetchCoinsForSectionLocal);
 
-export const fetchCoin = isSelfHosted
+export const fetchCoin = isSelfHosted ? fetchCoinLocal : wrap(fetchCoinLocal);
     ? async (coinId) => serverFetch('/api/coins/' + coinId)
     : wrap(fetchCoinLocal);
 
-export const fetchInventory = isSelfHosted
+export const fetchInventory = isSelfHosted ? fetchInventoryLocal : wrap(fetchInventoryLocal);
     ? async () => serverFetch('/api/inventory')
     : wrap(fetchInventoryLocal);
 
@@ -145,7 +145,7 @@ export const fetchStatus = isSelfHosted
     : wrap(fetchStatusLocal);
 
 // Image APIs — assignImage uses server when self-hosted, local DB when public
-export const assignImage = isSelfHosted
+export const assignImage = isSelfHosted ? assignImageLocal : wrap(assignImageLocal);
     ? async (data) => {
         const res = await originalFetch('/api/assign_image', {
             method: 'POST',

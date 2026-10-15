@@ -1,6 +1,6 @@
 // Coin Catalog — Public Service Worker
 // NETWORK-FIRST for JS and images so fixes deploy immediately
-const CACHE = 'coin-catalog-v96';
+const CACHE = 'coin-catalog-v320';
 const ASSETS = [
   '/',
   '/index.html',

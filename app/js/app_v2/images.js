@@ -16,6 +16,10 @@ import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } fro
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory, getTypeConfig } from './state.js';
 import { fetchTypeConfigs, fetchInventory, fetchCoinsForSection } from './api.js';
 import { setCoinsForSection } from './state.js';
+function sectionQualified(coin) {
+    return coin && coin.section && coin.section.trim().length > 0;
+}
+
 
 // Coin metadata for proper image naming (year, mint mark)
 let _coinMeta = { year: null, mintMark: null };

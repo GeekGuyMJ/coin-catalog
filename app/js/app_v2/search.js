@@ -39,8 +39,8 @@ const FILTERS = [
     { id: 'hide_proofs',  label: 'Hide Proofs',  getState: () => getFilterHideProofs(),  toggle: () => toggleFilterHideProofs() },
     { id: 'hide_errors',  label: 'Hide Errors',  getState: () => getFilterHideErrors(),  toggle: () => toggleFilterHideErrors() },
     { id: 'key_dates',    label: 'Key Dates',    getState: () => getFilterKeyDatesOnly(), toggle: () => toggleFilterKeyDatesOnly() },
-    { id: 'min_year',     label: 'Min Year',     getState: () => getMinYear(),           setState: (v) => setMinYear(v) },
-    { id: 'max_year',     label: 'Max Year',     getState: () => getMaxYear(),           setState: (v) => setMaxYear(v) },
+    { id: 'min_year',     label: 'Minimum Year',     getState: () => getMinYear(),           setState: (v) => setMinYear(v) },
+    { id: 'max_year',     label: 'Maximum Year',     getState: () => getMaxYear(),           setState: (v) => setMaxYear(v) },
 ];
 
 const SORT_MODES = [
