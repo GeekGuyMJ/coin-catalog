@@ -32,7 +32,7 @@ import {
 
 import { fetchCoinsForSection, updateInventory, fetchInventory, fetchTypeConfigs, deleteInventoryEntry } from './api.js';
 import { showToast } from './notifications.js';
-import { openImageInteractionModal, bustImageCache } from './images.js';
+import { openImageInteractionModal } from './images.js';
 
 // --- View state ---
 let _albumSections = new Set();       // sections expanded in album view
@@ -202,7 +202,6 @@ export async function renderAlbumView(sectionName) {
             coins = await fetchCoinsForSection(sectionName);
             setCoinsForSection(sectionName, coins);
             _albumLoaded[sectionName] = coins;
-            try { (window.__albumCache ||= {})[sectionName] = coins; } catch (_) {}
         } catch (err) {
             const gridArea = container.querySelector('#album-grid-area');
             if (gridArea) gridArea.innerHTML = `<p class="text-muted" style="padding:1rem">
@@ -411,7 +410,8 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
 
     const hole = el('div', {
         className: 'album-hole' + (isOwned ? ' owned' : ' missing'),
-        dataset: { coinId: coin.id, coinType: coin.coin_type, section: coin.section },
+        dataset: { coinId: coin.id, coinType: coin.coin_type, section: coin.section,
+                   year: coin.year || '', mintMark: coin.mint_mark || '' },
         title: _coinTooltip(coin, qty),
     });
 
@@ -432,13 +432,12 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
     }
     
     // Prefer the coin's own uploaded image (per-coin), then fall back to the type-config default.
-    const obvImg = resolveImageUrl(coin.obv_image);
-    const revImg = resolveImageUrl(coin.rev_image);
+    const obvImg = coin.obv_image;
+    const revImg = coin.rev_image;
     let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
-    // A re-upload reuses the same filename, so without a UNIQUE bust the
-    // browser serves the previously cached bytes and the album shows the
-    // OLD image until a refresh. See bustImageCache() in images.js.
-    displayImg = bustImageCache(displayImg);
+    if (displayImg && !displayImg.includes('?')) {
+        displayImg += '?v=2';
+    }
 
     if (isOwned && displayImg) {
         const img = el('img', {
@@ -597,17 +596,16 @@ async function _setHoleQty(coinId, holeElement, newQty) {
     try {
         if (newQty <= 0) {
             // Remove ALL inventory entries so the hole goes empty.
-            // Refresh authoritative inventory after each delete; the next
-            // iteration reads the updated in-memory entries on either platform.
+            // deleteInventoryEntry() only touches IndexedDB, so we must refresh
+            // _state.inventory from IndexedDB after each delete (getInventoryEntries
+            // reads in-memory state) -- otherwise the loop never sees the deletion.
             let guard = 0;
             while (guard++ < 50) {
                 const entries = getInventoryEntries(coinId);
                 if (!entries || !entries.length) break;
-                // Delete the exact row, not a coin reference with a colliding ID.
-                await deleteInventoryEntry(entries[0].id);
+                try { await deleteInventoryEntry(coinId); } catch (_) { /* non-fatal */ }
                 _newQty = 0;
-                const fresh = await fetchInventory();
-                setInventory(fresh);
+                try { const fresh = await fetchInventory(); setInventory(fresh); } catch (_) {}
             }
         } else {
             const entries = getInventoryEntries(coinId);
@@ -623,8 +621,7 @@ async function _setHoleQty(coinId, holeElement, newQty) {
                 if (target) {
                     const ne = (target.quantity || 0) - 1;
                     if (ne <= 0) {
-                        // Remove only the depleted inventory row.
-                        await deleteInventoryEntry(target.id);
+                        await deleteInventoryEntry(coinId);
                     } else {
                         const result = await updateInventory(coinId, { id: target.id, quantity: ne });
                         if (!result || result.status === 'error') {
@@ -635,14 +632,11 @@ async function _setHoleQty(coinId, holeElement, newQty) {
             }
         }
 
-        // Refresh local inventory state. The _state.inventory map and
-        // the derived getInventoryTotalQty()/getInventoryEntries()
-        // helpers must reflect the deletion so the hole's visual state
-        // (owned/missing) and reload-consistency remain correct.
-        // cc-inventory-updated callers still refresh the dashboard view;
-        // this refresh keeps the underlying state consistent without
-        // duplicating the dashboard rebuild.
-        void fetchInventory().then(fresh => setInventory(fresh)).catch(() => {});
+        // Refresh local inventory state
+        try {
+            const fresh = await fetchInventory();
+            setInventory(fresh);
+        } catch { /* non-critical */ }
 
         // Re-render just this hole (image + xN badge) so it stays in sync.
         // Use the authoritative _newQty we just computed so the slot updates
@@ -740,28 +734,25 @@ async function _ccUpdateHoleInPlace(coinId) {
     return updated;
 }
 
-window.addEventListener('cc-inventory-updated', async (e) => {
-    const changedId = e?.detail?.coinId;
-    // _setHoleQty already fetches and sets inventory (dispatches
-    // this event), so don't refresh again — that double-fires the
-    // dashboard rebuild and causes a visible layout shift.
-    // 2026-10-10 (Matthew): "I don't like the white rectangle that flashes when
-    // a coin is added to the album." The in-place patch below updates the ONE hole
-    // that changed. But this listener then went on to re-render every open inline
-    // album AND the standalone grid -- and each of those does `container.innerHTML
-    // = ''` (renderAlbumType:154, renderAlbumLayout:224, renderAlbumGrid:313) before
-    // rebuilding. So the patch was thrown away one statement later: the DOM was torn
-    // down to nothing (white box) and the <img> re-fetched async.
-    //
-    // When a hole click supplies a coinId, the in-place patch is authoritative --
-    // renderCoinHoles() ran in the same task with the same fresh inventory, so the
-    // hole is already correct. Re-rendering anyway is pure churn.
-    if (changedId != null) {
-        const patched = await _ccUpdateHoleInPlace(changedId);
-        if (patched) return;   // the hole that the user clicked is now correct
-    } else {
-        try { await _ccUpdateHoleInPlace(changedId); } catch (_) { /* non-fatal */ }
+window.addEventListener('cc-inventory-updated', async () => {
+    // Preserve scroll position to prevent page jump
+    const scrollY = window.scrollY;
+
+    // _activeContainer is not a module variable; resolve the live album container
+    // from the DOM (catalog-container) so the re-render actually has a target.
+    const _albumEl = document.getElementById('catalog-container');
+    if (_albumEl && _activeSection) {
+        try { await renderAlbumView(_activeSection); }
+        catch (rerr) { console.warn('[album] re-render on update failed:', rerr); }
     }
+
+    // Refresh album grids that are currently visible (inline album mode)
+    try {
+        const fresh = await fetchInventory();
+        setInventory(fresh);
+    } catch { /* non-critical */ }
+
+    // Re-render all currently open inline album grids
     const inlinePromises = Array.from(document.querySelectorAll('.type-content.open.album-inline')).map(async (container) => {
         const typeWrapper = container.closest('.type-wrapper');
         if (!typeWrapper) return;
@@ -771,11 +762,15 @@ window.addEventListener('cc-inventory-updated', async (e) => {
         const header = typeWrapper.querySelector('.type-header');
         const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
         if (secName && mainType) {
+            // Clear the cache so we get fresh data
             if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
             await renderAlbumType(secName, mainType, container, header);
         }
     });
+    
     await Promise.all(inlinePromises);
+
+    // Also update the standalone album grid area if visible
     const gridArea = document.getElementById('album-grid-area');
     if (gridArea && _activeSection) {
         const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
@@ -784,6 +779,8 @@ window.addEventListener('cc-inventory-updated', async (e) => {
             if (container) renderAlbumGrid(container, _activeSection, coins);
         }
     }
+    
+    window.scrollTo(0, scrollY);
 });
 
 window.addEventListener('cc-image-updated', async () => {
@@ -836,9 +833,34 @@ window.addEventListener('cc-settings-changed', (e) => {
     }
 });
 
-// ============================================================
-// Album-specific image update handler
-// ============================================================
+window.addEventListener('cc-inventory-updated', async (e) => {
+    const detail = (e && e.detail) || {};
+    const changedId = detail.coinId;
+    if (await _ccUpdateHoleInPlace(changedId)) return;
+    const gridArea = document.getElementById('album-grid-area');
+    if (gridArea && _activeSection) {
+        const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
+        if (coins) {
+            const container = gridArea.closest('.album-layout')?.parentElement;
+            if (container) renderAlbumGrid(container, _activeSection, coins);
+        }
+    }
+    // Re-render inline album grids (album-type view) too
+    document.querySelectorAll('.type-content.open.album-inline').forEach(async (container) => {
+        const typeWrapper = container.closest('.type-wrapper');
+        if (!typeWrapper) return;
+        const sectionCard = typeWrapper.closest('.section-card');
+        if (!sectionCard) return;
+        const secName = sectionCard.dataset.section;
+        const header = typeWrapper.querySelector('.type-header');
+        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
+        if (secName && mainType) {
+            if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
+            await renderAlbumType(secName, mainType, container, header);
+        }
+    });
+});
+
 window.addEventListener('cc-album-options-changed', () => {
     // Re-render standalone album grid if visible
     const gridArea = document.getElementById('album-grid-area');
