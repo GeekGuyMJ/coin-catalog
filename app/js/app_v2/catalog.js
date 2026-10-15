@@ -285,7 +285,7 @@ function buildSectionCard(sec) {
         // Example resolution for the COLLAPSED section header: show an image eagerly
         // so scrolling shows coins, not placeholders. Priority:
         //   override (example_*) > type-config image (obv/rev, loaded at boot) > placeholder.
-        const cfg = getTypeConfig(sec.sample_type, sec.section) || getTypeConfig(sec.section, sec.section) || {};
+        const cfg = getTypeConfig(sec.sample_type, sec.section) || getTypeConfig(sec.section) || {};
         const exObv = resolveImageUrl(cfg.example_obv_image || cfg.obv_image || null);
         const exRev = resolveImageUrl(cfg.example_rev_image || cfg.rev_image || null);
         // If no override yet, leave a marker so expandSection can fill the first-coin image.
