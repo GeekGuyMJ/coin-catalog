@@ -1227,8 +1227,14 @@ function buildCoinRow(coin) {
     // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
     var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
     var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-    var obvSrc = coin.obv_image || specObv || (mainCfg ? mainCfg.obv_image : null);
-    var revSrc = coin.rev_image || specRev || (mainCfg ? mainCfg.rev_image : null);
+    // GGMJ-205: if the user explicitly deleted this coin's image, show placeholder — never fall through to type images.
+    if (coin._deleted_obv_image || coin._deleted_rev_image) {
+        var obvSrc = coin._deleted_obv_image ? null : coin.obv_image;
+        var revSrc = coin._deleted_rev_image ? null : coin.rev_image;
+    } else {
+        var obvSrc = coin.obv_image || specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);
+        var revSrc = coin.rev_image || specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null);
+    }
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
     if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
@@ -2391,8 +2397,8 @@ export function openCoinDetailModal(coinId) {
         const getDisplayImgSrc = (side) => {
             const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
             const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-            const obv = specObv || mainCfg.obv_image;
-            const rev = specRev || mainCfg.rev_image;
+            const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);
+            const rev = specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null);
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
             if (src && !src.includes('?')) src += '';
             return src;
