@@ -180,14 +180,6 @@ function buildCountryGroup(country, sections) {
         chevron.style.transform = 'rotate(180deg)';
     }
 
-    header.onclick = () => {
-        const isOpen = content.classList.toggle('open');
-        header.setAttribute('aria-expanded', String(isOpen));
-        chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
-        if (isOpen) _expandedCountries.add(country);
-        else _expandedCountries.delete(country);
-    };
-
     wrapper.append(header, content);
     return wrapper;
 }
@@ -1156,6 +1148,22 @@ async function handleCatalogClick(e) {
             if (m.setCoinMeta) m.setCoinMeta(year ? parseInt(year) : null, mintMark || null);
             m.openImageInteractionModal(imgBtn, type, side, isCoinRef, coinId, false, null);
         });
+        return;
+    }
+
+    // Country group header toggle (must come BEFORE section check so section
+    // clicks inside the country group don't collapse the country)
+    const countryHeader = target.closest('[data-action="toggle-country"]');
+    if (countryHeader) {
+        e.stopPropagation();
+        const isOpen = countryHeader.nextElementSibling.classList.toggle('open');
+        countryHeader.setAttribute('aria-expanded', String(isOpen));
+        const chev = countryHeader.querySelector('.section-chevron');
+        if (chev) {
+            chev.style.transform = isOpen ? 'rotate(180deg)' : '';
+        }
+        if (isOpen) _expandedCountries.add(countryHeader.dataset.country);
+        else _expandedCountries.delete(countryHeader.dataset.country);
         return;
     }
 

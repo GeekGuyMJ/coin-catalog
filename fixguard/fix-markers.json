@@ -64,13 +64,12 @@
   ]
  },
  "absent": {
+  "app/js/app_v2/catalog.js": [
+   "renderAlbumType(firstCoinSection"
+  ],
   "app/js/app_v2/search.js": [
    "label: 'Min Year'",
    "label: 'Max Year'"
-  ],
-  "app/js/app_v2/catalog.js": [
-   "renderAlbumType(firstCoinSection",
-   "Auto-close details panel if quantity drops to 0"
   ]
  },
  "order": {
@@ -88,5 +87,46 @@
  "sw_min": {
   "app/sw.js": 321,
   "frontend/sw.js": 317
+ },
+ "shared": {
+  "js/app_v2/album.js": {},
+  "js/app_v2/api.js": {},
+  "js/app_v2/cards.js": {},
+  "js/app_v2/catalog.js": {},
+  "js/app_v2/db.js": {},
+  "js/app_v2/dexie.js": {},
+  "js/app_v2/first_launch.js": {},
+  "js/app_v2/gallery.js": {},
+  "js/app_v2/guide.js": {},
+  "js/app_v2/images.js": {},
+  "js/app_v2/infoDropdown.js": {},
+  "js/app_v2/inventory.js": {},
+  "js/app_v2/main.js": {},
+  "js/app_v2/modal-core.js": {},
+  "js/app_v2/modals.js": {},
+  "js/app_v2/notifications.js": {},
+  "js/app_v2/portfolio.js": {},
+  "js/app_v2/portfolio.min.js": {},
+  "js/app_v2/portfolio_history.js": {},
+  "js/app_v2/search.js": {},
+  "js/app_v2/serverPrefs.js": {},
+  "js/app_v2/settingsDropdown.js": {},
+  "js/app_v2/spotHistory.js": {},
+  "js/app_v2/state.js": {},
+  "js/app_v2/stories.js": {},
+  "js/app_v2/sync.js": {},
+  "js/app_v2/userCoins.js": {},
+  "js/app_v2/wishlist.js": {},
+  "css/base.css": {},
+  "css/components.css": {},
+  "css/components.v2.css": {},
+  "css/themes.css": {}
+ },
+ "expected_differs": {
+  "sw.js": "Deployment-specific: different CACHE name/version cadence and precache BASE (/ vs /coin-catalog/app/).",
+  "js/app_v2/sw.js": "Deployment-specific SW registration helper.",
+  "index.html": "Deployment-specific: public has SW auto-reload bootstrap + data-publish-target; self-hosted has no-cache meta.",
+  "js/app_v2/utils.js": "Comment-only difference (catalog/catalogue spelling).",
+  "js/app_v2/api.js": "public_only lines declared in public_only key (assignImage = isSelfHosted block)."
  }
 }
