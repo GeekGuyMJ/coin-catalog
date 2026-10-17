@@ -32,6 +32,13 @@
     display:       flex;
     align-items:   center;
     gap:           var(--space-2);
+    /* Always clear the absolute top-right drag handle, even in very narrow
+       cards, so long titles (e.g. "Collection Completion") never sit under it. */
+    padding-right: 36px;
+    max-width:     calc(100% - 40px);
+    min-width:     0;
+    overflow-wrap: break-word;
+    word-break:    normal;
 }
 
 .drag-handle {
@@ -102,7 +109,6 @@
     display:     flex;
     align-items: center;
     gap:         var(--space-2);
-    flex-shrink: 0;
 }
 .header-left .app-title {
     font-size: var(--font-size-lg);
@@ -114,7 +120,6 @@
     display:     flex;
     align-items: center;
     gap:         var(--space-2);
-    flex-shrink: 0;
 }
 
 /* Header nav buttons */
@@ -230,6 +235,8 @@
 }
 
 .badge-key   { color: #d4af37; background: rgba(212, 175, 55, 0.12); }
+.badge-semi-key { color: #f59e0b; background: rgba(245, 158, 11, 0.12); }
+.badge-lowest-mintage { color: #22c55e; background: rgba(34, 197, 94, 0.12); }
 .badge-proof { color: #60a5fa; background: rgba(96, 165, 250, 0.12); }
 .badge-error { color: #f97316; background: rgba(249, 115, 22, 0.12); }
 .badge-historical { color: #a78bfa; background: rgba(167, 139, 250, 0.12); }
@@ -1738,9 +1745,7 @@ select optgroup {
     transform: scale(1.04);
 }
 
-.album-hole:active {
-    transform: scale(0.97);
-}
+
 
 /* The circular slot */
 .album-hole-slot {
@@ -2269,9 +2274,11 @@ select optgroup {
 @media (min-width: 769px) and (max-width: 1500px) {
     .dashboard-card .card-title {
         font-size: 0.85em;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        overflow: visible;
+        text-overflow: clip;
     }
     .dashboard-card .v1-item-row {
         flex-wrap: wrap;
@@ -2284,24 +2291,26 @@ select optgroup {
     .dashboard-card .v1-item-row .v1-del-btn {
         flex-shrink: 0;
     }
-    /* Spot price card: stack vertically, prevent ANY overlap */
+    /* Spot price card: keep price + sparkline side-by-side, even in narrow columns */
     .spot-item {
-        flex-wrap: wrap !important;
-        gap: 2px !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+        align-items: center;
     }
     .spot-left {
         min-width: 0 !important;
-        flex: 1 1 100% !important;
+        flex: 1 1 auto !important;
     }
     .spot-right {
-        flex: 1 1 100% !important;
-        max-width: 100% !important;
+        flex: 0 0 96px !important;
+        max-width: 96px !important;
         min-width: 0 !important;
-        justify-content: flex-start !important;
+        justify-content: flex-end !important;
     }
     .spot-right canvas {
-        max-width: 100%;
+        max-width: 96px;
         width: 100% !important;
+        height: 28px !important;
     }
     .spot-grid {
         gap: 6px;
@@ -2345,6 +2354,12 @@ select optgroup {
     .dashboard-card {
         overflow: hidden;
         min-width: 0;
+    }
+    /* keep the big portfolio/wishlist total clear of the grab handle */
+    .dashboard-card .dashboard-big-number,
+    .dashboard-card .finance-grid,
+    .dashboard-card > div:first-child {
+        padding-right: 0;
     }
     .v1-item-list {
         overflow-x: hidden;
@@ -2422,12 +2437,23 @@ select optgroup {
     max-height: none;
 }
 
-/* ── Responsive: mobile (≤768px → 1 column) ── */
-@media (max-width: 768px) {
+/* ── Responsive: narrow (≤960px) — let the layout button keep working ── */
+@media (max-width: 960px) {
     .dashboard-grid {
-        grid-template-columns: 1fr !important;
+        /* Default (Grid) drops to 2 columns; layout-compact stays 2; layout-list stays 1.
+           No !important — the layout classes on the grid element still win. */
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
         padding: 10px;
+    }
+    .dashboard-grid.layout-list {
+        grid-template-columns: 1fr;
+    }
+}
+/* ── True phone: Grid collapses to 1 column; Compact still 2; List still 1 ── */
+@media (max-width: 560px) {
+    .dashboard-grid:not(.layout-compact):not(.layout-list) {
+        grid-template-columns: 1fr;
     }
     .dashboard-grid .dashboard-card.card-w-25,
     .dashboard-grid .dashboard-card.card-w-50,
@@ -2440,6 +2466,7 @@ select optgroup {
     border: 1px solid var(--color-border-light);
     border-radius: 12px;
     padding: 16px;
+    padding-right: 40px;    /* clear the absolute top-right drag handle */
     min-width: 0;           /* allow card to shrink below 240px in narrow columns */
     grid-column: span 1;    /* default: 1 of 4 columns */
     overflow: hidden;
@@ -2483,6 +2510,37 @@ select optgroup {
     background: var(--color-accent);
     transition: width 0.4s ease;
 }
+
+/* Fix: Portfolio big number clipping - ensure the big number has room */
+.dashboard-big-number {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--color-accent);
+    margin: 8px 0;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+#card-portfolio .finance-grid {
+    gap: var(--space-2);
+    min-width: 0;
+}
+#card-portfolio .finance-item {
+    padding: var(--space-2) var(--space-3);
+    min-width: 0;
+    overflow: visible;
+}
+.finance-value {
+    font-weight: 700;
+    font-size: var(--font-size-lg);
+    color: var(--color-text-main);
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+/* Collection Completion progress bar */
 .card-title {
     font-size: 0.9em;
     font-weight: 600;
@@ -3485,6 +3543,13 @@ select optgroup {
     grid-auto-flow: dense;
 }
 
+/* Desktop↔tablet: 3 columns at 769–1100px so cards never get too skinny. */
+@media (min-width: 769px) and (max-width: 1100px) {
+    .dashboard-grid:not(.layout-list) {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 /* Ensure dashboard cards are visible by default */
 .dashboard-card {
     display: flex !important;
@@ -3503,17 +3568,52 @@ select optgroup {
 .dashboard-grid .dashboard-card.card-w-100 { grid-column: span 4; }
 
 /* Mobile: single column, all cards full width */
+/* Mobile: single column by default, but layout button still works (Compact/Grid). */
 @media (max-width: 768px) {
     .dashboard-grid {
         grid-template-columns: 1fr !important;
         gap: 12px;
         padding: 10px;
     }
+    /* Keep the layout button functional at this width: Grid and Compact both get
+       2 columns (matches the ≤960px desktop-tablet intent), List stays 1. */
+    .dashboard-grid.layout-compact,
+    .dashboard-grid.layout-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    .dashboard-grid.layout-compact .dashboard-card.card-w-25,
+    .dashboard-grid.layout-compact .dashboard-card.card-w-50,
+    .dashboard-grid.layout-compact .dashboard-card.card-w-75,
+    .dashboard-grid.layout-compact .dashboard-card.card-w-100,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-25,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-50,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-75,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-100 {
+        grid-column: span 1;
+    }
     .dashboard-grid .dashboard-card.card-w-25,
     .dashboard-grid .dashboard-card.card-w-50,
     .dashboard-grid .dashboard-card.card-w-75,
     .dashboard-grid .dashboard-card.card-w-100 { 
         grid-column: 1 / -1; 
+    }
+}
+
+/* True phone (≤560px): collapse Grid+Compact to a single column for readability. */
+@media (max-width: 560px) {
+    .dashboard-grid.layout-compact,
+    .dashboard-grid.layout-grid {
+        grid-template-columns: 1fr !important;
+    }
+    .dashboard-grid.layout-compact .dashboard-card.card-w-25,
+    .dashboard-grid.layout-compact .dashboard-card.card-w-50,
+    .dashboard-grid.layout-compact .dashboard-card.card-w-75,
+    .dashboard-grid.layout-compact .dashboard-card.card-w-100,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-25,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-50,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-75,
+    .dashboard-grid.layout-grid .dashboard-card.card-w-100 {
+        grid-column: 1 / -1;
     }
 }
 
@@ -3822,21 +3922,12 @@ body.ready-mode-active .ready-badge { display: flex; }
 }
 
 .header-right {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: flex-end;
 }
 
-@media (max-width: 768px) {
-    #btn-install {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) and (orientation: portrait) {
-    #btn-layout {
-        display: none !important;
-    }
-}
+/* Header buttons are shown by default; fitHeader() (main.js) hides them
+   only when they would collide with the coin logo / title. No fixed-width hiding. */
 
 /* Phone: short title bar; large coin logo spans bar + next row, spills past bottom edge */
 @media (max-width: 480px) {
@@ -3928,3 +4019,572 @@ body.ready-mode-active .ready-badge { display: flex; }
 }
 
 
+
+/* Keep spot-price range buttons (1D 1W 1M 1Y 10Y) on a single row in thin cards */
+.spot-period-row {
+    flex-wrap: wrap;
+    white-space: nowrap;
+    overflow-x: visible;
+    max-width: 100%;
+}
+.spot-period-row > div {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* =========================================================================
+   Photos & Documents Gallery Card
+   ========================================================================= */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: 8px;
+    padding: 2px;
+    align-content: start;
+}
+.gallery-thumb {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-accord-bg, #1e1e1e);
+    border: 1px solid var(--color-border-light, #333);
+    cursor: zoom-in;
+}
+.gallery-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;          /* fills the square; no circle-crop */
+    display: block;
+}
+.gallery-thumb-label {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    font-size: 0.62em;
+    line-height: 1.1;
+    padding: 2px 4px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.75));
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gallery-thumb-del {
+    position: absolute;
+    top: 3px; right: 3px;
+    width: 20px; height: 20px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 0.8em;
+    line-height: 1;
+    cursor: pointer;
+    display: none;
+}
+.gallery-thumb:hover .gallery-thumb-del { display: block; }
+.gallery-thumb-del:hover { background: #c0392b; }
+
+/* Gallery full-screen lightbox (self-contained; does not affect other modals) */
+#gallery-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 24px;
+}
+#gallery-lightbox.is-active { display: flex; }
+#gallery-lightbox .lightbox-inner {
+    position: relative;
+    max-width: 92vw;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+#gallery-lightbox img {
+    max-width: 92vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+}
+#gallery-lightbox .lightbox-caption {
+    color: #eee;
+    font-size: 0.9em;
+    text-align: center;
+}
+#gallery-lightbox .lightbox-close {
+    position: absolute;
+    top: -38px; right: 0;
+    width: 34px; height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    font-size: 1.3em;
+    cursor: pointer;
+}
+#gallery-lightbox .lightbox-close:hover { background: rgba(255,255,255,0.3); }
+
+/* Photos & Documents — category tabs (Pictures / Documents) */
+.gallery-tabs {
+    display: flex;
+    gap: 6px;
+}
+.gallery-tab {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 0.82em;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid var(--color-border-light, #333);
+    background: var(--color-accord-bg, #1e1e1e);
+    color: var(--color-text-muted, #aaa);
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.gallery-tab:hover { border-color: var(--color-accent, #4a90d9); }
+.gallery-tab.active {
+    background: var(--color-accent, #4a90d9);
+    color: var(--color-accent-text, #fff);
+    border-color: var(--color-accent, #4a90d9);
+}
+/* Compact empty state — no wasted middle space */
+.gallery-empty { font-size: 0.82em; color: var(--color-text-muted, #aaa); margin: 0; padding: 6px 2px; text-align: center; }
+
+
+/* =========================================================================
+   User-added catalogue coins (delete chip on user-added rows)
+   ========================================================================= */
+.user-coin-del {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px; height: 16px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: rgba(192,57,43,.15);
+    color: #c0392b;
+    font-size: 0.7em;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    opacity: .55;
+    vertical-align: middle;
+}
+.user-coin-del:hover { opacity: 1; background: rgba(192,57,43,.35); }
+
+/* ===== Colorblind Assist (deuteranopia / protanopia safe palette) ===== */
+/* Recolor badges into distinct blue / purple / orange hues (Okabe-Ito CVD-safe),
+   plus folder/owned accents into distinguishable tones. */
+body.cc-colorblind .badge-key   { color: #0072b2; background: rgba(0,114,178,0.16); }
+body.cc-colorblind .badge-proof { color: #cc79a7; background: rgba(204,121,167,0.16); }
+body.cc-colorblind .badge-error { color: #e69f00; background: rgba(230,159,0,0.16); }
+body.cc-colorblind .badge-silver{ color: #8a6d3b; background: rgba(138,109,59,0.16); }
+body.cc-colorblind .badge-key, body.cc-colorblind .badge-proof,
+body.cc-colorblind .badge-error { border: 1px solid currentColor; }
+.spot-item {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+}
+.spot-left {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    white-space: nowrap;
+}
+.spot-right {
+    flex: 0 1 96px !important;
+    min-width: 40px !important;
+    max-width: 96px !important;
+    justify-content: flex-end !important;
+    overflow: hidden !important;
+}
+.spot-right canvas {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 28px !important;
+    object-fit: contain;
+}/* ============================================================
+   User Guide Spotlight Tour — Overlay, Highlight, Bubble
+   ============================================================ */
+
+/* --- Overlay dimmer --------------------------------------------------- */
+.guide-overlay {
+    position: fixed;
+    inset: 0;
+    /* Transparent + non-interactive: ALL dimming is done by .guide-spotlight's
+       box-shadow spread (which creates a natural "hole" over the target), and
+       clicks must pass straight through to the highlighted element. */
+    background: transparent;
+    pointer-events: none;
+    z-index: 10000;
+    display: none;
+}
+.guide-overlay.is-active {
+    display: block;
+}
+@keyframes guide-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* --- Spotlight ring (highlights the target element) ------------------- */
+.guide-spotlight {
+    position: fixed;
+    border: 3px solid var(--color-accent, #d4af37);
+    border-radius: 8px;
+    box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.65),
+        0 0 0 3px var(--color-accent, #d4af37),
+        0 8px 24px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    z-index: 10001;
+    transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease, border-radius 0.25s ease;
+    animation: guide-pulse 2s ease-in-out infinite;
+    box-sizing: border-box; /* Include border in width/height for precise positioning */
+}
+@keyframes guide-pulse {
+    0%, 100% { box-shadow: 0 0 0 9999px rgba(0,0,0,0.65), 0 0 0 3px var(--color-accent), 0 8px 24px rgba(0,0,0,0.4); }
+    50%      { box-shadow: 0 0 0 9999px rgba(0,0,0,0.65), 0 0 0 5px var(--color-accent), 0 12px 32px rgba(0,0,0,0.5); }
+}
+
+/* --- Bubble / tooltip ------------------------------------------------- */
+.guide-bubble {
+    position: fixed;
+    max-width: 320px;
+    min-width: 260px;
+    background: var(--color-bg-card, #fff);
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+    z-index: 10002;
+    pointer-events: auto;
+    font-family: inherit;
+    animation: guide-bubble-in 0.2s ease;
+}
+@keyframes guide-bubble-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Pointer state: bubble anchored to a collapsed element, arrow doubles as click indicator */
+.guide-bubble-pointer {
+    animation: guide-bubble-in 0.2s ease, guide-pointer-nudge 1.2s ease-in-out infinite;
+    border-color: var(--color-accent, #c9a227);
+}
+.guide-bubble-pointer.arrow-bottom::after,
+.guide-bubble-pointer.arrow-top::after {
+    animation: guide-arrow-pulse 1.2s ease-in-out infinite;
+    border-color: var(--color-accent, #c9a227);
+}
+@keyframes guide-pointer-nudge {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(4px); }
+}
+
+/* Tap indicator on click-gated tour steps: a pulsing ring centered exactly on the
+   click target, with an arrow + "click" label anchored to the ring's right edge. */
+.guide-click-cue {
+    position: fixed;
+    display: none;
+    z-index: 10002;
+    pointer-events: none;
+}
+.guide-click-cue-ring {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 30px;
+    height: 30px;
+    margin-left: -15px;
+    margin-top: -15px;
+    border: 3px solid var(--color-accent, #c9a227);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.45), 0 0 12px var(--color-accent, #c9a227);
+    animation: guide-cue-ripple 1.1s ease-out infinite;
+    pointer-events: none;
+}
+.guide-click-cue-pointer {
+    position: absolute;
+    left: 22px;
+    top: 0;
+    transform: translateY(-50%);
+    background: var(--color-bg-card, #1a1a1a);
+    color: var(--color-accent, #c9a227);
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    padding: 3px 10px 3px 8px;
+    border: 1px solid var(--color-accent, #c9a227);
+    border-radius: 999px;
+    white-space: nowrap;
+    animation: guide-cue-nudge 1.1s ease-in-out infinite;
+}
+.guide-click-cue-pointer .guide-click-cue-arrow {
+    display: inline-block;
+    margin-right: 5px;
+    width: 10px; height: 10px;
+    border-left: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+}
+@keyframes guide-cue-ripple {
+    0%   { transform: scale(0.85); opacity: 1; }
+    60%  { transform: scale(1.15); opacity: 0.65; }
+    100% { transform: scale(0.85); opacity: 1; }
+}
+@keyframes guide-cue-nudge {
+    0%, 100% { transform: translateY(-50%) translateX(0); }
+    50%      { transform: translateY(-50%) translateX(4px); }
+}
+    100% { transform: scale(0.85); opacity: 1; }
+}
+
+@keyframes guide-arrow-pulse {
+    0%, 100% { filter: drop-shadow(0 0 2px var(--color-accent, #c9a227)); }
+    50%      { filter: drop-shadow(0 0 7px var(--color-accent, #c9a227)); }
+}
+
+.guide-bubble-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 12px;
+}
+.guide-bubble-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    line-height: 1.3;
+    flex: 1;
+}
+.guide-bubble-close {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--color-text-muted);
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, color 0.15s;
+}
+.guide-bubble-close:hover {
+    background: var(--color-accord-bg);
+    color: var(--color-accent);
+}
+.guide-bubble-body {
+    font-size: 0.9rem;
+    color: var(--color-text-main);
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+.guide-bubble-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border-light);
+}
+.guide-bubble-nav {
+    display: flex;
+    gap: 8px;
+}
+.guide-btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    color: var(--color-text-main);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.guide-btn:hover {
+    background: var(--color-accord-bg);
+    border-color: var(--color-accent);
+}
+.guide-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.guide-btn-primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+}
+.guide-btn-primary:hover {
+    filter: brightness(1.08);
+}
+.guide-step-indicator {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* --- Arrow (CSS triangle) -------------------------------------------- */
+.guide-bubble::before {
+    content: "";
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: 8px solid transparent;
+}
+.guide-bubble.arrow-top::before    { bottom: 100%; left: 50%; margin-left: -8px; border-bottom-color: var(--color-bg-card); border-top: none; }
+.guide-bubble.arrow-bottom::before { top: 100%; left: 50%; margin-left: -8px; border-top-color: var(--color-bg-card); border-bottom: none; }
+.guide-bubble.arrow-left::before   { right: 100%; top: 50%; margin-top: -8px; border-right-color: var(--color-bg-card); border-left: none; }
+.guide-bubble.arrow-right::before  { left: 100%; top: 50%; margin-top: -8px; border-left-color: var(--color-bg-card); border-right: none; }
+
+/* --- First-launch popup (modal with logo coin) ------------------------ */
+.guide-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: guide-fade-in 0.2s ease;
+}
+.guide-popup-overlay.is-active {
+    display: flex;
+}
+.guide-popup {
+    background: var(--color-bg-card, #fff);
+    border: 1px solid var(--color-border, #ddd);
+    border-radius: 16px;
+    padding: 28px 24px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.25);
+    animation: guide-popup-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes guide-popup-in {
+    from { opacity: 0; transform: scale(0.92) translateY(12px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.guide-popup-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin: 0 auto 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    border: 2px solid var(--color-border-light);
+}
+.guide-popup-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-main);
+    margin: 0 0 8px;
+}
+.guide-popup-body {
+    font-size: 0.95rem;
+    color: var(--color-text-muted);
+    line-height: 1.6;
+    margin: 0 0 20px;
+}
+.guide-popup-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin-bottom: 16px;
+    cursor: pointer;
+}
+.guide-popup-checkbox input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--color-accent);
+}
+.guide-popup-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.guide-popup-btn {
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-card);
+    color: var(--color-text-main);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.guide-popup-btn:hover {
+    background: var(--color-accord-bg);
+    border-color: var(--color-accent);
+}
+.guide-popup-btn-primary {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    color: #fff;
+}
+.guide-popup-btn-primary:hover {
+    filter: brightness(1.08);
+}
+.guide-popup-note {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    margin-top: 12px;
+}
+
+/* --- Guide link in info dropdown ------------------------------------- */
+.info-dropdown-item.guide-link {
+    font-weight: 600;
+    color: var(--color-accent);
+}
+.info-dropdown-item.guide-link:hover {
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+/* --- Responsive tweaks ------------------------------------------------ */
+@media (max-width: 480px) {
+    .guide-bubble { max-width: 92vw; min-width: 0; padding: 14px; }
+    .guide-bubble-title { font-size: 1rem; }
+    .guide-bubble-body { font-size: 0.85rem; }
+    .guide-bubble-nav { flex-direction: column-reverse; width: 100%; }
+    .guide-bubble-nav .guide-btn { width: 100%; }
+    .guide-bubble-footer { flex-direction: column; align-items: stretch; }
+    .guide-step-indicator { text-align: center; }
+    .guide-popup { padding: 24px 20px; }
+    .guide-popup-logo { width: 64px; height: 64px; }
+    .guide-popup-title { font-size: 1.15rem; }
+    .guide-popup-body { font-size: 0.9rem; }
+}
+/* ── Card resize handles: parent must be the positioning context ─────────────── */
+.dashboard-grid .dashboard-card,
+.card {
+    position: relative;
+}
+
+/* ── Scroll stability: stop the viewport from jumping when content expands above ── */
+html, body {
+    overflow-anchor: none;
+}

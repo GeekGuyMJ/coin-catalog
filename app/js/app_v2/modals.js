@@ -15,6 +15,7 @@ import { el, escHtml } from './utils.js';
 import { showToast } from './notifications.js';
 import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js';
 import { saveCustomTheme } from './themes.js';
+import { factoryResetDataLocal } from './db.js';
 
 // ============================================================
 // NEW ORCHESTRATOR — used by cards.js, stories.js, info.js
@@ -100,18 +101,56 @@ function updateBodyScrollLock() {
     }
 }
 
+
+// 2026-08-31 DIRECT TAP FIX: on some mobile/PWA browsers, delegated document-level click
+// handlers never fire for buttons inside legacy modals (highlight works, click does nothing).
+// After opening a modal, bind direct pointerup/touchend/click listeners on every clickable
+// descendant; each synthesizes a genuine bubbling click from the button itself, guarded
+// against double-fire. Existing delegated handlers keep working unchanged.
+function _ccDirectTapBind(modal) {
+    if (!modal || modal.dataset.ccDirectTap === '1') return;
+    modal.dataset.ccDirectTap = '1';
+    const selector = 'button, [data-action], [role="button"], input[type="button"], input[type="submit"], .user-coin-del';
+    modal.querySelectorAll(selector).forEach(el => {
+        // 2026-08-31 v142: the v137 synthetic-tap layer (touchend/pointerup -> synthetic click
+        // + trusted-click swallow) BLOCKED real clicks on desktop: preventDefault on pointerup
+        // cancels the browser's own click, and the stopPropagation guard swallowed it. Removed.
+        // What remains: passive diagnostics + the delegated handlers in images.js (unchanged).
+        el.dataset.ccTapBound = '1';
+        el.addEventListener('click', (ev) => {
+            if (ev.isTrusted) {
+                console.log('[tap-diag] trusted click on', el.textContent.trim().slice(0, 24) || el.id || el.dataset.action, '| bound:', el.dataset.ccTapBound);
+            }
+        }, true);
+    });
+}
+
 export function openModalLegacy(modalId) {
     const modal = document.getElementById(modalId);
     if (!modal) { console.error('[modals] Modal not found:', modalId); return; }
-    if (openModalsStack.includes(modalId)) return;
-    
+    if (openModalsStack.includes(modalId)) {
+        // Already open: clear any prior dismiss state so it stays visible.
+        modal.classList.remove('is-dismissed');
+        modal.setAttribute('aria-hidden', 'false');
+        if (typeof modal.inert !== 'undefined') modal.inert = false;
+        return;
+    }
+
     // Ensure modal appears on top of any already open modals
     const baseZ = 10000;
     modal.style.zIndex = baseZ + (openModalsStack.length * 10);
-    
+
+    // Clear any prior dismiss state (is-dismissed / inert / aria-hidden) so the
+    // modal is actually visible when reopened. Without this, a previously closed
+    // legacy modal would stay display:none while body kept the scroll-lock.
+    modal.classList.remove('is-dismissed');
+    modal.setAttribute('aria-hidden', 'false');
+    if (typeof modal.inert !== 'undefined') modal.inert = false;
+
     modal.classList.add('open');
     openModalsStack.push(modalId);
     updateBodyScrollLock();
+    try { _ccDirectTapBind(modal); } catch (e) { console.warn('[modals] direct-tap bind failed:', e); }
 }
 
 export function closeModalLegacy(modalId) {
@@ -119,17 +158,43 @@ export function closeModalLegacy(modalId) {
     if (!modal) return;
     modal.style.zIndex = '';
     modal.classList.remove('open');
+    modal.classList.add('is-dismissed');
+    modal.setAttribute('aria-hidden', 'true');
+    if (typeof modal.inert !== 'undefined') modal.inert = true;
     openModalsStack = openModalsStack.filter(id => id !== modalId);
     updateBodyScrollLock();
+    if (modal.dataset.ephemeral === 'true') {
+        setTimeout(function() {
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            } else {
+                modal.remove();
+            }
+        }, 240);
+    }
 }
 
 export function closeAllModals() {
     openModalsStack.forEach(id => {
         const modal = document.getElementById(id);
-        if (modal) modal.classList.remove('open');
+        if (modal) {
+            modal.classList.remove('open');
+            modal.classList.add('is-dismissed');
+            modal.setAttribute('aria-hidden', 'true');
+            if (typeof modal.inert !== 'undefined') modal.inert = true;
+        }
     });
     openModalsStack = [];
     updateBodyScrollLock();
+    // Belt-and-suspenders: hide any legacy overlay still showing (e.g. coin-bank)
+    document.querySelectorAll('.modal-overlay.open').forEach(m => {
+        m.classList.remove('open');
+        m.classList.add('is-dismissed');
+        m.setAttribute('aria-hidden', 'true');
+        if (typeof m.inert !== 'undefined') m.inert = true;
+    });
+    const bd = document.getElementById('modal-backdrop');
+    if (bd) { bd.classList.add('fade-out'); bd.classList.remove('fade-in'); }
 }
 
 document.addEventListener('click', function(e) {
@@ -139,9 +204,16 @@ document.addEventListener('click', function(e) {
 });
 
 document.addEventListener('click', (e) => {
-    if (e.target.dataset.action === 'close-modal') {
-        const modal = e.target.closest('.modal-overlay');
+    // 2026-08-31: closest() so clicks landing on child nodes of the close button still work
+    const closeEl = e.target instanceof Element ? e.target.closest('[data-action="close-modal"]') : null;
+    if (closeEl) {
+        const modal = closeEl.closest('.modal-overlay');
         if (modal) { closeModalLegacy(modal.id); }
+        return;
+    }
+    // Click on the dim backdrop itself also closes
+    if (e.target instanceof Element && e.target.classList.contains('modal-overlay')) {
+        closeModalLegacy(e.target.id);
     }
 });
 
@@ -181,6 +253,7 @@ export function createModal(id, title, bodyContent, extra) {
     overlay.classList.add('open');
     document.body.classList.add('modal-open');
     if (!openModalsStack.includes(id)) { openModalsStack.push(id); }
+    overlay.dataset.ephemeral = 'true';
     return overlay;
 }
 
@@ -332,7 +405,7 @@ export function openSettingsModal() {
 
     // --- Tab Content Builders ---
     function buildGeneralTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'General'),
             el('p', { className: 'settings-section-desc' }, 'Core application behavior and defaults.'),
             buildSettingRow('Default Sort Order', 'settings-sort', 'select', {
@@ -376,7 +449,7 @@ export function openSettingsModal() {
     }
 
     function buildAppearanceTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Album Page Color'),
             el('p', { className: 'settings-section-desc' }, 'Background color for the album view folders.'),
             buildSettingRow('Folder Background', 'settings-folder-color', 'select', {
@@ -391,14 +464,14 @@ export function openSettingsModal() {
             }),
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('p', { className: 'settings-section-desc' }, 'Create your own color scheme with live preview.'),
             el('button', { className: 'btn-primary', style: 'width:100%;', onclick: () => { closeModal('modal-settings'); setTimeout(() => openCustomThemeDesigner(1), 150); } },
                 'Open Theme Designer'
             ),
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Dashboard Card Visibility'),
             el('p', { className: 'settings-section-desc' }, 'Show or hide entire dashboard cards.'),
             ...buildCardVisibilityRows(),
@@ -406,7 +479,16 @@ export function openSettingsModal() {
     }
 
     function buildCatalogTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        // --- Add Your Own Coins (moved here from the crowded section headers) ---
+        panel.appendChild(el('div', { className: 'settings-section', style: 'border-top:2px solid var(--color-accent);margin-top:16px;padding-top:16px;' }, ...[
+            el('h3', { className: 'settings-section-title' }, 'Add Your Own Coins'),
+            el('p', { className: 'settings-section-desc' }, 'Catalogue entries the master list is missing — a new year, a per-mint variety, or a coin you own that isn’t listed. Pick a section in the modal; the coin sorts into place by type → year → mint and shows up everywhere (albums, totals, wishlist, images).'),
+            buildActionRow([
+                { label: '＋ Add a Coin…', onclick: () => { closeModal('modal-settings'); setTimeout(() => (window.openAddCoinModal ? window.openAddCoinModal() : null), 150); }, className: 'btn-primary' },
+            ]),
+        ]));
+
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Display Filters'),
             el('p', { className: 'settings-section-desc' }, 'Control which coins appear in the catalog. Changes apply on next load.'),
             [
@@ -420,7 +502,7 @@ export function openSettingsModal() {
     }
 
     function buildDataTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Export & Backup'),
             el('p', { className: 'settings-section-desc' }, 'Download your collection data for safekeeping or migration.'),
             buildActionRow([
@@ -430,7 +512,7 @@ export function openSettingsModal() {
             ]),
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Import & Restore'),
             el('p', { className: 'settings-section-desc' }, 'Restore from a previous backup or import CSV data.'),
             buildActionRow([
@@ -446,7 +528,7 @@ export function openSettingsModal() {
 // ============================================================
 // Default Images Packaging Section (admin only)
 // ============================================================
-        panel.appendChild(el('div', { className: 'settings-section', style: 'border-top: 2px solid var(--color-accent); margin-top: 20px; padding-top: 16px;' }, [
+        panel.appendChild(el('div', { className: 'settings-section', style: 'border-top: 2px solid var(--color-accent); margin-top: 20px; padding-top: 16px;' }, ...[
             el('h3', { className: 'settings-section-title' }, '📦 Package Default Images'),
             el('p', { className: 'settings-section-desc' }, 'Mark coin images as "Ready" in the catalog, then export them as a defaults package. The public app ships with this file pre-loaded.'),
             
@@ -712,17 +794,17 @@ async function listReadyImages() {
         return;
     }
     
-    const { el, createModal } = await import('./modals.v2.js');
+
     
-    const body = el('div', { style: 'max-height:60vh;overflow:auto;' }, [
+    const body = el('div', { style: 'max-height:60vh;overflow:auto;' }, ...[
         el('p', { style: 'font-weight:600;margin-bottom:8px;' }, `Ready Images: ${ready.length}`),
         ...ready.map(img => el('div', { 
             style: 'display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid var(--color-border-light);' 
-        }, [
-            el('span', { style: 'width:40px;height:40px;border-radius:50%;background:var(--color-accord-bg);border:1px solid var(--color-border);overflow:hidden;flex-shrink:0;' }, [
+        }, ...[
+            el('span', { style: 'width:40px;height:40px;border-radius:50%;background:var(--color-accord-bg);border:1px solid var(--color-border);overflow:hidden;flex-shrink:0;' }, ...[
                 el('img', { src: img.image, style: 'width:100%;height:100%;object-fit:cover;' })
             ]),
-            el('div', { style: 'flex:1;min-width:0;' }, [
+            el('div', { style: 'flex:1;min-width:0;' }, ...[
                 el('div', { style: 'font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, img.coin_type),
                 el('div', { style: 'font-size:0.75rem;color:var(--color-text-muted);' }, `Side: ${img.side}`)
             ]),
@@ -750,7 +832,7 @@ async function listReadyImages() {
             const currentProvider = getCurrentProvider();
             const currentProviderId = currentProvider ? currentProvider.id : null;
 
-            panel.appendChild(el('div', { className: 'settings-section' }, [
+            panel.appendChild(el('div', { className: 'settings-section' }, ...[
                 el('h3', { className: 'settings-section-title' }, 'Cloud Backup & Sync'),
                 el('p', { className: 'settings-section-desc' }, 'Choose a cloud provider to automatically backup and sync your collection data.'),
 
@@ -779,11 +861,11 @@ async function listReadyImages() {
                 const isAuthenticated = authState.authenticated === true;
 
                 // Provider info & auth
-                panel.appendChild(el('div', { className: 'settings-section' }, [
+                panel.appendChild(el('div', { className: 'settings-section' }, ...[
                     el('h3', { className: 'settings-section-title' }, `${provider.icon} ${provider.name} Configuration`),
                     el('p', { className: 'settings-section-desc' }, provider.description),
 
-                    provider.requiresAuth ? el('div', { style: 'margin-bottom: 12px; padding: 12px; background: var(--color-bg); border-radius: 8px;' }, [
+                    provider.requiresAuth ? el('div', { style: 'margin-bottom: 12px; padding: 12px; background: var(--color-bg); border-radius: 8px;' }, ...[
                         isAuthenticated 
                             ? el('div', { className: 'success-message', style: 'color: var(--color-success); font-weight: 600;' }, '✓ Authenticated')
                             : el('div', { className: 'warning-message', style: 'color: var(--color-warning); font-weight: 600;' }, 'Not authenticated'),
@@ -815,7 +897,7 @@ async function listReadyImages() {
                     ]) : null,
 
                     // WebDAV config fields
-                    currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, [
+                    currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, ...[
                         buildSettingRow('WebDAV Server URL', 'settings-webdav-url', 'text', {
                             value: authState.url || '',
                             placeholder: 'https://your-nextcloud.com/remote.php/dav/files/username/',
@@ -833,7 +915,7 @@ async function listReadyImages() {
                 ]));
 
                 // Sync Actions
-                panel.appendChild(el('div', { className: 'settings-section' }, [
+                panel.appendChild(el('div', { className: 'settings-section' }, ...[
                     el('h3', { className: 'settings-section-title' }, 'Sync Actions'),
                     el('p', { className: 'settings-section-desc' }, 'Manually trigger backup or restore.'),
                     buildActionRow([
@@ -846,7 +928,7 @@ async function listReadyImages() {
 
 
     function buildAdvancedTab(panel) {
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Advanced Tools'),
             el('p', { className: 'settings-section-desc' }, 'Power-user features for pricing, completion, and images.'),
             buildActionRow([
@@ -858,7 +940,7 @@ async function listReadyImages() {
             ], true)
         ]));
 
-        panel.appendChild(el('div', { className: 'settings-section' }, [
+        panel.appendChild(el('div', { className: 'settings-section' }, ...[
             el('h3', { className: 'settings-section-title' }, 'Danger Zone'),
             el('p', { className: 'settings-section-desc' }, 'Irreversible actions. Use with caution.'),
             buildActionRow([
@@ -940,6 +1022,7 @@ function buildCardVisibilityRows() {
         { id: 'card-paper', label: 'Paper Currency', desc: 'Paper currency entries and value' },
         { id: 'card-custom', label: 'Custom Categories', desc: 'Other collectables and categories' },
         { id: 'card-wishlist', label: 'Wishlist', desc: 'Display target grade, price, notes, and acquired state' },
+        { id: 'card-gallery', label: 'Photos & Documents', desc: 'Capture or upload pictures to document your collection' },
         { id: 'card-search', label: 'Search Bar', desc: 'Full-text search and year filters' },
     ];
     return cards.map(card => {
@@ -972,8 +1055,8 @@ function buildBullionVisibilityRows() {
     const bullionVis = JSON.parse(localStorage.getItem('cc-bullion-vis') || '{}');
     const metals = [
         { id: 'gold', label: 'Gold' }, { id: 'silver', label: 'Silver' },
-        { id: 'copper', label: 'Copper' }, { id: 'platinum', label: 'Platinum' },
-        { id: 'palladium', label: 'Palladium' },
+        { id: 'platinum', label: 'Platinum' }, { id: 'palladium', label: 'Palladium' },
+        { id: 'copper', label: 'Copper' },
     ];
     return metals.map(m => {
         const row = el('div', { className: 'settings-row' });
@@ -1072,11 +1155,103 @@ export async function importCSV(file) {
 }
 
 export async function purgeInventory() {
-    if (!confirm('This will DELETE ALL inventory entries. This cannot be undone. Continue?')) return;
-    if (!confirm('Last chance: Are you absolutely sure?')) return;
+    // In-app confirm (no native browser dialog). Two-step: first click arms,
+    // second confirms. Kept for backward-compat (Settings -> Purge All Inventory).
+    if (!(await confirmInApp('Purge All Inventory',
+        'This permanently deletes every inventory entry. This cannot be undone.',
+        'Purge Inventory'))) return;
     await purgeUserInventoryTables();
     showToast('All inventory purged', 'success');
     location.reload();
+}
+
+/**
+ * openResetDataModal - the unified "Reset / Purge Data" experience.
+ * Two clearly separated actions, each with its own two-step in-app confirm:
+ *   A) Factory Reset (full_reset): wipe ALL data + ALL uploaded images, restoring
+ *      the shipped default images that came with the app.
+ *   B) Clear Data, Keep Images (data_only): delete all data but retain every
+ *      image the user has uploaded and been using.
+ */
+export function openResetDataModal() {
+    const wrap = el('div', { className: 'reset-data-modal' });
+
+    wrap.appendChild(el('p', { className: 'reset-data-intro' },
+        'Choose how to reset the app. Both options permanently remove your data \u2014 there is no undo.'));
+
+    // Option A
+    const optA = el('div', { className: 'reset-option reset-option-danger' });
+    optA.appendChild(el('h3', {}, '\uD83E\uDEA8 Factory Reset (wipe everything)'));
+    optA.appendChild(el('p', {}, 'Deletes all data AND all uploaded images, then restores the default images that shipped with the app.'));
+    const btnA = el('button', { className: 'btn-danger reset-confirm-btn', type: 'button' }, 'Factory Reset');
+    armTwoStep(btnA, 'Factory Reset', () => runReset('full_reset'));
+    optA.appendChild(btnA);
+    wrap.appendChild(optA);
+
+    // Divider
+    wrap.appendChild(el('hr', { className: 'reset-divider' }));
+
+    // Option B
+    const optB = el('div', { className: 'reset-option' });
+    optB.appendChild(el('h3', {}, '\uD83D\uDCCB Clear Data, Keep Images'));
+    optB.appendChild(el('p', {}, 'Deletes all your data (inventory, wishlist, etc.) but keeps every image you have uploaded and been using.'));
+    const btnB = el('button', { className: 'btn-secondary reset-confirm-btn', type: 'button' }, 'Clear Data');
+    armTwoStep(btnB, 'Clear Data', () => runReset('data_only'));
+    optB.appendChild(btnB);
+    wrap.appendChild(optB);
+
+    createModal('modal-reset-data', 'Reset / Purge Data', wrap);
+}
+
+async function runReset(mode) {
+    const btnLabel = mode === 'full_reset' ? 'Factory Reset' : 'Clear Data';
+    try {
+        closeModal('modal-reset-data');
+        showToast(btnLabel + ' started\u2026', 'info');
+        await factoryResetDataLocal(mode);
+        showToast(btnLabel + ' complete \u2014 reloading', 'success', 4000);
+        setTimeout(() => location.reload(), 1500);
+    } catch (e) {
+        console.error(e);
+        showToast('Reset failed: ' + (e && e.message ? e.message : e), 'error', 6000);
+    }
+}
+
+/**
+ * Two-step in-app confirm: first click re-labels the button to "Click again to
+ * confirm" (red), second click fires onConfirm. No native browser dialog.
+ */
+function armTwoStep(btn, label, onConfirm) {
+    let armed = false;
+    btn.addEventListener('click', () => {
+        if (!armed) {
+            armed = true;
+            btn.textContent = 'Click again to confirm';
+            btn.classList.add('armed');
+            setTimeout(() => { armed = false; btn.textContent = label; btn.classList.remove('armed'); }, 4000);
+            return;
+        }
+        btn.textContent = label + '\u2026';
+        btn.disabled = true;
+        onConfirm();
+    });
+}
+
+/** Lightweight in-app confirm used by the legacy purgeInventory path. */
+async function confirmInApp(title, message, confirmLabel) {
+    return await new Promise((resolve) => {
+        const wrap = el('div', {});
+        wrap.appendChild(el('p', {}, message));
+        const btn = el('button', { className: 'btn-danger', type: 'button' }, confirmLabel);
+        let armed = false;
+        btn.addEventListener('click', () => {
+            if (!armed) { armed = true; btn.textContent = 'Click again to confirm'; btn.classList.add('armed'); return; }
+            closeModal('modal-confirm-' + Date.now());
+            resolve(true);
+        });
+        const m = createModal('modal-confirm-' + Date.now(), title, wrap, btn);
+        m.addEventListener('close', () => resolve(false));
+    });
 }
 
 export function dispatchSettingsChange(key, value) {
@@ -1089,7 +1264,12 @@ export function dispatchSettingsChange(key, value) {
 
 export function applyFolderColor(v) {
     localStorage.setItem('cc-folder-color', v);
-    const fcMap = { green:'#2d4a2d', blue:'#2d3a4a', red:'#4a2d2d', brown:'#4a3d2d', black:'#1a1a1a', purple:'#3d2d4a', gray:'#3a3a3a' };
+    const fcMap = (
+    localStorage.getItem('cc-colorblind') === '1'
+        ? { green:'#245c4a', blue:'#1f4a72', red:'#8a3a2a', brown:'#7a5a3a',
+            black:'#1a1a1a', purple:'#5a4a7a', gray:'#4a4a4a' }
+        : { green:'#2d4a2d', blue:'#2d3a4a', red:'#4a2d2d', brown:'#4a3d2d',
+            black:'#1a1a1a', purple:'#3d2d4a', gray:'#3a3a3a' });
     const ftMap = { green:'#c9a227', blue:'#7db3d8', red:'#e8a0a0', brown:'#d4a574', black:'#888888', purple:'#c9a0d4', gray:'#aaaaaa' };
     const fcVal = fcMap[v] || fcMap.green;
     const ftVal = ftMap[v] || ftMap.green;
@@ -1097,11 +1277,9 @@ export function applyFolderColor(v) {
     document.documentElement.style.setProperty('--folder-header-text', ftVal);
     document.documentElement.style.setProperty('--folder-label', ftVal);
     
-    document.querySelectorAll('.album-inline, #album-grid-area').forEach(a => {
+    // Update every album element that uses the folder color (live, no refresh).
+    document.querySelectorAll('.album-inline, #album-grid-area, .album-type-header, .album-inline-title, .album-type-title, .type-header-title').forEach(a => {
         a.style.background = fcVal;
-    });
-    document.querySelectorAll('.type-header-title').forEach(t => {
-        t.style.background = fcVal;
     });
     showToast('Album color updated', 'info');
 }
@@ -1150,14 +1328,14 @@ export function openHelpModal() {
     if (prices.silver_oz) {
         statItems.push({ label: 'Silver', value: '$' + prices.silver_oz.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/oz' });
     }
-    if (prices.copper_lb) {
-        statItems.push({ label: 'Copper', value: '$' + prices.copper_lb.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/lb' });
-    }
     if (prices.platinum_oz) {
         statItems.push({ label: 'Platinum', value: '$' + prices.platinum_oz.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/oz' });
     }
     if (prices.palladium_oz) {
         statItems.push({ label: 'Palladium', value: '$' + prices.palladium_oz.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/oz' });
+    }
+    if (prices.copper_lb) {
+        statItems.push({ label: 'Copper', value: '$' + prices.copper_lb.toLocaleString(undefined, { minimumFractionDigits: 2 }) + '/lb' });
     }
 
     statItems.forEach(item => {
@@ -1245,227 +1423,176 @@ export function openHelpModal() {
 // ============================================================
 
 export function openImageManager() {
-    const body = el('div', { style: 'display:flex; flex-direction:column; gap:12px; max-height:85vh; overflow-y:auto;' });
-    
-    // Header with search and view toggle
-    const headerRow = el('div', { style: 'display:flex;gap:12px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--color-border-light);padding-bottom:12px;' });
-    
-    // Search input
-    const searchIn = el('input', { 
-        type: 'text', 
-        placeholder: 'Search coin images by name, year, country...', 
-        style: 'flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--color-border-light);border-radius:6px;background:var(--color-input-bg);color:var(--color-text-main);font-size:0.9em;' 
-    });
-    headerRow.appendChild(searchIn);
-    
-    // View toggle
-    const viewToggle = el('div', { style: 'display:flex;gap:4px;background:var(--color-accord-bg);border-radius:6px;padding:2px;' });
-    let currentView = 'gallery';
-    const galleryBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-main);', onclick: () => { currentView = 'gallery'; galleryBtn.classList.add('active'); listBtn.classList.remove('active'); renderGallery(); } }, 'Gallery');
-    const listBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.8em;padding:4px 10px;background:none;border:none;color:var(--color-text-muted);', onclick: () => { currentView = 'list'; listBtn.classList.add('active'); galleryBtn.classList.remove('active'); renderList(); } }, 'List');
-    galleryBtn.classList.add('active');
-    viewToggle.appendChild(galleryBtn);
-    viewToggle.appendChild(listBtn);
-    headerRow.appendChild(viewToggle);
-    
-    // Stats
-    const statsEl = el('span', { className: 'dashboard-detail', style: 'margin-left:auto;font-size:0.85em;color:var(--color-text-muted);' }, 'Loading...');
-    headerRow.appendChild(statsEl);
-    
-    body.appendChild(headerRow);
-    
-    // Main content area
-    const contentDiv = el('div', { style: 'flex:1;overflow-y:auto;min-height:300px;' });
-    body.appendChild(contentDiv);
-    
-    // Fetch all coins with images
-    function loadCoinData() {
-        statsEl.textContent = 'Loading coin data...';
-        fetch('/api/coins?limit=10000').then(function(r){return r.json();}).then(function(data){
-            var coins = data.coins || data || [];
-            statsEl.textContent = coins.length + ' total coins';
-            
-            // Show unique images from type configs — one card per type+side, not per coin
-            var seenTypes = {};
-            coins.forEach(function(c) {
-                var cfg = getTypeConfig ? getTypeConfig(c.coin_type) : null;
-                if (cfg && cfg.obv_image && !seenTypes[c.coin_type + '_obv']) {
-                    seenTypes[c.coin_type + '_obv'] = true;
-                    c._hasObv = true; c._obvSrc = cfg.obv_image;
-                }
-                if (cfg && cfg.rev_image && !seenTypes[c.coin_type + '_rev']) {
-                    seenTypes[c.coin_type + '_rev'] = true;
-                    c._hasRev = true; c._revSrc = cfg.rev_image;
-                }
-            });
-            var uniqueCount = Object.keys(seenTypes).length;
-            statsEl.textContent = uniqueCount + ' unique images';
-            // Filter coins to only those that contribute a unique image
-            coins = coins.filter(function(c){ return c._hasObv || c._hasRev; });
-            renderGallery();
-            
-            function renderGallery() {
-                contentDiv.innerHTML = '';
-                var grid = el('div', { style: 'display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;' });
-                
-                var filtered = coins.filter(function(c) {
-                    var q = searchIn.value.toLowerCase();
-                    if (!q) return true;
-                    return (c.name || '').toLowerCase().includes(q) || 
-                           (c.year || '').toLowerCase().includes(q) || 
-                           (c.country || '').toLowerCase().includes(q) ||
-                           (c.denomination || '').toLowerCase().includes(q);
-                });
-                
-                if (filtered.length === 0) {
-                    contentDiv.appendChild(el('div', { style: 'text-align:center;padding:40px;color:var(--color-text-muted);' }, 'No coins match your search'));
-                    return;
-                }
-                
-                filtered.forEach(function(coin) {
-                    var card = el('div', { style: 'border:1px solid var(--color-border-light);border-radius:8px;overflow:hidden;background:var(--color-card-bg);transition:transform 0.15s,box-shadow 0.15s;', onmouseover: "this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'", onmouseout: "this.style.transform='none';this.style.boxShadow='none'" });
-                    
-                    // Image area
-                    var imgArea = el('div', { style: 'aspect-ratio:1/1;background:var(--color-accord-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;' });
-                    
-                    if (coin._hasObv && coin._obvSrc) {
-                        var obvImg = el('img', { src: coin._obvSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
-                        imgArea.appendChild(obvImg);
-                    } else if (coin._hasRev && coin._revSrc) {
-                        var revImg = el('img', { src: coin._revSrc, style: 'max-width:100%;max-height:100%;object-fit:contain;border-radius:4px;', onerror: function(){this.style.display='none'; this.parentNode.innerHTML='<span style="font-size:2.5em;color:var(--color-text-muted);opacity:0.3;">⊘</span>';} });
-                        imgArea.appendChild(revImg);
-                    } else {
-                        imgArea.appendChild(el('span', { style: 'font-size:2.5em;color:var(--color-text-muted);opacity:0.3;' }, ' '));
-                    }
-                    
-                    card.appendChild(imgArea);
-                    
-                    // Info
-                    var info = el('div', { style: 'padding:8px;display:flex;flex-direction:column;gap:2px;' });
-                    info.appendChild(el('div', { style: 'font-weight:600;font-size:0.85em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' }, coin.name || 'Unnamed'));
-                    info.appendChild(el('div', { style: 'font-size:0.7em;color:var(--color-text-muted);' }, (coin.country || '') + ' ' + (coin.year || '') + ' ' + (coin.denomination || '')));
-                    info.appendChild(el('div', { style: 'font-size:0.65em;color:var(--color-text-muted);display:flex;gap:8px;', innerHTML: (coin._hasObv ? '<span style="color:var(--color-success)">Y</span> Obv' : '<span style="color:var(--color-danger)">N</span> Obv') + ' | ' + (coin._hasRev ? '<span style="color:var(--color-success)">Y</span> Rev' : '<span style="color:var(--color-danger)">N</span> Rev') }));
-                    
-                    card.appendChild(info);
-                    
-                    // Actions row
-                    var actions = el('div', { style: 'display:flex;gap:4px;padding:0 8px 8px;border-top:1px solid var(--color-border-light);' });
-                    
-                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Upload image', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, 'Upload');
-                    actions.appendChild(uploadBtn);
-                    
-                    if (coin.hasObv || coin.hasRev) {
-                        var removeBtn = el('button', { className: 'btn-danger', style: 'flex:1;font-size:0.7em;padding:4px;', title: 'Remove image', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, 'Remove');
-                        actions.appendChild(removeBtn);
-                    }
-                    
-                    card.appendChild(actions);
-                    
-                    // No click-to-navigate — Coin Image Bank is for browsing/managing images only
-                    
-                    grid.appendChild(card);
-                });
-                
-                contentDiv.appendChild(grid);
-            }
-            
-            function renderList() {
-                contentDiv.innerHTML = '';
-                var table = el('div', { style: 'display:flex;flex-direction:column;' });
-                
-                // Header
-                var header = el('div', { style: 'display:grid;grid-template-columns:40px 1fr 100px 80px 80px 80px 120px;gap:8px;padding:8px;background:var(--color-accord-bg);font-weight:600;font-size:0.75em;color:var(--color-text-muted);border-radius:6px 6px 0 0;' });
-                ['', 'Coin', 'Country', 'Year', 'Denom', 'Obv', 'Rev', 'Actions'].forEach(function(h) {
-                    header.appendChild(el('div', {}, h));
-                });
-                table.appendChild(header);
-                
-                var filtered = coins.filter(function(c) {
-                    var q = searchIn.value.toLowerCase();
-                    if (!q) return true;
-                    return (c.name || '').toLowerCase().includes(q) || 
-                           (c.year || '').toLowerCase().includes(q) || 
-                           (c.country || '').toLowerCase().includes(q) ||
-                           (c.denomination || '').toLowerCase().includes(q);
-                });
-                
-                filtered.forEach(function(coin) {
-                    var row = el('div', { style: 'display:grid;grid-template-columns:40px 1fr 100px 80px 80px 80px 120px;gap:8px;padding:8px;border-bottom:1px solid var(--color-border-light);align-items:center;font-size:0.8em;', onmouseover: "this.style.background='var(--color-accord-bg)'", onmouseout: "this.style.background='transparent'" });
-                    
-                    // Thumbnail
-                    var thumb = el('div', { style: 'width:36px;height:36px;border-radius:4px;background:var(--color-accord-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;' });
-                    if (coin._hasObv) {
-                        thumb.appendChild(el('img', { src: coin._obvSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
-                    } else if (coin._hasRev) {
-                        thumb.appendChild(el('img', { src: coin._revSrc, style: 'width:100%;height:100%;object-fit:cover;', onerror: function(){this.style.display='none';} }));
-                    } else {
-                        thumb.appendChild(el('span', { style: 'font-size:0.8em;color:var(--color-text-muted);' }, ' '));
-                    }
-                    row.appendChild(thumb);
-                    
-                    // Name
-                    var nameDiv = el('div', { style: 'font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;', onclick: function() { window.dispatchEvent(new CustomEvent('cc-navigate-coin', { detail: { id: coin.id } })); closeModal('modal-image-manager'); } }, coin.name || 'Unnamed');
-                    row.appendChild(nameDiv);
-                    
-                    // Country
-                    row.appendChild(el('div', { style: 'color:var(--color-text-muted);' }, coin.country || ''));
-                    // Year
-                    row.appendChild(el('div', { style: 'text-align:center;color:var(--color-text-muted);' }, coin.year || ''));
-                    // Denom
-                    row.appendChild(el('div', { style: 'text-align:center;color:var(--color-text-muted);' }, coin.denomination || ''));
-                    // Obv
-                    row.appendChild(el('div', { style: 'text-align:center;', innerHTML: coin.hasObv ? '<span style="color:var(--color-success)">✓</span>' : '<span style="color:var(--color-danger)">✗</span>' }));
-                    // Rev
-                    row.appendChild(el('div', { style: 'text-align:center;', innerHTML: coin.hasRev ? '<span style="color:var(--color-success)">✓</span>' : '<span style="color:var(--color-danger)">✗</span>' }));
-                    
-                    // Actions
-                    var actions = el('div', { style: 'display:flex;gap:4px;' });
-                    var uploadBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); openImageUploadModal(coin.id); } }, 'Upload');
-                    actions.appendChild(uploadBtn);
-                    if (coin.hasObv || coin.hasRev) {
-                        var removeBtn = el('button', { className: 'btn-danger', style: 'font-size:0.65em;padding:2px 8px;', onclick: function(e) { e.stopPropagation(); if(confirm('Remove this coin image?')) removeCoinImage(coin.id); } }, 'Remove');
-                        actions.appendChild(removeBtn);
-                    }
-                    row.appendChild(actions);
-                    
-                    table.appendChild(row);
-                });
-                
-                if (filtered.length === 0) {
-                    table.appendChild(el('div', { style: 'text-align:center;padding:40px;color:var(--color-text-muted);' }, 'No coins match your search'));
-                }
-                
-                contentDiv.appendChild(table);
-            }
-            
-            // Search handler
-            searchIn.oninput = function() {
-                if (currentView === 'gallery') renderGallery();
-                else renderList();
-            };
-        });
-    }
-    
-    function removeCoinImage(coinId) {
-        // API: DELETE /api/coins/:id/image/:type
-        fetch('/api/coins/' + coinId + '/image/obv', { method: 'DELETE' }).then(function() {
-            showToast('Image removed', 'success');
-            loadCoinData();
-        }).catch(function() { showToast('Failed to remove', 'error'); });
-    }
-    
-    loadCoinData();
-    
-    // Footer
-    var footer = el('div', { style: 'display:flex;gap:8px;justify-content:flex-end;padding-top:8px;border-top:1px solid var(--color-border-light);' });
-    var closeBtn = el('button', { className: 'btn-secondary' }, 'Close');
+    const body = el('div', { style: 'padding: 16px; max-height: 70vh; overflow-y: auto;' });
+    const footer = el('div', { style: 'display:flex; gap:8px; justify-content:flex-end; padding-top:8px; border-top:1px solid var(--color-border-light);' });
+    const closeBtn = el('button', { className: 'btn-secondary' }, 'Close');
     closeBtn.onclick = () => closeModal('modal-image-manager');
     footer.appendChild(closeBtn);
     
-    createModal('modal-image-manager', 'Coin Image Bank', body, footer, { maxWidth: '95vw', maxHeight: '95vh' });
+    const searchWrap = el('div', { style: 'margin-bottom: 12px;' });
+    const searchIn = el('input', { type: 'text', placeholder: 'Filter coin types...', style: 'width: 100%; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--color-border); background: var(--color-bg-body); color: var(--color-text-main); font-size: 0.9em;' });
+    searchWrap.appendChild(searchIn);
+    body.appendChild(searchWrap);
+    
+    const tabWrap = el('div', { style: 'display:flex; gap:4px; margin-bottom:12px;' });
+    const tabMissing = el('button', { className: 'btn-primary', style: 'flex:1;' }, 'Missing Images');
+    const tabAll = el('button', { className: 'btn-secondary', style: 'flex:1;' }, 'All Types');
+    let currentTab = 'missing';
+    
+    function setTab(t) {
+        currentTab = t;
+        tabMissing.className = t === 'missing' ? 'btn-primary' : 'btn-secondary';
+        tabAll.className = t === 'all' ? 'btn-primary' : 'btn-secondary';
+        renderTypes();
+    }
+    tabMissing.onclick = () => setTab('missing');
+    tabAll.onclick = () => setTab('all');
+    tabWrap.appendChild(tabMissing);
+    tabWrap.appendChild(tabAll);
+    body.appendChild(tabWrap);
+    
+    const listDiv = el('div', { style: 'display:flex; flex-direction:column; gap:8px;' });
+    body.appendChild(listDiv);
+    
+    let typeMap = {};
+    
+    async function loadData() {
+        try {
+            const res = await fetch('/api/coins?limit=5000');
+            const data = await res.json();
+            const coins = data.coins || data || [];
+            typeMap = {};
+            coins.forEach(c => {
+                const ct = c.coin_type || c.type || '';
+                if (!ct) return;
+                if (!typeMap[ct]) typeMap[ct] = { section: c.section || 'Other', count: 0, hasObv: false, hasRev: false, ids: [] };
+                typeMap[ct].count++;
+                typeMap[ct].ids.push(c.id);
+                if (c.obv_image || c._obvSrc) typeMap[ct].hasObv = true;
+                if (c.rev_image || c._revSrc) typeMap[ct].hasRev = true;
+            });
+            renderTypes();
+        } catch (err) {
+            listDiv.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--color-danger);">Error loading coins: ' + err.message + '</div>';
+        }
+    }
+    
+    function renderTypes() {
+        listDiv.innerHTML = '';
+        const q = (searchIn.value || '').toLowerCase().trim();
+        let types = Object.keys(typeMap);
+        types.sort((a, b) => {
+            const sa = typeMap[a].section, sb = typeMap[b].section;
+            if (sa < sb) return -1;
+            if (sa > sb) return 1;
+            return a.localeCompare(b);
+        });
+        if (currentTab === 'missing') {
+            types = types.filter(t => !typeMap[t].hasObv || !typeMap[t].hasRev);
+        }
+        if (q) {
+            types = types.filter(t => t.toLowerCase().includes(q) || typeMap[t].section.toLowerCase().includes(q));
+        }
+        if (types.length === 0) {
+            listDiv.innerHTML = '<div style="text-align:center; padding: 2rem; color: var(--color-text-muted);">' + (currentTab === 'missing' ? 'All types have images!' : 'No types match.') + '</div>';
+            return;
+        }
+        types.forEach(ct => {
+            const info = typeMap[ct];
+            const row = el('div', { 
+                style: 'display:flex; align-items:center; gap:12px; padding:10px; border:1px solid var(--color-border-light); border-radius:8px; background:var(--color-bg-card); flex-wrap:wrap;'
+            });
+            const nameDiv = el('div', { style: 'flex:1; min-width:140px;' });
+            nameDiv.appendChild(el('div', { style: 'font-weight:600; font-size:0.9em;' }, ct));
+            nameDiv.appendChild(el('div', { style: 'font-size:0.75em; color:var(--color-text-muted);' }, info.section + ' · ' + info.count + ' coins'));
+            row.appendChild(nameDiv);
+            const badgeWrap = el('div', { style: 'display:flex; gap:6px; align-items:center;' });
+            const obvBadge = el('span', { style: 'font-size:0.7em; padding:2px 8px; border-radius:12px; ' + (info.hasObv ? 'background:rgba(46,125,50,0.2); color:var(--color-success);' : 'background:rgba(220,38,38,0.2); color:var(--color-danger);') }, info.hasObv ? 'Obv ✓' : 'Obv ✗');
+            const revBadge = el('span', { style: 'font-size:0.7em; padding:2px 8px; border-radius:12px; ' + (info.hasRev ? 'background:rgba(46,125,50,0.2); color:var(--color-success);' : 'background:rgba(220,38,38,0.2); color:var(--color-danger);') }, info.hasRev ? 'Rev ✓' : 'Rev ✗');
+            badgeWrap.appendChild(obvBadge);
+            badgeWrap.appendChild(revBadge);
+            row.appendChild(badgeWrap);
+            const drop = el('div', {
+                style: 'width: 56px; height: 56px; border: 2px dashed var(--color-border); border-radius: 8px; display:flex; align-items:center; justify-content:center; cursor:pointer; color: var(--color-text-muted); font-size: 0.7em; text-align:center; transition: all 0.15s; background: var(--color-bg-body);',
+                ondragover: "event.preventDefault(); this.style.borderColor='var(--color-accent)'; this.style.background='rgba(96,165,250,0.08)';",
+                ondragleave: "this.style.borderColor='var(--color-border)'; this.style.background='var(--color-bg-body)';",
+                ondrop: "event.preventDefault(); this.style.borderColor='var(--color-border)'; this.style.background='var(--color-bg-body)'; handleDrop(event, '" + ct + "');",
+                onclick: "triggerUpload('" + ct + "')"
+            }, '+');
+            drop.title = 'Click or drop image for ' + ct;
+            row.appendChild(drop);
+            const camBtn = el('button', {
+                className: 'btn-secondary',
+                style: 'padding:6px 10px; font-size:0.75em;',
+                title: 'Take photo for ' + ct,
+                onclick: "triggerCamera('" + ct + "')"
+            }, '📷');
+            row.appendChild(camBtn);
+            listDiv.appendChild(row);
+        });
+    }
+    
+    const fileMap = {};
+    function getFileInput(coinType) {
+        if (!fileMap[coinType]) {
+            const inp = document.createElement('input');
+            inp.type = 'file';
+            inp.accept = 'image/*';
+            inp.style.display = 'none';
+            inp.onchange = (e) => handleFiles(e.target.files, coinType);
+            document.body.appendChild(inp);
+            fileMap[coinType] = inp;
+        }
+        return fileMap[coinType];
+    }
+    
+    window.triggerUpload = function(coinType) {
+        const inp = getFileInput(coinType);
+        inp.value = '';
+        inp.click();
+    };
+    window.triggerCamera = function(coinType) {
+        const inp = getFileInput(coinType);
+        inp.removeAttribute('accept');
+        inp.capture = 'environment';
+        inp.value = '';
+        inp.click();
+        setTimeout(() => { inp.removeAttribute('capture'); inp.accept = 'image/*'; }, 1000);
+    };
+    window.handleDrop = function(evt, coinType) {
+        const file = evt.dataTransfer.files[0];
+        if (file) handleFiles([file], coinType);
+    };
+    
+    async function handleFiles(files, coinType) {
+        const file = files[0];
+        if (!file) return;
+        const side = confirm('Save as Obverse? Cancel for Reverse.') ? 'obv' : 'rev';
+        const form = new FormData();
+        form.append('coin_type', coinType);
+        form.append('side', side);
+        form.append('image', file);
+        showToast('Uploading ' + coinType + '...', 'info');
+        try {
+            const res = await fetch('/api/upload', { method: 'POST', body: form });
+            const data = await res.json();
+            if (data.ok) {
+                showToast('Image uploaded for ' + coinType, 'success');
+                loadData();
+            } else {
+                showToast('Upload failed: ' + (data.error || 'unknown'), 'error');
+            }
+        } catch (err) {
+            showToast('Upload error: ' + err.message, 'error');
+        }
+    }
+    
+    searchIn.oninput = renderTypes;
+    
+    createModal('modal-image-manager', 'Find Images', body, footer, { maxWidth: '900px', maxHeight: '85vh' });
     openModal('modal-image-manager');
+    loadData();
 }
-
 // ============================================================
 // PRINT CHECKLIST — Settings → Advanced Tab
 // ============================================================
@@ -1496,7 +1623,6 @@ export function openPrintChecklist() {
         'US Coinage — Quarter Dollar': 109,
         'US Coinage — Half Dollar': 110,
         'US Coinage — Dollar': 111,
-        'US Coinage — Trade Dollar': 112,
         'US Gold — Circulation': 113,
         'US Bullion — Silver': 114,
         'US Bullion — Gold': 115,
@@ -1752,7 +1878,6 @@ export function openCompletionDashboard() {
             'US Coinage — Quarter Dollar': 109,
             'US Coinage — Half Dollar': 110,
             'US Coinage — Dollar': 111,
-            'US Coinage — Trade Dollar': 112,
             'US Gold — Circulation': 113,
             'US Bullion — Silver': 114,
             'US Bullion — Gold': 115,
@@ -1808,20 +1933,21 @@ export function filterMissingImages() {
 
     fetch('/api/coins?limit=5000').then(function(r){return r.json();}).then(function(data){
         var coins = data.coins || data || [];
-        var missing = 0, total = coins.length;
+        var total = coins.length;
 
-        var promises = coins.slice(0, 200).map(function(c) {
+        var promises = coins.map(function(c) {
             return fetch('/api/coins/' + c.id).then(function(r){return r.json();}).then(function(d){
-                if (!d.obv_image && !d.rev_image) missing++;
-            }).catch(function(){});
+                c._hasImage = !!(d.obv_image || d.rev_image);
+            }).catch(function(){ c._hasImage = false; });
         });
 
         Promise.all(promises).then(function(){
+            var missing = coins.filter(function(c){ return !c._hasImage; }).length;
             var body = el('div', { style: 'display:flex;flex-direction:column;gap:16px;max-height:70vh;overflow-y:auto;' });
             
             // Stats header
             var statsDiv = el('div', { style: 'text-align:center;padding:12px;background:var(--color-accord-bg);border-radius:8px;' });
-            var pct = total > 0 ? ((total - missing) / total * 100).toFixed(0) + '%' : 'N/A';
+            var pct = total > 0 ? ((total - missing) / total * 100).toFixed(1) + '%' : 'N/A';
             statsDiv.appendChild(el('h3', { style: 'margin-bottom:8px;' }, 'Image Coverage'));
             statsDiv.appendChild(el('div', { style: 'font-size:2em;font-weight:700;color:var(--color-accent);' }, pct));
             statsDiv.appendChild(el('p', { style: 'color:var(--color-text-muted);margin-top:4px;' }, (total - missing) + ' of ' + total + ' coins have reference images'));
@@ -2332,7 +2458,11 @@ function keyToCssVar(key, slot) {
         for (var k in colors) {
             root.style.setProperty(keyToCssVar(k, slotNum), colors[k]);
         }
+        document.documentElement.setAttribute('data-theme', 'custom' + slotNum);
         document.body.setAttribute('data-theme', 'custom' + slotNum);
+        // NOTE: custom-theme CSS remap is keyed on [data-theme="customN"] on <html>,
+        // so the attribute MUST be set on documentElement (body alone does not apply it).
+        // This is why saving previously required reselecting in the dropdown.
     }
 
     function livePreviewSlot(slotNum) {
@@ -2356,7 +2486,11 @@ function keyToCssVar(key, slot) {
         for (var k in colors) {
             root.style.setProperty(keyToCssVar(k, slotNum), colors[k]);
         }
+        document.documentElement.setAttribute('data-theme', 'custom' + slotNum);
         document.body.setAttribute('data-theme', 'custom' + slotNum);
+        // NOTE: custom-theme CSS remap is keyed on [data-theme="customN"] on <html>,
+        // so the attribute MUST be set on documentElement (body alone does not apply it).
+        // This is why saving previously required reselecting in the dropdown.
         var sel = document.getElementById('theme-selector');
         if (sel) sel.value = 'custom' + slotNum;
         localStorage.setItem('cc-theme', 'custom' + slotNum);
