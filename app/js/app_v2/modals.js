@@ -15,7 +15,7 @@ import { el, escHtml } from './utils.js';
 import { showToast } from './notifications.js';
 import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js';
 import { saveCustomTheme } from './themes.js';
-import { factoryResetData } from './api.js';
+import { factoryResetDataLocal } from './db.js';
 
 // ============================================================
 // NEW ORCHESTRATOR — used by cards.js, stories.js, info.js
@@ -1209,7 +1209,7 @@ async function runReset(mode) {
     try {
         closeModal('modal-reset-data');
         showToast(btnLabel + ' started\u2026', 'info');
-        await factoryResetData(mode);
+        await factoryResetDataLocal(mode);
         showToast(btnLabel + ' complete \u2014 reloading', 'success', 4000);
         setTimeout(() => location.reload(), 1500);
     } catch (e) {

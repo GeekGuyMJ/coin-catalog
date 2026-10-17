@@ -112,7 +112,6 @@
     display:     flex;
     align-items: center;
     gap:         var(--space-2);
-    flex-shrink: 0;
 }
 .header-left .app-title {
     font-size: var(--font-size-lg);
@@ -124,7 +123,6 @@
     display:     flex;
     align-items: center;
     gap:         var(--space-2);
-    flex-shrink: 0;
 }
 
 /* Header nav buttons */
