@@ -476,27 +476,41 @@ let clickCue = null;
 let isRunning = false;
 
 function ensureDom() {
-    if (document.getElementById('guide-overlay')) return;
-    overlay = document.createElement('div');
-    overlay.id = 'guide-overlay';
-    overlay.className = 'guide-overlay';
-    spotlight = document.createElement('div');
-    spotlight.className = 'guide-spotlight';
-    bubble = document.createElement('div');
-    bubble.className = 'guide-bubble';
-    bubble.id = 'guide-bubble';
-    // Tap indicator: shown INSIDE the highlight while an interactive step waits
-    // for the user's click — points at exactly where to tap.
-    clickCue = document.createElement('div');
-    clickCue.className = 'guide-click-cue';
-    clickCue.innerHTML =
-        '<span class="guide-click-cue-ring" aria-hidden="true"></span>' +
-        '<span class="guide-click-cue-pointer" aria-hidden="true"><i class="guide-click-cue-arrow"></i> click</span>';
-    clickCue.style.display = 'none';
-    document.body.appendChild(overlay);
-    document.body.appendChild(spotlight);
-    document.body.appendChild(clickCue);
-    document.body.appendChild(bubble);
+    // Always sync module refs to DOM, whether creating fresh or reusing existing
+    overlay = document.getElementById('guide-overlay');
+    spotlight = document.querySelector('.guide-spotlight');
+    bubble = document.getElementById('guide-bubble');
+    clickCue = document.querySelector('.guide-click-cue');
+
+    if (overlay && spotlight && bubble && clickCue) return; // all present, nothing to do
+
+    // Create any missing pieces
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'guide-overlay';
+        overlay.className = 'guide-overlay';
+        document.body.appendChild(overlay);
+    }
+    if (!spotlight) {
+        spotlight = document.createElement('div');
+        spotlight.className = 'guide-spotlight';
+        document.body.appendChild(spotlight);
+    }
+    if (!clickCue) {
+        clickCue = document.createElement('div');
+        clickCue.className = 'guide-click-cue';
+        clickCue.innerHTML =
+            '<span class="guide-click-cue-ring" aria-hidden="true"></span>' +
+            '<span class="guide-click-cue-pointer" aria-hidden="true"><i class="guide-click-cue-arrow"></i> click</span>';
+        clickCue.style.display = 'none';
+        document.body.appendChild(clickCue);
+    }
+    if (!bubble) {
+        bubble = document.createElement('div');
+        bubble.className = 'guide-bubble';
+        bubble.id = 'guide-bubble';
+        document.body.appendChild(bubble);
+    }
 }
 
 function smartScroll(el) {
