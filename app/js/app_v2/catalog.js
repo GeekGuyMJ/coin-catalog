@@ -353,8 +353,9 @@ function buildSectionCard(sec) {
         const cfg = getTypeConfig(sec.sample_type, sec.section)
             || getTypeConfig(sec.section, sec.section)
             || {};
-        const exObv = resolveImageUrl(cfg.example_obv_image || cfg.obv_image || null);
-        const exRev = resolveImageUrl(cfg.example_rev_image || cfg.rev_image || null);
+        // 2026-10-19 FIX: no inner resolve — img src below already wraps in resolveImageUrl.
+        const exObv = cfg.example_obv_image || cfg.obv_image || null;
+        const exRev = cfg.example_rev_image || cfg.rev_image || null;
         // If no override yet, leave a marker so expandSection can fill the first-coin image.
         const pair = el('div', { className: 'coin-img-pair', dataset: { sampleType: sec.sample_type || '' } });
         if (exObv) {

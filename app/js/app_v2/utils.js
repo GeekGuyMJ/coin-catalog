@@ -73,6 +73,10 @@ export function resolveImageUrl(url) {
         return url;
     }
     // Root-absolute path → re-base under the app directory.
+    // 2026-10-19 FIX (idempotent): already-rebased paths must not be prefixed again.
+    if (_APP_BASE && url.startsWith(_APP_BASE + "/")) {
+        return url;
+    }
     return _APP_BASE + url;
 }
 
