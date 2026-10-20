@@ -448,12 +448,25 @@ button {
         align-items:    center;
         gap:            6px;
         justify-content: flex-end;
+        /* GGMJ-183 (mobile overflow): the public tree also puts the
+           List/Album view-toggle in this row, and .view-toggle is
+           flex-shrink:0. Without wrap, the row needs 422px inside a 302px
+           grid column and the theme select is pushed past the viewport
+           edge (body scrollWidth 498 at a 390px viewport). Wrap the row
+           instead of overflowing it; no control is hidden or restyled. */
+        flex-wrap:      wrap;
+        min-width:      0;
+    }
+    /* The view-toggle may compress so the theme select stays on screen. */
+    .view-toggle {
+        flex-shrink:    1;
+        min-width:      0;
     }
     /* Theme select grows to fit the longest option (e.g. "Deep Forest") now that Layout is hidden in portrait */
     .theme-select {
         flex:      0 1 auto;
         max-width: 150px;
-        min-width: 64px;
+        min-width: 48px;
     }
 
     /* Uniform compact size for all header controls */

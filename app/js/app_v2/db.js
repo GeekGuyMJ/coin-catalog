@@ -1790,29 +1790,29 @@ const _SERIES_WITH_SHARED_OBVERSE = new Set([
 // Collect all separate-pattern variants (underscore vs space, etc.)
 const _SERIES_TAG_PATTERNS = [
     // State Quarters
-    ('50 State Quarters', '50_State_Quarters_-_'),
-    ('50 State Quarters', '50 State Quarters - '),
-    ('50 State Quarters', '50_State_Quarters___'),
+    ['50 State Quarters', '50_State_Quarters_-_'],
+    ['50 State Quarters', '50 State Quarters - '],
+    ['50 State Quarters', '50_State_Quarters___'],
     // America the Beautiful
-    ('America the Beautiful', 'America_the_Beautiful_-_'),
-    ('America the Beautiful', 'America the Beautiful - '),
-    ('America the Beautiful', 'America_the_Beautiful___'),
+    ['America the Beautiful', 'America_the_Beautiful_-_'],
+    ['America the Beautiful', 'America the Beautiful - '],
+    ['America the Beautiful', 'America_the_Beautiful___'],
     // Presidential Dollar
-    ('Presidential Dollar', 'Presidential_Dollar_-_'),
-    ('Presidential Dollar', 'Presidential Dollar - '),
+    ['Presidential Dollar', 'Presidential_Dollar_-_'],
+    ['Presidential Dollar', 'Presidential Dollar - '],
     // D.C. and U.S. Territories
-    ('D.C. and U.S. Territories', 'D.C._and_U.S._Territories_-_'),
-    ('D.C. and U.S. Territories', 'D.C. and U.S. Territories - '),
-    ('D.C. and U.S. Territories', 'D.C._and_U.S._Territories___'),
+    ['D.C. and U.S. Territories', 'D.C._and_U.S._Territories_-_'],
+    ['D.C. and U.S. Territories', 'D.C. and U.S. Territories - '],
+    ['D.C. and U.S. Territories', 'D.C._and_U.S._Territories___'],
     // American Women
-    ('American Women', 'American_Women_-_'),
-    ('American Women', 'American Women - '),
+    ['American Women', 'American_Women_-_'],
+    ['American Women', 'American Women - '],
     // Innovation Dollar
-    ('Innovation Dollar', 'Innovation_Dollar_-_'),
-    ('Innovation Dollar', 'Innovation Dollar - '),
+    ['Innovation Dollar', 'Innovation_Dollar_-_'],
+    ['Innovation Dollar', 'Innovation Dollar - '],
     // Native American Dollar / Sacagawea
-    ('Native American Dollar', 'Native_American_Dollar_-_'),
-    ('Native American Dollar', 'Sacagawea_-_'),
+    ['Native American Dollar', 'Native_American_Dollar_-_'],
+    ['Native American Dollar', 'Sacagawea_-_'],
 ];
 
 /**
