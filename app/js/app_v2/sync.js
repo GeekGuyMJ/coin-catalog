@@ -166,6 +166,34 @@ function _base64url(buffer) {
     .replace(/=+$/, '');
 }
 
+/**
+ * UTF-8-safe base64 of a string.
+ *
+ * btoa() accepts only code points U+0000-U+00FF, so it throws
+ * DOMException 'InvalidCharacterError' on any character above that
+ * range (accented Latin, Cyrillic, CJK, emoji). Encoding to UTF-8 bytes
+ * first makes every byte fall inside the Latin-1 range that btoa() wants.
+ */
+function _utf8ToB64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Value for the HTTP Basic Authorization header (RFC 7617).
+ *
+ * The credentials are UTF-8 encoded before base64, per RFC 7617, so a
+ * password containing non-Latin1 characters authenticates instead of
+ * throwing.
+ */
+function _basicAuthHeader(username, password) {
+  return 'Basic ' + _utf8ToB64(username + ':' + password);
+}
+
 function _getRedirectUri() {
   // Use the current page URL — works on both LXC 115 and GitHub Pages
   return window.location.href.split('?')[0].split('#')[0];
@@ -917,7 +945,7 @@ async function _syncToWebDAV(jsonStr, auth) {
 
   const headers = { 'Content-Type': 'application/json' };
   if (username && password) {
-    headers['Authorization'] = 'Basic ' + btoa(username + ':' + password);
+    headers['Authorization'] = _basicAuthHeader(username, password);
   }
 
   const response = await fetch(fullUrl, {
@@ -947,7 +975,7 @@ async function _restoreFromWebDAV(auth) {
 
   const headers = {};
   if (username && password) {
-    headers['Authorization'] = 'Basic ' + btoa(username + ':' + password);
+    headers['Authorization'] = _basicAuthHeader(username, password);
   }
 
   const response = await fetch(fullUrl, { method: 'GET', headers });
