@@ -124,6 +124,10 @@ function _sectionShouldBeOpen(sectionName) {
     return _openSetForThisRender().has(sectionName);
 }
 const _expandedTypes = new Set();
+// GGMJ-244: types the user has EXPLICITLY collapsed. A type is rendered open
+// unless it appears here, so a fresh page load shows the coins instead of
+// 6,500+ invisible rows sitting inside a display:none .type-content.
+const _collapsedTypes = new Set();
 const _expandedCountries = new Set(['United States', 'Canada']); // Default US/Canada open
 
 // --- View Mode ---
@@ -736,8 +740,13 @@ function buildTypeAccordion(mainType, typeCoins) {
         content.appendChild(buildCoinRow(coin));
     }
 
-    // Restore expanded state
-    if (_expandedTypes.has(mainType)) {
+    // Restore expanded state.
+    // GGMJ-244: a type is OPEN unless the user explicitly collapsed it.
+    // `_expandedTypes` alone could not drive this: it starts empty on every
+    // page load, so every type rendered collapsed and its coin rows stayed
+    // hidden inside .type-content { display:none }.
+    const _typeIsOpen = !_collapsedTypes.has(mainType);
+    if (_typeIsOpen) {
         content.classList.add('open');
         header.setAttribute('aria-expanded', 'true');
         header.querySelector('.section-chevron').style.transform = 'rotate(180deg)';
@@ -762,6 +771,8 @@ function buildTypeAccordion(mainType, typeCoins) {
 
         if (open) {
             _expandedTypes.add(mainType);
+            // GGMJ-244: an explicit expand clears any recorded collapse.
+            _collapsedTypes.delete(mainType);
             // If in album mode, render album inline
             const mode = getCatalogViewMode();
             if (mode === 'album' || mode === 'folder') {
@@ -774,6 +785,9 @@ function buildTypeAccordion(mainType, typeCoins) {
             }
         } else {
             _expandedTypes.delete(mainType);
+            // GGMJ-244: remember the explicit collapse so a re-render
+            // (search / filter) does not silently reopen the type.
+            _collapsedTypes.add(mainType);
         }
     });
     header.addEventListener('keydown', e => {
