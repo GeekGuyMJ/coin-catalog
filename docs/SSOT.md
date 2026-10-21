@@ -11,7 +11,36 @@ vice-versa, because the two trees drifted).
 | Self-hosted (Matthew uses)  | http://coin-catalog.opaleye-bluegill.ts.net/              | /root/coin_catalog_v2/   |
 | Public (GitHub Pages)       | https://geekguymj.github.io/coin-catalog/app/             | /root/coin-catalog-public/ |
 
-Self-hosted serves `frontend/`. Public serves `app/`. **They MUST stay in sync**
+### The self-hosted SERVED tree is a release, not the repo (GGMJ-398, 2026-10-21)
+
+Since GGMJ-398 the live webroot is NO LONGER the git working tree of
+`/root/coin_catalog_v2`. It is a published release directory:
+
+    nginx root  ->  /srv/live/current  ->  /root/coin_catalog_live/releases/<UTC stamp>
+
+`/root/coin_catalog_live/current` is a symlink to the active release; releases are
+independent copies (no `--link-dest`), so editing a file inside a release can never
+reach a newer one. The `coin_web_v2` container bind-mounts `/root/coin_catalog_live`
+(read-write) and **no longer mounts `frontend/`** — the container config and the repo
+are no longer the same thing.
+
+**Consequences — read this before deploying:**
+
+- The repo is the SOURCE tree. `/root/coin_catalog_v2/frontend` is what gets published,
+  not what gets served. Do not edit the live tree; it is replaced on every publish.
+- Publish with `scripts/deploy_live_frontend.sh` (add `--src <dir>` to publish a
+  different tree, `--status` to show the live release, `--rollback` to swap back).
+  The script builds the candidate release, verifies it, and only then flips the symlink.
+- A `git checkout`, `git reset --hard`, or branch switch in the repo no longer changes
+  the live site. That was the point of GGMJ-398 — but it also means an UNCOMMITTED
+  fix in the repo will be silently dropped by the next publish, because the publish
+  copies the WORKING TREE but the next clean checkout restores `HEAD`. Commit fixes
+  to the branch you intend to publish from.
+- A file that exists only in the working tree (or only in an untracked hashed module
+  plus a symlink) is at risk. Commit BOTH the new hashed file and the symlink.
+
+Self-hosted publishes `frontend/` (as a release, see above). Public serves `app/`.
+**They MUST stay in sync**
 for every file under `js/app_v2/`, `css/`, `sw.js`, and `index.html` — those
 files are one logical app split across two repos.
 
