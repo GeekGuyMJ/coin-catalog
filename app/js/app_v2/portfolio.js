@@ -450,16 +450,32 @@ function _computeMetalMeltNow(prices) {
             if (!spot) return;
             var unit = (item.weight_unit || 'oz').toLowerCase();
             var rawW = item.weight || 0;
-            var w = rawW;
+            // 2026-10-21 (GGMJ-390): a bullion row is ONE unit of `weight`.
+            // The entry's `amount` says how many of them are held, so the
+            // melt value is weight x amount x spot. This function used the
+            // single-unit weight only, so 10 x 1oz silver contributed one
+            // ounce to the melt figure -- the Metal Price Trends card showed
+            // Silver $32.04 while the Bullion Holdings card showed $524.45
+            // for the very same holding.
+            //
+            // The bullion card already does this (buildBullionCard:
+            // `var w = rawW * iAmt;`), so this brings the two into step and
+            // with the Portfolio Overview melt bucket.
+            //
+            // `amount` is optional on older rows and may be 0; fall back to
+            // 1 so a single-unit entry still contributes its own value.
+            var qty = Number(item.amount);
+            if (!isFinite(qty) || qty <= 0) qty = 1;
+            var w = rawW * qty;
             if (m === 'copper') {
-                if (unit === 'oz' || unit === 'ozt') w = rawW / 16;
-                else if (unit === 'g') w = rawW / 453.592;
-                else if (unit === 'kg') w = rawW * 2.20462;
+                if (unit === 'oz' || unit === 'ozt') w = w / 16;
+                else if (unit === 'g') w = w / 453.592;
+                else if (unit === 'kg') w = w * 2.20462;
             } else {
-                if (unit === 'g') w = rawW / 31.1035;
-                else if (unit === 'kg') w = rawW * 32.1507;
-                else if (unit === 'lbs') w = rawW * 14.5833;
-                else if (unit === 'oz') w = rawW / 1.09714;
+                if (unit === 'g') w = w / 31.1035;
+                else if (unit === 'kg') w = w * 32.1507;
+                else if (unit === 'lbs') w = w * 14.5833;
+                else if (unit === 'oz') w = w / 1.09714;
             }
             melt[m] += w * spot;
         });
