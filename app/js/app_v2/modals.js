@@ -1760,7 +1760,7 @@ export function openPricingRulesModal() {
     var body = el('div', { style: 'display:flex;flex-direction:column;gap:12px;' });
 
     var info = el('div', { style: 'font-size:0.85rem;color:var(--color-text-muted);margin-bottom:8px;' },
-        'Set base price (for regular coins) and key-date price (for scarcer dates). These values are used for portfolio estimates.'
+        'Common price (regular coins) and Key price (scarcer/key dates). These values are used for portfolio estimates.'
     );
     body.appendChild(info);
 
@@ -1817,6 +1817,29 @@ export function openPricingRulesModal() {
                 var summary = el('summary', { style: 'font-size:0.85em;font-weight:700;color:var(--color-accent);text-transform:uppercase;letter-spacing:0.06em; cursor:pointer; outline:none; user-select:none; padding:10px 12px; margin:0;' }, sec);
                 secDiv.appendChild(summary);
                 var contentDiv = el('div', { style: 'padding: 0 12px 12px 12px;' });
+
+                // GGMJ-433: a header row for THIS section, above its own type rows,
+                // so the two price boxes are labelled wherever the user has scrolled
+                // to (the sections are <details> that open independently, so a single
+                // global header at the top of the modal would not follow them down).
+                // base_price = Common, key_price = Key - the inputs are NOT swapped.
+                // The Save column is sized by a hidden clone of the Save button, so
+                // the Common/Key labels stay aligned with the 70px inputs whatever
+                // font the button renders at.
+                var hdr = el('div', { style: 'display:flex;align-items:center;gap:6px;padding:6px 0 8px 0;border-bottom:1px solid var(--color-border);' });
+                var hdrLabel = 'font-size:0.72em;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;';
+                hdr.appendChild(el('span', { style: 'flex:1;padding-right:8px;' + hdrLabel }, 'Coin Type'));
+                hdr.appendChild(el('span', { style: 'width:70px;text-align:center;' + hdrLabel }, 'Common'));
+                hdr.appendChild(el('span', { style: 'width:70px;text-align:center;' + hdrLabel }, 'Key'));
+                // The Save cell is a hidden clone of the real Save button, so the
+                // header row's last column is exactly as wide as the type rows'
+                // last column. Both rows start with a flex:1 cell, so if the two
+                // rows' trailing columns differ in width the flex:1 cell
+                // absorbs the difference and the Common/Key labels drift off the
+                // inputs. A clone of the SAME element (a button, same class, same
+                // font size) keeps the two rows identical.
+                hdr.appendChild(el('button', { className: 'btn-secondary', type: 'button', style: 'font-size:0.75em;padding:4px 8px;visibility:hidden;pointer-events:none;' }, 'Save'));
+                contentDiv.appendChild(hdr);
 
                 // sort types by denomination value (small to large)
                 var types = bySection[sec].sort(function(a, b) {
