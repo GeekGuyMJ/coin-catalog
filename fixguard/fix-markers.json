@@ -20,7 +20,9 @@
    ": wrap(fetchInvestmentsLocal)",
    "serverFetch('/api/backup/client')",
    "serverFetch('/api/backup/client_restore'",
-   "confirm: 'RESTORE BACKUP'"
+   "confirm: 'RESTORE BACKUP'",
+   "originalFetch('/api/coin_bank_images'",
+   "scope: 'specific_coin'"
   ],
   "app/js/app_v2/catalog.js": [
    "stepper-edit",
@@ -101,6 +103,11 @@
   ],
   "app/css/themes.css": [
    "--color-accent-text:  #06121f;"
+  ],
+  "app/js/app_v2/modals.js": [
+   "uploadCoinBankImage",
+   "uploadCoinImage",
+   "uploadImageAsDataUri"
   ]
  },
  "absent": {
@@ -139,8 +146,8 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 439,
-  "frontend/sw.js": 439
+  "app/sw.js": 440,
+  "frontend/sw.js": 440
  },
  "shared": {
   "js/app_v2/dexie.js": {},
@@ -183,7 +190,7 @@
   "js/app_v2/sync.js": {},
   "js/app_v2/wishlist.js": {},
   "css/components.v2.css": {},
-  "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
+  "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional — do not force-sync.",
   "js/app_v2/guide.js": {}
  }
 }

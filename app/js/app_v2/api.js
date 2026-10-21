@@ -238,6 +238,130 @@ export const fetchCoinBankImages = isSelfHosted
     }
     : wrap(fetchCoinBankImagesLocal);
 
+
+// ---------------------------------------------------------------------------
+// GGMJ-340: the two image-upload paths the Coin Image Bank and the per-coin
+// upload modal actually use.
+//
+// BEFORE: both call sites POSTed multipart FormData to '/api/upload', which
+// has never existed in backend/routes/. Every upload failed silently with a
+// 404 (or, on the static deployments, with the offline interceptor's
+// "Route not found").
+//
+// The two endpoints that DO exist, and the contract each one speaks:
+//
+//   POST /api/coin_bank_images   JSON  {coin_type, side, image}   image = base64 data URI
+//       -> saves a TYPE-level image into IMAGES_DIR/types and returns
+//          {status: "saved", filename: "<url>"}
+//
+//   POST /api/assign_image       JSON  {coin_type, side, image, scope,
+//                                       item_id, year, mint_mark}
+//       -> with scope='specific_coin' and item_id=<CoinReference.id> this
+//          writes the image onto that ONE coin row and returns
+//          {status: "success", new_url: "<url>"}
+//
+// Both take a base64 data URI, so the caller must convert the File to a data
+// URI before calling. uploadImageAsDataUri() does that here so both call
+// sites share one conversion path.
+// ---------------------------------------------------------------------------
+
+/**
+ * Convert a File/Blob to a base64 data URI string.
+ * @param {File|Blob} file
+ * @returns {Promise<string>} e.g. "data:image/webp;base64,..."
+ */
+export function uploadImageAsDataUri(file) {
+    return new Promise((resolve, reject) => {
+        if (!file) { reject(new Error('No file selected')); return; }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Could not read the image file'));
+        reader.onload = () => {
+            const result = reader.result;
+            if (typeof result !== 'string' || !result.startsWith('data:image')) {
+                reject(new Error('Not a readable image file'));
+                return;
+            }
+            resolve(result);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+/**
+ * Save an image into the Coin Bank (type level).
+ *
+ * @param {{coin_type: string, side: string, image: string}} data
+ *        `image` is a base64 data URI.
+ * @returns {Promise<object>} the backend body, or {status:'error', error}.
+ */
+export const uploadCoinBankImage = isSelfHosted
+    ? async (data) => {
+        const res = await originalFetch('/api/coin_bank_images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data || {}),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) return { status: 'error', error: body.error || ('HTTP ' + res.status) };
+        return body;
+    }
+    : async (data) => {
+        // Public (GitHub Pages / Cloudflare Pages): no backend. Store the image
+        // in the local Coin Bank store so the image is at least usable there.
+        try {
+            return await saveToCoinBankLocal(data);
+        } catch (e) {
+            console.error('Local DB API Error:', e);
+            return { status: 'error', error: e.message || 'Local coin bank save failed' };
+        }
+    };
+
+/**
+ * Upload an image for ONE specific coin row (the per-coin slot).
+ *
+ * @param {{coin_id: number, side: string, image: string,
+ *          coin_type?: string, year?: number, mint_mark?: string}} data
+ *        `image` is a base64 data URI.
+ * @returns {Promise<object>} the backend body, or {status:'error', error}.
+ */
+export const uploadCoinImage = isSelfHosted
+    ? async (data) => {
+        const payload = {
+            coin_type: data.coin_type || '',
+            side: data.side,
+            image: data.image,
+            scope: 'specific_coin',
+            item_id: data.coin_id,
+        };
+        if (data.year != null) payload.year = data.year;
+        if (data.mint_mark) payload.mint_mark = data.mint_mark;
+        const res = await originalFetch('/api/assign_image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) return { status: 'error', error: body.error || ('HTTP ' + res.status) };
+        return body;
+    }
+    : async (data) => {
+        try {
+            return await assignImageLocal({
+                coin_type: data.coin_type || '',
+                side: data.side,
+                image: data.image,
+                scope: 'specific_coin',
+                item_id: data.coin_id,
+                year: data.year,
+                mint_mark: data.mint_mark,
+            });
+        } catch (e) {
+            console.error('Local DB API Error:', e);
+            return { status: 'error', error: e.message || 'Local image upload failed' };
+        }
+    };
+
+
 // Photos & Documents Gallery — server on self-hosted, local IndexedDB otherwise.
 export const fetchUserPhotos = isSelfHosted
     ? async () => serverFetch('/api/user_photos')

@@ -16,6 +16,7 @@ import { showToast } from './notifications.js';
 import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js';
 import { saveCustomTheme } from './themes.js';
 import { factoryResetDataLocal } from './db.js';
+import { uploadCoinBankImage, uploadCoinImage, uploadImageAsDataUri } from './api.js';
 
 // ============================================================
 // NEW ORCHESTRATOR — used by cards.js, stories.js, info.js
@@ -1569,19 +1570,22 @@ export function openImageManager() {
         const file = files[0];
         if (!file) return;
         const side = confirm('Save as Obverse? Cancel for Reverse.') ? 'obv' : 'rev';
-        const form = new FormData();
-        form.append('coin_type', coinType);
-        form.append('side', side);
-        form.append('image', file);
         showToast('Uploading ' + coinType + '...', 'info');
         try {
-            const res = await fetch('/api/upload', { method: 'POST', body: form });
-            const data = await res.json();
-            if (data.ok) {
+            // GGMJ-340: '/api/upload' does not exist. The Coin Bank endpoint is
+            // POST /api/coin_bank_images and it speaks JSON with a base64 data
+            // URI, not multipart FormData.
+            const image = await uploadImageAsDataUri(file);
+            const res = await uploadCoinBankImage({
+                coin_type: coinType,
+                side: side,
+                image: image,
+            });
+            if (res && res.status === 'saved') {
                 showToast('Image uploaded for ' + coinType, 'success');
                 loadData();
             } else {
-                showToast('Upload failed: ' + (data.error || 'unknown'), 'error');
+                showToast('Upload failed: ' + ((res && res.error) || 'unknown'), 'error');
             }
         } catch (err) {
             showToast('Upload error: ' + err.message, 'error');
@@ -2056,22 +2060,41 @@ function openImageUploadModal(coinId) {
     createModal('modal-image-upload', 'Add Coin Images', body, footer);
     openModal('modal-image-upload');
     
-    function handleFileUpload(file, type, cid) {
+    async function handleFileUpload(file, type, cid) {
         if (!file) return;
-        var formData = new FormData();
-        formData.append('coin_id', cid);
-        formData.append('type', type);
-        formData.append('image', file);
-        
         showToast('Uploading ' + type + ' image...', 'info');
-        fetch('/api/upload', { method: 'POST', body: formData }).then(function(r) { return r.json(); }).then(function(res) {
-            if (res.ok) {
+        try {
+            // GGMJ-340: '/api/upload' does not exist. A per-coin image is
+            // written by POST /api/assign_image with scope='specific_coin' and
+            // item_id=<CoinReference.id>. That endpoint names the saved file
+            // after the coin, so the coin's own metadata (coin_type / year /
+            // mint_mark) is needed — the modal only knows the id, so fetch it.
+            var coin = null;
+            try {
+                var res0 = await fetch('/api/coins/' + cid);
+                if (res0.ok) coin = await res0.json();
+            } catch (e) {
+                console.warn('[image-upload] could not read coin ' + cid + ': ' + e.message);
+            }
+
+            var image = await uploadImageAsDataUri(file);
+            var res = await uploadCoinImage({
+                coin_id: cid,
+                side: type,
+                image: image,
+                coin_type: coin ? coin.coin_type : '',
+                year: coin ? coin.year : null,
+                mint_mark: coin ? coin.mint_mark : null,
+            });
+            if (res && res.status !== 'error') {
                 showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' image uploaded!', 'success');
                 setTimeout(function() { location.reload(); }, 800);
             } else {
-                showToast('Upload failed: ' + (res.error || 'unknown'), 'error');
+                showToast('Upload failed: ' + ((res && res.error) || 'unknown'), 'error');
             }
-        }).catch(function() { showToast('Upload failed', 'error'); });
+        } catch (err) {
+            showToast('Upload failed: ' + err.message, 'error');
+        }
     }
 }
 
