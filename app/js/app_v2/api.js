@@ -67,6 +67,7 @@ import {
     savePricingRulesLocal,
     savePortfolioHistoryLocal,
     searchCoinsLocal,
+    isSearchIndexReady as isSearchIndexReadyLocal,
     fetchAllCoinsLocal,
     getFullBackupLocal,
     publishSectionLocal,
@@ -540,6 +541,10 @@ export const savePricingRules = isSelfHosted
     })
     : wrap(savePricingRulesLocal);
 export const searchCoins           = wrap(searchCoinsLocal);
+// GGMJ-206: on the public builds the search index is built in the
+// browser's IndexedDB; the self-hosted build answers the query from the
+// backend and has no local index to wait for.
+export const isSearchIndexReady   = isSelfHosted ? () => true : isSearchIndexReadyLocal;
 export const savePortfolioHistory = isSelfHosted
     ? async (data) => serverFetch('/api/portfolio/history', {
         method: 'POST',

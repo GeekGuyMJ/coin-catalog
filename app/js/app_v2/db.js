@@ -304,10 +304,62 @@ export async function healImagesFromSeed() {
     }
 }
 
+// ============================================================
+// Search index readiness (GGMJ-206)
+// ============================================================
+// The public deployments (GitHub Pages, Cloudflare Pages) have no backend:
+// they seed coins_reference from data/coins.json into IndexedDB during
+// boot. That file is several megabytes, so on a slow link the seed is
+// still running when the user starts typing. A search that reads the
+// store mid-seed sees only part of the catalogue and answers "No
+// results" for coins that are demonstrably in the seed file.
+//
+// Every local search therefore waits on this gate. The gate opens when
+// the coin-reference seed finishes -- successfully OR not, so a failed
+// seed can never leave search stuck -- and as a last resort after a
+// bounded wait, so search can never hang.
+const SEARCH_INDEX_MAX_WAIT_MS = 30000;
+
+let _searchIndexReady = false;
+let _searchIndexWaiters = [];
+
+function openSearchIndexGate() {
+    if (_searchIndexReady) return;
+    _searchIndexReady = true;
+    const waiters = _searchIndexWaiters;
+    _searchIndexWaiters = [];
+    for (const resolve of waiters) resolve();
+}
+
+/**
+ * @returns {boolean} true once the coin reference index is fully seeded.
+ */
+export function isSearchIndexReady() {
+    return _searchIndexReady;
+}
+
+/**
+ * Resolves once the coin reference index is fully seeded, or after
+ * SEARCH_INDEX_MAX_WAIT_MS -- whichever comes first. Never rejects.
+ */
+export function whenSearchIndexReady() {
+    if (_searchIndexReady) return Promise.resolve();
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+        };
+        _searchIndexWaiters.push(finish);
+        setTimeout(finish, SEARCH_INDEX_MAX_WAIT_MS);
+    });
+}
+
 export async function initDb() {
     // Check if database needs seeding
     const refCount = await db.coins_reference.count();
-    {
+    try {
         console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
         const response = await fetch('data/coins.json');
         if (!response.ok) {
@@ -343,6 +395,10 @@ export async function initDb() {
             }
         }
         console.log('Seeding completed successfully!');
+    } finally {
+        // GGMJ-206: the coin reference index is usable once the seed has
+        // finished -- even if it failed, so search is never left waiting.
+        openSearchIndexGate();
     }
 
     const configCount = await db.coin_type_config.count();
@@ -2651,6 +2707,8 @@ export async function savePortfolioHistoryLocal(data) {
 }
 
 export async function searchCoinsLocal(searchParams) {
+    // GGMJ-206: never answer a search from a half-seeded index.
+    await whenSearchIndexReady();
     const q = (searchParams.get('q') || '').trim().toLowerCase();
     const missing = searchParams.get('missing_only') === '1';
     const noProofs = searchParams.get('hide_proofs') === '1';

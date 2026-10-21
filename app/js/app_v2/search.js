@@ -23,13 +23,30 @@ import {
     getWishlist,
 } from './state.js';
 
-import { fetchCoinsForSection } from './api.js';
+import { fetchCoinsForSection, isSearchIndexReady } from './api.js';
 import { renderSections } from './catalog.js';
 import {
     getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear,
     resolveImageUrl,
 } from './utils.js';
 import { showToast } from './notifications.js';
+
+// GGMJ-206: the search input's listener is attached at the END of boot
+// (initSearch), so a query typed while the app was still loading was
+// silently discarded. Capture the keystrokes from the moment the page is
+// alive so initSearch() can replay them.
+//
+// Only real typing counts here. Reading input.value instead would also
+// pick up a value the BROWSER restored (back/forward navigation, session
+// restore) and fire a search nobody asked for.
+let _queryTypedBeforeInit = '';
+let _searchListenerAttached = false;
+document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t && t.id === 'search-input' && !_searchListenerAttached) {
+        _queryTypedBeforeInit = (t.value || '').trim();
+    }
+}, true);
 
 // ============================================================
 // Filter pill definitions
@@ -116,6 +133,7 @@ export function initSearch() {
 
     // --- Debounced search on input ---
     let debounceTimer = null;
+    _searchListenerAttached = true;
     input.addEventListener('input', () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -145,6 +163,14 @@ export function initSearch() {
 
     // --- Year range: wire the min/max number inputs + build a dual-thumb slider ---
     initYearRange();
+
+    // GGMJ-206: this listener is attached at the END of boot, so a query the
+    // user typed while the app was still loading was silently discarded.
+    // Replay what they actually typed.
+    if (_queryTypedBeforeInit) {
+        setSearchQuery(_queryTypedBeforeInit);
+        triggerSearch();
+    }
 }
 
 /**
@@ -195,7 +221,13 @@ export async function triggerSearch() {
         return;
     }
 
-    container.innerHTML = '<div class="section-loading">Searching\u2026</div>';
+    // GGMJ-206: while the browser-side index is still being built a query
+    // would be answered from a partial store, so say what is happening
+    // instead of rendering a misleading "No results".
+    const loadingLabel = isSearchIndexReady()
+        ? 'Searching\u2026'
+        : 'Preparing the catalog index\u2026';
+    container.innerHTML = '<div class="section-loading">' + loadingLabel + '</div>';
 
     try {
         let results;
