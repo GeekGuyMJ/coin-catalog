@@ -187,7 +187,10 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
         year: keepYear,
         mintMark: keepMint,
         b64: '', 
-        scope: isItem ? 'specific_item' : 'all' 
+        // GGMJ-334: a row thumbnail is a specific coin, not the whole type.
+        // Defaulting to 'all' made Remove delete the type-level image for
+        // every coin of the type.
+        scope: isItem ? 'specific_item' : (coinId ? 'specific_coin' : 'all')
     };
 
     const preview = document.getElementById('ii-main-image');
@@ -314,7 +317,11 @@ async function handleNewUpload(e) {
     try {
         const resized = await resizeToWebP(file);
         activeContext.b64 = resized;
-        activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
+        // GGMJ-334: keep 'specific_coin' for a row thumbnail; do not fall
+        // back to 'all' when a coin id is active.
+        activeContext.scope = activeContext.isItem
+            ? 'specific_item'
+            : (activeContext.coinId ? 'specific_coin' : 'all');
         openCropTool(resized);
 
     } catch (err) {
@@ -551,16 +558,23 @@ export function removeCurrentImage() {
     
     // Determine scope from activeContext (default to 'all' for type-level removal)
     const scope = activeContext.scope || 'all';
-    
-    // Call assignImage with empty image to delete
-    executeImageAssignment({
-        coin_type: activeContext.typeStr,
-        side: activeContext.side,
-        image: '',  // Empty string for removal
-        scope: scope,
-        item_id: activeContext.itemId,
-        section: activeContext.section || ''
-    });
+
+    // GGMJ-334: say in plain words what is about to be removed, so the user
+    // can see whether this hits one coin or the whole type before it happens.
+    // executeImageAssignment() takes no arguments -- it reads activeContext
+    // itself and maps scope='specific_coin' to activeContext.coinId -- so the
+    // scope shown here is the scope that will actually be sent.
+    const scopeWords = (scope === 'specific_coin' && (activeContext.coinId ?? activeContext.itemId))
+        ? 'this coin only'
+        : (scope === 'specific_item'
+            ? 'this item only'
+            : 'EVERY coin of this type');
+    showToast('Removing the image for ' + scopeWords + '.', 'warning', 5000);
+
+    // Call assignImage with empty image to delete.
+    // activeContext.b64 was cleared above, which is how executeImageAssignment
+    // detects a removal.
+    executeImageAssignment();
 }
 
 /**
@@ -622,6 +636,7 @@ export async function resetToMaster() {
                 const updatedConfigs = await fetchTypeConfigs();
                 setTypeConfigs(updatedConfigs);
                 // For personal photos, also refresh inventory state so re-render picks up changes
+                const scope = activeContext.scope || 'all';
                 if (scope === 'specific_item' || scope === 'specific_coin') {
                     const newInv = await fetchInventory();
                     setInventory(newInv);
@@ -726,6 +741,8 @@ export async function promoteToDefaultHandler() {
         showToast('No coin type selected', 'warning');
         return;
     }
+    
+    const scope = activeContext.scope || 'all';
     
     // First press confirmation
     const promoteBtn = document.getElementById('ii-btn-promote-default');
