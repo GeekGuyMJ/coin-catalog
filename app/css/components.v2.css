@@ -4957,3 +4957,60 @@ html, body {
     filter: invert(0.8);
     cursor: pointer;
 }
+
+/* =========================================================================
+   GGMJ-402 (QA, 2026-10-21): at a 375px viewport the search box, the filter
+   pills, the year-range filters and the sort dropdown were all CLIPPED
+   inside #card-search.
+
+   WHY IT HAPPENED
+   ---------------
+   The 768px block below sets `.search-input { min-width: 100% }` and stacks
+   `.search-row` into a column. In a COLUMN flex container the cross axis is
+   horizontal, so `align-items: stretch` (the default) sizes every item to the
+   container width -- but `min-width: 100%` on the input resolves against the
+   CONTAINER content box (333px at 375px), while the input is also a flex
+   ITEM whose base size is its min-content width (268px). The item
+   `min-width: 100%` therefore over-constrained the line: the row own content
+   box stayed 333px wide while its children resolved to 362px.
+
+   Measured on the live self-hosted site at 375px (before this fix):
+     #card-search  clientWidth 365 / scrollWidth 378
+     .search-row  width 333
+     #search-input, .filter-pills, .year-range-filters, #sort-selector
+                  all spanned left 21 -> right 383, i.e. 29px past the
+                  .search-row content box (354) and 12px past the card.
+   Because #card-search carries `overflow: clip`, the excess was cut off and
+   could not be scrolled to. The page itself did not scroll sideways
+   (`scrollWidth` stayed 375), which is why the QA report read "clipped"
+   rather than "page overflows".
+
+   THE FIX
+   -------
+   At <=480px let the controls shrink to the row actual width and let the
+   pill group wrap onto a second line instead of forcing a minimum:
+     .search-input        { min-width: 0 }     <- drop the 100% floor
+     .filter-pills        { flex-wrap: wrap } <- pills wrap within the row
+     .year-range-filters  { flex-wrap: wrap }
+
+   `min-width: 0` is the standard flex fix for an item that must be allowed
+   to shrink below its content size; without it the flex base size keeps the
+   line wider than its container and the clip hides the excess.
+
+   Verified after this change on the live site: at 320/360/375px the overflow
+   is 0 (was 84/44/29px), #card-search scrollWidth == clientWidth, and the
+   filter pills wrap to 2 rows. At 390-480px nothing changes (the fix is
+   inside the <=480px breakpoint and the layout was already correct there),
+   and 768px/1024px are untouched.
+   ========================================================================= */
+@media (max-width: 480px) {
+    .search-input {
+        min-width: 0;
+    }
+    .filter-pills {
+        flex-wrap: wrap;
+    }
+    .year-range-filters {
+        flex-wrap: wrap;
+    }
+}
