@@ -1675,6 +1675,51 @@ export async function fetchPortfolioLocal() {
             stats.bulk_coins_value += (wt / 5.67) * 0.25;
         } else if (mt === "CladHalves") {
             stats.bulk_coins_value += (wt / 11.34) * 0.50;
+        // Canada (2026-10-21, GGMJ-403). The Bulk Coins form offers 9
+        // Canadian denominations, and calcCoinValue() in portfolio.js
+        // already values all of them. Without these branches a Canadian
+        // entry was worth $0 in the Portfolio Overview on a static host
+        // (which answers /api/portfolio from this function) while the
+        // Bulk Coins card showed its real value -- the card and the
+        // grand total disagreed.
+        //
+        // These 9 branches are a transcription of the canonical server-side
+        // valuation in backend/services/valuation.py, so both hosts put the
+        // same Canadian metal in the same bucket:
+        //   CanadianCopperPennies   -> copper_coin_melt (95% copper)
+        //   CanadianSilverDimes     -> silver_coin_melt  (80% silver)
+        //   CanadianSilverQuarters  -> silver_coin_melt  (80% silver)
+        //   CanadianHalfDollars     -> silver_coin_melt  (80% silver)
+        //   the rest                -> bulk_coins_value  (face value)
+        // Must stay in step with calcCoinValue() in portfolio.js.
+        } else if (mt === "CanadianCopperPennies") {
+            // Canadian penny, 3.24 g. 1920-1964 are 95% copper;
+            // 1965-1996 are nickel-plated steel.
+            stats.copper_coin_melt += wt * 0.95 * (spot.copper || 0);
+        } else if (mt === "CanadianZincPennies") {
+            // Canadian zinc penny (1997-2012), 2.35 g. Face value.
+            stats.bulk_coins_value += (wt / 2.35) * 0.01;
+        } else if (mt === "CanadianNickels") {
+            // Canadian nickel, 4.54 g. Face value.
+            stats.bulk_coins_value += (wt / 4.54) * 0.05;
+        } else if (mt === "CanadianSilverDimes") {
+            // Canadian dime, pre-1968, 2.33 g, 80% silver (1920-1967).
+            stats.silver_coin_melt += wt * 0.80 * (spot.silver || 0);
+        } else if (mt === "CanadianCladDimes") {
+            // Canadian clad dime (1968+), 1.75 g. Face value.
+            stats.bulk_coins_value += (wt / 1.75) * 0.10;
+        } else if (mt === "CanadianSilverQuarters") {
+            // Canadian quarter, pre-1968, 5.83 g, 80% silver (1920-1967).
+            stats.silver_coin_melt += wt * 0.80 * (spot.silver || 0);
+        } else if (mt === "CanadianCladQuarters") {
+            // Canadian clad quarter (1968+), 4.40 g. Face value.
+            stats.bulk_coins_value += (wt / 4.40) * 0.25;
+        } else if (mt === "CanadianHalfDollars") {
+            // Canadian 50 cents, pre-1968, 11.66 g, 80% silver (1920-1967).
+            stats.silver_coin_melt += wt * 0.80 * (spot.silver || 0);
+        } else if (mt === "CanadianLoonies") {
+            // Canadian loonie (1987+), 7.00 g, gold-plated. Face value.
+            stats.bulk_coins_value += (wt / 7.00) * 1.00;
         } else if (["Gold", "Silver", "Copper", "Platinum", "Palladium"].includes(mt)) {
             const metalKey = mt.toLowerCase();
             if (metalKey === "copper") {

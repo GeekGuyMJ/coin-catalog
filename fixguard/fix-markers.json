@@ -61,7 +61,10 @@
       "UPSERT by coin_ref_id",
       "function bullionPriceUnits(weight, unit, metal)",
       "return { status: 'error', error: 'Coin not found' };",
-      "await whenSearchIndexReady();"
+      "await whenSearchIndexReady();",
+      "mt === \"CanadianCopperPennies\"",
+      "mt === \"CanadianLoonies\"",
+      "stats.silver_coin_melt += wt * 0.80 * (spot.silver || 0);"
     ],
     "app/js/app_v2/gallery.js": [
       "_photosCache",
