@@ -56,7 +56,9 @@
   "app/js/app_v2/portfolio.js": [
    "_dashboardRenderGeneration",
    "renderGalleryCard",
-   "host.insertBefore(row, form.nextSibling)"
+   "host.insertBefore(row, form.nextSibling)",
+   "}, 'Hide');",
+   "Hide is a COLLAPSE, not a cancel."
   ],
   "app/js/app_v2/search.js": [
    "initYearRange"
@@ -68,7 +70,10 @@
   "app/js/app_v2/sync.js": [
    "_utf8ToB64",
    "_basicAuthHeader",
-   "TextEncoder().encode(str)"
+   "TextEncoder().encode(str)",
+   "if (!creds || !creds.clientId || creds.clientId.startsWith('YOUR_')) {",
+   "if (!creds || !creds.scope) {",
+   "OneDrive: not configured."
   ],
   "app/css/themes.css": [
    "--color-accent-text:  #06121f;"
@@ -83,7 +88,9 @@
    "label: 'Max Year'"
   ],
   "app/js/app_v2/sync.js": [
-   "btoa(username + ':' + password)"
+   "btoa(username + ':' + password)",
+   "CREDENTIALS.oneDrive.",
+   "  const creds = CREDENTIALS.oneDrive;\n  if (!creds.clientId || creds.clientId.startsWith('YOUR_')) {"
   ]
  },
  "order": {
@@ -99,8 +106,8 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 412,
-  "frontend/sw.js": 325
+  "app/sw.js": 414,
+  "frontend/sw.js": 427
  },
  "shared": {
   "js/app_v2/dexie.js": {},
@@ -143,7 +150,7 @@
   "js/app_v2/sync.js": {},
   "js/app_v2/wishlist.js": {},
   "css/components.v2.css": {},
-  "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
+  "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional — do not force-sync.",
   "js/app_v2/guide.js": {}
  }
 }

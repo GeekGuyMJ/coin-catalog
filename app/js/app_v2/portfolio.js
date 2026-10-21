@@ -1388,15 +1388,19 @@ function _foldCardForm(form, addBtn, key, label) {
     var _FIELDS = 'input:not([type=file]), select, textarea';
     form.id = form.id || ('fold-' + key);
 
-    // The Add button is width:100%, so Cancel needs a flex ROW or it
-    // wraps onto its own line and the card stays tall. The row is what
+    // The Add button is width:100%, so the Hide button needs a flex ROW or
+    // it wraps onto its own line and the card stays tall. The row is what
     // shows when collapsed; the form is a sibling of it.
     var row = el('div', { className: 'v1-form-actions' });
+    // 2026-10-21 (GGMJ-384/B4, Matthew): this control reads "Hide", not
+    // "Cancel" -- Hide implies the data is KEPT, Cancel implies it is
+    // discarded. The class name stays .v1-cancel-btn because components.v2.css
+    // styles that class; only the visible label changed.
     var cancel = el('button', {
         className: 'v1-cancel-btn',
         type: 'button',
         style: 'display:none;'
-    }, 'Cancel');
+    }, 'Hide');
 
     addBtn.type = 'button';
     addBtn.setAttribute('aria-expanded', 'false');
@@ -1458,12 +1462,13 @@ function _foldCardForm(form, addBtn, key, label) {
         return Object.keys(now).some(function (k) { return now[k] !== base[k]; });
     };
 
+    // 2026-10-21 (GGMJ-384/B4, Matthew): Hide is a COLLAPSE, not a cancel.
+    // It used to confirm("Discard what you typed?") and form.reset(), which
+    // threw the user's typing away -- the opposite of what "Hide" means.
+    // Now it only folds the form away; reopening shows the values intact.
     cancel.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
-        if (dirty(form._foldBase || snapshot()) &&
-            !window.confirm('Discard what you typed?')) return;
-        form.reset && form.reset();
         setOpen(false);
         _formSetOpen(key, false);
         addBtn.focus();
