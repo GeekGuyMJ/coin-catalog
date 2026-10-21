@@ -246,27 +246,6 @@ if ('serviceWorker' in navigator) {
                 <span>Settings</span>
             </button>
 
-            <!-- View Toggle: List vs Album -->
-            <div id="view-toggle" class="view-toggle" style="display:none;" role="group" aria-label="View mode">
-                <button id="view-list-btn" class="view-toggle-btn active" aria-label="List view" aria-pressed="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                    <span>List</span>
-                </button>
-                <button id="view-album-btn" class="view-toggle-btn" aria-label="Album view" aria-pressed="false">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <rect x="3" y="3" width="7" height="7" rx="1"/>
-                        <rect x="14" y="3" width="7" height="7" rx="1"/>
-                        <rect x="3" y="14" width="7" height="7" rx="1"/>
-                        <rect x="14" y="14" width="7" height="7" rx="1"/>
-                    </svg>
-                    <span>Album</span>
-                </button>
-            </div>
-
             <label for="theme-selector" class="sr-only">Color theme</label>
             <select id="theme-selector" class="theme-select" aria-label="Color theme" onchange="setTheme(this.value)">
                 <optgroup label="Dark Themes">

@@ -131,6 +131,11 @@
   ]
  },
  "absent": {
+  "app/index.html": [
+   "view-list-btn",
+   "view-album-btn",
+   "id=\"view-toggle\""
+  ],
   "app/js/app_v2/db.js": [
    "if (!coin) return { status: \"success\" };",
    "if (!coin) return { status: success };",

@@ -203,7 +203,6 @@ async function boot() {
 
         // Render the catalog
         renderSections();
-        initViewToggle();
         initLayoutToggle();
 
         // Initialize logo zoom and theme sync
@@ -457,37 +456,6 @@ document.addEventListener('DOMContentLoaded', scheduleFitHeader);
 const _hdrLogoEl = document.getElementById('header-coin-img');
 if (_hdrLogoEl) { _hdrLogoEl.addEventListener('load', scheduleFitHeader); if (_hdrLogoEl.complete) scheduleFitHeader(); }
 scheduleFitHeader();
-
-// ============================================================
-// View Toggle — List vs Album
-// ============================================================
-
-function initViewToggle() {
-    const toggle = document.getElementById('view-toggle');
-    if (!toggle) return;
-    toggle.style.display = 'inline-flex';
-
-    const listBtn = document.getElementById('view-list-btn');
-    const albumBtn = document.getElementById('view-album-btn');
-
-    listBtn.addEventListener('click', () => {
-        if (listBtn.classList.contains('active')) return;
-        listBtn.classList.add('active');
-        albumBtn.classList.remove('active');
-        const container = document.getElementById('catalog-container');
-        if (container) container.classList.remove('album-mode');
-        import('./catalog.js').then(m => m.renderSections());
-    });
-
-    albumBtn.addEventListener('click', () => {
-        if (albumBtn.classList.contains('active')) return;
-        albumBtn.classList.add('active');
-        listBtn.classList.remove('active');
-        const container = document.getElementById('catalog-container');
-        if (container) container.classList.add('album-mode');
-        import('./album.js').then(m => m.renderAlbumView(null));
-    });
-}
 
 // ============================================================
 // Layout Toggle — Dashboard Grid
