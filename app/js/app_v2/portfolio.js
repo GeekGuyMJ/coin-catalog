@@ -1235,7 +1235,7 @@ function buildInvestmentsCard(p) {
                 if (e.gain !== null && e.gain !== undefined) {
                     var up = (e.gain || 0) >= 0;
                     val.appendChild(el('div', { style: 'font-size:0.78em;color:' + (up ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';' },
-                        (up ? '+' : '') + fmtMoney(e.gain)));
+                        ((e.gain || 0) > 0 ? '+' : ((e.gain || 0) < 0 ? '-' : '')) + fmtMoney(Math.abs(e.gain || 0))));
                 }
                 row.appendChild(val);
                 var del = el('button', { className: 'btn-secondary', title: 'Remove', style: 'padding:2px 8px;font-size:0.8em;margin-left:6px;' }, '✕');
