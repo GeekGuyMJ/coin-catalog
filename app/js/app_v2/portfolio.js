@@ -1497,7 +1497,23 @@ function _foldCardForm(form, addBtn, key, label) {
         // order IS visual order in a flex row, so addBtn goes first.
         row.appendChild(addBtn);      // moves the button OUT of the form
         row.appendChild(cancel);
-        host.insertBefore(row, form);  // now both share a parent
+        // 2026-10-21 (GGMJ-385, Matthew): the action row goes AFTER the
+        // form, so the Add button renders BELOW the input fields.
+        //
+        // It used to be `host.insertBefore(row, form)`, which put the row
+        // BEFORE the form in the DOM -- and because the card is a flex
+        // column, the buttons rendered ABOVE the fields. Matthew's report:
+        // "input boxes should sit ABOVE the Add button ... the Add button
+        // must go BELOW the inputs". Measured on the live self-hosted app
+        // before this change: Add button top 1217 vs first input top 1290.
+        //
+        // `form.nextSibling` is the insertion point, because `form` is
+        // already a child of `host` -- insertBefore() needs a reference
+        // node that IS a child of the parent, or it throws NotFoundError.
+        // Using `form.nextSibling` (rather than appendChild) keeps the row
+        // tied to the form's position even if the card has trailing
+        // content after the form.
+        host.insertBefore(row, form.nextSibling);
     }
 
     // restore the remembered state, defaulting to closed

@@ -2729,6 +2729,68 @@ select optgroup {
 }
 
 /* ================================================================
+   Collapsible entry forms.                                2026-09-30
+   The Add button is width:100%, so Cancel needs a flex row or
+   it wraps and the card stays tall. The row is the button group;
+   the form itself is hidden by the JS when collapsed.
+   ------------------------------------------------------------
+   2026-10-21 (GGMJ-385): this whole block was LOST in public commit
+   2c5e19b ("sync: Investments card themed inputs"), whose 477-line
+   deletion wiped the collapsible-forms rules along with the info-guide
+   and portfolio-hero rules. With no .v1-form-actions rule the row
+   rendered as display:block, so the Add button stopped being full
+   width and the Cancel button lost its border. Restored verbatim
+   from 2c5e19b~1.
+   ================================================================ */
+.v1-form-actions {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-top: 2px;
+    /* the entry rows follow this when open; give them breathing room */
+    margin-bottom: 0;
+}
+/* when the form is closed the Add button is the last thing in the card */
+.v1-form-actions:last-child {
+    margin-top: 4px;
+}
+.v1-form-actions .v1-add-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.v1-cancel-btn {
+    flex: 0 0 auto;
+    background: transparent;
+    color: var(--color-text-muted, #98a0ac);
+    border: 1px solid var(--color-border, #252830);
+    border-radius: var(--radius-base, 6px);
+    padding: 8px 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--transition-fast, 120ms),
+                border-color var(--transition-fast, 120ms);
+    white-space: nowrap;
+}
+.v1-cancel-btn:hover {
+    color: var(--color-text, #e8e9ec);
+    border-color: var(--color-text-muted, #98a0ac);
+}
+.v1-cancel-btn:focus-visible {
+    outline: 2px solid var(--color-accent, #60a5fa);
+    outline-offset: 1px;
+}
+/* while the form is open the list above it should not squeeze */
+.dashboard-card .v1-form:not([style*="display: none"]) {
+    margin-top: 4px;
+}
+/* Primary on the LEFT, Cancel on the RIGHT (flex order is append order).
+   2026-10-21 (GGMJ-385): also lost in 2c5e19b; restored so the two
+   buttons keep their intended left/right arrangement. */
+.v1-form-actions .v1-add-btn    { order: 1; }
+.v1-form-actions .v1-cancel-btn { order: 2; margin-left: 8px; }
+
+/* ================================================================
    Finance Card (shared styles)
    ================================================================ */
 

@@ -6,7 +6,8 @@
    "guide-popup",
    "scrollbar-width: none",
    ".coin-instance-tabs::-webkit-scrollbar",
-   "color: var(--color-accent-text);"
+   "color: var(--color-accent-text);",
+   ".v1-form-actions {"
   ],
   "app/js/app_v2/album.js": [
    "fetchInventory().then"
@@ -54,7 +55,8 @@
   ],
   "app/js/app_v2/portfolio.js": [
    "_dashboardRenderGeneration",
-   "renderGalleryCard"
+   "renderGalleryCard",
+   "host.insertBefore(row, form.nextSibling)"
   ],
   "app/js/app_v2/search.js": [
    "initYearRange"
@@ -97,8 +99,8 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 321,
-  "frontend/sw.js": 317
+  "app/sw.js": 412,
+  "frontend/sw.js": 325
  },
  "shared": {
   "js/app_v2/dexie.js": {},
