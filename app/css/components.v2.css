@@ -3890,6 +3890,32 @@ select optgroup {
     box-sizing: border-box;
 }
 
+/* GGMJ-431: a hidden dashboard card must actually be hidden.
+
+   The rules above declare `display: ... !important`, and an !important
+   declaration in a stylesheet BEATS an inline style. The visibility code
+   hides a card by setting el.style.display = 'none' (that is the app's
+   convention - portfolio.js and catalog.js both use it), so that inline
+   style was being overridden and the card stayed on screen. Measured
+   before this change: with the visibility map set to
+   {"card-investments": false} the card's inline style was "none" but its
+   computed display was still "grid".
+
+   These rules restore the inline style's authority for the hidden case
+   only, and only for cards that are actually hidden. Both are
+   !important, so specificity decides, and both of these are more
+   specific than the rules they override:
+     .dashboard-card                        (0,1,0)
+     .dashboard-card[style*="display: none"] (0,2,0)
+     #card-investments                      (1,0,0)
+     #card-investments[style*="display: none"] (1,1,0)
+   The [style*=...] idiom is already used in this file (see the
+   .v1-form rule below). */
+.dashboard-card[style*="display: none"],
+#card-investments[style*="display: none"] {
+    display: none !important;
+}
+
 /* Card width classes work with 4-column grid */
 .dashboard-grid .dashboard-card.card-w-25 { grid-column: span 1; }
 .dashboard-grid .dashboard-card.card-w-50 { grid-column: span 2; }

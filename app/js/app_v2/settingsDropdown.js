@@ -376,26 +376,57 @@ function showFolderColorModal() {
 
 // Card Visibility
 function showCardVisibilityModal() {
- const cards = [
- {key: 'card-completion', label: 'Collection Completion' },
- {key: 'card-portfolio', label: 'Portfolio Overview' },
- {key: 'card-bullion', label: 'Bullion Holdings' },
- {key: 'card-coinweight', label: 'Bulk Coins' },
- {key: 'card-spot', label: 'Spot Prices' },
- {key: 'card-scrap', label: 'Scrap Metal' },
- {key: 'card-paper', label: 'Paper Currency' },
- {key: 'card-custom', label: 'Other Collectibles' },
- {key: 'card-wishlist', label: 'Wishlist' },
- ];
+ // GGMJ-431: derive the list from the cards the dashboard ACTUALLY
+ // renders, instead of a hard-coded array. The old array listed 9 cards
+ // while the dashboard renders 15, so six cards (investments, trend,
+ // gallery, backup, support, search) could not be hidden at all, and a
+ // newly added card would never appear here. The card's own .card-title
+ // supplies the label, so there is no second list of titles to keep in
+ // sync.
+ //
+ // card-search lives OUTSIDE #dashboard-grid (it is the search bar), so
+ // the grid is scanned first and any remaining card in the document is
+ // appended after it.
+ const grid = document.getElementById('dashboard-grid');
+ const seen = new Set();
+ const cards = [];
+ const addCard = (elCard) => {
+  if (!elCard || seen.has(elCard.id)) return;
+  seen.add(elCard.id);
+  const titleEl = elCard.querySelector('.card-title');
+  const label = (titleEl ? titleEl.textContent : '').trim() || elCard.id;
+  cards.push({ key: elCard.id, label });
+ };
+ if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
+ document.querySelectorAll('[id^=card-]').forEach(addCard);
+ 
+ // The app reads and writes the 'cc-card-visibility' JSON MAP
+ // (portfolio.js parses it on every dashboard render). The old code
+ // wrote a separate localStorage key per card, which nothing read, so
+ // every toggle was a no-op and the card came back on reload.
+ let vis = {};
+ try { vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}'); } catch(e) {}
+ if (!vis || typeof vis !== 'object') vis = {};
+ 
+ const applyCardVisibility = (key, visible) => {
+  // Hide the live card as well as persisting the choice, so the toggle
+  // is visible without a reload.
+  document.querySelectorAll('#' + CSS.escape(key)).forEach(elCard => {
+   elCard.style.display = visible ? '' : 'none';
+  });
+ };
  
  const controls = cards.map(c => {
- const checked = localStorage.getItem(c.key) !== 'false';
+ const checked = vis[c.key] !== false;
  return el('div', { className: 'settings-toggle-row' }, [
- el('input', { type: 'checkbox', id: c.key, checked, onchange: (e) => {
- localStorage.setItem(c.key, e.target.checked);
- dispatchSettingsChange(c.key, e.target.checked);
+ el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
+  const on = e.target.checked;
+  vis[c.key] = on;
+  localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
+  applyCardVisibility(c.key, on);
+  dispatchSettingsChange('cc-card-visibility', vis);
  }}),
- el('label', { for: c.key }, c.label),
+ el('label', { for: 'vis-' + c.key }, c.label),
  ]);
  });
  
