@@ -62,6 +62,28 @@ db.version(3).stores({
     user_photos: '++id, category, title, created_at'
 });
 
+// v4: External investments (GGMJ-378). Static deployments have no
+// /api/investments backend, so these live in the browser's own IndexedDB.
+// Fields mirror backend/models.py UserInvestment exactly, and the `gain`
+// field is derived on read the same way the server's to_dict() derives it.
+db.version(4).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key',
+    pending_defaults: 'coin_type',
+    user_photos: '++id, category, title, created_at',
+    user_investment: '++id, name, category'
+});
+
 // ============================================================
 // Constants & Fallbacks
 // ============================================================
@@ -2367,6 +2389,71 @@ export async function factoryResetDataLocal(mode) {
 }
 
 // ============================================================
+// External Investments (GGMJ-378)
+//
+// The static deployments (GitHub Pages, Cloudflare Pages) have no
+// /api/investments backend, so the Investments card reads and writes
+// this store instead. The row shape mirrors backend/models.py
+// UserInvestment so both platforms agree, and `gain` is derived on
+// read exactly the way the server's to_dict() derives it.
+// ============================================================
+
+const INVESTMENT_CATEGORIES = ['Stocks', 'ETFs / Funds', 'Retirement', 'Crypto', 'Bonds / CDs', 'Other'];
+
+function _investmentGain(e) {
+    if (e.purchase_price === null || e.purchase_price === undefined) return null;
+    if (!(e.purchase_price > 0)) return null;
+    return Math.round(((e.total_value || 0) - e.purchase_price) * 100) / 100;
+}
+
+function _investmentRow(raw) {
+    const row = {
+        id: raw.id,
+        name: raw.name || '',
+        category: raw.category || 'Stocks',
+        total_value: Number(raw.total_value || 0),
+        purchase_price: (raw.purchase_price === null || raw.purchase_price === undefined)
+            ? null : Number(raw.purchase_price),
+        as_of_date: raw.as_of_date || '',
+        notes: raw.notes || ''
+    };
+    row.gain = _investmentGain(row);
+    return row;
+}
+
+export async function fetchInvestmentsLocal() {
+    const rows = await db.user_investment.toArray();
+    return rows.map(_investmentRow);
+}
+
+export async function saveInvestmentLocal(data) {
+    const category = INVESTMENT_CATEGORIES.indexOf(data.category) >= 0 ? data.category : 'Other';
+    const total = Number(data.total_value || 0);
+    const cost = (data.purchase_price === null || data.purchase_price === undefined || data.purchase_price === '')
+        ? null : Number(data.purchase_price);
+    const entry = {
+        name: (data.name || '').trim() || 'Unnamed',
+        category: category,
+        total_value: total,
+        purchase_price: (cost === null || isNaN(cost)) ? null : cost,
+        as_of_date: (data.as_of_date || '').slice(0, 10),
+        notes: data.notes || ''
+    };
+    if (data.id) {
+        await db.user_investment.update(Number(data.id), entry);
+        const updated = await db.user_investment.get(Number(data.id));
+        return _investmentRow(updated || Object.assign({ id: Number(data.id) }, entry));
+    }
+    const id = await db.user_investment.add(entry);
+    return _investmentRow(Object.assign({ id: id }, entry));
+}
+
+export async function deleteInvestmentLocal(id) {
+    await db.user_investment.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
+}
+
+// ============================================================
 // Portfolio History
 // ============================================================
 
@@ -2541,7 +2628,8 @@ export async function getFullBackupLocal() {
         'custom_category',
         'wishlist_item',
         'portfolio_history',
-        'user_settings'
+        'user_settings',
+        'user_investment'
     ];
     for (const table of tables) {
         backup[table] = await db[table].toArray();
@@ -2561,7 +2649,8 @@ export async function restoreBackupLocal(backupObj) {
         'custom_category',
         'wishlist_item',
         'portfolio_history',
-        'user_settings'
+        'user_settings',
+        'user_investment'
     ];
     for (const table of tables) {
         if (backupObj[table]) {

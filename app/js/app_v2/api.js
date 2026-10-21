@@ -81,7 +81,10 @@ import {
     addUserPhotoLocal,
     deleteUserPhotoLocal,
     addUserCoinLocal,
-    deleteUserCoinLocal
+    deleteUserCoinLocal,
+    fetchInvestmentsLocal,
+    saveInvestmentLocal,
+    deleteInvestmentLocal
 } from './db.js';
 
 // ============================================================
@@ -136,6 +139,29 @@ export const fetchInventory = isSelfHosted
     ? async () => serverFetch('/api/inventory')
     : wrap(fetchInventoryLocal);
 
+// 2026-10-20 (Matthew-approved Gemini-4 spec): external investments CRUD.
+// 2026-10-21 (GGMJ-378): these were SERVER-ONLY, so the Investments card was
+// gated off entirely on the static deployments (GitHub Pages, Cloudflare
+// Pages) -- there is no /api/investments backend there. Every other card
+// that works on those hosts has a local Dexie fallback (fetchInventory ->
+// wrap(fetchInventoryLocal), addToWishlist -> wrap(addToWishlistLocal)); this
+// one had none, which is why #card-investments was absent from both public
+// apps while the CSS for it was deployed. It now follows the same pattern.
+export const fetchInvestments = isSelfHosted
+    ? async () => serverFetch('/api/investments')
+    : wrap(fetchInvestmentsLocal);
+
+export const saveInvestment = isSelfHosted
+    ? async (data) => serverFetch('/api/investments', {
+        method: data.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    : wrap(saveInvestmentLocal);
+
+export const deleteInvestment = isSelfHosted
+    ? async (id) => serverFetch('/api/investments/' + id, { method: 'DELETE' })
+    : wrap(deleteInvestmentLocal);
 export const updateInventory = isSelfHosted
     ? async (coinId, data) => {
         // 2026-08-31: server requires coin_ref_id as an INTEGER; album passes dataset

@@ -14,7 +14,7 @@ import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } fr
 import { initSpotHistory, getSeriesForPeriod } from './spotHistory.js';
 import { openPortfolioHistoryModal } from './portfolio_history.js';
 
-import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
+import { fetchInvestments, saveInvestment, deleteInvestment, fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
 
 var _portfolioData = null;
 var _bulkCoinsData = [];
@@ -699,7 +699,14 @@ export async function renderDashboard() {
     // buildSpotPricesCard(prices)` runs earlier); only its append moves.
     var pc = buildPortfolioBreakdownCard(p);
     if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
-
+    // 2026-10-20: Investments card (Gemini-4 spec).
+    // 2026-10-21 (GGMJ-378): no longer gated on isSelfHosted. The static
+    // deployments have no /api/investments backend, so the card used to be
+    // absent from GH Pages and CF Pages entirely; api.js now routes the
+    // three investments calls to a local Dexie store there, so the card is
+    // built everywhere and simply reads local data on the static hosts.
+    var ic = buildInvestmentsCard(p);
+    if (ic) { if (vis['card-investments'] === false) ic.style.display = 'none'; addDragHandle(ic); c.appendChild(ic); }
     // Spot prices card (built above, before the synchronous DOM update).
     if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
 
@@ -1176,6 +1183,135 @@ function buildEmptyPortfolioCard() {
     body.appendChild(el('div',{},'Your portfolio is empty.'));
     body.appendChild(el('div',{style:'margin-top:4px;'},'Add coins from the catalog, enter bullion, or record paper currency to see your total value here.'));
     card.appendChild(body);
+    return card;
+}
+
+// 2026-10-20 (Matthew-approved Gemini-4 spec): External Investments card.
+// Stocks / ETFs / Retirement / Crypto / Bonds / Other. Optional purchase price
+// yields automatic gain/loss. Total feeds Portfolio Overview via
+// investments_value (p.investments_value from the backend) and gets a
+// checkbox in the breakdown grid like every other bucket.
+var _invEntries = null;
+function buildInvestmentsCard(p) {
+    var card = el('div', { className: 'card dashboard-card', id: 'card-investments' });
+    card.appendChild(el('div', { className: 'card-title' }, 'Investments'));
+
+    var listWrap = el('div', { className: 'inv-list', style: 'display:flex;flex-direction:column;gap:8px;' });
+    var totalRow = el('div', { className: 'finance-item grand-total', style: 'margin-top:8px;' });
+
+    function fmtMoney(v) { return '$' + (v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    function refreshTotal() {
+        var total = 0;
+        (_invEntries || []).forEach(function (e) { total += (e.total_value || 0); });
+        totalRow.textContent = '';
+        totalRow.appendChild(el('span', { className: 'finance-label' }, 'Total Investments'));
+        totalRow.appendChild(el('span', { className: 'finance-value bold' }, fmtMoney(total)));
+    }
+
+    function removeEntry(id) {
+        deleteInvestment(id).then(function () {
+            _invEntries = (_invEntries || []).filter(function (e) { return e.id !== id; });
+            renderList();
+            refreshTotal();
+        }).catch(function (err) {
+            _showCardToast('Failed to delete: ' + err.message, 'error');
+        });
+    }
+
+    function renderList() {
+        listWrap.textContent = '';
+        if (!_invEntries || !_invEntries.length) {
+            listWrap.appendChild(el('div', { className: 'dashboard-detail', style: 'text-align:center;padding:10px 0;' }, 'No external investments yet'));
+        } else {
+            _invEntries.forEach(function (e) {
+                var row = el('div', { className: 'finance-item', style: 'flex-wrap:wrap;gap:4px;' });
+                var info = el('div', { style: 'flex:1;min-width:0;' });
+                info.appendChild(el('span', { className: 'finance-label' }, (e.category || 'Stocks') + (e.as_of_date ? ' · ' + e.as_of_date : '')));
+                info.appendChild(el('div', { style: 'font-weight:600;overflow-wrap:anywhere;' }, e.name || 'Unnamed'));
+                row.appendChild(info);
+                var val = el('div', { style: 'text-align:right;' });
+                val.appendChild(el('span', { className: 'finance-value' }, fmtMoney(e.total_value)));
+                if (e.gain !== null && e.gain !== undefined) {
+                    var up = (e.gain || 0) >= 0;
+                    val.appendChild(el('div', { style: 'font-size:0.78em;color:' + (up ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';' },
+                        (up ? '+' : '') + fmtMoney(e.gain)));
+                }
+                row.appendChild(val);
+                var del = el('button', { className: 'btn-secondary', title: 'Remove', style: 'padding:2px 8px;font-size:0.8em;margin-left:6px;' }, '✕');
+                del.onclick = function () { removeEntry(e.id); };
+                row.appendChild(del);
+                listWrap.appendChild(row);
+            });
+        }
+    }
+
+    function renderForm() {
+        // 2026-10-21 (GGMJ-384/B3, Matthew): built as a .v1-form with
+        // .v1-input/.v1-select controls so it is shaped and themed like the
+        // other five data-entry cards. The old version used bare inputs --
+        // which fall through to the browser's default light chrome, because
+        // the app has no global input rule -- and a bare button.btn-primary
+        // with align-self:flex-start instead of the shared .v1-add-btn.
+        var form = el('div', { className: 'v1-form' });
+        var name = el('input', { className: 'v1-input', type: 'text', placeholder: 'Name (e.g. Fidelity 401k)' });
+        var cat = el('select', { className: 'v1-select' });
+        ['Stocks', 'ETFs / Funds', 'Retirement', 'Crypto', 'Bonds / CDs', 'Other'].forEach(function (c) {
+            var o = el('option', { value: c }, c); cat.appendChild(o);
+        });
+        var valIn = el('input', { className: 'v1-input', type: 'number', placeholder: 'Current value', step: '0.01', min: '0' });
+        var costIn = el('input', { className: 'v1-input', type: 'number', placeholder: 'Purchase price (optional)', step: '0.01', min: '0' });
+        var dateIn = el('input', { className: 'v1-input', type: 'date' });
+        var addBtn = el('button', { className: 'v1-add-btn' }, '+ Add');
+        addBtn.onclick = function () {
+            var v = parseFloat(valIn.value);
+            if (!name.value.trim() || isNaN(v)) { _showCardToast('Enter a name and value', 'error'); return; }
+            var cost = costIn.value === '' ? null : parseFloat(costIn.value);
+            saveInvestment({ name: name.value.trim(), category: cat.value, total_value: v,
+                             purchase_price: cost, as_of_date: dateIn.value || '' })
+                .then(function (saved) {
+                    _invEntries = _invEntries || [];
+                    _invEntries.push(saved);
+                    renderList(); refreshTotal();
+                    name.value = ''; valIn.value = ''; costIn.value = ''; dateIn.value = '';
+                    _showCardToast('Investment added', 'success');
+                })
+                .catch(function (err) { _showCardToast('Failed to save: ' + err.message, 'error'); });
+        };
+        [name, cat, valIn, costIn, dateIn].forEach(function (w) {
+            form.appendChild(w);
+        });
+        form.appendChild(addBtn);
+        // _foldCardForm() MOVES addBtn out of the form into the action row,
+        // so it has to be a child of the form first (every other card does
+        // the same). Stash it so the caller can hand it to the helper.
+        form._addBtn = addBtn;
+        return form;
+    }
+
+    card.appendChild(listWrap);
+    card.appendChild(totalRow);
+    var formEl = renderForm();
+    card.appendChild(formEl);
+    // 2026-10-21 (GGMJ-384/B3, Matthew): the form must fold through the SAME
+    // helper the other five cards use. A second hand-rolled toggle is how the
+    // Investments card came to have no fold control at all in the first place.
+    // The form has to be in the card (a real parent) before this call, because
+    // the helper inserts its action row as the form's SIBLING.
+    _foldCardForm(formEl, formEl._addBtn, 'investments', '+ Add');
+
+    // Load entries. On self-hosted these come from /api/investments; on the
+    // static deployments from the local Dexie store (GGMJ-378).
+    if (typeof fetchInvestments === 'function') {
+        fetchInvestments().then(function (entries) {
+            _invEntries = entries || [];
+            renderList(); refreshTotal();
+        }).catch(function () {
+            _invEntries = []; renderList(); refreshTotal();
+        });
+    } else {
+        renderList(); refreshTotal();
+    }
     return card;
 }
 
