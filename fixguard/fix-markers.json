@@ -129,6 +129,11 @@
       "uploadCoinBankImage",
       "uploadCoinImage",
       "uploadImageAsDataUri"
+    ],
+    "app/css/base.css": [
+      "overflow: visible",
+      "padding-left:    calc(var(--space-4) * 2)",
+      "padding-right:   calc(var(--space-4) * 2)"
     ]
   },
   "absent": {
