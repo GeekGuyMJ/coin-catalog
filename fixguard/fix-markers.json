@@ -7,7 +7,8 @@
    "scrollbar-width: none",
    ".coin-instance-tabs::-webkit-scrollbar",
    "color: var(--color-accent-text);",
-   ".v1-form-actions {"
+   ".v1-form-actions {",
+   ".info-guide-search"
   ],
   "app/js/app_v2/album.js": [
    "fetchInventory().then",
