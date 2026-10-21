@@ -74,7 +74,8 @@
    "'Canadian Loonies (1$)': 'CanadianLoonies'",
    "'CanadianHalfDollars', 'CanadianLoonies'",
    "entry.metal_type === 'CanadianHalfDollars'",
-   "entry.metal_type === 'CanadianLoonies'"
+   "entry.metal_type === 'CanadianLoonies'",
+   "'Other Investments',"
   ],
   "app/js/app_v2/search.js": [
    "initYearRange"
@@ -125,8 +126,8 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 433,
-  "frontend/sw.js": 433
+  "app/sw.js": 434,
+  "frontend/sw.js": 434
  },
  "shared": {
   "js/app_v2/dexie.js": {},

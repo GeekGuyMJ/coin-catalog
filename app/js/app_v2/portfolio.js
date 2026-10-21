@@ -1456,6 +1456,11 @@ function buildPortfolioBreakdownCard(p) {
     if (p.scrap_value>0) g.appendChild(fRow('Scrap Metal',fmt(p.scrap_value)));
     if (p.paper_value>0) g.appendChild(fRow('Paper Currency',fmt(p.paper_value)));
     if (p.other_value>0) g.appendChild(fRow('Other Collectibles',fmt(p.other_value)));
+    // 2026-10-21 (GGMJ-383): the Investments bucket was missing from the
+    // breakdown grid. The server's total_estimated_value includes
+    // investments_value; the card showed a breakdown that did not, so the
+    // visible rows did not sum to the stated total.
+    if (p.investments_value>0) g.appendChild(fRow('Other Investments',fmt(p.investments_value)));
     if (face>0) g.appendChild(fRow('Face Value',fmt(face)));
     g.appendChild(fRow('Total Melt Value',fmt(melt),true));
 
