@@ -61,7 +61,8 @@
    "host.insertBefore(row, form.nextSibling)",
    "}, 'Hide');",
    "Hide is a COLLAPSE, not a cancel.",
-   "function buildInvestmentsCard(p)"
+   "function buildInvestmentsCard(p)",
+   "'aria-label': 'Hide entry form'"
   ],
   "app/js/app_v2/search.js": [
    "initYearRange"
@@ -94,6 +95,9 @@
    "btoa(username + ':' + password)",
    "CREDENTIALS.oneDrive.",
    "  const creds = CREDENTIALS.oneDrive;\n  if (!creds.clientId || creds.clientId.startsWith('YOUR_')) {"
+  ],
+  "app/js/app_v2/portfolio.js": [
+   "}, 'Cancel');"
   ]
  },
  "order": {
@@ -109,8 +113,8 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 429,
-  "frontend/sw.js": 429
+  "app/sw.js": 430,
+  "frontend/sw.js": 430
  },
  "shared": {
   "js/app_v2/dexie.js": {},

@@ -1535,6 +1535,13 @@ function _foldCardForm(form, addBtn, key, label) {
     var cancel = el('button', {
         className: 'v1-cancel-btn',
         type: 'button',
+        // GGMJ-395 (Matthew): the accessible name must read as
+        // NON-DESTRUCTIVE. "Cancel" implies the typed values are thrown
+        // away; "Hide" means the form folds away and the values are KEPT.
+        // A screen reader announces the aria-label, not the visible text,
+        // so without it the button still announces itself as "Cancel".
+        title: 'Hide entry form (your entries are kept)',
+        'aria-label': 'Hide entry form',
         style: 'display:none;'
     }, 'Hide');
 
