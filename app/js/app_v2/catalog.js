@@ -21,10 +21,10 @@ import {
 
 import {
     getSections, getCoinsForSection, setCoinsForSection,
-    getTypeConfig, setTypeConfigs,
+    getTypeConfig, setTypeConfigs, setSections,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchTypeConfigs,
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchTypeConfigs, fetchSections,
 } from './api.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
@@ -2076,6 +2076,85 @@ function updateStepperDisplay(coinId, qty) {
         });
 }
 
+/**
+ * Repaint the type-level owned-count badges (.type-wrapper .count-badge).
+ *
+ * A type badge counts the coins of that type in that section, so it can be
+ * derived from the rendered rows plus the live inventory state.
+ */
+function repaintTypeBadges(stateMod) {
+    document.querySelectorAll('.type-wrapper').forEach(wrapper => {
+        const header = wrapper.querySelector('.type-header');
+        const badge = header ? header.querySelector('.count-badge') : null;
+        if (!badge) return;
+        const rows = wrapper.querySelectorAll('.coin-row');
+        let ownedCount = 0;
+        rows.forEach(r => {
+            const cid = parseInt(r.dataset.coinId, 10);
+            if (cid && stateMod.getInventoryTotalQty(cid) > 0) ownedCount++;
+        });
+        const total = rows.length;
+        badge.textContent = ownedCount + '/' + total;
+        badge.className = 'count-badge' + (ownedCount === total ? ' complete' : ownedCount > 0 ? ' owned' : '');
+    });
+}
+
+/**
+ * Repaint the section-level and country-level owned-count badges from the
+ * section summary.
+ *
+ * GGMJ-412: these two levels CANNOT be derived from the DOM.
+ *  - The section badge is owned/total for the WHOLE section, but only
+ *    expanded sections have their coin rows in the DOM.
+ *  - The country badge is the sum over every section of that country.
+ * Walking `.coin-row` therefore counted only the expanded section (the
+ * country badge showed 1/45 instead of 1/5676).
+ *
+ * The section summary is the same source the badges are built from at
+ * render time, so repainting from it makes the live badge identical to the
+ * badge a page reload would show.
+ *
+ * @param {Array} sections - Section summaries: {section, total, owned}.
+ */
+function repaintSectionBadges(sections) {
+    if (!Array.isArray(sections) || !sections.length) return;
+    const byName = new Map(sections.map(s => [s.section, s]));
+
+    // Section badges (.section-card .count-badge)
+    document.querySelectorAll('.section-card').forEach(card => {
+        const sec = byName.get(card.dataset.section);
+        if (!sec) return;
+        // The card's own section header — type headers use .type-header, so
+        // .section-header matches only the card's own badge row.
+        const badge = card.querySelector('.section-header .count-badge');
+        if (!badge) return;
+        const pct = sec.total > 0 ? Math.round((sec.owned / sec.total) * 100) : 0;
+        badge.textContent = `${sec.owned}/${sec.total}`;
+        badge.title = `${sec.owned} of ${sec.total} owned (${pct}%)`;
+        badge.className = 'count-badge' + (sec.owned === sec.total ? ' complete' : sec.owned > 0 ? ' owned' : '');
+    });
+
+    // Country badges (.country-group-header .count-badge) — the sum of the
+    // sections that belong to that country, exactly as buildCountryGroup does.
+    document.querySelectorAll('.country-group').forEach(group => {
+        const header = group.querySelector('.country-group-header');
+        const badge = header ? header.querySelector('.count-badge') : null;
+        if (!badge) return;
+        let total = 0, owned = 0;
+        group.querySelectorAll('.section-card').forEach(card => {
+            const sec = byName.get(card.dataset.section);
+            if (!sec) return;
+            total += sec.total || 0;
+            owned += sec.owned || 0;
+        });
+        if (!total) return;
+        const pct = Math.round((owned / total) * 100);
+        badge.textContent = `${owned}/${total}`;
+        badge.title = `${owned} of ${total} owned (${pct}%)`;
+        badge.className = 'count-badge' + (owned === total ? ' complete' : owned > 0 ? ' owned' : '');
+    });
+}
+
 // Listen for updates from the details modal
 // Listen for inventory updates — update stepper displays without rebuilding DOM
 window.addEventListener('cc-inventory-updated', async (e) => {
@@ -2171,35 +2250,28 @@ window.addEventListener('cc-inventory-updated', async (e) => {
 
     // Refresh all owned-counter badges so the DOM reflects the new qty
     // immediately instead of waiting for a page reload (GGMJ-399 reactivity fix).
-    document.querySelectorAll('.type-wrapper').forEach(wrapper => {
-        const header = wrapper.querySelector('.type-header');
-        const badge = header ? header.querySelector('.count-badge') : null;
-        if (!badge) return;
-        const rows = wrapper.querySelectorAll('.coin-row');
-        let ownedCount = 0;
-        rows.forEach(r => {
-            const cid = parseInt(r.dataset.coinId, 10);
-            if (cid && stateMod.getInventoryTotalQty(cid) > 0) ownedCount++;
-        });
-        const total = rows.length;
-        badge.textContent = ownedCount + '/' + total;
-        badge.className = 'count-badge' + (ownedCount === total ? ' complete' : ownedCount > 0 ? ' owned' : '');
-    });
-    document.querySelectorAll('.country-group').forEach(group => {
-        const header = group.querySelector('.country-group-header');
-        const badge = header ? header.querySelector('.count-badge') : null;
-        if (!badge) return;
-        const rows = group.querySelectorAll('.coin-row');
-        let ownedCount = 0;
-        let totalCount = 0;
-        rows.forEach(r => {
-            const cid = parseInt(r.dataset.coinId, 10);
-            totalCount++;
-            if (cid && stateMod.getInventoryTotalQty(cid) > 0) ownedCount++;
-        });
-        badge.textContent = ownedCount + '/' + totalCount;
-        badge.className = 'count-badge' + (ownedCount === totalCount ? ' complete' : ownedCount > 0 ? ' owned' : '');
-    });
+    // GGMJ-412: the section and country badges are NOT derivable from the
+    // DOM (only expanded sections have rows, and the country badge sums
+    // every section of the country), so they are repainted from a freshly
+    // fetched section summary — the same source they are built from at
+    // render time. The type badge is derived from its own rendered rows.
+    repaintTypeBadges(stateMod);
+    // A pure image flip changes no inventory, so the section summary cannot
+    // have changed either — skip the refetch for it.
+    const isImageFlip = e.detail && e.detail.reason === 'flip-image';
+    if (isImageFlip) return;
+    let freshSections = null;
+    try {
+        freshSections = await fetchSections();
+    } catch (err) {
+        console.warn('[catalog] Could not refresh section counts:', err);
+    }
+    if (freshSections && freshSections.length) {
+        // Keep the state in step with the badges so a later re-render
+        // (album view, filter) does not resurrect the stale counts.
+        setSections(freshSections);
+        repaintSectionBadges(freshSections);
+    }
 });
 
 // Listen for image updates (upload/delete) — re-render open sections to refresh images
@@ -2224,20 +2296,7 @@ window.addEventListener('cc-image-updated', async (e) => {
     });
     // Update section/subsection badges with new owned counts
     const stateMod2 = await import('./state.js');
-    document.querySelectorAll('.type-wrapper').forEach(wrapper => {
-        const header = wrapper.querySelector('.type-header');
-        const badge = header ? header.querySelector('.count-badge') : null;
-        if (!badge) return;
-        const rows = wrapper.querySelectorAll('.coin-row');
-        let ownedCount = 0;
-        rows.forEach(r => {
-            const cid = parseInt(r.dataset.coinId, 10);
-            if (cid && stateMod2.getInventoryTotalQty(cid) > 0) ownedCount++;
-        });
-        const total = rows.length;
-        badge.textContent = ownedCount + '/' + total;
-        badge.className = 'count-badge' + (ownedCount === total ? ' complete' : ownedCount > 0 ? ' owned' : '');
-    });
+    repaintTypeBadges(stateMod2);
 });
 
 // ============================================================
