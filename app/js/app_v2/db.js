@@ -1555,6 +1555,7 @@ export async function saveRawBullionLocal(data) {
         metal_type: data.metal_type || "gold",
         weight_unit: data.weight_unit || "oz",
         weight: Number(data.weight || 0),
+        amount: Number(data.amount || 1),
         purity: Number(data.purity || 1.0),
         label: data.label || "",
         notes: data.notes || ""
