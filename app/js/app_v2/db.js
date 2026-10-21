@@ -1527,7 +1527,12 @@ export async function fetchPortfolioLocal() {
             "palladium": spotPrices.palladium_oz,
         };
         const price = spotMap[metal] || 0;
-        stats.raw_bullion += weightOz * purity * price;
+        // 2026-10-21 (GGMJ-404): `weight` is ONE unit; `amount` is how many
+        // are held. Without the quantity the Portfolio Overview counted a
+        // 10-unit holding as a single unit.
+        const qty = Number(b.amount);
+        const qtySafe = (isFinite(qty) && qty > 0) ? qty : 1;
+        stats.raw_bullion += weightOz * qtySafe * purity * price;
     });
 
     // ---- Bulk Coins ----
