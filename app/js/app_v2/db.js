@@ -1437,6 +1437,13 @@ export async function fetchPortfolioLocal() {
         scrap_value:          0.0,
         paper_value:          0.0,
         other_value:          0.0,
+        // 2026-10-21 (GGMJ-383): the local fallback must expose the same
+        // bucket the server does. The backend's valuation.py adds
+        // investments_value from the user_investment table and includes it in
+        // total_estimated_value; the local path read no such store, so on the
+        // static deployments an investment showed in its own card but never
+        // in the Portfolio Overview.
+        investments_value:    0.0,
     };
 
     let pureCoinCount = 0;
@@ -1549,6 +1556,13 @@ export async function fetchPortfolioLocal() {
         otherQty += qty;
     });
 
+    // ---- Investments (External Investments card) ----
+    // Mirrors backend/services/valuation.py: sum the entries' total_value.
+    const investmentItems = await db.user_investment.toArray();
+    investmentItems.forEach(inv => {
+        stats.investments_value += Number(inv.total_value || 0);
+    });
+
     // ---- Totals ----
     stats.total_physical_coins = pureCoinCount;
     stats.total_items = pureCoinCount + paperCount + otherQty;
@@ -1568,6 +1582,7 @@ export async function fetchPortfolioLocal() {
         stats.bulk_coins_value +
         stats.scrap_value +
         stats.paper_value +
+        stats.investments_value +
         stats.other_value
     );
 

@@ -123,10 +123,13 @@
  "public_only": {
   "app/js/app_v2/api.js": [
    "assignImage = isSelfHosted"
+  ],
+  "app/js/app_v2/db.js": [
+   "stats.investments_value += Number(inv.total_value || 0)"
   ]
  },
  "sw_min": {
-  "app/sw.js": 434,
+  "app/sw.js": 435,
   "frontend/sw.js": 434
  },
  "shared": {
