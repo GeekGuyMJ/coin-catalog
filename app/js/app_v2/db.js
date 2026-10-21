@@ -351,7 +351,7 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 9;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 10;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
@@ -585,6 +585,51 @@ export async function runMigrations() {
             }
         } catch (_e) {
             console.warn('  Migration 8→9 skipped:', _e && _e.message);
+        }
+    }
+
+    // Migration 9 → 10 (GGMJ-229): re-type the rows whose coin_type changed in
+    // the shipped catalogue. The public app seeds its IndexedDB with a TOP-UP
+    // (add missing ids, never update existing ones), so a browser that seeded
+    // BEFORE the type split keeps the old names forever — the Barber rows
+    // stayed one cross-denomination type, and an "All of this type" image
+    // fan-out still relabelled the other two denominations.
+    //
+    // Only the type-identifying fields are synced. Images, notes and
+    // inventory are the user's and are never touched.
+    if (storedVersion < 10) {
+        try {
+            const _res10 = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res10 && _res10.ok) {
+                const _seed10 = await _res10.json();
+                const _seedById = new Map();
+                for (const _s of _seed10) _seedById.set(String(_s.id), _s);
+                let _retyped = 0;
+                await db.transaction('rw', db.coins_reference, async () => {
+                    const _rows = await db.coins_reference.toArray();
+                    for (const _row of _rows) {
+                        const _s = _seedById.get(String(_row.id));
+                        if (!_s) continue;
+                        const _upd = {};
+                        if (_s.coin_type && _s.coin_type !== _row.coin_type) {
+                            _upd.coin_type = _s.coin_type;
+                        }
+                        if (_s.section && _s.section !== _row.section) {
+                            _upd.section = _s.section;
+                        }
+                        if (_s.denomination && _s.denomination !== _row.denomination) {
+                            _upd.denomination = _s.denomination;
+                        }
+                        if (Object.keys(_upd).length) {
+                            await db.coins_reference.update(_row.id, _upd);
+                            _retyped++;
+                        }
+                    }
+                });
+                console.log(`  Migration 9→10: re-typed ${_retyped} coin row(s) from the shipped catalogue.`);
+            }
+        } catch (_e10) {
+            console.warn('  Migration 9→10 skipped:', _e10 && _e10.message);
         }
     }
 
