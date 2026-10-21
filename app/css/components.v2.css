@@ -482,7 +482,7 @@
 
 .btn-section-publish {
     background: var(--color-accent, #2563eb);
-    color: #fff;
+    color: var(--color-accent-text);
     border: none;
     border-radius: var(--radius-full, 999px);
     padding: var(--space-1) var(--space-3);
@@ -525,7 +525,7 @@
 
 .view-toggle-btn.active {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-accent-text);
     box-shadow: var(--shadow-sm);
 }
 
@@ -1436,7 +1436,7 @@ input[type="range"]::-webkit-slider-thumb {
     bottom: -4px;
     right: -4px;
     background: var(--color-accent);
-    color: #fff;
+    color: var(--color-accent-text);
     font-size: 0.65rem;
     font-weight: 700;
     padding: 0 5px;
@@ -4519,7 +4519,7 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
 .guide-btn-primary {
     background: var(--color-accent);
     border-color: var(--color-accent);
-    color: #fff;
+    color: var(--color-accent-text);
 }
 .guide-btn-primary:hover {
     filter: brightness(1.08);
@@ -4634,7 +4634,7 @@ body.cc-colorblind .badge-error { border: 1px solid currentColor; }
 .guide-popup-btn-primary {
     background: var(--color-accent);
     border-color: var(--color-accent);
-    color: #fff;
+    color: var(--color-accent-text);
 }
 .guide-popup-btn-primary:hover {
     filter: brightness(1.08);
@@ -4855,12 +4855,14 @@ html, body {
 }
 
 /* 2026-10-20 (Matthew): Photos card tab text must match theme — dark text on the
-   blue active tab, consistent with other cards' accent elements. */
+   blue active tab, consistent with other cards' accent elements.
+   Uses --color-accent-text so the tab ink follows the active theme instead of
+   a fixed dark blue (unreadable on the light/silver/paper accents). */
 .gallery-tab.active {
-    color: #102a43;
+    color: var(--color-accent-text, #06121f);
 }
 #card-gallery .gallery-tab.active {
-    color: #102a43;
+    color: var(--color-accent-text, #06121f);
 }
 
 

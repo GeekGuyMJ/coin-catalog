@@ -2087,7 +2087,7 @@ export function openCustomThemeDesigner(slot) {
         { key: 'color-text-main',    label: 'Main Text',           default: '#f8f9fa' },
         { key: 'color-text-muted',   label: 'Secondary Text',      default: '#adb5bd' },
         { key: 'color-accent',       label: 'Accent & Buttons',    default: '#60a5fa' },
-        { key: 'color-accent-text',  label: 'Button Text',         default: '#ffffff' },
+        { key: 'color-accent-text',  label: 'Button Text',         default: '#06121f' },
         { key: 'color-border',       label: 'Border Color',        default: '#495057' },
         { key: 'color-border-light', label: 'Divider',             default: '#343a40' },
         { key: 'color-accord-bg',    label: 'Row / Section BG',    default: '#2b3035' },
