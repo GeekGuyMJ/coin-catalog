@@ -22,7 +22,12 @@
       "serverFetch('/api/backup/client_restore'",
       "confirm: 'RESTORE BACKUP'",
       "originalFetch('/api/coin_bank_images'",
-      "scope: 'specific_coin'"
+      "scope: 'specific_coin'",
+      "purchase_price",
+      "current_value",
+      "date_acquired",
+      "personal_photo",
+      "personal_photos"
     ],
     "app/js/app_v2/catalog.js": [
       "stepper-edit",
@@ -150,8 +155,8 @@
     ]
   },
   "sw_min": {
-    "app/sw.js": 442,
-    "frontend/sw.js": 442
+    "app/sw.js": 446,
+    "frontend/sw.js": 445
   },
   "shared": {
     "js/app_v2/dexie.js": {},

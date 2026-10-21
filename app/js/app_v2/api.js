@@ -166,19 +166,24 @@ export const updateInventory = isSelfHosted
     ? async (coinId, data) => {
         // 2026-08-31: server requires coin_ref_id as an INTEGER; album passes dataset
         // strings. Build the payload explicitly and coerce types (400 fix).
+        // 2026-10-21 (GGMJ-335): include purchase_price, current_value, date_acquired,
+        // personal_photo/personal_photos so slot-editor fields are NOT silently dropped.
         const payload = { coin_ref_id: parseInt(coinId, 10), quantity: parseInt(data.quantity || 0, 10) };
         if (data.id) payload.id = parseInt(data.id, 10);
-        if (data.grade) payload.grade = data.grade;
-        if (data.notes) payload.notes = data.notes;
-        return serverFetch('/api/inventory', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+        if (data.grade !== undefined) payload.grade = data.grade;
+        if (data.notes !== undefined) payload.notes = data.notes;
+        if (data.purchase_price !== undefined) payload.purchase_price = parseFloat(data.purchase_price) || 0;
+        if (data.current_value !== undefined) payload.current_value = parseFloat(data.current_value) || 0;
+        if (data.date_acquired !== undefined) payload.date_acquired = data.date_acquired;
+        if (data.personal_photo !== undefined) payload.personal_photo = data.personal_photo;
+        if (data.personal_photos !== undefined) payload.personal_photos = data.personal_photos;
+        return serverFetch("/api/inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(payload)
         });
     }
-    : wrap(updateInventoryLocal);
-
-// Delete exactly one inventory row by its primary key on either platform.
+    : wrap(updateInventoryLocal);// Delete exactly one inventory row by its primary key on either platform.
 export const deleteInventoryEntry = isSelfHosted
     ? async (entryId) => serverFetch('/api/inventory/' + entryId, { method: 'DELETE' })
     : wrap(deleteInventoryEntryLocal);
