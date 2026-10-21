@@ -4032,10 +4032,22 @@ body.ready-mode-active .ready-badge { display: flex; }
         margin: 0;
     }
     #app-header .header-right {
-        flex-wrap: nowrap;
+        /* GGMJ-183 (mobile overflow): force a single row here and the row
+           needs 422px inside a 302px grid column (the List/Album
+           view-toggle is flex-shrink:0 and has no responsive rule), so the
+           theme select is pushed to right=498 and body.scrollWidth becomes
+           498 on a 390px viewport. Let the row wrap instead of forcing
+           nowrap -- no control is hidden or restyled, it just wraps. */
+        flex-wrap: wrap;
         justify-content: flex-end;
         gap: var(--space-1);
         align-items: center;
+        min-width: 0;
+    }
+    /* The view toggle may compress so the theme selector stays on screen. */
+    #app-header .view-toggle {
+        flex-shrink: 1;
+        min-width: 0;
     }
 }
 
@@ -4083,12 +4095,16 @@ body.ready-mode-active .ready-badge { display: flex; }
         text-overflow: ellipsis !important;
     }
     #app-header .header-right {
-        flex: 0 0 auto !important;
+        /* GGMJ-183: flex: 0 0 auto pins the row to its content width, which
+           is what pushed it past the viewport. min-width:0 lets the row
+           shrink to its grid area and wrap. */
+        flex: 0 1 auto !important;
         justify-content: flex-end !important;
-        flex-wrap: nowrap !important;
+        flex-wrap: wrap !important;
         align-items: center !important;
         gap: var(--space-1) !important;
         align-self: center !important;
+        min-width: 0 !important;
     }
 }
 
