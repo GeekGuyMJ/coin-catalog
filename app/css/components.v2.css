@@ -523,6 +523,50 @@
     overflow:      visible;
 }
 
+/* =========================================================================
+   GGMJ-426 - sticky headers need a NON-SCROLLING ancestor
+
+   base.css sets overflow-x: hidden on <body> and .container. That computes
+   to overflow: hidden auto, which makes BOTH of them scroll containers - and
+   position: sticky pins to the nearest SCROLLING ancestor. The headers were
+   therefore pinning to a scrollport that never scrolled, while the document
+   scrolled straight past them.
+
+   base.css is byte-locked to the other tree by the fixguard shared-file
+   check, so the correction lives here: components.v2.css is the file that is
+   allowed to differ between the two trees. overflow-x: clip keeps the
+   horizontal clipping GGMJ-183 needed, but unlike hidden it does NOT create
+   a scroll container - so the document becomes the sticky scrollport again.
+   ========================================================================= */
+body,
+.container {
+    overflow-x:    clip;
+}
+
+:root {
+    /* GGMJ-426: the measured height of a .section-header (42px desktop,
+       36px on a phone). updateStickyOffsets() sets this on each
+       .section-card as --my-section-header-height; this is the fallback
+       used before that runs, and it is what the .type-header offset
+       falls back to. */
+    --section-header-height: 42px;
+}
+
+/* GGMJ-426: base.css's own `@media (max-width: 768px)` block still says
+   the country header is 48px, but it MEASURES 56px on a 375px viewport,
+   so the section header was told to pin at 48px and overlapped the
+   country header by 8px. base.css is byte-locked to the other tree by the
+   fixguard shared-file check, so the corrected values are set here -
+   components.v2.css is loaded after base.css, so these win. */
+@media (max-width: 768px) {
+    :root {
+        --country-bar-height: 56px;
+        --section-bar-top:    56px;
+        --section-header-height: 36px;
+        --type-bar-top:       92px;
+    }
+}
+
 .country-group-header {
     background:    var(--color-bg-card);
     border:        1px solid var(--color-border);
@@ -798,7 +842,14 @@
     z-index:         130;
     position:        -webkit-sticky;
     position:        sticky;
-    top:             calc(var(--my-country-header-height, 56px) + var(--my-section-header-height, 56px));
+    /* GGMJ-426: the type header sits under the section header, which sits
+       under the country header. updateStickyOffsets() measures both and
+       sets them on the .country-group and the .section-card, and both
+       INHERIT into this element - so read those two, and only fix the
+       fallback: the section header is 42px, not the 56px that was
+       hard-coded here, which had pushed the type header 14px too low
+       (56+56=112 instead of 56+42=98). */
+    top:             calc(var(--my-country-header-height, var(--country-bar-height, 56px)) + var(--my-section-header-height, var(--section-header-height, 42px)));
     user-select:     none;
     gap:             var(--space-3);
 }
@@ -2276,10 +2327,18 @@ select optgroup {
     max-height: calc(100vh - 120px);
     overflow-y: auto;
     position: sticky;
-    top: 80px;
+    /* GGMJ-426: 80px was a stale guess; the app header is 89px tall. */
+    top: 89px;
 }
 
 .album-country-header {
+    /* GGMJ-426: the album view had NO sticky rule, so the country headings
+       scrolled away with the list. Pin them to the top of the sidebar's own
+       scrollport. */
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--color-bg-card);
     display: flex;
     align-items: center;
     justify-content: space-between;
