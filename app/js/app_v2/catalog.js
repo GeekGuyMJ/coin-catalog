@@ -2163,7 +2163,39 @@ window.addEventListener('cc-inventory-updated', async (e) => {
                 }
             }
         }
-    }
+    });
+
+    // Refresh all owned-counter badges so the DOM reflects the new qty
+    // immediately instead of waiting for a page reload (GGMJ-399 reactivity fix).
+    document.querySelectorAll('.type-wrapper').forEach(wrapper => {
+        const header = wrapper.querySelector('.type-header');
+        const badge = header ? header.querySelector('.count-badge') : null;
+        if (!badge) return;
+        const rows = wrapper.querySelectorAll('.coin-row');
+        let ownedCount = 0;
+        rows.forEach(r => {
+            const cid = parseInt(r.dataset.coinId, 10);
+            if (cid && stateMod.getInventoryTotalQty(cid) > 0) ownedCount++;
+        });
+        const total = rows.length;
+        badge.textContent = ownedCount + '/' + total;
+        badge.className = 'count-badge' + (ownedCount === total ? ' complete' : ownedCount > 0 ? ' owned' : '');
+    });
+    document.querySelectorAll('.country-group').forEach(group => {
+        const header = group.querySelector('.country-group-header');
+        const badge = header ? header.querySelector('.count-badge') : null;
+        if (!badge) return;
+        const rows = group.querySelectorAll('.coin-row');
+        let ownedCount = 0;
+        let totalCount = 0;
+        rows.forEach(r => {
+            const cid = parseInt(r.dataset.coinId, 10);
+            totalCount++;
+            if (cid && stateMod.getInventoryTotalQty(cid) > 0) ownedCount++;
+        });
+        badge.textContent = ownedCount + '/' + totalCount;
+        badge.className = 'count-badge' + (ownedCount === totalCount ? ' complete' : ownedCount > 0 ? ' owned' : '');
+    });
 });
 
 // Listen for image updates (upload/delete) — re-render open sections to refresh images

@@ -2224,21 +2224,20 @@ export async function assignImageLocal(data) {
         } else {
             // Save to the specific coin reference record (item_id = coin_ref_id) so the
             // album/catalog, which read db.coins_reference.obv_image / rev_image, display it.
-            const refId = Number(item_id);
             const sideMap = { "obv":"obv_image", "rev":"rev_image", "proof_obv":"proof_obv_image", "proof_rev":"proof_rev_image" };
             const sideKey = sideMap[side] || "obv_image";
-            const ref = await db.coins_reference.get(refId);
-            if (ref) {
-                const updates = {};
-                if (image) {
-                    updates[sideKey] = image;
-                    updates['_deleted_' + sideKey] = false;
-                } else {
-                    updates[sideKey] = null;
-                    updates['_deleted_' + sideKey] = true;
-                }
-                await db.coins_reference.update(refId, updates);
+            const coin = await _getCoinRefAny(item_id);
+            if (!coin) return { status: "success" };
+            const refId = coin.id;
+            const updates = {};
+            if (image) {
+                updates[sideKey] = image;
+                updates['_deleted_' + sideKey] = false;
+            } else {
+                updates[sideKey] = null;
+                updates['_deleted_' + sideKey] = true;
             }
+            await db.coins_reference.update(refId, updates);
             // NOTE: previously this wrongly wrote to user_inventory.personal_photo,
             // creating a fake "owned" row. The per-coin reference image belongs on
             // db.coins_reference so the album shows it. Personal photos are a separate
