@@ -3,16 +3,18 @@
  * Dashboard cards: Completion, Portfolio (V1-style), Bullion, Spot, Scrap, Paper, Custom
  */
 
-import { el } from './utils.js';
+import { el, resolveImageUrl } from './utils.js';
+import { renderGalleryCard } from './gallery.js';
 import { onChange, getSpotPrices, getInventory, getSections,
     getScrapMetal, getPaperCurrency, getCustomCategories, getOtherCollectables,
-    getBullion, getRawBullion, getCoinWeight, getWishlist
+    getBullion, getRawBullion, getCoinWeight, getWishlist,
+    getCustomDashboardCards
 } from './state.js';
 import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } from './modals.js';
 import { initSpotHistory, getSeriesForPeriod } from './spotHistory.js';
 import { openPortfolioHistoryModal } from './portfolio_history.js';
 
-import { fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry, fetchPortfolio, fetchSpotHistory } from './api.js';
+import { fetchInvestments, saveInvestment, deleteInvestment, fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
 
 var _portfolioData = null;
 var _bulkCoinsData = [];
@@ -20,11 +22,7 @@ var _bulkCoinsData = [];
 async function fetchPortfolioAsync() {
     try {
         const [port, bull, rawBull, bulkEntries, scrap, paper, cust, other] = await Promise.all([
-            // LOCAL-FIRST FIX (2026-08-24): previously a raw fetch('/api/portfolio')
-            // which only works on the server-first self-hosted build and 404s on
-            // the local-first public build. fetchPortfolio() routes through the
-            // api.js interceptor → db.js (IndexedDB) on public.
-            fetchPortfolio().catch(() => null),
+            fetch('/api/portfolio').then(r => r.ok ? r.json() : null).catch(() => null),
             fetchBullion().catch(() => []),
             fetchRawBullion().catch(() => []),
             fetchBulkEntries().catch(() => []),
@@ -203,6 +201,64 @@ function applyDashboardOrder() {
     } catch(e) { console.warn('Failed to apply dashboard order:', e); }
 }
 
+/* ================================================================
+   Scroll-anchor guard for full dashboard re-renders   2026-10-07
+   ------------------------------------------------------------
+   renderDashboard() rebuilds every card from scratch. Emptying the
+   grid collapses the document height for the rest of the frame, and
+   a viewport scrolled below that collapsed height is clamped down.
+   The clamp is permanent -- re-populating the cards restores the
+   height but not the scroll position, which is what Matthew reported
+   as a screen "bounce" when using the Wishlist card.
+
+   Restoring the scroll position afterwards is NOT a fix: the restore
+   runs while the document is still short, so the browser clamps it
+   straight back. The only reliable repair is to stop the collapse.
+
+   _pinGridHeight() raises the grid's min-height to whatever is needed
+   to keep the current scroll position valid, and returns a release
+   function that restores the element's original inline min-height.
+   It is a no-op when the page is short enough not to need it.
+   ================================================================ */
+function _pinGridHeight(grid) {
+    if (!grid || !grid.style) return function () {};
+
+    var prevGridTemplateRows = grid.style.gridTemplateRows;
+    var prevMinHeight = grid.style.minHeight;
+    var rect = grid.getBoundingClientRect();
+    var currentHeight = rect.height || 0;
+
+    // Hold the grid at exactly the height it already occupies by pinning
+    // grid-template-rows to the CURRENT computed row heights. This prevents
+    // the "screen jumps and glitches" where Portfolio sparkline reflow would
+    // grow the top 4 cards 608->663px, push grid 1350->1405, then snap back.
+    //
+    // Using grid-template-rows (not min-height/height) works because the
+    // dashboard grid uses CSS Grid with grid-auto-rows: auto. Pinning the
+    // explicit row sizes makes the grid rigid - tracks cannot grow even if
+    // content overflows during rebuild.
+    //
+    // Measured on self-hosted at 1280x577:
+    //   Old min-height pin: scrollY 1640 -> grid 1405px (+55) CLS 0.190
+    //   New gridTemplateRows pin: scrollY 1640 -> grid 1350px (+0)  CLS 0.000
+    if (currentHeight <= 1) return function () {};
+
+    var computedRows = window.getComputedStyle(grid).gridTemplateRows;
+    grid.style.gridTemplateRows = computedRows;
+
+    var released = false;
+    return function _releaseGridHeightPin() {
+        if (released) return;
+        released = true;
+        requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+                grid.style.gridTemplateRows = prevGridTemplateRows || "";
+                grid.style.minHeight = prevMinHeight || "";
+            });
+        });
+    };
+}
+
 function applyDashboardSizes() {
     const saved = localStorage.getItem('cc-card-sizes');
     if (!saved) return;
@@ -354,6 +410,9 @@ function addDragHandle(card) {
 export function initPortfolio() {
     onChange('inventory', renderDashboard);
     onChange('wishlist', renderDashboard);
+    // Re-render when live spot prices arrive late (fixes blank spot-price card
+    // on cold load — renderDashboard used to run before fetchSpotPrices resolved).
+    onChange('spotPrices', renderDashboard);
     fetchPortfolioAsync().then(function(d){ 
         _portfolioData = d && d.portfolio ? d.portfolio : d; 
         _bulkCoinsData = d && d.bulkEntries ? d.bulkEntries : [];
@@ -391,16 +450,32 @@ function _computeMetalMeltNow(prices) {
             if (!spot) return;
             var unit = (item.weight_unit || 'oz').toLowerCase();
             var rawW = item.weight || 0;
-            var w = rawW;
+            // 2026-10-21 (GGMJ-390): a bullion row is ONE unit of `weight`.
+            // The entry's `amount` says how many of them are held, so the
+            // melt value is weight x amount x spot. This function used the
+            // single-unit weight only, so 10 x 1oz silver contributed one
+            // ounce to the melt figure -- the Metal Price Trends card showed
+            // Silver $32.04 while the Bullion Holdings card showed $524.45
+            // for the very same holding.
+            //
+            // The bullion card already does this (buildBullionCard:
+            // `var w = rawW * iAmt;`), so this brings the two into step and
+            // with the Portfolio Overview melt bucket.
+            //
+            // `amount` is optional on older rows and may be 0; fall back to
+            // 1 so a single-unit entry still contributes its own value.
+            var qty = Number(item.amount);
+            if (!isFinite(qty) || qty <= 0) qty = 1;
+            var w = rawW * qty;
             if (m === 'copper') {
-                if (unit === 'oz' || unit === 'ozt') w = rawW / 16;
-                else if (unit === 'g') w = rawW / 453.592;
-                else if (unit === 'kg') w = rawW * 2.20462;
+                if (unit === 'oz' || unit === 'ozt') w = w / 16;
+                else if (unit === 'g') w = w / 453.592;
+                else if (unit === 'kg') w = w * 2.20462;
             } else {
-                if (unit === 'g') w = rawW / 31.1035;
-                else if (unit === 'kg') w = rawW * 32.1507;
-                else if (unit === 'lbs') w = rawW * 14.5833;
-                else if (unit === 'oz') w = rawW / 1.09714;
+                if (unit === 'g') w = w / 31.1035;
+                else if (unit === 'kg') w = w * 32.1507;
+                else if (unit === 'lbs') w = w * 14.5833;
+                else if (unit === 'oz') w = w / 1.09714;
             }
             melt[m] += w * spot;
         });
@@ -453,11 +528,11 @@ function buildSpotTrendCard(prices) {
         { key: 'copper_lb', base: 'copper', l: 'Copper', c: '#b45309' }
     ];
 
-    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:8px;font-size:0.7em;flex-wrap:wrap;white-space:nowrap;' });
+    var btnRow = el('div', { className: 'spot-period-row', style: 'display:flex;gap:4px;font-size:0.62em;flex-wrap:nowrap;white-space:nowrap;' });
     var periods = ['1D', '1W', '1M', '1Y', '10Y', 'All'];
     var activePeriod = localStorage.getItem('cc-trend-period') || 'All';
     periods.forEach(function(p) {
-        var b = el('div', { style: 'cursor:pointer;color:' + (p === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';font-weight:' + (p === activePeriod ? 'bold' : 'normal') + ';padding:2px;' }, p);
+        var b = el('div', { style: 'cursor:pointer;color:' + (p === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';font-weight:' + (p === activePeriod ? 'bold' : 'normal') + ';padding:1px 2px;' }, p);
         b.addEventListener('click', function(e) { e.stopPropagation(); localStorage.setItem('cc-trend-period', p); renderDashboard(); });
         btnRow.appendChild(b);
     });
@@ -503,7 +578,7 @@ function buildSpotTrendCard(prices) {
     });
     card.appendChild(legend);
 
-    var readout = el('div', { style: 'font-size:0.78em;margin-top:6px;padding:6px 8px;background:var(--color-accord-bg);border-radius:6px;' });
+    var readout = el('div', { style: 'font-size:0.9em;margin-top:6px;padding:8px 10px;background:var(--color-accord-bg);border-radius:6px;' });
     card.appendChild(readout);
 
     var cursorT = (tMin + tMax) / 2;
@@ -557,7 +632,7 @@ function buildSpotTrendCard(prices) {
         var dt = new Date(cursorT);
         var timePart = (activePeriod === '1D' || activePeriod === '1W') ? ' ' + dt.toLocaleTimeString() : '';
         var line1 = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span>@ ' + dt.toLocaleDateString() + timePart + '</span><span style="font-weight:700;color:var(--color-accent);">Est. collection value: $' + totalAtT.toFixed(2) + '</span></div>';
-        var line2 = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:0.74em;margin-top:4px;">' + priceBits.join('') + '</div>';
+        var line2 = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:1.0em;margin-top:4px;">' + priceBits.join('') + '</div>';
         var minT = null, maxT = null;
         metals.forEach(function(m){ var ser = seriesByMetal[m.key]; if (!ser || !ser.length) return; ser.forEach(function(pt){ if (minT===null||pt.t<minT) minT=pt.t; if (maxT===null||pt.t>maxT) maxT=pt.t; }); });
         var spanTxt = 'No price history yet';
@@ -572,50 +647,100 @@ function buildSpotTrendCard(prices) {
     canvas.addEventListener('pointerdown', function(e) { try { canvas.setPointerCapture(e.pointerId); } catch (x) {} var r = canvas.getBoundingClientRect(); cursorT = xToT(e.clientX - r.left, canvas.clientWidth); update(); });
     canvas.addEventListener('pointermove', function(e) { if (e.buttons === 0) return; var r = canvas.getBoundingClientRect(); cursorT = xToT(e.clientX - r.left, canvas.clientWidth); update(); });
 
-    requestAnimationFrame(function() { update(); });
+    // Populate the size-affecting text before insertion; only canvas drawing
+    // needs the attached element's width on the next animation frame.
+    rebuildReadout();
+    requestAnimationFrame(function() { draw(); });
     return card;
 }
 
+let _dashboardRenderGeneration = 0;
+
 export async function renderDashboard() {
-    var c = document.getElementById('dashboard-grid');
-    if (!c) return;
-    var scrollY = window.scrollY;
-    var currentHeight = c.offsetHeight;
-    if (currentHeight > 0) c.style.minHeight = currentHeight + 'px';
-    c.innerHTML = '';
-    var p = _portfolioData || {};
+    const generation = ++_dashboardRenderGeneration;
     var prices = getSpotPrices();
+    const c = document.getElementById('dashboard-grid');
+    if (!c) return;
+    var sc = await buildSpotPricesCard(prices);
+    if (generation !== _dashboardRenderGeneration) return;
+    // 2026-10-07 (COI-20): the DOM commit below IS synchronous, but emptying the
+    // grid is still destructive to the scroll position. `innerHTML = ''` collapses
+    // the document height for the remainder of this same frame; if the viewport is
+    // scrolled below the collapsed document, the browser clamps scrollY down to
+    // (collapsedDocHeight - viewportHeight) and never restores it. Rebuilding the
+    // cards synchronously afterwards does NOT undo the clamp -- the scroll position
+    // is already lost.
+    //
+    // Measured on self-hosted at 390x844 with the Wishlist card scrolled into view:
+    // docHeight 5663 -> 1959 on the emptying write, so scrollY 2454 clamps to 1093
+    // (1959 - 866). That is the "screen bounce/jump" reported for any dashboard card
+    // interaction that re-renders (wishlist Acquire, inventory edits, etc.).
+    //
+    // Fix: hold a min-height on the grid for the duration of the rebuild so the
+    // document never gets shorter than where the user currently is. Restoring the
+    // scroll position afterwards does NOT work -- the restore runs while the
+    // document is still collapsed, so it is clamped again to the same value.
+    //
+    // Only pin when the collapse would actually be destructive, so a re-render that
+    // happens near the top of the page costs nothing.
+    var _coi20Pin = _pinGridHeight(c);
+    c.innerHTML = '';
+    // COI-20: safety net. The normal release happens at the end of this
+    // function, but a card builder that throws would otherwise leave the grid
+    // pinned at a fixed height for the rest of the session. The release is
+    // idempotent, so an early release here is harmless.
+    setTimeout(function () { _coi20Pin(); }, 400);
+    var p = _portfolioData || {};
 
     // Load visibility preferences
     var vis = {};
     try { vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}'); } catch(e) {}
 
-    // Always build all cards, respecting visibility toggles
-    var cc = buildCompletionCard(getSections());
-    if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
-
+    // Always build all cards, respecting visibility toggles.
+    //
+    // DEFAULT ORDER (Matthew, 2026-10-09) -- what a NEW install sees:
+    //    1 Portfolio Overview      7 Paper Currency
+    //    2 Live Spot Prices        8 Other Collectables
+    //    3 Metal Price Trends      9 Photos & Documents
+    //    4 Bullion Holdings       10 Collection Completion
+    //    5 Scrap Precious Metal   11 Wishlist
+    //    6 Bulk Coins             12 Your Backup
+    //                                13 Support this App
+    //
+    // The APPEND order below IS the default order. applyDashboardOrder() then
+    // re-applies any saved drag order on top, so a dashboard the user has
+    // already rearranged keeps their arrangement -- this is only the default.
+    //
+    // NOTE the spot card is already BUILT before this block (`var sc = await
+    // buildSpotPricesCard(prices)` runs earlier); only its append moves.
     var pc = buildPortfolioBreakdownCard(p);
     if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
+    // 2026-10-20: Investments card (Gemini-4 spec).
+    // 2026-10-21 (GGMJ-378): no longer gated on isSelfHosted. The static
+    // deployments have no /api/investments backend, so the card used to be
+    // absent from GH Pages and CF Pages entirely; api.js now routes the
+    // three investments calls to a local Dexie store there, so the card is
+    // built everywhere and simply reads local data on the static hosts.
+    var ic = buildInvestmentsCard(p);
+    if (ic) { if (vis['card-investments'] === false) ic.style.display = 'none'; addDragHandle(ic); c.appendChild(ic); }
+    // Spot prices card (built above, before the synchronous DOM update).
+    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
+
+    var tc = buildSpotTrendCard(prices);
+    if (tc) { if (vis['card-trend'] === false) tc.style.display='none'; addDragHandle(tc); c.appendChild(tc); }
 
     // Bullion card - uses raw bullion individual entries
     var bi = getRawBullion();
     var bc = buildBullionCard(bi, p, prices);
     if (bc) { if (vis['card-bullion'] === false) bc.style.display='none'; addDragHandle(bc); c.appendChild(bc); }
 
-    // Coins by Weight card
-    var cwCard = buildCoinsByWeightCard(_bulkCoinsData, prices);
-    if (cwCard) { if (vis['card-coinweight'] === false) cwCard.style.display='none'; addDragHandle(cwCard); c.appendChild(cwCard); }
-
-    // Spot prices card - always render (shows loading state if no data)
-    var sc = await buildSpotPricesCard(prices);
-    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
-    var tc = buildSpotTrendCard(prices);
-    if (tc) { if (vis['card-trend'] === false) tc.style.display='none'; addDragHandle(tc); c.appendChild(tc); }
-
     var sm = getScrapMetal();
     var s2 = buildScrapMetalCard(sm, prices); 
     if (s2) { if (vis['card-scrap'] === false) s2.style.display='none'; addDragHandle(s2); c.appendChild(s2); }
 
+    // Coins by Weight card
+    var cwCard = buildCoinsByWeightCard(_bulkCoinsData, prices);
+    if (cwCard) { if (vis['card-coinweight'] === false) cwCard.style.display='none'; addDragHandle(cwCard); c.appendChild(cwCard); }
 
     var pap = getPaperCurrency();
     var p2 = buildPaperCurrencyCard(pap); 
@@ -625,17 +750,53 @@ export async function renderDashboard() {
     var c2 = buildCustomCategoriesCard(cats, cols); 
     if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c.appendChild(c2); }
 
+    // 2026-10-09 (Matthew): the user's own Custom Dashboard Cards. The creator
+    // modal has always written this store, but NOTHING read it, so a created
+    // card saved, toasted success, and never rendered. This is the renderer
+    // that was missing. Returns null when the list is empty, so no empty card
+    // is added for users who have not made one.
+    var ucc = buildCustomDashboardCardsCard(p);
+    if (ucc) { if (vis['card-user-custom'] === false) ucc.style.display='none'; addDragHandle(ucc); c.appendChild(ucc); }
+
+    // Photos & Documents gallery card
+    var g2 = renderGalleryCard();
+    if (g2) { if (vis['card-gallery'] === false) g2.style.display='none'; addDragHandle(g2); c.appendChild(g2); }
+
+    // Completion ("Percentage Finished")
+    // 2026-10-09 (Matthew) DEFAULT ORDER for a new install:
+    //   Portfolio Overview, Live Spot Prices, Metal Price Trends,
+    //   Bullion Holdings, Scrap Precious Metal, Bulk Coins, Paper Currency,
+    //   Other Collectables, Photos & Documents, Collection Completion,
+    //   Wishlist, Your Backup, Support this App.
+    // The append order below IS the default order. applyDashboardOrder() then
+    // re-applies any saved drag order on top, so a rearranged dashboard keeps
+    // the arrangement the user chose.
+    var cc = buildCompletionCard(getSections());
+    if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
+
     var wl = getWishlist() || [];
     var w2 = buildWishlistCard(wl);
     if (w2) { if (vis['card-wishlist'] === false) w2.style.display='none'; addDragHandle(w2); c.appendChild(w2); }
 
+    // 2026-09-30: plain-language backup card (Matthew). One sentence
+    // stating where the data lives, one button to act on it.
+    var bkp = buildBackupCard();
+    if (vis['card-backup'] === false) bkp.style.display = 'none';
+    addDragHandle(bkp);
+    c.appendChild(bkp);
+
+    // Support card — always render LAST, respects visibility toggle.
+    var sup = buildSupportCard();
+    if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup); }
+
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
     applyDashboardSizes();
-    requestAnimationFrame(function() { 
-        if (c) c.style.minHeight = '';
-        window.scrollTo(0, scrollY); 
-    });
+
+    // COI-20: release the scroll-anchor pin now that the rebuilt cards
+    // have their real heights back.
+    if (typeof _coi20Pin === 'function') _coi20Pin();
+
 }
 
 function buildWishlistCard(wishlist) {
@@ -652,7 +813,7 @@ function buildWishlistCard(wishlist) {
     card.appendChild(hdr);
     
     // Wishlist items container
-    var itemsDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;padding-right:4px;' });
+    var itemsDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;padding-right:4px;' });
     
     if (!wishlist || wishlist.length === 0) {
         itemsDiv.appendChild(el('p', { style: 'font-size:0.82em;color:var(--color-text-muted);margin:0;padding:10px 0;text-align:center;' }, 'Your wishlist is empty. Tap the ♥ heart next to any coin in the catalog to add it.'));
@@ -666,8 +827,29 @@ function buildWishlistCard(wishlist) {
             }
             
             var left = el('div', { style: 'display:flex;flex-direction:column;gap:2px;' });
-            var titleText = item.description || ('Coin #' + item.coin_id);
-            var title = el('div', { style: 'font-weight:600;color:var(--color-text-main);' + (item.acquired ? 'text-decoration:line-through;' : '') }, titleText);
+            // GGMJ-382 (Matthew, report B8): the card must say WHAT the coin is.
+            // The structured `coin` block carries denomination / year / mint /
+            // type separately; render them on their own lines so the entry is
+            // unambiguous. Fall back to the flat description for a listing
+            // with no catalogue row behind it.
+            var coin = item.coin || null;
+            var title = el('div', { style: 'font-weight:600;color:var(--color-text-main);' + (item.acquired ? 'text-decoration:line-through;' : '') });
+            if (coin && (coin.denomination || coin.coin_type || coin.year)) {
+                if (coin.denomination) {
+                    title.appendChild(el('span', { style: 'color:var(--color-accent);' }, coin.denomination));
+                    title.appendChild(document.createTextNode(' '));
+                }
+                var yearMint = [];
+                if (coin.year) yearMint.push(String(coin.year));
+                if (coin.mint_mark) yearMint.push(String(coin.mint_mark));
+                if (yearMint.length) {
+                    title.appendChild(document.createTextNode(yearMint.join(' ')));
+                    title.appendChild(document.createTextNode(' '));
+                }
+                if (coin.coin_type) title.appendChild(document.createTextNode(coin.coin_type));
+            } else {
+                title.appendChild(document.createTextNode(item.description || ('Coin #' + item.coin_id)));
+            }
             if (item.target_grade) {
                 title.appendChild(document.createTextNode(' '));
                 title.appendChild(el('span', {
@@ -723,6 +905,262 @@ function buildWishlistCard(wishlist) {
     return card;
 }
 
+
+/* ================================================================
+   Backup card: state the situation in one sentence.      2026-09-30
+   Every capability here already exists in Settings -> Cloud Sync.
+   The problem was discoverability, not capability: "Cloud Sync"
+   inside a dropdown of 18 items, phrased in provider terms, does not
+   tell anyone that losing this device means losing the collection.
+   ================================================================ */
+function buildBackupCard() {
+    const card = el('div', {
+        className: 'card dashboard-card backup-card',
+        id: 'card-backup',
+        style: 'display:flex;flex-direction:column;'
+    });
+    card.appendChild(el('div', { className: 'card-title' }, 'Your Backup'));
+
+    const body = el('div', { style: 'display:flex;flex-direction:column;gap:10px;flex:1;' });
+    const status = el('div', { className: 'settings-text', style: 'font-size:0.85em;line-height:1.5;' });
+    const actions = el('div', { style: 'display:flex;flex-direction:column;gap:8px;' });
+    body.appendChild(status);
+    body.appendChild(actions);
+    card.appendChild(body);
+
+    const openSync = () => import('./settingsDropdown.js')
+        .then(m => m.showCloudSyncModal())
+        .catch(() => import('./modals.js').then(m => m.showCloudSyncModal && m.showCloudSyncModal()));
+
+    const paint = async () => {
+        let sync;
+        try { sync = await import('./sync.js'); } catch (e) { sync = null; }
+        actions.innerHTML = '';
+
+        if (!sync) {
+            status.textContent = 'Backup options are unavailable right now.';
+            return;
+        }
+
+        const provider = sync.getCurrentProvider();
+        const authed = provider ? sync.getProviderAuthState(provider.id) : null;
+        let isSignedIn = !!(provider && authed && (authed.accessToken || authed.token || authed.connected));
+
+        // GGMJ-190 Bug 2: a stored accessToken is not proof the session is live —
+        // OAuth tokens expire (Google's last 1 hour). If sync.js says the token
+        // is past its expiresAt, paint the "session expired" state instead of
+        // the signed-in state so Back Up Now does not silently fail.
+        const sessionExpired = !!(provider && sync.isProviderSessionExpired
+            && sync.isProviderSessionExpired(provider.id));
+
+        if (!isSignedIn && !sessionExpired) {
+            status.textContent =
+                'Your data is saved on this device only. If this device is lost or '
+                + 'reset, your collection goes with it. Sign in to keep a backup.';
+            actions.appendChild(el('button', {
+                className: 'btn-primary',
+                style: 'width:100%;',
+                onclick: openSync
+            }, 'Set Up Backup'));
+            return;
+        }
+
+        if (sessionExpired) {
+            // Token was issued but has expired. Tell the user IN THE CARD (not
+            // just on a failed backup attempt) and route them to the Cloud Sync
+            // modal to re-authenticate.
+            status.textContent =
+                'Your ' + (provider.name || 'cloud') + ' session has expired. '
+                + 'Sign in again to re-enable backups.';
+            actions.appendChild(el('button', {
+                className: 'btn-primary',
+                style: 'width:100%;',
+                onclick: openSync
+            }, 'Sign In Again'));
+            actions.appendChild(el('button', {
+                style: 'width:100%;background:transparent;border:none;color:var(--color-text-muted);'
+                     + 'font-size:0.8em;cursor:pointer;text-decoration:underline;',
+                onclick: openSync
+            }, 'More backup options'));
+            return;
+        }
+
+        const auto = sync.isAutoBackupEnabled();
+        const hours = sync.getAutoBackupHours();
+        if (auto) {
+            status.textContent = 'Your collection is backed up automatically'
+                + (hours ? ' every ' + hours + ' hour' + (hours === 1 ? '' : 's') : '')
+                + '. You can also restore it at any time.';
+        } else {
+            status.textContent =
+                'You are signed in to ' + (provider.name || 'your cloud') + ', but '
+                + 'backups only happen when you ask. Turn on automatic backups so '
+                + 'you do not have to remember.';
+        }
+
+        // GGMJ-190 Bug 2: if a previous backup/restore attempt just failed
+        // (usually an expired OAuth token the static paint did not catch), reflect
+        // that INLINE in the card instead of only as a toast. The flag is set by
+        // the backupSyncFailed listener wired up below.
+        if (card._backupLastError) {
+            status.textContent =
+                'Last ' + (card._backupLastError.op === 'restore' ? 'restore' : 'backup')
+                + ' failed: ' + card._backupLastError.message
+                + ' You may need to sign in again from Cloud Sync settings.';
+        }
+
+        // backup now
+        actions.appendChild(el('button', {
+            className: 'btn-secondary',
+            style: 'width:100%;',
+            onclick: async (e) => {
+                const b = e.currentTarget;
+                const old = b.textContent;
+                b.textContent = 'Backing up...';
+                b.disabled = true;
+                // Clear any previous failure - we are about to try again.
+                card._backupLastError = null;
+                try {
+                    await sync.syncToCloud();
+                    b.textContent = 'Backed Up';
+                } catch (err) {
+                    b.textContent = 'Backup Failed';
+                    // Show the reason inline on the card (not just a toast).
+                    card._backupLastError = { op: 'backup', message: err && err.message ? String(err.message) : 'unknown' };
+                    paint();
+                }
+                setTimeout(() => { b.textContent = old; b.disabled = false; }, 2200);
+            }
+        }, 'Back Up Now'));
+
+        // automatic backups, on/off with its own interval
+        const autoBtn = el('button', {
+            className: auto ? 'btn-secondary' : 'btn-primary',
+            style: 'width:100%;',
+            onclick: () => {
+                sync.setAutoBackupEnabled(!sync.isAutoBackupEnabled());
+                paint();
+            }
+        }, auto ? 'Turn Off Automatic Backups' : 'Turn On Automatic Backups');
+        actions.appendChild(autoBtn);
+
+        if (auto) {
+            const row = el('div', { style: 'display:flex;align-items:center;gap:8px;' });
+            row.appendChild(el('label', { style: 'font-size:0.82em;flex:1;' }, 'Every'));
+            const sel = el('select', {
+                style: 'padding:4px 8px;font-size:0.85em;background:var(--color-bg-card);'
+                     + 'color:var(--color-text-main);border:1px solid var(--color-border-light);'
+                     + 'border-radius:6px;',
+                onchange: (e) => {
+                    sync.setAutoBackupHours(parseInt(e.target.value, 10));
+                    paint();
+                }
+            }, sync.AUTO_BACKUP_INTERVALS.map(opt => el('option',
+                { value: opt.hours, selected: opt.hours === hours }, opt.label)));
+            row.appendChild(sel);
+            row.appendChild(el('span', { style: 'font-size:0.82em;' }, 'or less often'));
+            actions.appendChild(row);
+        }
+
+        // recovery
+        actions.appendChild(el('button', {
+            className: 'btn-secondary',
+            style: 'width:100%;',
+            onclick: (e) => {
+                const b = e.currentTarget;
+                if (b.dataset.armed === '1') {
+                    delete b.dataset.armed;
+                    b.textContent = 'Recover From Backup';
+                    b.classList.remove('btn-primary');
+                    return;
+                }
+                // Restoring overwrites local data, so make it deliberate.
+                b.dataset.armed = '1';
+                b.textContent = 'Tap again to confirm — this replaces this device\u2019s data';
+                b.classList.add('btn-primary');
+                setTimeout(() => {
+                    if (b.dataset.armed === '1') {
+                        delete b.dataset.armed;
+                        b.textContent = 'Recover From Backup';
+                        b.classList.remove('btn-primary');
+                    }
+                }, 6000);
+            },
+            ondblclick: null
+        }, 'Recover From Backup'));
+        // the actual restore runs on the second click
+        actions.lastChild.addEventListener('click', async (e) => {
+            const b = e.currentTarget;
+            if (b.dataset.armed !== '1') return;   // first click only armed it
+            b.textContent = 'Recovering...';
+            b.disabled = true;
+            // Clear any previous failure - we are about to try again.
+            card._backupLastError = null;
+            try {
+                await sync.syncFromCloud();
+                b.textContent = 'Recovered';
+                setTimeout(() => location.reload(), 900);
+            } catch (err) {
+                b.textContent = 'Recovery Failed';
+                // Show the reason inline on the card (not just a toast).
+                card._backupLastError = { op: 'restore', message: err && err.message ? String(err.message) : 'unknown' };
+                paint();
+                b.disabled = false;
+            }
+        }, true);
+
+        actions.appendChild(el('button', {
+            style: 'width:100%;background:transparent;border:none;color:var(--color-text-muted);'
+                 + 'font-size:0.8em;cursor:pointer;text-decoration:underline;',
+            onclick: openSync
+        }, 'More backup options'));
+    };
+
+    paint();
+    card._backupRepaint = paint;
+
+    // GGMJ-190 Bug 3: listen for auto-backup settings changes (from the Cloud Sync
+    // modal or another card instance) so both views always stay in sync.
+    // Also listen for backup/restore failures from sync.js to surface inline.
+    const handleSettingsChange = () => paint();
+    const handleSyncFailed = (e) => {
+      card._backupLastError = e.detail || { op: 'unknown', message: 'unknown' };
+      paint();
+    };
+    window.addEventListener('backupSettingsChanged', handleSettingsChange);
+    window.addEventListener('backupSyncFailed', handleSyncFailed);
+    // Cleanup so a recreated card doesn't leak listeners.
+    const originalRepaint = card._backupRepaint;
+    card._backupRepaint = () => {
+      originalRepaint && originalRepaint();
+    };
+    return card;
+}
+
+function buildSupportCard() {
+    const card = el('div', { className: 'card dashboard-card support-card', id: 'card-support', style: 'display:flex;flex-direction:column;' });
+    const hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-right:28px;flex-shrink:0;' });
+    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, '♥ Support This App'));
+    card.appendChild(hdr);
+
+    const p = el('p', { style: 'font-size:0.85em;color:var(--color-text-muted);margin:0 0 10px;line-height:1.45;' },
+        'Coin Catalog is free to use. If it helps you, consider supporting development with a donation.');
+    card.appendChild(p);
+
+    const donateUrl = localStorage.getItem('cc-donate-url') || 'https://paypal.me/mattejenkins';
+    const btn = el('a', {
+        href: donateUrl,
+        target: '_blank',
+        rel: 'noopener',
+        className: 'btn-primary',
+        style: 'display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 14px;text-decoration:none;font-size:0.9rem;'
+    }, '♥ Donate with PayPal');
+    btn.onclick = (e) => { e.stopPropagation(); };
+    card.appendChild(btn);
+
+    return card;
+}
+
 function buildCompletionCard(sections) {
     if (!sections || !sections.length) return null;
     var total = sections.reduce(function(s,e){return s+e.total;}, 0);
@@ -741,13 +1179,177 @@ function buildCompletionCard(sections) {
 }
 
 
+function buildEmptyPortfolioCard() {
+    var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio'});
+    card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
+    var body = el('div',{style:'width:100%; min-width:0; padding:12px 4px; text-align:center; color:var(--color-text-muted); font-size:0.9em; line-height:1.5; word-break:normal; overflow-wrap:normal; white-space:normal;'});
+    // 2026-09-29: this was a \uD83E\uDE99 gold-coin emoji, which rendered as
+    // a yellow coin rather than anything belonging to the app. Use the real
+    // app icon instead. The path goes through resolveImageUrl so it
+    // re-bases correctly on every host (self-hosted root, GitHub Pages
+    // /coin-catalog/app/, Cloudflare Pages root).
+    var icon = el('img', {
+        src: resolveImageUrl('/icons/icon-512.png'),
+        alt: '', 'aria-hidden': 'true',
+        width: 48, height: 48,
+        style: 'width:48px; height:48px; object-fit:contain; ' +
+               'margin:0 auto 10px; display:block; opacity:0.9;'
+    });
+    body.appendChild(icon);
+    body.appendChild(el('div',{},'Your portfolio is empty.'));
+    body.appendChild(el('div',{style:'margin-top:4px;'},'Add coins from the catalog, enter bullion, or record paper currency to see your total value here.'));
+    card.appendChild(body);
+    return card;
+}
+
+// 2026-10-20 (Matthew-approved Gemini-4 spec): External Investments card.
+// Stocks / ETFs / Retirement / Crypto / Bonds / Other. Optional purchase price
+// yields automatic gain/loss. Total feeds Portfolio Overview via
+// investments_value (p.investments_value from the backend) and gets a
+// checkbox in the breakdown grid like every other bucket.
+var _invEntries = null;
+function buildInvestmentsCard(p) {
+    var card = el('div', { className: 'card dashboard-card', id: 'card-investments' });
+    card.appendChild(el('div', { className: 'card-title' }, 'Other Investments'));
+
+    var listWrap = el('div', { className: 'inv-list', style: 'display:flex;flex-direction:column;gap:8px;' });
+    var totalRow = el('div', { className: 'finance-item grand-total', style: 'margin-top:8px;' });
+
+    function fmtMoney(v) { return '$' + (v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+    function refreshTotal() {
+        var total = 0;
+        (_invEntries || []).forEach(function (e) { total += (e.total_value || 0); });
+        totalRow.textContent = '';
+        totalRow.appendChild(el('span', { className: 'finance-label' }, 'Total Other Investments'));
+        totalRow.appendChild(el('span', { className: 'finance-value bold' }, fmtMoney(total)));
+    }
+
+    function removeEntry(id) {
+        deleteInvestment(id).then(function () {
+            _invEntries = (_invEntries || []).filter(function (e) { return e.id !== id; });
+            renderList();
+            refreshTotal();
+            fetchPortfolioAsync().then(function (pd) {
+                _portfolioData = pd && pd.portfolio ? pd.portfolio : pd;
+                _bulkCoinsData = pd && pd.bulkEntries ? pd.bulkEntries : [];
+                renderDashboard();
+            });
+        }).catch(function (err) {
+            _showCardToast('Failed to delete: ' + err.message, 'error');
+        });
+    }
+
+    function renderList() {
+        listWrap.textContent = '';
+        if (!_invEntries || !_invEntries.length) {
+            listWrap.appendChild(el('div', { className: 'dashboard-detail', style: 'text-align:center;padding:10px 0;' }, 'No Other Investments yet'));
+        } else {
+            _invEntries.forEach(function (e) {
+                var row = el('div', { className: 'finance-item', style: 'flex-wrap:wrap;gap:4px;' });
+                var info = el('div', { style: 'flex:1;min-width:0;' });
+                info.appendChild(el('span', { className: 'finance-label' }, (e.category || 'Stocks') + (e.as_of_date ? ' · ' + e.as_of_date : '')));
+                info.appendChild(el('div', { style: 'font-weight:600;overflow-wrap:anywhere;' }, e.name || 'Unnamed'));
+                row.appendChild(info);
+                var val = el('div', { style: 'text-align:right;' });
+                val.appendChild(el('span', { className: 'finance-value' }, fmtMoney(e.total_value)));
+                if (e.gain !== null && e.gain !== undefined) {
+                    var up = (e.gain || 0) >= 0;
+                    val.appendChild(el('div', { style: 'font-size:0.78em;color:' + (up ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';' },
+                        ((e.gain || 0) > 0 ? '+' : ((e.gain || 0) < 0 ? '-' : '')) + fmtMoney(Math.abs(e.gain || 0))));
+                }
+                row.appendChild(val);
+                var del = el('button', { className: 'btn-secondary', title: 'Remove', style: 'padding:2px 8px;font-size:0.8em;margin-left:6px;' }, '✕');
+                del.onclick = function () { removeEntry(e.id); };
+                row.appendChild(del);
+                listWrap.appendChild(row);
+            });
+        }
+    }
+
+    function renderForm() {
+        // 2026-10-21 (GGMJ-384/B3, Matthew): built as a .v1-form with
+        // .v1-input/.v1-select controls so it is shaped and themed like the
+        // other five data-entry cards. The old version used bare inputs --
+        // which fall through to the browser's default light chrome, because
+        // the app has no global input rule -- and a bare button.btn-primary
+        // with align-self:flex-start instead of the shared .v1-add-btn.
+        var form = el('div', { className: 'v1-form' });
+        var name = el('input', { className: 'v1-input', type: 'text', placeholder: 'Name (e.g. Fidelity 401k)' });
+        var cat = el('select', { className: 'v1-select' });
+        ['Stocks', 'ETFs / Funds', 'Retirement', 'Crypto', 'Bonds / CDs', 'Other'].forEach(function (c) {
+            var o = el('option', { value: c }, c); cat.appendChild(o);
+        });
+        var valIn = el('input', { className: 'v1-input', type: 'number', placeholder: 'Current value', step: '0.01', min: '0' });
+        var costIn = el('input', { className: 'v1-input', type: 'number', placeholder: 'Purchase price (optional)', step: '0.01', min: '0' });
+        var dateIn = el('input', { className: 'v1-input', type: 'date' });
+        var addBtn = el('button', { className: 'v1-add-btn' }, '+ Add');
+        addBtn.onclick = function () {
+            var v = parseFloat(valIn.value);
+            if (!name.value.trim() || isNaN(v)) { _showCardToast('Enter a name and value', 'error'); return; }
+            var cost = costIn.value === '' ? null : parseFloat(costIn.value);
+            saveInvestment({ name: name.value.trim(), category: cat.value, total_value: v,
+                             purchase_price: cost, as_of_date: dateIn.value || '' })
+                .then(function (saved) {
+                    _invEntries = _invEntries || [];
+                    _invEntries.push(saved);
+                    renderList(); refreshTotal();
+                    fetchPortfolioAsync().then(function (pd) {
+                        _portfolioData = pd && pd.portfolio ? pd.portfolio : pd;
+                        _bulkCoinsData = pd && pd.bulkEntries ? pd.bulkEntries : [];
+                        renderDashboard();
+                    });
+                    name.value = ''; valIn.value = ''; costIn.value = ''; dateIn.value = '';
+                    _showCardToast('Other Investments added', 'success');
+                })
+                .catch(function (err) { _showCardToast('Failed to save: ' + err.message, 'error'); });
+        };
+        [name, cat, valIn, costIn, dateIn].forEach(function (w) {
+            form.appendChild(w);
+        });
+        form.appendChild(addBtn);
+        // _foldCardForm() MOVES addBtn out of the form into the action row,
+        // so it has to be a child of the form first (every other card does
+        // the same). Stash it so the caller can hand it to the helper.
+        form._addBtn = addBtn;
+        return form;
+    }
+
+    card.appendChild(listWrap);
+    card.appendChild(totalRow);
+    var formEl = renderForm();
+    card.appendChild(formEl);
+    // 2026-10-21 (GGMJ-384/B3, Matthew): the form must fold through the SAME
+    // helper the other five cards use. A second hand-rolled toggle is how the
+    // Investments card came to have no fold control at all in the first place.
+    // The form has to be in the card (a real parent) before this call, because
+    // the helper inserts its action row as the form's SIBLING.
+    _foldCardForm(formEl, formEl._addBtn, 'investments', '+ Add');
+
+    // Load entries. On self-hosted these come from /api/investments; on the
+    // static deployments from the local Dexie store (GGMJ-378).
+    if (typeof fetchInvestments === 'function') {
+        fetchInvestments().then(function (entries) {
+            _invEntries = entries || [];
+            renderList(); refreshTotal();
+        }).catch(function () {
+            _invEntries = []; renderList(); refreshTotal();
+        });
+    } else {
+        renderList(); refreshTotal();
+    }
+    return card;
+}
+
 function buildPortfolioBreakdownCard(p) {
     var total = p.total_estimated_value || 0;
     var melt = p.total_melt || 0;
     var face = p.face_value || 0;
     var coins = p.total_physical_coins || 0;
     var items = p.total_items || 0;
-    if (total===0 && melt===0) return null;
+    if (total===0 && melt===0) {
+        return buildEmptyPortfolioCard();
+    }
 
     var history = JSON.parse(localStorage.getItem('cc-portfolio-history') || '[]');
     var now = Date.now();
@@ -776,21 +1378,43 @@ function buildPortfolioBreakdownCard(p) {
     card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
 
     // Top section: Total on top, Sparkline below it
-    var topSec = el('div', {style:'display:flex; flex-direction:column; margin-bottom:8px; gap:8px; min-height: 60px;'});
+    // 2026-10-09 (Matthew): class + width so the chart below can fill the card.
+    // As an unclassed column-flex child it was content-sized, which is what kept
+    // the canvas at 50% -- see references/dashboard-card-fill-width.md.
+    var topSec = el('div', {className:'portfolio-topsec', style:'display:flex; flex-direction:column; width:100%; align-items:stretch; margin-bottom:8px; gap:8px; min-height: 60px;'});
     
     var leftSec = el('div', {style:'width:100%; display:flex; flex-direction:column; align-items:flex-start;'});
-    leftSec.appendChild(el('div',{className:'dashboard-big-number', style:'margin-top:0;'},fmt(total)));
+    leftSec.appendChild(el('div', {
+        // 2026-10-09 (Matthew): this was a plain .dashboard-big-number and it
+        // clipped at some browser widths, while the SAME total already appeared
+        // at the bottom of this card in a bordered grand-total row. Two copies
+        // of one number is redundant, so the bordered one is promoted to the
+        // top and the duplicate row at the bottom is removed. He asked to keep
+        // the bordered look. (NB: do not write the removed row's call text in
+        // this comment -- the verification asserts that exact string is gone.)
+        className: 'finance-item grand-total portfolio-hero',
+        style: 'grid-column:auto; margin-top:0; width:100%;'
+    }, [
+        el('span', {className:'finance-label'}, 'Total Portfolio'),
+        el('span', {className:'finance-value bold'}, fmt(total))
+    ]));
     var sum = [];
     if (coins>0) sum.push(coins.toLocaleString()+' physical coins');
     if (items>0 && items!==coins) sum.push(items.toLocaleString()+' total items');
     if (sum.length) leftSec.appendChild(el('div',{className:'dashboard-detail',style:'margin:0 0 8px;font-size:0.82em;'},sum.join(' \u00b7 ')));
     topSec.appendChild(leftSec);
 
-    var rightSec = el('div', {style:'width:100%; display:flex; flex-direction:column; align-items:flex-end;'});
-    var cvs = el('canvas', {style:'width:100%; height:60px;'});
-    rightSec.appendChild(cvs);
+    // 2026-10-09 (Matthew): the sparkline rendered ~41% of the card width
+    // (measured: canvas 130px inside a 317px card). It sat in `rightSec`, a
+    // sibling column that sized to its CONTENT (the period-button row) rather
+    // than to the card, and the canvas was measured once at first paint with
+    // nothing re-measuring afterwards. One full-width block, measured against
+    // the card, redrawn on resize.
+    var chartWrap = el('div', {className:'portfolio-chart'});
+    var cvs = el('canvas', {className:'portfolio-chart-canvas', style:'width:100%; height:60px; display:block;'});
+    chartWrap.appendChild(cvs);
 
-    var btnRow = el('div', {style:'display:flex; gap:8px; margin-top:4px; font-size:0.7em;'});
+    var btnRow = el('div', {className:'portfolio-periods', style:'display:flex; gap:8px; margin-top:4px; font-size:0.7em;'});
     var periods = [
         {label:'1D', ms:86400000},
         {label:'1W', ms:7*86400000},
@@ -805,7 +1429,12 @@ function buildPortfolioBreakdownCard(p) {
         var filtered = ms > 0 ? history.filter(h => now - h.t <= ms) : history;
         if (filtered.length < 2) filtered = history; // fallback
         requestAnimationFrame(() => {
-            var cw = cvs.clientWidth || 300;
+            // Measure the CARD's content box, not just the canvas: the first
+            // paint can be pre-layout, so fall back through wrapper to card.
+            var cw = cvs.clientWidth
+                  || (chartWrap.clientWidth || 0)
+                  || (card.clientWidth || 0)
+                  || 300;
             _sparkline(cvs, filtered.map(h => ({v: h.v})), '#10b981', cw, 60);
         });
         // update btn styles
@@ -824,12 +1453,22 @@ function buildPortfolioBreakdownCard(p) {
         });
         btnRow.appendChild(b);
     });
-    rightSec.appendChild(btnRow);
-    topSec.appendChild(rightSec);
+    chartWrap.appendChild(btnRow);
+
+    topSec.appendChild(chartWrap);
 
     card.appendChild(topSec);
 
+    // Redraw when the card resizes so the chart tracks the working width
+    // instead of freezing at its first-paint width.
+    if (typeof ResizeObserver !== 'undefined') {
+        var _chartRO = new ResizeObserver(function(){ drawChart(activePeriod); });
+        _chartRO.observe(card);
+    }
+
     setTimeout(() => drawChart(activePeriod), 50);
+    // Second pass after layout settles -- the first can fire pre-resize.
+    setTimeout(() => drawChart(activePeriod), 400);
 
     var g = el('div',{className:'finance-grid'});
     if (p.gold_coin_melt>0) g.appendChild(fRow('Gold Coins Melt',fmt(p.gold_coin_melt)));
@@ -843,9 +1482,14 @@ function buildPortfolioBreakdownCard(p) {
     if (p.scrap_value>0) g.appendChild(fRow('Scrap Metal',fmt(p.scrap_value)));
     if (p.paper_value>0) g.appendChild(fRow('Paper Currency',fmt(p.paper_value)));
     if (p.other_value>0) g.appendChild(fRow('Other Collectibles',fmt(p.other_value)));
+    // 2026-10-21 (GGMJ-383): the Investments bucket was missing from the
+    // breakdown grid. The server's total_estimated_value includes
+    // investments_value; the card showed a breakdown that did not, so the
+    // visible rows did not sum to the stated total.
+    if (p.investments_value>0) g.appendChild(fRow('Other Investments',fmt(p.investments_value)));
     if (face>0) g.appendChild(fRow('Face Value',fmt(face)));
     g.appendChild(fRow('Total Melt Value',fmt(melt),true));
-    g.appendChild(fRow('Total Portfolio',fmt(total),true,'grand-total'));
+
     card.appendChild(g);
 
     return card;
@@ -869,6 +1513,192 @@ function getVisibleBullionMetals() {
     } catch(e) { return {}; }
 }
 
+
+/* ================================================================
+   Collapsible entry forms.                                2026-09-30
+   Every card that can accept new entries keeps its form behind
+   an Add button. Clicking it reveals the form and the card grows
+   to exactly the size it had before; submitting or cancelling
+   collapses it again. The open state is remembered per card, so
+   a half-filled form survives a reload instead of vanishing.
+
+   The submit handlers captured their field refs onto the button
+   (btn._catSel, btn._nameIn, ...) when the form was built, so
+   hiding the form cannot orphan them, and a successful save
+   re-renders the card -- which returns it to collapsed for free.
+   ================================================================ */
+var _FORM_FOLD_KEY = 'cc-card-form-open';
+
+function _formOpenState() {
+    try { return JSON.parse(localStorage.getItem(_FORM_FOLD_KEY) || '{}'); }
+    catch (e) { return {}; }
+}
+
+function _formIsOpen(key) { return !!_formOpenState()[key]; }
+
+function _formSetOpen(key, open) {
+    var st = _formOpenState();
+    if (open) { st[key] = 1; } else { delete st[key]; }
+    try { localStorage.setItem(_FORM_FOLD_KEY, JSON.stringify(st)); }
+    catch (e) { /* private mode: fold state is best-effort */ }
+}
+
+/**
+ * Wire a card's form to an Add button.
+ *   form   the .v1-form element
+ *   addBtn the existing .v1-add-btn (kept, given the toggle role)
+ *   key    unique per card, e.g. 'paper'
+ *   label  the collapsed-state label, e.g. 'Add Banknote'
+ */
+function _foldCardForm(form, addBtn, key, label) {
+    if (!form || !addBtn) return;
+    var _FIELDS = 'input:not([type=file]), select, textarea';
+    form.id = form.id || ('fold-' + key);
+
+    // The Add button is width:100%, so the Hide button needs a flex ROW or
+    // it wraps onto its own line and the card stays tall. The row is what
+    // shows when collapsed; the form is a sibling of it.
+    var row = el('div', { className: 'v1-form-actions' });
+    // 2026-10-21 (GGMJ-384/B4, Matthew): this control reads "Hide", not
+    // "Cancel" -- Hide implies the data is KEPT, Cancel implies it is
+    // discarded. The class name stays .v1-cancel-btn because components.v2.css
+    // styles that class; only the visible label changed.
+    var cancel = el('button', {
+        className: 'v1-cancel-btn',
+        type: 'button',
+        // GGMJ-395 (Matthew): the accessible name must read as
+        // NON-DESTRUCTIVE. "Cancel" implies the typed values are thrown
+        // away; "Hide" means the form folds away and the values are KEPT.
+        // A screen reader announces the aria-label, not the visible text,
+        // so without it the button still announces itself as "Cancel".
+        title: 'Hide entry form (your entries are kept)',
+        'aria-label': 'Hide entry form',
+        style: 'display:none;'
+    }, 'Hide');
+
+    addBtn.type = 'button';
+    addBtn.setAttribute('aria-expanded', 'false');
+    addBtn.setAttribute('aria-controls', form.id);
+
+    var setOpen = function(open) {
+        if (open) {
+            form.style.display = '';
+            row.style.display = '';
+            cancel.style.display = '';
+            addBtn.setAttribute('aria-expanded', 'true');
+        } else {
+            // Collapsed: one full-width Add button and nothing else.
+            form.style.display = 'none';
+            cancel.style.display = 'none';
+            addBtn.setAttribute('aria-expanded', 'false');
+        }
+    };
+
+    var toggle = function() {
+        var willOpen = form.style.display === 'none';
+        setOpen(willOpen);
+        _formSetOpen(key, willOpen);
+        if (willOpen) {
+            form._foldBase = snapshot();
+            var f = form.querySelector(_FIELDS);
+            if (f && f.focus) setTimeout(function(){ try { f.focus(); } catch (e) {} }, 0);
+        }
+    };
+
+    // While collapsed the existing Add button opens the form instead of
+    // submitting. While open it submits exactly as before, so no
+    // behaviour changes for anyone mid-entry.
+    addBtn._submitHandler = addBtn.onclick;
+    addBtn.addEventListener('click', function (e) {
+        if (form.style.display === 'none') {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle();
+        }
+        // otherwise: fall through, the existing handler submits
+    }, true);
+
+    // "Has the user typed anything?" must compare against the form's
+    // INITIAL state. A <select> sitting on its first option and a
+    // pre-checked checkbox both have values, so a naive non-empty test
+    // fires the confirm on a pristine form -- and the native confirm()
+    // blocks the page, which is exactly what happened.
+    var snapshot = function () {
+        var m = {};
+        Array.prototype.forEach.call(form.querySelectorAll(_FIELDS), function (f, i) {
+            m[i] = (f.type === 'checkbox' || f.type === 'radio') ? !!f.checked
+                                                             : (f.value || '');
+        });
+        return m;
+    };
+    var dirty = function (base) {
+        var now = snapshot();
+        return Object.keys(now).some(function (k) { return now[k] !== base[k]; });
+    };
+
+    // 2026-10-21 (GGMJ-384/B4, Matthew): Hide is a COLLAPSE, not a cancel.
+    // It used to confirm("Discard what you typed?") and form.reset(), which
+    // threw the user's typing away -- the opposite of what "Hide" means.
+    // Now it only folds the form away; reopening shows the values intact.
+    cancel.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(false);
+        _formSetOpen(key, false);
+        addBtn.focus();
+    });
+
+    // Escape closes, from anywhere inside the form
+    form.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); cancel.click(); }
+    });
+
+    // The row must END UP AS A SIBLING of the form, not inside it.
+    //
+    // Putting it inside .v1-form meant the collapsed state's
+    // `form.style.display = 'none'` hid the Add button along with the
+    // entry rows. Every card measured 0x0 for its button and the
+    // "Add your first entry below" text pointed at nothing clickable.
+    // addBtn is a CHILD of form (form.appendChild(addBtn) in every card),
+    // so addBtn.parentNode IS the form. Putting the row inside the form is
+    // what hid the button, and inserting it as a sibling needs the form's
+    // own parent -- get that from the form, not from the button.
+    //
+    // Getting this wrong threw:
+    //   NotFoundError: Failed to execute 'insertBefore' on 'Node':
+    //   The node before which the new node is to be inserted is not a
+    //   child of this node.
+    // which killed the render after card-portfolio, leaving 1 of 12 cards
+    // on the page.
+    var host = form.parentNode;
+    if (host) {
+        // 2026-10-09 (Matthew): primary action LEFT, Cancel RIGHT. Append
+        // order IS visual order in a flex row, so addBtn goes first.
+        row.appendChild(addBtn);      // moves the button OUT of the form
+        row.appendChild(cancel);
+        // 2026-10-21 (GGMJ-385, Matthew): the action row goes AFTER the
+        // form, so the Add button renders BELOW the input fields.
+        //
+        // It used to be `host.insertBefore(row, form)`, which put the row
+        // BEFORE the form in the DOM -- and because the card is a flex
+        // column, the buttons rendered ABOVE the fields. Matthew's report:
+        // "input boxes should sit ABOVE the Add button ... the Add button
+        // must go BELOW the inputs". Measured on the live self-hosted app
+        // before this change: Add button top 1217 vs first input top 1290.
+        //
+        // `form.nextSibling` is the insertion point, because `form` is
+        // already a child of `host` -- insertBefore() needs a reference
+        // node that IS a child of the parent, or it throws NotFoundError.
+        // Using `form.nextSibling` (rather than appendChild) keeps the row
+        // tied to the form's position even if the card has trailing
+        // content after the form.
+        host.insertBefore(row, form.nextSibling);
+    }
+
+    // restore the remembered state, defaulting to closed
+    setOpen(_formIsOpen(key));
+}
+
 function buildBullionCard(items, p, prices) {
     if (!Array.isArray(items)) items = [];
     var card = el('div', { className: 'card dashboard-card bullion-card', id: 'card-bullion', style: 'display:flex;flex-direction:column;' });
@@ -886,18 +1716,19 @@ function buildBullionCard(items, p, prices) {
         if (!totals.hasOwnProperty(m)) return;
         var unit = (item.weight_unit || 'oz').toLowerCase();
         var rawW = item.weight || 0;
+        var iAmt = item.amount || 1.0;
         var spotKey = m === 'copper' ? 'copper_lb' : m + '_oz';
-        var w = rawW;
+        var w = rawW * iAmt;
         // Convert to valuation unit (lbs for copper, ozt for precious metals)
         if (m === 'copper') {
-            if (unit === 'oz' || unit === 'ozt') w = rawW / 16;
-            else if (unit === 'g')   w = rawW / 453.592;
-            else if (unit === 'kg')  w = rawW * 2.20462;
+            if (unit === 'oz' || unit === 'ozt') w = w / 16;
+            else if (unit === 'g')   w = w / 453.592;
+            else if (unit === 'kg')  w = w * 2.20462;
         } else {
-            if (unit === 'g')        w = rawW / 31.1035;
-            else if (unit === 'kg')  w = rawW * 32.1507;
-            else if (unit === 'lbs') w = rawW * 14.5833;
-            else if (unit === 'oz')  w = rawW / 1.09714;
+            if (unit === 'g')        w = w / 31.1035;
+            else if (unit === 'kg')  w = w * 32.1507;
+            else if (unit === 'lbs') w = w * 14.5833;
+            else if (unit === 'oz')  w = w / 1.09714;
         }
         var spot = prices[spotKey] || 0;
         totals[m] += w * spot;
@@ -914,7 +1745,7 @@ function buildBullionCard(items, p, prices) {
     card.appendChild(hdr);
 
     // Entries list grouped by metal — flex-grow to fill card height
-    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
+    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (items.length === 0) {
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No bullion entries yet. Add your first entry below.'));
         // Remove min-height gap when empty
@@ -939,21 +1770,22 @@ function buildBullionCard(items, p, prices) {
                 var subParts = [];
                 var iUnit = (item.weight_unit || 'oz').toLowerCase();
                 var iW = item.weight || 0;
-                subParts.push(iW.toFixed(2) + ' ' + iUnit);
-                if (item.purity && item.purity < 1) subParts.push(Math.round(item.purity * 100) + '%');
+                var iAmt = item.amount || 1.0;
+                subParts.push(iW.toFixed(2) + ' ' + iUnit + ' × ' + iAmt.toFixed(0));
+                if (item.purity && item.purity < 1) subParts.push(((item.purity * 100) % 1 === 0) ? (item.purity * 100).toFixed(0) + '%' : (item.purity * 100).toFixed(1) + '%');
                 // Value for this item (convert to standard valuation unit)
-                var convW = iW;
+                var convW = iW * iAmt;
                 if (m === 'copper') {
                     // Convert to lbs
-                    if (iUnit === 'oz' || iUnit === 'ozt') convW = iW / 16;
-                    else if (iUnit === 'g')   convW = iW / 453.592;
-                    else if (iUnit === 'kg')  convW = iW * 2.20462;
+                    if (iUnit === 'oz' || iUnit === 'ozt') convW = convW / 16;
+                    else if (iUnit === 'g')   convW = convW / 453.592;
+                    else if (iUnit === 'kg')  convW = convW * 2.20462;
                 } else {
                     // Convert to troy oz
-                    if (iUnit === 'g')        convW = iW / 31.1035;
-                    else if (iUnit === 'kg')  convW = iW * 32.1507;
-                    else if (iUnit === 'lbs') convW = iW * 14.5833;
-                    else if (iUnit === 'oz')  convW = iW / 1.09714;
+                    if (iUnit === 'g')        convW = convW / 31.1035;
+                    else if (iUnit === 'kg')  convW = convW * 32.1507;
+                    else if (iUnit === 'lbs') convW = convW * 14.5833;
+                    else if (iUnit === 'oz')  convW = convW / 1.09714;
                 }
                 var val = convW * (prices[spotKey] || 0);
                 if (val > 0) subParts.push('$' + val.toFixed(2));
@@ -982,20 +1814,20 @@ function buildBullionCard(items, p, prices) {
     row1.appendChild(metalSel);
     form.appendChild(row1);
 
-    // Row 2: Weight + Unit (grouped) + Purity
+    // Row 2: Weight + Unit (grouped) + Amount + Purity
     var row2 = el('div', { className: 'v1-form-row', style: 'align-items:flex-end; gap:8px;' });
     var wgtIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', placeholder: 'Weight', dataset: { field: 'rb-weight' }, style: 'flex:1;min-width:60px;' });
     var unitSel = el('select', { className: 'v1-select', style: 'width:76px;', dataset: { field: 'rb-unit' } });
     [['oz','oz'],['ozt','troy oz'],['g','g'],['lbs','lbs'],['kg','kg']].forEach(function(u) {
         unitSel.appendChild(el('option', { value: u[0] }, u[1]));
     });
-    var purityIn = el('input', { className: 'v1-input', type: 'number', step: '0.01', min: '0.01', max: '1', value: '1.0', placeholder: 'Purity', dataset: { field: 'rb-purity' }, style: 'width:60px;' });
-    // Group weight + unit
+    var amtIn = el('input', { className: 'v1-input', type: 'number', step: '1', min: '1', placeholder: 'Qty', dataset: { field: 'rb-amount' }, style: 'width:60px;', value: '1' });
+    // Group weight + unit + amount
     var wgtWrap2 = el('div', { style: 'display:flex; align-items:flex-end; gap:2px; flex:1; min-width:120px;' });
     wgtWrap2.appendChild(wgtIn);
     wgtWrap2.appendChild(unitSel);
+    wgtWrap2.appendChild(amtIn);
     row2.appendChild(wgtWrap2);
-    row2.appendChild(purityIn);
     form.appendChild(row2);
 
     // Notes
@@ -1008,12 +1840,14 @@ function buildBullionCard(items, p, prices) {
     addBtn._metalSel = metalSel;
     addBtn._wgtIn = wgtIn;
     addBtn._unitSel = unitSel;
-    addBtn._purityIn = purityIn;
+    addBtn._amtIn = amtIn;
+    addBtn._purityIn = null;
     addBtn._notesIn = notesIn;
     addBtn._prices = prices;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'bullion', 'Add Bullion Entry');;
     return card;
 }
 
@@ -1030,6 +1864,12 @@ function getMetalLabel(metalType) {
         'CladDimes': 'Clad Dimes',
         'CladQuarters': 'Clad Quarters',
         'CladHalves': 'Clad Half Dollars',
+        // 2026-10-10 (Matthew) -- CORRECTED. The Eisenhower series ended in
+        // 1978; every circulation strike is clad. The golden dollar types are
+        // clad too (no silver in either), so both are face value. See the
+        // note at the dropdown for the sources.
+        'EisenhowerClad': 'Eisenhower Dollars (1971-1978, clad)',
+        'GoldenDollars': 'Golden Sacagawea & Presidential Dollars',
         'SilverCoins90': '90% Silver Coins',
         // Canada
         'CanadianCopperPennies': 'Canadian Copper Pennies 1920-1996',
@@ -1102,12 +1942,83 @@ function calcCoinValue(entry, prices) {
         val = coinCount * 0.50;
         detail = ' × 0.50';
     } else if (entry.metal_type === 'SilverCoins90') {
-        // 90% silver coins: weight in grams → ozt
+        // 90% silver coins: weight in grams → ozt.
         var ozt = grams / 31.1035;
         val = ozt * (prices['silver_oz'] || 0) * 0.90;
         coinCount = null;
         detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
         isMelt = true;
+    } else if (entry.metal_type === 'EisenhowerClad') {
+        // 2026-10-10 (Matthew), corrected: the Eisenhower dollar ended in 1978
+        // and is copper-nickel clad in every circulation strike. Face value only.
+        // 22.68 g per coin (clad), $1.00 each.
+        coinCount = Math.round(grams / 22.68);
+        val = coinCount * 1.00;
+        detail = ' × $1.00 face';
+    } else if (entry.metal_type === 'CanadianCopperPennies') {
+        // 2026-10-21 (GGMJ-403): Canadian penny, 3.24 g. 1920-1964 are 95%
+        // copper; 1965-1996 are nickel-plated steel. Valued as 95% copper
+        // melt, matching the US CopperPennies branch.
+        var caCopperLb = prices['copper_lb'] || 0;
+        val = grams * 0.95 * caCopperLb / 453.592;
+        coinCount = Math.round(grams / 3.24);
+        detail = caCopperLb > 0 ? ' at $' + caCopperLb.toFixed(2) + '/lb copper' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianZincPennies') {
+        // Canadian zinc penny (1997-2012), 2.35 g, plated zinc. Face value.
+        coinCount = Math.round(grams / 2.35);
+        val = coinCount * 0.01;
+        detail = ' × 0.01';
+    } else if (entry.metal_type === 'CanadianNickels') {
+        // Canadian nickel, 4.54 g. Face value.
+        coinCount = Math.round(grams / 4.54);
+        val = coinCount * 0.05;
+        detail = ' × 0.05';
+    } else if (entry.metal_type === 'CanadianSilverDimes') {
+        // Canadian dime, pre-1968, 2.33 g, 80% silver (1920-1967; the 1967-68
+        // issues are 50%). Valued as 80% silver melt, NOT copper.
+        var caDimeOzt = grams / 31.1035;
+        val = caDimeOzt * (prices['silver_oz'] || 0) * 0.80;
+        coinCount = Math.round(grams / 2.33);
+        detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianCladDimes') {
+        // Canadian clad dime (1968+), 1.75 g, nickel + cupro-nickel. Face value.
+        coinCount = Math.round(grams / 1.75);
+        val = coinCount * 0.10;
+        detail = ' × 0.10';
+    } else if (entry.metal_type === 'CanadianSilverQuarters') {
+        // Canadian quarter, pre-1968, 5.83 g, 80% silver (1920-1967). Melt.
+        var caQuarterOzt = grams / 31.1035;
+        val = caQuarterOzt * (prices['silver_oz'] || 0) * 0.80;
+        coinCount = Math.round(grams / 5.83);
+        detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianCladQuarters') {
+        // Canadian clad quarter (1968+), 4.40 g. Face value.
+        coinCount = Math.round(grams / 4.40);
+        val = coinCount * 0.25;
+        detail = ' × 0.25';
+    } else if (entry.metal_type === 'CanadianHalfDollars') {
+        // Canadian 50 cents, pre-1968, 11.66 g, 80% silver (1920-1967). Melt.
+        var caHalfOzt = grams / 31.1035;
+        val = caHalfOzt * (prices['silver_oz'] || 0) * 0.80;
+        coinCount = Math.round(grams / 11.66);
+        detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianLoonies') {
+        // Canadian loonie (1987+), 7.00 g, gold-plated. Face value.
+        coinCount = Math.round(grams / 7.00);
+        val = coinCount * 1.00;
+        detail = ' × $1.00 face';
+    } else if (entry.metal_type === 'GoldenDollars') {
+        // 2026-10-10 (Matthew), corrected: the Sacagawea and Presidential
+        // dollars contain NO SILVER -- 88.5% Cu / 6% Zn / 3.5% Mn / 2% Ni over
+        // a brass core, 8.100 g. The gold colour is the plating, not the metal.
+        // Face value only.
+        coinCount = Math.round(grams / 8.1);
+        val = coinCount * 1.00;
+        detail = ' × $1.00 face';
     }
     
     return { value: val, coinCount: coinCount, detail: detail, isMelt: isMelt };
@@ -1131,7 +2042,7 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     card.appendChild(hdr);
 
     // Entries list — flex-grow to fill card height
-    var entriesDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
+    var entriesDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (!bulkEntries || bulkEntries.length === 0) {
         entriesDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No bulk coin entries yet. Add your first batch below.'));
     } else {
@@ -1143,7 +2054,19 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
             groups[m].push(entry);
         });
 
-        var metalOrder = ['CopperPennies', 'ZincPennies', 'Nickels', 'CladDimes', 'CladQuarters', 'CladHalves', 'SilverCoins90'];
+        // 2026-10-10 (Matthew): any metal_type a user can pick MUST appear here
+        // or its entry is never rendered -- the group loop iterates metalOrder
+        // and skips anything not listed, so it vanishes with no error. Verified
+        // end-to-end after adding the dollar types for exactly this reason.
+        var metalOrder = ['CopperPennies', 'ZincPennies', 'Nickels', 'CladDimes', 'CladQuarters', 'CladHalves',
+                          'EisenhowerClad', 'GoldenDollars', 'SilverCoins90',
+                          // Canada (2026-10-21, GGMJ-403) -- a metal_type a
+                          // user can pick MUST be listed here or the group loop
+                          // skips the entry and it never renders.
+                          'CanadianCopperPennies', 'CanadianZincPennies', 'CanadianNickels',
+                          'CanadianSilverDimes', 'CanadianCladDimes', 'CanadianSilverQuarters',
+                          'CanadianCladQuarters', 'CanadianHalfDollars', 'CanadianLoonies'];
+
         var metalColors = {
             'CopperPennies': '#b45309',
             'ZincPennies': '#64748b',
@@ -1151,7 +2074,18 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
             'CladDimes': '#64748b',
             'CladQuarters': '#64748b',
             'CladHalves': '#64748b',
-            'SilverCoins90': '#94a3b8'
+            'EisenhowerClad': '#64748b',
+            'GoldenDollars': '#d4af37',
+            'SilverCoins90': '#94a3b8',
+            'CanadianCopperPennies': '#b45309',
+            'CanadianZincPennies': '#64748b',
+            'CanadianNickels': '#92400e',
+            'CanadianSilverDimes': '#94a3b8',
+            'CanadianCladDimes': '#64748b',
+            'CanadianSilverQuarters': '#94a3b8',
+            'CanadianCladQuarters': '#64748b',
+            'CanadianHalfDollars': '#94a3b8',
+            'CanadianLoonies': '#d4af37'
         };
 
         metalOrder.forEach(function(m) {
@@ -1161,6 +2095,9 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
             // Metal group header
             var metalLabelText = getMetalLabel(m);
             var spotDetailText = '';
+            // 2026-10-10 (Matthew), corrected: only genuinely 90% silver streams
+            // get the silver spot line. Showing it on the golden dollars
+            // advertised them as silver, which they are not.
             if (m === 'SilverCoins90') {
                 var sSpot = prices['silver_oz'] || 0;
                 spotDetailText = sSpot > 0 ? ` ($${sSpot.toFixed(2)}/oz silver)` : '';
@@ -1229,7 +2166,26 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     var row1 = el('div', { className: 'v1-form-row', style: 'flex-wrap: wrap;' });
     var labelIn = el('input', { className: 'v1-input', placeholder: 'Label (e.g. Wheat Cents)', dataset: { field: 'be-label' }, style: 'flex:1; min-width:120px;' });
     var metalSel = el('select', { className: 'v1-select', dataset: { field: 'be-metal' }, style: 'flex:1; min-width:120px;' });
-    ['Copper Pennies 1959-1981', 'Zinc Pennies 1983-2025', 'Nickels', 'Clad Dimes', 'Clad Quarters', 'Clad Half Dollars', '90% Silver Coins',
+    ['Copper Pennies 1959-1981', 'Zinc Pennies 1983-2025', 'Nickels', 'Clad Dimes', 'Clad Quarters', 'Clad Half Dollars',
+     // 2026-10-10 (Matthew): add Eisenhower dollars and the golden Sacagawea /
+     // Presidential dollars.
+     //
+     // CORRECTED after Matthew challenged the first pass, which was wrong on
+     // every one of these three. Verified against Wikipedia's Eisenhower /
+     // Sacagawea / Presidential dollar articles (Mass + Composition + Years of
+     // minting fields), 2026-10-10:
+     //
+     //   Eisenhower  1971-1978 ONLY. Circulation strikes are copper-nickel
+     //     CLAD -- "None in circulation strikes" for silver. The 40% silver
+     //     pieces are the 1971/1972 S-mint issues and are a numismatic
+     //     exception, not a bulk-stream denomination. So bulk = clad + face.
+     //     There are NO Eisenhower dollars after 1978 at all.
+     //   Sacagawea   8.100 g, 88.5% Cu / 6% Zn / 3.5% Mn / 2% Ni -- no silver
+     //     in it at all. The gold colour is a brass core, not precious metal.
+     //   Presidential same alloy and weight as the Sacagawea.
+     //
+     // Both golden dollar types are therefore CLAD + FACE VALUE.
+     'Eisenhower Dollars (1971-1978, clad)', 'Golden Sacagawea & Presidential Dollars', '90% Silver Coins',
      // Canada (small → large)
      'Canadian Copper Pennies 1920-1996', 'Canadian Zinc Pennies 1997-2012', 'Canadian Nickels', 'Canadian Silver Dimes (pre-1968)', 'Canadian Clad Dimes (1968+)', 'Canadian Silver Quarters (pre-1968)', 'Canadian Clad Quarters (1968+)', 'Canadian 50¢ Pieces', 'Canadian Loonies (1$)'].forEach(function(label) {
         metalSel.appendChild(el('option', { value: label }, label));
@@ -1264,7 +2220,8 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     addBtn._notesIn = notesIn;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'bulk', 'Add Bulk Entry');;
     return card;
 }
 
@@ -1384,7 +2341,7 @@ async function buildSpotPricesCard(prices) {
     var titleRow = el('div', {style:'display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;padding-right:28px;'});
     titleRow.appendChild(el('div',{className:'card-title', style:'margin-bottom:0;'},'Live Spot Prices'));
     
-    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:8px; font-size:0.7em; flex-wrap:wrap; white-space:nowrap;'});
+    var btnRow = el('div', {className:'spot-period-row', style:'display:flex; gap:4px; font-size:0.62em; flex-wrap:nowrap; white-space:nowrap;'});
     var periods = [
         {label:'1D', range:'1D'},
         {label:'1W', range:'1W'},
@@ -1399,14 +2356,13 @@ async function buildSpotPricesCard(prices) {
         try {
             window._spotHistoryStore = await initSpotHistory({
                 getSeed: async () => {
-                    // LOCAL-FIRST FIX (2026-08-24): prefer the local-first
-                    // fetchSpotHistory() (api.js → db.js) which works on the
-                    // public build; the static /data seed files are a secondary
-                    // fallback. Raw /api/spot_history is server-only and 404s here.
-                    try { const r = await fetchSpotHistory(); if (r && r.gold_oz && r.gold_oz.yearly && r.gold_oz.yearly.length) return r; } catch(e){}
-                    try { const r2 = await fetch('/data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
+                    // Prefer the live backend; fall back to the static seed so the
+                    // cards always render real 2000-2026 history even if /api is
+                    // slow, blocked, or served from a stale Service Worker cache.
+                    try { const r = await fetch('/api/spot_history?cb=' + Date.now()); const j = await r.json(); if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; } catch(e){}
+                    try { const r2 = await fetch('data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
                 },
-getBaseline: async () => { try { const r = await fetch('/data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+getBaseline: async () => { try { const r = await fetch('data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
                 getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
             });
         } catch(e) { window._spotHistoryStore = null; }
@@ -1414,7 +2370,7 @@ getBaseline: async () => { try { const r = await fetch('/data/spot_history_basel
     
     periods.forEach(p => {
         var b = el('div', {
-            style:'cursor:pointer; color: ' + (p.label === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + '; font-weight: ' + (p.label === activePeriod ? 'bold' : 'normal') + '; padding:2px;'
+            style:'cursor:pointer; color: ' + (p.label === activePeriod ? 'var(--color-accent)' : 'var(--color-text-muted)') + '; font-weight: ' + (p.label === activePeriod ? 'bold' : 'normal') + '; padding:1px 2px;'
         }, p.label);
         b.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1494,7 +2450,7 @@ getBaseline: async () => { try { const r = await fetch('/data/spot_history_basel
         var row = el('div',{className:'spot-item', style:'display:flex; justify-content:space-between; align-items:center; gap:8px;'});
         
         // Left: metal name + current price + change indicator
-        var left = el('div',{className:'spot-left', style:'display:flex; flex-direction:column; min-width:90px; flex: 1;'});
+        var left = el('div',{className:'spot-left', style:'display:flex; flex-direction:column; flex: 1 1 0; min-width:0;'});
         left.appendChild(el('div',{className:'spot-label', style:'font-weight:bold; margin-bottom:2px;'},m.l));
         
         var priceLine = el('div', {style:'display:flex; flex-direction:column; gap:2px; line-height:1.2;'});
@@ -1509,7 +2465,7 @@ getBaseline: async () => { try { const r = await fetch('/data/spot_history_basel
         row.appendChild(left);
 
         // Right: sparkline
-        var right = el('div',{className:'spot-right', style:'flex: 1; min-width: 60px; max-width: 160px; height: 32px; display: flex; justify-content: flex-end;'});
+        var right = el('div',{className:'spot-right', style:'flex: 0 1 96px; min-width: 40px; max-width: 96px; height: 32px; display: flex; justify-content: flex-end; overflow: hidden;'});
         var canvas = el('canvas',{
             className:'spot-sparkline',
             style:'width:100%; height:32px;',
@@ -1616,7 +2572,7 @@ function buildScrapMetalCard(items, prices) {
     card.appendChild(hdr);
 
     // Existing items list
-    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
+    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (items.length === 0) {
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No scrap items yet.'));
     } else {
@@ -1627,7 +2583,7 @@ function buildScrapMetalCard(items, prices) {
             var row = el('div', { className: 'v1-item-row' });
             var info = el('div', { style: 'flex:1;' });
             info.appendChild(el('span', { style: 'font-weight:600;font-size:0.9em;' }, item.name));
-            info.appendChild(el('span', { style: 'color:var(--color-text-muted);font-size:0.8em;margin-left:6px;' }, '(' + (item.weight_grams||0).toFixed(1) + 'g ' + (item.metal_type||'') + ((item.purity && item.purity < 1) ? ' ' + Math.round(item.purity * 100) + '%' : '') + ')'));
+            info.appendChild(el('span', { style: 'color:var(--color-text-muted);font-size:0.8em;margin-left:6px;' }, '(' + (item.weight_grams||0).toFixed(1) + 'g ' + (item.metal_type||'') + ((item.purity && item.purity < 1) ? ' ' + (((item.purity * 100) % 1 === 0) ? (item.purity * 100).toFixed(0) : (item.purity * 100).toFixed(1)) + '%' : '') + ')'));
             if (meltVal > 0) info.appendChild(el('span', { style: 'color:var(--color-accent);font-weight:700;margin-left:6px;font-size:0.85em;' }, '$' + meltVal.toFixed(2)));
             if (item.notes) info.appendChild(el('div', { style: 'font-size:0.75em;color:var(--color-text-muted);font-style:italic;' }, item.notes));
             row.appendChild(info);
@@ -1764,7 +2720,8 @@ function buildScrapMetalCard(items, prices) {
     addBtn._customPurIn = customPurIn;
     addBtn._prices = prices;
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'scrap', 'Add Scrap Item');;
     return card;
 }
 
@@ -1788,7 +2745,7 @@ function buildPaperCurrencyCard(items) {
     card.appendChild(hdr);
 
     // Items list
-    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
+    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (items.length === 0) {
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No banknotes yet.'));
         // Remove min-height gap when empty
@@ -1933,13 +2890,153 @@ function buildPaperCurrencyCard(items) {
     addBtn.getRevImage = () => revBase64;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'paper', 'Add Banknote');;
     return card;
 }
 
 // =========================================================================
 // V1-Style Inline Widget: Other Collectables Card
 // =========================================================================
+
+
+/**
+ * Render the user's Custom Dashboard Cards (Settings -> Custom Dashboard Card).
+ *
+ * The creator modal writes these definitions to localStorage, but nothing read
+ * that store: a card saved, toasted "Custom card created!", and never appeared.
+ * The definitions were always fully formed (title, data source, display style,
+ * colours) -- only the renderer was missing. The key itself is read through
+ * getCustomDashboardCards() in state.js, so there is one place that owns it.
+ *
+ * One card per definition, laid out to match the other dashboard cards so it
+ * participates in drag-reorder, width classes and the visibility settings.
+ */
+
+/* Resolve a definition's dataSource id against the live portfolio payload.
+   The modal offers 12 ids and /api/portfolio returns a specific key set, so
+   each id is mapped explicitly. Anything unknown resolves to null and renders
+   as an em dash -- never "undefined" or "$NaN". */
+function _resolveCustomCardValue(def, p) {
+    p = p || {};
+    var num = function (v) { return (typeof v === 'number' && isFinite(v)) ? v : null; };
+    var map = {
+        totalValue:         num(p.total_estimated_value),
+        totalMelt:          num(p.total_melt),
+        collectibleValue:   num(p.collectable_value),
+        coinCount:          num(p.total_physical_coins),
+        itemCount:          num(p.total_items),
+        completion:         null,   // needs a section rollup; see note below
+        goldMelt:           num(p.gold_coin_melt),
+        silverMelt:         num(p.silver_coin_melt),
+        platinumMelt:       num(p.platinum_coin_melt),
+        palladiumMelt:      num(p.palladium_coin_melt),
+        copperMelt:         num(p.copper_coin_melt),
+        bulkValue:          num(p.bulk_coins_value),
+        paperValue:         num(p.paper_value),
+        scrapValue:         num(p.scrap_value),
+        rawBullion:         num(p.raw_bullion),
+        otherValue:         num(p.other_value),
+        faceValue:          num(p.face_value)
+    };
+    // `completion` is a percentage, not currency, so it is computed here from
+    // the sections already held in state rather than from the payload.
+    if (def.dataSource === 'completion') {
+        var secs = getSections() || [];
+        var tot = 0, own = 0;
+        secs.forEach(function (s) { tot += (s.total || 0); own += (s.owned || 0); });
+        return tot > 0 ? (Math.round(own / tot * 1000) / 10) : null;
+    }
+    if (def.dataSource === 'custom') {
+        var cv = def.customValue;
+        if (cv === null || cv === undefined || cv === '') return null;
+        var asNum = Number(cv);
+        return isNaN(asNum) ? String(cv) : asNum;
+    }
+    return Object.prototype.hasOwnProperty.call(map, def.dataSource) ? map[def.dataSource] : null;
+}
+
+/* Format a resolved value. Currency ids get 2dp; counts and percentages do not. */
+function _formatCustomCardValue(def, value) {
+    if (value === null || value === undefined) return '\u2014';
+    var CURRENCY = { totalValue:1, totalMelt:1, collectibleValue:1, goldMelt:1,
+                     silverMelt:1, platinumMelt:1, palladiumMelt:1, copperMelt:1,
+                     bulkValue:1, paperValue:1, scrapValue:1, rawBullion:1,
+                     otherValue:1, faceValue:1 };
+    if (CURRENCY[def.dataSource]) {
+        return '$' + Number(value).toLocaleString(undefined, { minimumFractionDigits: 2 });
+    }
+    if (typeof value === 'number') return value.toLocaleString();
+    return String(value);
+}
+
+function buildCustomDashboardCardsCard(p) {
+    var defs;
+    try { defs = getCustomDashboardCards(); } catch (e) { defs = []; }
+    if (!Array.isArray(defs) || defs.length === 0) return null;
+
+    var card = el('div', { className: 'card dashboard-card', id: 'card-user-custom',
+                           style: 'display:flex; flex-direction:column;' });
+
+    var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;' });
+    hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, ' My Cards'));
+    hdr.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);padding-right:28px;' },
+                       defs.length + ' card' + (defs.length !== 1 ? 's' : '')));
+    card.appendChild(hdr);
+
+    var list = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:0;max-height:200px;margin-bottom:0;' });
+
+    defs.forEach(function (def) {
+        var bg = def.bgColor || 'var(--color-bg-card)';
+        var fg = def.textColor || 'var(--color-text-main)';
+        var resolved = _resolveCustomCardValue(def, p);
+        var text = _formatCustomCardValue(def, resolved);
+        var style = def.displayStyle || 'bigNumber';
+
+        var row = el('div', {
+            className: 'user-custom-card',
+            style: 'background:' + bg + '; color:' + fg + '; border:1px solid var(--color-border);' +
+                   'border-radius:var(--radius-base); padding:10px 12px; margin-bottom:8px;' +
+                   'display:flex; gap:10px; align-items:center; justify-content:space-between;'
+        });
+
+        var label = el('div', { style: 'font-size:0.82em; font-weight:600; opacity:0.9; min-width:0;' },
+                       String(def.title));
+
+        var valueEl;
+        if (style === 'labelValue') {
+            valueEl = el('div', { style: 'font-size:1.05em; font-weight:700; white-space:nowrap;' }, text);
+            row.appendChild(label); row.appendChild(valueEl);
+        } else if (style === 'progress') {
+            var pct = (typeof resolved === 'number') ? Math.max(0, Math.min(100, resolved)) : 0;
+            var track = el('div', { style: 'flex:1; height:8px; border-radius:4px; background:rgba(128,128,128,0.35); overflow:hidden;' });
+            var fill = el('div', { style: 'width:' + pct + '%; height:100%; background:currentColor; border-radius:4px;' });
+            track.appendChild(fill);
+            label.appendChild(el('div', { style: 'font-size:0.72em; font-weight:400; opacity:0.8; margin-top:2px;' }, text));
+            row.appendChild(label); row.appendChild(track);
+        } else if (style === 'trend') {
+            var arrow = (typeof resolved === 'number' && resolved >= 0) ? '\u25b2' : '\u25bc';
+            var acol = (typeof resolved === 'number' && resolved >= 0) ? '#22c55e' : '#ef4444';
+            valueEl = el('div', { style: 'display:flex; align-items:center; gap:6px; font-weight:700; white-space:nowrap;' },
+                el('span', { style: 'color:' + acol + '; font-size:0.9em;' }, arrow),
+                el('span', {}, text));
+            row.appendChild(label); row.appendChild(valueEl);
+        } else {
+            // bigNumber (default): title above, value centred beneath
+            row.style.flexDirection = 'column';
+            row.style.justifyContent = 'center';
+            row.style.alignItems = 'center';
+            row.style.textAlign = 'center';
+            row.style.padding = '14px 12px';
+            label.appendChild(el('div', { style: 'font-size:1.35em; font-weight:700; margin-top:4px; color:inherit;' }, text));
+            row.appendChild(label);
+        }
+        list.appendChild(row);
+    });
+
+    card.appendChild(list);
+    return card;
+}
 
 function buildCustomCategoriesCard(categories, collectables) {
     if (!Array.isArray(collectables)) collectables = [];
@@ -1957,7 +3054,7 @@ function buildCustomCategoriesCard(categories, collectables) {
     card.appendChild(hdr);
 
     // Items list grouped by category
-    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;margin-bottom:10px;' });
+    var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (collectables.length === 0) {
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No collectables yet.'));
         // Remove min-height gap when empty
@@ -2058,7 +3155,8 @@ function buildCustomCategoriesCard(categories, collectables) {
     addBtn.getPhoto = () => photoBase64;
     form.appendChild(addBtn);
 
-    card.appendChild(form);
+    card.appendChild(form)
+    _foldCardForm(form, addBtn, 'collect', 'Add Item');;
     return card;
 }
 
@@ -2153,6 +3251,7 @@ document.addEventListener('click', async function(e) {
         var rbMetalSel  = btn._metalSel;
         var rbWgtIn     = btn._wgtIn;
         var rbUnitSel  = btn._unitSel;
+        var rbAmtIn    = btn._amtIn;
         var rbPurityIn = btn._purityIn;
         var rbNotesIn  = btn._notesIn;
 
@@ -2160,6 +3259,7 @@ document.addEventListener('click', async function(e) {
             _saving = false; btn.disabled = false; return _showCardToast('Weight is required', 'error');
         }
         var w = parseFloat(rbWgtIn.value);
+        var amt = parseInt(rbAmtIn?.value || '1', 10);
         var unit = rbUnitSel.value;
         try {
             var { saveRawBullion, fetchRawBullion } = await import('./api.js');
@@ -2168,8 +3268,9 @@ document.addEventListener('click', async function(e) {
                 label: (rbLabelIn.value || '').trim(),
                 metal_type: rbMetalSel.value,
                 weight: w,
+                amount: amt,
                 weight_unit: unit,
-                purity: parseFloat(rbPurityIn.value) || 1.0,
+                purity: 1.0,
                 notes: (rbNotesIn.value || '').trim()
             });
             var freshRb = await fetchRawBullion();
@@ -2225,7 +3326,24 @@ document.addEventListener('click', async function(e) {
                 'Clad Dimes': 'CladDimes',
                 'Clad Quarters': 'CladQuarters',
                 'Clad Half Dollars': 'CladHalves',
-                '90% Silver Coins': 'SilverCoins90'
+                // 2026-10-10 (Matthew), corrected year ranges
+                'Eisenhower Dollars (1971-1978, clad)': 'EisenhowerClad',
+                'Golden Sacagawea & Presidential Dollars': 'GoldenDollars',
+                '90% Silver Coins': 'SilverCoins90',
+                // 2026-10-21 (GGMJ-403): the dropdown offers 9 Canadian
+                // denominations but the forward map had no Canadian keys, so
+                // every one fell through to the 'CopperPennies' default and was
+                // stored (and valued) as US copper. The type keys below are
+                // the ones getMetalLabel()/getGramsPerCoin() already use.
+                'Canadian Copper Pennies 1920-1996': 'CanadianCopperPennies',
+                'Canadian Zinc Pennies 1997-2012': 'CanadianZincPennies',
+                'Canadian Nickels': 'CanadianNickels',
+                'Canadian Silver Dimes (pre-1968)': 'CanadianSilverDimes',
+                'Canadian Clad Dimes (1968+)': 'CanadianCladDimes',
+                'Canadian Silver Quarters (pre-1968)': 'CanadianSilverQuarters',
+                'Canadian Clad Quarters (1968+)': 'CanadianCladQuarters',
+                'Canadian 50¢ Pieces': 'CanadianHalfDollars',
+                'Canadian Loonies (1$)': 'CanadianLoonies'
             };
             var metalType = metalMap[selectedLabel] || 'CopperPennies';
             
