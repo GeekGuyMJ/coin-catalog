@@ -17,7 +17,10 @@
   "app/js/app_v2/api.js": [
    "new_url: body.new_url",
    "searchCoinsLocal(url.searchParams)",
-   ": wrap(fetchInvestmentsLocal)"
+   ": wrap(fetchInvestmentsLocal)",
+   "serverFetch('/api/backup/client')",
+   "serverFetch('/api/backup/client_restore'",
+   "confirm: 'RESTORE BACKUP'"
   ],
   "app/js/app_v2/catalog.js": [
    "stepper-edit",
@@ -90,7 +93,10 @@
    "TextEncoder().encode(str)",
    "if (!creds || !creds.clientId || creds.clientId.startsWith('YOUR_')) {",
    "if (!creds || !creds.scope) {",
-   "OneDrive: not configured."
+   "OneDrive: not configured.",
+   "import { getFullBackup, restoreBackup } from './api.js';",
+   "await getFullBackup();",
+   "await restoreBackup(data);"
   ],
   "app/css/themes.css": [
    "--color-accent-text:  #06121f;"
@@ -107,7 +113,9 @@
   "app/js/app_v2/sync.js": [
    "btoa(username + ':' + password)",
    "CREDENTIALS.oneDrive.",
-   "  const creds = CREDENTIALS.oneDrive;\n  if (!creds.clientId || creds.clientId.startsWith('YOUR_')) {"
+   "  const creds = CREDENTIALS.oneDrive;\n  if (!creds.clientId || creds.clientId.startsWith('YOUR_')) {",
+   "await getFullBackupLocal()",
+   "await restoreBackupLocal(data)"
   ],
   "app/js/app_v2/portfolio.js": [
    "}, 'Cancel');"
@@ -129,7 +137,7 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 435,
+  "app/sw.js": 437,
   "frontend/sw.js": 434
  },
  "shared": {

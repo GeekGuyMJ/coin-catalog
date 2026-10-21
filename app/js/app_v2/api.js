@@ -369,9 +369,24 @@ export const deleteCoinWeight      = async () => ({});
 
 export const fetchSpotHistory      = wrap(fetchSpotHistoryLocal);
 export const fetchAllCoins         = wrap(fetchAllCoinsLocal);
-export const getFullBackup         = wrap(getFullBackupLocal);
+/* GGMJ-368: the cloud backup must be built from the store that actually
+   holds the data. On self-hosted that is the server DB, not the browser's
+   Dexie store (which is empty there) -- GET /api/backup/client returns the
+   same JSON shape the Dexie store uses, so the file stays portable. */
+export const getFullBackup         = isSelfHosted
+    ? async () => serverFetch('/api/backup/client')
+    : wrap(getFullBackupLocal);
 export const publishSection        = wrap(publishSectionLocal);
-export const restoreBackup         = wrap(restoreBackupLocal);
+/* GGMJ-368: restoring on self-hosted must write to the SERVER, not to the
+   empty browser store. The endpoint requires the confirmation phrase
+   because it replaces user tables. */
+export const restoreBackup         = isSelfHosted
+    ? async (backupObj) => serverFetch('/api/backup/client_restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'RESTORE BACKUP', backup: backupObj })
+    })
+    : wrap(restoreBackupLocal);
 export const saveToCoinBank        = wrap(saveToCoinBankLocal);
 export const importCSV             = wrap(importCSVLocal);
 export const deleteBulkCoins       = wrap(deleteBulkCoinsLocal);

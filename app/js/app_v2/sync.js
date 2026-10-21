@@ -8,7 +8,11 @@
  */
 
 import { showToast } from './notifications.js';
-import { getFullBackupLocal, restoreBackupLocal } from './db.js';
+// GGMJ-368: the platform decision belongs to api.js, which already knows
+// whether this build is talking to the Flask backend or to the browser's
+// own Dexie store. Importing the two backup helpers from api.js (not from
+// db.js) is what makes the backup follow the real data store.
+import { getFullBackup, restoreBackup } from './api.js';
 
 // ============================================================
 // Provider Configuration
@@ -516,7 +520,7 @@ export async function syncToCloud() {
   showToast('Backing up to ' + provider.name + '...', 'info');
 
   try {
-    const dbBackup = await getFullBackupLocal();
+    const dbBackup = await getFullBackup();
     const jsonStr = JSON.stringify(dbBackup);
 
     if (provider.id === 'webdav') {
@@ -578,7 +582,7 @@ export async function syncFromCloud() {
     }
 
     const data = JSON.parse(jsonStr);
-    await restoreBackupLocal(data);
+    await restoreBackup(data);
     showToast('Restore from ' + provider.name + ' complete! Reloading page...', 'success');
     setTimeout(() => location.reload(), 2000);
   } catch (err) {
