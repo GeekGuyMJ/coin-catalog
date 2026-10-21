@@ -5,7 +5,8 @@
    "guide-spotlight",
    "guide-popup",
    "scrollbar-width: none",
-   ".coin-instance-tabs::-webkit-scrollbar"
+   ".coin-instance-tabs::-webkit-scrollbar",
+   "color: var(--color-accent-text);"
   ],
   "app/js/app_v2/album.js": [
    "fetchInventory().then"
@@ -66,6 +67,9 @@
    "_utf8ToB64",
    "_basicAuthHeader",
    "TextEncoder().encode(str)"
+  ],
+  "app/css/themes.css": [
+   "--color-accent-text:  #06121f;"
   ]
  },
  "absent": {
