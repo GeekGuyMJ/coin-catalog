@@ -1,0 +1,19 @@
+#!/bin/bash
+# LIVE-DEPLOY GUARDRAIL (Hermes, 2026-10-21) - public repo
+# /root/coin-catalog-public is the source tree for the GitHub Pages deploy (branch
+# 'published') and the Cloudflare Pages staging bundle. A branch switch here can publish a
+# different tree to production. git 2.39 has no pre-checkout hook, so this post-checkout
+# hook reverts any switch away from the serving branch.
+SERVING_BRANCH="${PUBLIC_SERVING_BRANCH:-published}"
+CUR="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+LOG="$(git rev-parse --git-dir)/public-branch-switch.log"
+if [ "$CUR" = "$SERVING_BRANCH" ]; then exit 0; fi
+if [ "${ALLOW_LIVE_BRANCH_SWITCH:-0}" = "1" ]; then
+  echo "$(date -u +%FT%TZ) ALLOWED switch to $CUR (override) by $(whoami)" >> "$LOG"
+  exit 0
+fi
+echo "$(date -u +%FT%TZ) BLOCKED switch to $CUR - reverting to $SERVING_BRANCH (by $(whoami) pid=$$)" >> "$LOG"
+git checkout "$SERVING_BRANCH" >> "$LOG" 2>&1
+echo "BLOCKED by live-deploy guardrail: this repo feeds production deploys." >&2
+echo "  Reverted to '$SERVING_BRANCH'. Use a separate clone or 'git worktree add'." >&2
+exit 1

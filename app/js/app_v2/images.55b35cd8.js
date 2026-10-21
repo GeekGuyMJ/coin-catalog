@@ -636,6 +636,7 @@ export async function resetToMaster() {
                 const updatedConfigs = await fetchTypeConfigs();
                 setTypeConfigs(updatedConfigs);
                 // For personal photos, also refresh inventory state so re-render picks up changes
+                // GGMJ-338 (resetToMaster): scope comes from activeContext (a bare 'scope' here is a ReferenceError)
                 const scope = activeContext.scope || 'all';
                 if (scope === 'specific_item' || scope === 'specific_coin') {
                     const newInv = await fetchInventory();
@@ -773,6 +774,8 @@ export async function promoteToDefaultHandler() {
             const updatedConfigs = await fetchTypeConfigs();
             setTypeConfigs(updatedConfigs);
                 // For personal photos, also refresh inventory state so re-render picks up changes
+                // GGMJ-338 (promoteToDefaultHandler): scope comes from activeContext (a bare 'scope' here is a ReferenceError)
+                const scope = activeContext.scope || 'all';
                 if (scope === 'specific_item' || scope === 'specific_coin') {
                     const newInv = await fetchInventory();
                     setInventory(newInv);
