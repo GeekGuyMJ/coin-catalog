@@ -43,7 +43,9 @@
       "Refresh all owned-counter badges",
       "const obv = coin._deleted_obv_image",
       "const rev = coin._deleted_rev_image",
-      "GGMJ-333: same gate chain as buildCoinRow"
+      "GGMJ-333: same gate chain as buildCoinRow",
+      "const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)",
+      "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;"
     ],
     "app/js/app_v2/db.js": [
       "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
@@ -97,7 +99,9 @@
       "'Other Investments',"
     ],
     "app/js/app_v2/search.js": [
-      "initYearRange"
+      "initYearRange",
+      "const cfgRev = cfg._deleted_rev_image ? null : cfg.rev_image;",
+      "const cfgObv = cfg._deleted_obv_image ? null : cfg.obv_image;"
     ],
     "app/js/app_v2/utils.js": [
       "_APP_BASE",
@@ -127,11 +131,13 @@
     "app/js/app_v2/catalog.js": [
       "renderAlbumType(firstCoinSection",
       "coin._deleted_obv_image || coin._deleted_rev_image",
-      "const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);"
+      "const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);",
+      "const exObv = cfg.example_obv_image || cfg.obv_image || null;"
     ],
     "app/js/app_v2/search.js": [
       "label: 'Min Year'",
-      "label: 'Max Year'"
+      "label: 'Max Year'",
+      "const imgSrc = cfg.rev_image || cfg.obv_image || null;"
     ],
     "app/js/app_v2/sync.js": [
       "btoa(username + ':' + password)",
@@ -167,8 +173,8 @@
     ]
   },
   "sw_min": {
-    "app/sw.js": 448,
-    "frontend/sw.js": 447
+    "app/sw.js": 449,
+    "frontend/sw.js": 448
   },
   "shared": {
     "js/app_v2/dexie.js": {},

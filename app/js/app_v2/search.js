@@ -389,7 +389,11 @@ function buildSearchRow(coin, mainType) {
     // --- Thumbnail ---
     const tw = document.createElement('div');
     tw.className = 'coin-row-thumb-wrap';
-    const imgSrc = cfg.rev_image || cfg.obv_image || null;
+    // GGMJ-333: honour the _deleted flags - a deleted type image must not
+    // reappear in the search results.
+    const cfgRev = cfg._deleted_rev_image ? null : cfg.rev_image;
+    const cfgObv = cfg._deleted_obv_image ? null : cfg.obv_image;
+    const imgSrc = cfgRev || cfgObv || null;
     if (imgSrc) {
         const img = document.createElement('img');
         img.className = 'coin-row-thumb';
@@ -398,7 +402,7 @@ function buildSearchRow(coin, mainType) {
         img.loading = 'lazy';
         img.dataset.action = 'view-img';
         img.dataset.type = coin.coin_type;
-        img.dataset.side = cfg.rev_image ? 'rev' : 'obv';
+        img.dataset.side = cfgRev ? 'rev' : 'obv';
         img.onerror = function () { this.src = placeholderCoinSvg(); };
         tw.appendChild(img);
     } else {

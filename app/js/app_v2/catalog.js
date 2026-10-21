@@ -358,8 +358,12 @@ function buildSectionCard(sec) {
             || getTypeConfig(sec.section, sec.section)
             || {};
         // 2026-10-19 FIX: no inner resolve — img src below already wraps in resolveImageUrl.
-        const exObv = cfg.example_obv_image || cfg.obv_image || null;
-        const exRev = cfg.example_rev_image || cfg.rev_image || null;
+        // GGMJ-333: honour the _deleted flags. A deleted type image (or a
+        // deleted example override) must not come back in the section header.
+        const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)
+            || (cfg._deleted_obv_image ? null : cfg.obv_image) || null;
+        const exRev = (cfg._deleted_example_rev_image ? null : cfg.example_rev_image)
+            || (cfg._deleted_rev_image ? null : cfg.rev_image) || null;
         // If no override yet, leave a marker so expandSection can fill the first-coin image.
         const pair = el('div', { className: 'coin-img-pair', dataset: { sampleType: sec.sample_type || '' } });
         if (exObv) {
