@@ -89,6 +89,104 @@
     border-color: var(--color-accent);
 }
 
+
+/* GGMJ-428: the Other Investments card, brought in line with every other
+   dashboard card.
+
+   (a) The section rows were too big: the 'Stocks' section label rendered
+       at 13.6px/600 while the item under it rendered at 16px/400, so the
+       item text was LARGER than its own section heading. The heading is now
+       0.85rem/700 uppercase muted with the same 6px 0 2px margins the other
+       cards use, and the item names are 0.9em/600 - the same 0.9em/600 the
+       other cards use - so the heading is visibly the larger of the two.
+
+   (b) The total was a big showy box at the BOTTOM of the card: a
+       254x88px .finance-item.grand-total with a 2px accent border, a
+       24px/700 accent value and a 13.6px/600 label. Every other card puts
+       its total in the card header row as a small right-aligned figure,
+       so the card becomes a 2-column grid and the total moves up into the
+       header row beside the title, restyled to that pattern: value
+       1.1rem/700 in the accent colour, the label 0.8rem muted beneath it,
+       no border, no background, right-aligned.
+
+   Everything here is scoped to #card-investments. The shared
+   .finance-item.grand-total rule is NOT changed - the Portfolio Overview
+   card uses it too and must keep its hero look. */
+#card-investments {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    column-gap: 8px;
+    row-gap: 10px;
+}
+#card-investments > .card-title {
+    grid-column: 1;
+    grid-row: 1;
+    margin-bottom: 0;
+}
+#card-investments > .finance-item.grand-total {
+    grid-column: 2;
+    grid-row: 1;
+}
+#card-investments > .inv-list {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+#card-investments > .v1-form {
+    grid-column: 1 / -1;
+    grid-row: 3;
+}
+#card-investments > .v1-form-actions {
+    grid-column: 1 / -1;
+    grid-row: 4;
+}
+#card-investments > .finance-item.grand-total {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    text-align: right;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 0;
+    min-width: 0;
+}
+#card-investments > .finance-item.grand-total .finance-value.bold {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    line-height: 1.15;
+    white-space: nowrap;
+}
+#card-investments > .finance-item.grand-total .finance-label {
+    font-size: 0.8rem;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--color-text-muted);
+    margin: 0;
+    max-width: 7.5em;
+    text-align: right;
+}
+#card-investments .inv-list .finance-item {
+    padding: 6px 8px;
+    font-size: 0.85rem;
+}
+#card-investments .inv-list .finance-label {
+    font-size: 1em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin: 6px 0 2px;
+}
+#card-investments .inv-list .finance-item > div > div {
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
 /* GGMJ-429: ONE type scale and ONE height for the dashboard card ACTION
    buttons. .btn-primary / .btn-secondary set colour and border but no
    typography, so every card inherited a different size: a <button> fell
