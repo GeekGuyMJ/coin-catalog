@@ -1230,6 +1230,11 @@ function buildInvestmentsCard(p) {
             _invEntries = (_invEntries || []).filter(function (e) { return e.id !== id; });
             renderList();
             refreshTotal();
+            fetchPortfolioAsync().then(function (pd) {
+                _portfolioData = pd && pd.portfolio ? pd.portfolio : pd;
+                _bulkCoinsData = pd && pd.bulkEntries ? pd.bulkEntries : [];
+                renderDashboard();
+            });
         }).catch(function (err) {
             _showCardToast('Failed to delete: ' + err.message, 'error');
         });
@@ -1289,6 +1294,11 @@ function buildInvestmentsCard(p) {
                     _invEntries = _invEntries || [];
                     _invEntries.push(saved);
                     renderList(); refreshTotal();
+                    fetchPortfolioAsync().then(function (pd) {
+                        _portfolioData = pd && pd.portfolio ? pd.portfolio : pd;
+                        _bulkCoinsData = pd && pd.bulkEntries ? pd.bulkEntries : [];
+                        renderDashboard();
+                    });
                     name.value = ''; valIn.value = ''; costIn.value = ''; dateIn.value = '';
                     _showCardToast('Other Investments added', 'success');
                 })
