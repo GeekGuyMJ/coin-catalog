@@ -49,6 +49,17 @@ const CREDENTIALS = {
     clientId: 'k5enlxmbj8y8ndc',
     scope: 'files.content.write files.content.read'
   },
+  // OneDrive is NOT an offered provider (see PROVIDERS below) -- Microsoft no
+  // longer issues app registrations to personal Microsoft accounts, so there
+  // is no clientId to ship. The block is kept with an empty clientId so the
+  // remaining OneDrive code paths fail GRACEFULLY with a "not configured"
+  // message instead of throwing a TypeError on an undefined property.
+  // Do NOT re-add a oneDrive entry to PROVIDERS without a real tenant.
+  oneDrive: {
+    clientId: '',
+    scope: 'Files.ReadWrite.AppFolder',
+    authority: 'https://login.microsoftonline.com/common',
+  },
 };
 
 const PROVIDERS = [
@@ -406,9 +417,13 @@ function _loadMSAL() {
 }
 
 export async function authenticateOneDrive() {
+  // GGMJ-389: read the credential object FIRST and check it before touching
+  // any property. The oneDrive credential entry can be absent (older builds
+  // removed the whole block), and reading a property off it would then throw a
+  // TypeError instead of showing the "not configured" message.
   const creds = CREDENTIALS.oneDrive;
-  if (!creds.clientId || creds.clientId.startsWith('YOUR_')) {
-    showToast('OneDrive: app not registered. Set CREDENTIALS.oneDrive.clientId in sync.js', 'error');
+  if (!creds || !creds.clientId || creds.clientId.startsWith('YOUR_')) {
+    showToast('OneDrive: not configured. OneDrive sync is unavailable in this build.', 'error');
     return false;
   }
 
@@ -863,9 +878,15 @@ async function _restoreFromDropbox(auth) {
 async function _getOneDriveToken(auth) {
   if (!_msalInstance) throw new Error('MSAL not initialized. Re-authenticate.');
 
+  // GGMJ-389: guard the credential read before dereferencing `.scope`.
+  const creds = CREDENTIALS.oneDrive;
+  if (!creds || !creds.scope) {
+    throw new Error('OneDrive: not configured. OneDrive sync is unavailable in this build.');
+  }
+
   try {
     const resp = await _msalInstance.acquireTokenSilent({
-      scopes: CREDENTIALS.oneDrive.scope.split(' '),
+      scopes: creds.scope.split(' '),
       account: auth.account || { homeAccountId: auth.homeAccountId },
     });
     // Update stored token
@@ -876,7 +897,7 @@ async function _getOneDriveToken(auth) {
     // Silent failover — try popup
     try {
       const resp = await _msalInstance.acquireTokenPopup({
-        scopes: CREDENTIALS.oneDrive.scope.split(' '),
+        scopes: creds.scope.split(' '),
       });
       const expiresAt = resp.expiresOn ? resp.expiresOn.getTime() : Date.now() + 3600000;
       setProviderAuthState('oneDrive', { accessToken: resp.accessToken, expiresAt });
@@ -1008,11 +1029,16 @@ export async function handleOAuthCallback() {
     // OneDrive redirect is handled by MSAL's handleRedirectPromise called during authenticateOneDrive
     // But we need to trigger it on page load too
     if (typeof msal !== 'undefined' && _currentProviderId === 'oneDrive') {
+      // GGMJ-389: guard the credential read before dereferencing. A stale
+      // localStorage 'cc-cloud-provider=oneDrive' from before the provider was
+      // removed reaches this branch on every page load.
+      const creds = CREDENTIALS.oneDrive;
+      if (!creds || !creds.clientId) return false;
       try {
         const msalInstance = new msal.PublicClientApplication({
           auth: {
-            clientId: CREDENTIALS.oneDrive.clientId,
-            authority: CREDENTIALS.oneDrive.authority,
+            clientId: creds.clientId,
+            authority: creds.authority,
             redirectUri: _getRedirectUri().split('?')[0].split('#')[0],
           },
           cache: { cacheLocation: 'localStorage' },
