@@ -179,6 +179,20 @@ export async function renderAlbumView(sectionName) {
     const container = document.getElementById('catalog-container');
     if (!container) return;
 
+    // 2026-10-21 (GGMJ-400): the header Album button calls
+    // renderAlbumView(null) to open the album with nothing selected. A null
+    // section name reached fetchCoinsForSection(null) ->
+    // db.coins_reference.where('section').equals(null), which Dexie rejects
+    // with "Invalid key provided" -- the error was rendered as page text and
+    // the album showed 0 holes. With no section selected there is nothing to
+    // load: render the layout and let the user pick a section.
+    if (!sectionName) {
+        _activeSection = null;
+        _albumSections.clear();
+        renderAlbumLayout(container);
+        return;
+    }
+
     // If clicking the same section, toggle collapse
     if (_activeSection === sectionName && _albumSections.has(sectionName)) {
         _albumSections.delete(sectionName);

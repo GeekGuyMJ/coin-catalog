@@ -1924,6 +1924,62 @@ function calcCoinValue(entry, prices) {
         coinCount = Math.round(grams / 22.68);
         val = coinCount * 1.00;
         detail = ' × $1.00 face';
+    } else if (entry.metal_type === 'CanadianCopperPennies') {
+        // 2026-10-21 (GGMJ-403): Canadian penny, 3.24 g. 1920-1964 are 95%
+        // copper; 1965-1996 are nickel-plated steel. Valued as 95% copper
+        // melt, matching the US CopperPennies branch.
+        var caCopperLb = prices['copper_lb'] || 0;
+        val = grams * 0.95 * caCopperLb / 453.592;
+        coinCount = Math.round(grams / 3.24);
+        detail = caCopperLb > 0 ? ' at $' + caCopperLb.toFixed(2) + '/lb copper' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianZincPennies') {
+        // Canadian zinc penny (1997-2012), 2.35 g, plated zinc. Face value.
+        coinCount = Math.round(grams / 2.35);
+        val = coinCount * 0.01;
+        detail = ' × 0.01';
+    } else if (entry.metal_type === 'CanadianNickels') {
+        // Canadian nickel, 4.54 g. Face value.
+        coinCount = Math.round(grams / 4.54);
+        val = coinCount * 0.05;
+        detail = ' × 0.05';
+    } else if (entry.metal_type === 'CanadianSilverDimes') {
+        // Canadian dime, pre-1968, 2.33 g, 80% silver (1920-1967; the 1967-68
+        // issues are 50%). Valued as 80% silver melt, NOT copper.
+        var caDimeOzt = grams / 31.1035;
+        val = caDimeOzt * (prices['silver_oz'] || 0) * 0.80;
+        coinCount = Math.round(grams / 2.33);
+        detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianCladDimes') {
+        // Canadian clad dime (1968+), 1.75 g, nickel + cupro-nickel. Face value.
+        coinCount = Math.round(grams / 1.75);
+        val = coinCount * 0.10;
+        detail = ' × 0.10';
+    } else if (entry.metal_type === 'CanadianSilverQuarters') {
+        // Canadian quarter, pre-1968, 5.83 g, 80% silver (1920-1967). Melt.
+        var caQuarterOzt = grams / 31.1035;
+        val = caQuarterOzt * (prices['silver_oz'] || 0) * 0.80;
+        coinCount = Math.round(grams / 5.83);
+        detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianCladQuarters') {
+        // Canadian clad quarter (1968+), 4.40 g. Face value.
+        coinCount = Math.round(grams / 4.40);
+        val = coinCount * 0.25;
+        detail = ' × 0.25';
+    } else if (entry.metal_type === 'CanadianHalfDollars') {
+        // Canadian 50 cents, pre-1968, 11.66 g, 80% silver (1920-1967). Melt.
+        var caHalfOzt = grams / 31.1035;
+        val = caHalfOzt * (prices['silver_oz'] || 0) * 0.80;
+        coinCount = Math.round(grams / 11.66);
+        detail = (prices['silver_oz'] || 0) > 0 ? ' at $' + (prices['silver_oz'] || 0).toFixed(2) + '/oz silver' : '';
+        isMelt = true;
+    } else if (entry.metal_type === 'CanadianLoonies') {
+        // Canadian loonie (1987+), 7.00 g, gold-plated. Face value.
+        coinCount = Math.round(grams / 7.00);
+        val = coinCount * 1.00;
+        detail = ' × $1.00 face';
     } else if (entry.metal_type === 'GoldenDollars') {
         // 2026-10-10 (Matthew), corrected: the Sacagawea and Presidential
         // dollars contain NO SILVER -- 88.5% Cu / 6% Zn / 3.5% Mn / 2% Ni over
@@ -1972,7 +2028,14 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
         // and skips anything not listed, so it vanishes with no error. Verified
         // end-to-end after adding the dollar types for exactly this reason.
         var metalOrder = ['CopperPennies', 'ZincPennies', 'Nickels', 'CladDimes', 'CladQuarters', 'CladHalves',
-                          'EisenhowerClad', 'GoldenDollars', 'SilverCoins90'];
+                          'EisenhowerClad', 'GoldenDollars', 'SilverCoins90',
+                          // Canada (2026-10-21, GGMJ-403) -- a metal_type a
+                          // user can pick MUST be listed here or the group loop
+                          // skips the entry and it never renders.
+                          'CanadianCopperPennies', 'CanadianZincPennies', 'CanadianNickels',
+                          'CanadianSilverDimes', 'CanadianCladDimes', 'CanadianSilverQuarters',
+                          'CanadianCladQuarters', 'CanadianHalfDollars', 'CanadianLoonies'];
+
         var metalColors = {
             'CopperPennies': '#b45309',
             'ZincPennies': '#64748b',
@@ -1982,7 +2045,16 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
             'CladHalves': '#64748b',
             'EisenhowerClad': '#64748b',
             'GoldenDollars': '#d4af37',
-            'SilverCoins90': '#94a3b8'
+            'SilverCoins90': '#94a3b8',
+            'CanadianCopperPennies': '#b45309',
+            'CanadianZincPennies': '#64748b',
+            'CanadianNickels': '#92400e',
+            'CanadianSilverDimes': '#94a3b8',
+            'CanadianCladDimes': '#64748b',
+            'CanadianSilverQuarters': '#94a3b8',
+            'CanadianCladQuarters': '#64748b',
+            'CanadianHalfDollars': '#94a3b8',
+            'CanadianLoonies': '#d4af37'
         };
 
         metalOrder.forEach(function(m) {
@@ -3226,7 +3298,21 @@ document.addEventListener('click', async function(e) {
                 // 2026-10-10 (Matthew), corrected year ranges
                 'Eisenhower Dollars (1971-1978, clad)': 'EisenhowerClad',
                 'Golden Sacagawea & Presidential Dollars': 'GoldenDollars',
-                '90% Silver Coins': 'SilverCoins90'
+                '90% Silver Coins': 'SilverCoins90',
+                // 2026-10-21 (GGMJ-403): the dropdown offers 9 Canadian
+                // denominations but the forward map had no Canadian keys, so
+                // every one fell through to the 'CopperPennies' default and was
+                // stored (and valued) as US copper. The type keys below are
+                // the ones getMetalLabel()/getGramsPerCoin() already use.
+                'Canadian Copper Pennies 1920-1996': 'CanadianCopperPennies',
+                'Canadian Zinc Pennies 1997-2012': 'CanadianZincPennies',
+                'Canadian Nickels': 'CanadianNickels',
+                'Canadian Silver Dimes (pre-1968)': 'CanadianSilverDimes',
+                'Canadian Clad Dimes (1968+)': 'CanadianCladDimes',
+                'Canadian Silver Quarters (pre-1968)': 'CanadianSilverQuarters',
+                'Canadian Clad Quarters (1968+)': 'CanadianCladQuarters',
+                'Canadian 50¢ Pieces': 'CanadianHalfDollars',
+                'Canadian Loonies (1$)': 'CanadianLoonies'
             };
             var metalType = metalMap[selectedLabel] || 'CopperPennies';
             

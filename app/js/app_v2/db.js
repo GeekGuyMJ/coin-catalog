@@ -638,10 +638,16 @@ export async function fetchSectionsLocal() {
         }
     });
 
-    // Populate owned counts
-    const ownedRefs = new Set(inventory.filter(inv => inv.quantity > 0).map(inv => inv.coin_ref_id));
+    // Populate owned counts.
+    // 2026-10-21 (GGMJ-399): coins_reference.id is a STRING in the static
+    // deployments' data/coins.json but a NUMBER on self-hosted, while
+    // user_inventory.coin_ref_id is always a NUMBER. `new Set([1]).has('1')`
+    // is false, so the section badge stayed 0/N on GitHub Pages and
+    // Cloudflare Pages while self-hosted was correct. Normalise BOTH sides
+    // to String -- the key is only used for identity comparison.
+    const ownedRefs = new Set(inventory.filter(inv => inv.quantity > 0).map(inv => String(inv.coin_ref_id)));
     references.forEach(coin => {
-        if (ownedRefs.has(coin.id)) {
+        if (ownedRefs.has(String(coin.id))) {
             const sec = coin.section || "Unknown";
             sectionOwned[sec] = (sectionOwned[sec] || 0) + 1;
         }
@@ -937,13 +943,46 @@ export async function updateInventoryLocal(coinRefId, data) {
         if (quantity <= 0) {
             return { status: "deleted" };
         }
+        // 2026-10-21 (GGMJ-399): UPSERT by coin_ref_id. The catalog stepper
+        // calls updateInventory(coinId, { quantity }) with no `id` whenever it
+        // cannot find a reusable row, and appending a new row on every click
+        // left two rows of quantity 1 for a single coin. Reuse an existing
+        // unannotated row for the same coin instead of appending.
+        const existingRows = await db.user_inventory
+            .where('coin_ref_id').equals(coinRefId).toArray();
+        const reusable = existingRows.find(row => row.quantity > 0
+            && !row.grade && !row.notes && !row.personal_photo
+            && !row.purchase_price && !row.current_value && !row.date_acquired);
+        if (reusable) {
+            const merged = {
+                quantity,
+                grade: data.grade !== undefined ? data.grade : reusable.grade,
+                purchase_price: data.purchase_price !== undefined ? Number(data.purchase_price) : reusable.purchase_price,
+                current_value: data.current_value !== undefined ? Number(data.current_value) : reusable.current_value,
+                date_acquired: data.date_acquired !== undefined ? data.date_acquired : reusable.date_acquired,
+                notes: data.notes !== undefined ? data.notes : reusable.notes
+            };
+            if (data.personal_photo !== undefined) {
+                merged.personal_photo = scrubBadPhotoTokens(data.personal_photo);
+            }
+            if (data.personal_photos !== undefined) {
+                merged.personal_photo = scrubBadPhotoTokens(data.personal_photos.filter(x => x).join(';'));
+            }
+            await db.user_inventory.update(reusable.id, merged);
+            const updated = await db.user_inventory.get(reusable.id);
+            return { status: "updated", entry: { ...updated, id: updated.id } };
+        }
         const newEntry = {
             coin_ref_id: coinRefId,
             quantity,
             grade: data.grade || "",
             purchase_price: Number(data.purchase_price || 0),
             current_value: Number(data.current_value || 0),
-            date_acquired: data.date_acquired || new Date().toISOString().split('T')[0],
+            // 2026-10-21 (GGMJ-399): leave empty when not supplied, matching
+            // the server model's default. Stamping today's date made every
+            // locally created row look "annotated", so the stepper stopped
+            // reusing it and appended a new row on every click.
+            date_acquired: data.date_acquired || "",
             notes: data.notes || "",
             personal_photo: data.personal_photo || null
         };
@@ -2496,7 +2535,10 @@ export async function searchCoinsLocal(searchParams) {
 
     let coins = await db.coins_reference.toArray();
     const inventory = await db.user_inventory.toArray();
-    const ownedMap = new Set(inventory.filter(inv => inv.quantity > 0).map(inv => inv.coin_ref_id));
+    // 2026-10-21 (GGMJ-399): same string/number mismatch as fetchSectionsLocal
+    // -- the "missing only" filter compared a NUMBER set against a STRING id,
+    // so owned coins were never excluded.
+    const ownedMap = new Set(inventory.filter(inv => inv.quantity > 0).map(inv => String(inv.coin_ref_id)));
 
     // Filter section
     if (section) {
@@ -2515,7 +2557,7 @@ export async function searchCoinsLocal(searchParams) {
 
     // Filter missing only
     if (missing) {
-        coins = coins.filter(c => !ownedMap.has(c.id));
+        coins = coins.filter(c => !ownedMap.has(String(c.id)));
     }
 
     // Filter proofs
