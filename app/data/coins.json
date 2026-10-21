@@ -14612,8 +14612,8 @@
   "mintage": "5376000",
   "ref_notes": "First year of Jefferson nickel \u2014 designed by Felix Schlag, who won a competition of 390 artists. The winning design placed Monticello (Jefferson's Virginia home) on the reverse \u2014 it remains there to this day, making the Jefferson nickel one of the longest-running unchanged designs in US history.",
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.1938.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1938.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "815",
@@ -14630,8 +14630,8 @@
   "mintage": "19496000",
   "ref_notes": "First year of Jefferson nickel \u2014 designed by Felix Schlag, who won a competition of 390 artists. The winning design placed Monticello (Jefferson's Virginia home) on the reverse \u2014 it remains there to this day, making the Jefferson nickel one of the longest-running unchanged designs in US history.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1938.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1938.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "816",
@@ -14648,8 +14648,8 @@
   "mintage": "4105000",
   "ref_notes": "First year of Jefferson nickel \u2014 designed by Felix Schlag, who won a competition of 390 artists. The winning design placed Monticello (Jefferson's Virginia home) on the reverse \u2014 it remains there to this day, making the Jefferson nickel one of the longest-running unchanged designs in US history.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1938.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1938.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "817",
@@ -14666,8 +14666,8 @@
   "mintage": "3514000",
   "ref_notes": "Jefferson nickel 1939; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1939.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1939.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "818",
@@ -14684,8 +14684,8 @@
   "mintage": "120627535",
   "ref_notes": "Jefferson nickel 1939; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1939.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1939.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "819",
@@ -14702,8 +14702,8 @@
   "mintage": "6630000",
   "ref_notes": "Jefferson nickel 1939; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1939.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1939.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "820",
@@ -14720,8 +14720,8 @@
   "mintage": "43540000",
   "ref_notes": "Jefferson nickel 1940; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1940.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1940.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "821",
@@ -14738,8 +14738,8 @@
   "mintage": "176485000",
   "ref_notes": "Jefferson nickel 1940; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1940.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1940.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "822",
@@ -14756,8 +14756,8 @@
   "mintage": "39690000",
   "ref_notes": "Jefferson nickel 1940; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1940.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1940.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "823",
@@ -14774,8 +14774,8 @@
   "mintage": "53432000",
   "ref_notes": "Jefferson nickel 1941; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1941.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1941.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "824",
@@ -14792,8 +14792,8 @@
   "mintage": "203283720",
   "ref_notes": "Jefferson nickel 1941; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1941.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1941.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "825",
@@ -14810,8 +14810,8 @@
   "mintage": "43090000",
   "ref_notes": "Jefferson nickel 1941; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1941.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1941.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "826",
@@ -14828,8 +14828,8 @@
   "mintage": "49789000",
   "ref_notes": "Jefferson nickel 1942; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1942.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1942.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "827",
@@ -14846,8 +14846,8 @@
   "mintage": "57873000",
   "ref_notes": "Nickel was critical for WWII armor plating, so the composition was changed to 35% silver / 56% copper / 9% manganese. The large P, D, or S mint mark on the reverse (above Monticello) identifies these 'war nickels.' The P mark was the first time Philadelphia ever put its mint mark on a circulating coin.",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "828",
@@ -14864,8 +14864,8 @@
   "mintage": "32900000",
   "ref_notes": "Nickel was critical for WWII armor plating, so the composition was changed to 35% silver / 56% copper / 9% manganese. The large P, D, or S mint mark on the reverse (above Monticello) identifies these 'war nickels.' The P mark was the first time Philadelphia ever put its mint mark on a circulating coin.",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "829",
@@ -14882,8 +14882,8 @@
   "mintage": "15294000",
   "ref_notes": "War nickel; 35% silver. The oversized mint mark above Monticello makes identification easy. These are collected both as type coins and for their silver content (~0.05626 troy oz silver each).",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "830",
@@ -14900,8 +14900,8 @@
   "mintage": "271232000",
   "ref_notes": "War nickel; 35% silver. The oversized mint mark above Monticello makes identification easy. These are collected both as type coins and for their silver content (~0.05626 troy oz silver each).",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "831",
@@ -14918,8 +14918,8 @@
   "mintage": "104060000",
   "ref_notes": "War nickel; 35% silver. The oversized mint mark above Monticello makes identification easy. These are collected both as type coins and for their silver content (~0.05626 troy oz silver each).",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "832",
@@ -14936,8 +14936,8 @@
   "mintage": "32309000",
   "ref_notes": "War nickel; 35% silver. Nickel returned to the alloy in 1946 \u2014 these were the last silver 5-cent pieces ever made for US circulation.",
   "variety": "Doubled Die Reverse",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "833",
@@ -14954,8 +14954,8 @@
   "mintage": "119150000",
   "ref_notes": "War nickel; 35% silver. Nickel returned to the alloy in 1946 \u2014 these were the last silver 5-cent pieces ever made for US circulation.",
   "variety": "Doubled Die Reverse",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "834",
@@ -14972,8 +14972,8 @@
   "mintage": "21640000",
   "ref_notes": "War nickel; 35% silver. Nickel returned to the alloy in 1946 \u2014 these were the last silver 5-cent pieces ever made for US circulation.",
   "variety": "Doubled Die Reverse",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "835",
@@ -14990,8 +14990,8 @@
   "mintage": "37158000",
   "ref_notes": "Last full year of war nickels; 35% silver. The 1945-P Doubled Die Reverse shows doubling on Monticello's steps.",
   "variety": "Full Steps",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "836",
@@ -15008,8 +15008,8 @@
   "mintage": "119408100",
   "ref_notes": "Last full year of war nickels; 35% silver. The 1945-P Doubled Die Reverse shows doubling on Monticello's steps.",
   "variety": "Full Steps",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "837",
@@ -15026,8 +15026,8 @@
   "mintage": "58939000",
   "ref_notes": "Last full year of war nickels; 35% silver. The 1945-P Doubled Die Reverse shows doubling on Monticello's steps.",
   "variety": "Full Steps",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-wartime-silver.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-wartime-silver.rev.webp"
  },
  {
   "id": "838",
@@ -15044,8 +15044,8 @@
   "mintage": "45292200",
   "ref_notes": "Jefferson nickel 1946; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1946.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1946.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "839",
@@ -15062,8 +15062,8 @@
   "mintage": "161116000",
   "ref_notes": "Jefferson nickel 1946; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1946.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1946.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "840",
@@ -15080,8 +15080,8 @@
   "mintage": "13560000",
   "ref_notes": "Jefferson nickel 1946; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1946.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1946.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "841",
@@ -15098,8 +15098,8 @@
   "mintage": "37822000",
   "ref_notes": "Jefferson nickel 1947; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1947.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1947.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "842",
@@ -15116,8 +15116,8 @@
   "mintage": "95000000",
   "ref_notes": "Jefferson nickel 1947; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1947.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1947.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "843",
@@ -15134,8 +15134,8 @@
   "mintage": "24720000",
   "ref_notes": "Jefferson nickel 1947; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1947.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1947.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "844",
@@ -15152,8 +15152,8 @@
   "mintage": "44734000",
   "ref_notes": "Jefferson nickel 1948; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1948.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1948.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "845",
@@ -15170,8 +15170,8 @@
   "mintage": "89348000",
   "ref_notes": "Jefferson nickel 1948; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1948.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1948.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "846",
@@ -15188,8 +15188,8 @@
   "mintage": "11300000",
   "ref_notes": "Jefferson nickel 1948; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1948.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1948.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "847",
@@ -15206,8 +15206,8 @@
   "mintage": "36498000",
   "ref_notes": "Jefferson nickel 1949; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1949.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1949.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "848",
@@ -15224,8 +15224,8 @@
   "mintage": "60652000",
   "ref_notes": "Jefferson nickel 1949; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1949.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1949.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "849",
@@ -15242,8 +15242,8 @@
   "mintage": "9716000",
   "ref_notes": "Jefferson nickel 1949; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1949.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1949.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "850",
@@ -15260,8 +15260,8 @@
   "mintage": "2630030",
   "ref_notes": "The 1950-D is the key date of the Jefferson nickel series \u2014 only 2,630,030 struck at Denver. Speculators hoarded them heavily at the time, which is why so many survive in high grades today (the opposite of most key dates). Nevertheless a genuine rarity with face value still under a nickel.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1950.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1950.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "851",
@@ -15278,8 +15278,8 @@
   "mintage": "9847386",
   "ref_notes": "The 1950-D is the key date of the Jefferson nickel series \u2014 only 2,630,030 struck at Denver. Speculators hoarded them heavily at the time, which is why so many survive in high grades today (the opposite of most key dates). Nevertheless a genuine rarity with face value still under a nickel.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1950.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1950.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "852",
@@ -15296,8 +15296,8 @@
   "mintage": "20460000",
   "ref_notes": "Jefferson nickel 1951; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1951.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1951.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "853",
@@ -15314,8 +15314,8 @@
   "mintage": "28552000",
   "ref_notes": "Jefferson nickel 1951; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1951.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1951.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "854",
@@ -15332,8 +15332,8 @@
   "mintage": "7776000",
   "ref_notes": "Jefferson nickel 1951; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1951.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1951.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "855",
@@ -15350,8 +15350,8 @@
   "mintage": "30638000",
   "ref_notes": "Jefferson nickel 1952; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1952.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1952.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "856",
@@ -15368,8 +15368,8 @@
   "mintage": "63988000",
   "ref_notes": "Jefferson nickel 1952; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1952.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1952.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "857",
@@ -15386,8 +15386,8 @@
   "mintage": "20572000",
   "ref_notes": "Jefferson nickel 1952; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1952.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1952.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "858",
@@ -15404,8 +15404,8 @@
   "mintage": "59878600",
   "ref_notes": "Jefferson nickel 1953; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1953.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1953.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "859",
@@ -15422,8 +15422,8 @@
   "mintage": "46772800",
   "ref_notes": "Jefferson nickel 1953; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1953.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1953.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "860",
@@ -15440,8 +15440,8 @@
   "mintage": "19210900",
   "ref_notes": "Jefferson nickel 1953; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1953.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1953.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "861",
@@ -15458,8 +15458,8 @@
   "mintage": "117183060",
   "ref_notes": "Jefferson nickel 1954; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1954.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1954.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "862",
@@ -15476,8 +15476,8 @@
   "mintage": "47684050",
   "ref_notes": "Jefferson nickel 1954; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1954.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1954.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "863",
@@ -15494,8 +15494,8 @@
   "mintage": "29384000",
   "ref_notes": "Jefferson nickel 1954; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1954.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1954.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "864",
@@ -15512,8 +15512,8 @@
   "mintage": "74464100",
   "ref_notes": "The 1955-D and 1955 (Philadelphia) are low mintage dates. No proof was struck in 1955.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1955.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1955.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "865",
@@ -15530,8 +15530,8 @@
   "mintage": "8266200",
   "ref_notes": "The 1955-D and 1955 (Philadelphia) are low mintage dates. No proof was struck in 1955.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1955.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1955.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "866",
@@ -15548,8 +15548,8 @@
   "mintage": "67222940",
   "ref_notes": "Jefferson nickel 1956; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1956.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1956.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "867",
@@ -15566,8 +15566,8 @@
   "mintage": "35216000",
   "ref_notes": "Jefferson nickel 1956; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1956.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1956.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "868",
@@ -15584,8 +15584,8 @@
   "mintage": "136828900",
   "ref_notes": "Jefferson nickel 1957; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1957.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1957.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "869",
@@ -15602,8 +15602,8 @@
   "mintage": "38408000",
   "ref_notes": "Jefferson nickel 1957; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1957.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1957.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "870",
@@ -15620,8 +15620,8 @@
   "mintage": "168249000",
   "ref_notes": "Jefferson nickel 1958; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1958.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1958.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "871",
@@ -15638,8 +15638,8 @@
   "mintage": "17963000",
   "ref_notes": "Jefferson nickel 1958; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1958.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1958.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "872",
@@ -15656,8 +15656,8 @@
   "mintage": "160738240",
   "ref_notes": "Jefferson nickel 1959; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1959.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1959.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "873",
@@ -15674,8 +15674,8 @@
   "mintage": "27248000",
   "ref_notes": "Jefferson nickel 1959; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1959.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1959.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "874",
@@ -15692,8 +15692,8 @@
   "mintage": "192582180",
   "ref_notes": "Jefferson nickel 1960; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1960.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1960.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "875",
@@ -15710,8 +15710,8 @@
   "mintage": "55416000",
   "ref_notes": "Jefferson nickel 1960; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1960.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1960.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "876",
@@ -15728,8 +15728,8 @@
   "mintage": "229342760",
   "ref_notes": "Jefferson nickel 1961; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1961.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1961.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "877",
@@ -15746,8 +15746,8 @@
   "mintage": "73640100",
   "ref_notes": "Jefferson nickel 1961; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1961.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1961.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "878",
@@ -15764,8 +15764,8 @@
   "mintage": "280195720",
   "ref_notes": "Jefferson nickel 1962; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1962.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1962.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "879",
@@ -15782,8 +15782,8 @@
   "mintage": "100602019",
   "ref_notes": "Jefferson nickel 1962; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1962.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1962.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "880",
@@ -15800,8 +15800,8 @@
   "mintage": "276829460",
   "ref_notes": "Jefferson nickel 1963; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1963.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1963.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "881",
@@ -15818,8 +15818,8 @@
   "mintage": "175776900",
   "ref_notes": "Jefferson nickel 1963; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1963.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1963.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "882",
@@ -15836,8 +15836,8 @@
   "mintage": "1787297160",
   "ref_notes": "Jefferson nickel 1964; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1964.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1964.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "883",
@@ -15854,8 +15854,8 @@
   "mintage": "1024672000",
   "ref_notes": "Jefferson nickel 1964; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1964.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1964.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "884",
@@ -15872,8 +15872,8 @@
   "mintage": "136131380",
   "ref_notes": "Jefferson nickel 1965; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1965.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1965.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "885",
@@ -15890,8 +15890,8 @@
   "mintage": "156208000",
   "ref_notes": "Jefferson nickel 1966; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1966.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1966.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "886",
@@ -15908,8 +15908,8 @@
   "mintage": "107325800",
   "ref_notes": "Jefferson nickel 1967; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1967.obv.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1967.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "887",
@@ -15926,8 +15926,8 @@
   "mintage": "91227880",
   "ref_notes": "Jefferson nickel 1968; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1968.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1968.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "888",
@@ -15944,8 +15944,8 @@
   "mintage": "100396004",
   "ref_notes": "Jefferson nickel 1968; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1968.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1968.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "889",
@@ -15962,8 +15962,8 @@
   "mintage": "202807500",
   "ref_notes": "Jefferson nickel 1969; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1969.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1969.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "890",
@@ -15980,8 +15980,8 @@
   "mintage": "123099631",
   "ref_notes": "Jefferson nickel 1969; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1969.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1969.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "891",
@@ -15998,8 +15998,8 @@
   "mintage": "515485380",
   "ref_notes": "Jefferson nickel 1970; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1970.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1970.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "892",
@@ -16016,8 +16016,8 @@
   "mintage": "238832004",
   "ref_notes": "Jefferson nickel 1970; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1970.obv.S.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1970.rev.S.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "893",
@@ -16034,8 +16034,8 @@
   "mintage": "316144800",
   "ref_notes": "Jefferson nickel 1971; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1971.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1971.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "894",
@@ -16052,8 +16052,8 @@
   "mintage": "106884000",
   "ref_notes": "Jefferson nickel 1971; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1971.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1971.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "895",
@@ -16070,8 +16070,8 @@
   "mintage": "3220733",
   "ref_notes": "Jefferson nickel 1971; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1971.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1971.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "896",
@@ -16088,8 +16088,8 @@
   "mintage": "351694600",
   "ref_notes": "Jefferson nickel 1972; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1972.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1972.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "897",
@@ -16106,8 +16106,8 @@
   "mintage": "202036000",
   "ref_notes": "Jefferson nickel 1972; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1972.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1972.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "898",
@@ -16124,8 +16124,8 @@
   "mintage": "3260996",
   "ref_notes": "Jefferson nickel 1972; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1972.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1972.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "899",
@@ -16142,8 +16142,8 @@
   "mintage": "261405000",
   "ref_notes": "Jefferson nickel 1973; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1973.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1973.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "900",
@@ -16160,8 +16160,8 @@
   "mintage": "384396000",
   "ref_notes": "Jefferson nickel 1973; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1973.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1973.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "901",
@@ -16178,8 +16178,8 @@
   "mintage": "2760339",
   "ref_notes": "Jefferson nickel 1973; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1973.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1973.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "902",
@@ -16196,8 +16196,8 @@
   "mintage": "277373000",
   "ref_notes": "Jefferson nickel 1974; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1974.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1974.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "903",
@@ -16214,8 +16214,8 @@
   "mintage": "601752000",
   "ref_notes": "Jefferson nickel 1974; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1974.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1974.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "904",
@@ -16232,8 +16232,8 @@
   "mintage": "2612568",
   "ref_notes": "Jefferson nickel 1974; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1974.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1974.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "905",
@@ -16250,8 +16250,8 @@
   "mintage": "401875300",
   "ref_notes": "Jefferson nickel 1975; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1975.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1975.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "906",
@@ -16268,8 +16268,8 @@
   "mintage": "181772000",
   "ref_notes": "Jefferson nickel 1975; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1975.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1975.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "907",
@@ -16286,8 +16286,8 @@
   "mintage": "2845450",
   "ref_notes": "Jefferson nickel 1975; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1975.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1975.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "908",
@@ -16304,8 +16304,8 @@
   "mintage": "563964147",
   "ref_notes": "Jefferson nickel 1976; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1976.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1976.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "909",
@@ -16322,8 +16322,8 @@
   "mintage": "367124000",
   "ref_notes": "Jefferson nickel 1976; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1976.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1976.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "910",
@@ -16340,8 +16340,8 @@
   "mintage": "4149730",
   "ref_notes": "Jefferson nickel 1976; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1976.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1976.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "911",
@@ -16358,8 +16358,8 @@
   "mintage": "297313422",
   "ref_notes": "Jefferson nickel 1977; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1977.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1977.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "912",
@@ -16376,8 +16376,8 @@
   "mintage": "585376000",
   "ref_notes": "Jefferson nickel 1977; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1977.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1977.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "913",
@@ -16394,8 +16394,8 @@
   "mintage": "3251152",
   "ref_notes": "Jefferson nickel 1977; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1977.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1977.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "914",
@@ -16412,8 +16412,8 @@
   "mintage": "313092780",
   "ref_notes": "Jefferson nickel 1978; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1978.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1978.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "915",
@@ -16430,8 +16430,8 @@
   "mintage": "391308000",
   "ref_notes": "Jefferson nickel 1978; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1978.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1978.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "916",
@@ -16448,8 +16448,8 @@
   "mintage": "3127781",
   "ref_notes": "Jefferson nickel 1978; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1978.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1978.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "917",
@@ -16466,8 +16466,8 @@
   "mintage": "325867672",
   "ref_notes": "Jefferson nickel 1979; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1979.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1979.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "918",
@@ -16484,8 +16484,8 @@
   "mintage": "463188000",
   "ref_notes": "Jefferson nickel 1979; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1979.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1979.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "919",
@@ -16502,8 +16502,8 @@
   "mintage": "3677175",
   "ref_notes": "Jefferson nickel 1979; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1979.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1979.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "920",
@@ -16520,8 +16520,8 @@
   "mintage": "502323448",
   "ref_notes": "Jefferson nickel 1980; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1980.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1980.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "921",
@@ -16538,8 +16538,8 @@
   "mintage": "593004000",
   "ref_notes": "Jefferson nickel 1980; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1980.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1980.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "922",
@@ -16556,8 +16556,8 @@
   "mintage": "3554806",
   "ref_notes": "Jefferson nickel 1980; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1980.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1980.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "923",
@@ -16574,8 +16574,8 @@
   "mintage": "364801843",
   "ref_notes": "Jefferson nickel 1981; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1981.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1981.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "924",
@@ -16592,8 +16592,8 @@
   "mintage": "657504000",
   "ref_notes": "Jefferson nickel 1981; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1981.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1981.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "925",
@@ -16610,8 +16610,8 @@
   "mintage": "4063083",
   "ref_notes": "Jefferson nickel 1981; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1981.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1981.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "926",
@@ -16628,8 +16628,8 @@
   "mintage": "373726544",
   "ref_notes": "Jefferson nickel 1982; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1982.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1982.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "927",
@@ -16646,8 +16646,8 @@
   "mintage": "292355000",
   "ref_notes": "Jefferson nickel 1982; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1982.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1982.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "928",
@@ -16664,8 +16664,8 @@
   "mintage": "3857479",
   "ref_notes": "Jefferson nickel 1982; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1982.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1982.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "929",
@@ -16682,8 +16682,8 @@
   "mintage": "536726276",
   "ref_notes": "Jefferson nickel 1983; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1983.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1983.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "930",
@@ -16700,8 +16700,8 @@
   "mintage": "561615000",
   "ref_notes": "Jefferson nickel 1983; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1983.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1983.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "931",
@@ -16718,8 +16718,8 @@
   "mintage": "3279126",
   "ref_notes": "Jefferson nickel 1983; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1983.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1983.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "932",
@@ -16736,8 +16736,8 @@
   "mintage": "517675146",
   "ref_notes": "Jefferson nickel 1984; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1984.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1984.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "933",
@@ -16754,8 +16754,8 @@
   "mintage": "746769000",
   "ref_notes": "Jefferson nickel 1984; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1984.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1984.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "934",
@@ -16772,8 +16772,8 @@
   "mintage": "3065110",
   "ref_notes": "Jefferson nickel 1984; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1984.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1984.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "935",
@@ -16790,8 +16790,8 @@
   "mintage": "459747446",
   "ref_notes": "Jefferson nickel 1985; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1985.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1985.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "936",
@@ -16808,8 +16808,8 @@
   "mintage": "647114962",
   "ref_notes": "Jefferson nickel 1985; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1985.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1985.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "937",
@@ -16826,8 +16826,8 @@
   "mintage": "3362821",
   "ref_notes": "Jefferson nickel 1985; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1985.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1985.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "938",
@@ -16844,8 +16844,8 @@
   "mintage": "361819140",
   "ref_notes": "Jefferson nickel 1986; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1986.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1986.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "939",
@@ -16862,8 +16862,8 @@
   "mintage": "536883483",
   "ref_notes": "Jefferson nickel 1986; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1986.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1986.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "940",
@@ -16880,8 +16880,8 @@
   "mintage": "3010497",
   "ref_notes": "Jefferson nickel 1986; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1986.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1986.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "941",
@@ -16898,8 +16898,8 @@
   "mintage": "410590604",
   "ref_notes": "Jefferson nickel 1987; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1987.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1987.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "942",
@@ -16916,8 +16916,8 @@
   "mintage": "371499481",
   "ref_notes": "Jefferson nickel 1987; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1987.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1987.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "943",
@@ -16934,8 +16934,8 @@
   "mintage": "4227728",
   "ref_notes": "Jefferson nickel 1987; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1987.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1987.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "944",
@@ -16952,8 +16952,8 @@
   "mintage": "663771652",
   "ref_notes": "Jefferson nickel 1988; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1988.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1988.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "945",
@@ -16970,8 +16970,8 @@
   "mintage": "771360000",
   "ref_notes": "Jefferson nickel 1988; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1988.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1988.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "946",
@@ -16988,8 +16988,8 @@
   "mintage": "3262948",
   "ref_notes": "Jefferson nickel 1988; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1988.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1988.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "947",
@@ -17006,8 +17006,8 @@
   "mintage": "570842474",
   "ref_notes": "Jefferson nickel 1989; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1989.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1989.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "948",
@@ -17024,8 +17024,8 @@
   "mintage": "898812000",
   "ref_notes": "Jefferson nickel 1989; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1989.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1989.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "949",
@@ -17042,8 +17042,8 @@
   "mintage": "3220194",
   "ref_notes": "Jefferson nickel 1989; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1989.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1989.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "950",
@@ -17060,8 +17060,8 @@
   "mintage": "663938503",
   "ref_notes": "Jefferson nickel 1990; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1990.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1990.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "951",
@@ -17078,8 +17078,8 @@
   "mintage": "661636000",
   "ref_notes": "Jefferson nickel 1990; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1990.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1990.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "952",
@@ -17096,8 +17096,8 @@
   "mintage": "3299559",
   "ref_notes": "Jefferson nickel 1990; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1990.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1990.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "953",
@@ -17114,8 +17114,8 @@
   "mintage": "436496678",
   "ref_notes": "Jefferson nickel 1991; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1991.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1991.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "954",
@@ -17132,8 +17132,8 @@
   "mintage": "614104000",
   "ref_notes": "Jefferson nickel 1991; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1991.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1991.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "955",
@@ -17150,8 +17150,8 @@
   "mintage": "2867787",
   "ref_notes": "Jefferson nickel 1991; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1991.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1991.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "956",
@@ -17168,8 +17168,8 @@
   "mintage": "450565113",
   "ref_notes": "Jefferson nickel 1992; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1992.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1992.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "957",
@@ -17186,8 +17186,8 @@
   "mintage": "399552000",
   "ref_notes": "Jefferson nickel 1992; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1992.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1992.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "958",
@@ -17204,8 +17204,8 @@
   "mintage": "4176560",
   "ref_notes": "Jefferson nickel 1992; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1992.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1992.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "959",
@@ -17222,8 +17222,8 @@
   "mintage": "406084135",
   "ref_notes": "Jefferson nickel 1993; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1993.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1993.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "960",
@@ -17240,8 +17240,8 @@
   "mintage": "412076000",
   "ref_notes": "Jefferson nickel 1993; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1993.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1993.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "961",
@@ -17258,8 +17258,8 @@
   "mintage": "3394792",
   "ref_notes": "Jefferson nickel 1993; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1993.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1993.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "962",
@@ -17276,8 +17276,8 @@
   "mintage": "715762110",
   "ref_notes": "Jefferson nickel 1994; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1994.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1994.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "963",
@@ -17294,8 +17294,8 @@
   "mintage": "722160000",
   "ref_notes": "Jefferson nickel 1994; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1994.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1994.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "964",
@@ -17312,8 +17312,8 @@
   "mintage": "3269923",
   "ref_notes": "Jefferson nickel 1994; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1994.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1994.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "965",
@@ -17330,8 +17330,8 @@
   "mintage": "888112000",
   "ref_notes": "Jefferson nickel 1995; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1995.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1995.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "966",
@@ -17348,8 +17348,8 @@
   "mintage": "774156000",
   "ref_notes": "Jefferson nickel 1995; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1995.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1995.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "967",
@@ -17366,8 +17366,8 @@
   "mintage": "2797481",
   "ref_notes": "Jefferson nickel 1995; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1995.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1995.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "968",
@@ -17384,8 +17384,8 @@
   "mintage": "817736000",
   "ref_notes": "Jefferson nickel 1996; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1996.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1996.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "969",
@@ -17402,8 +17402,8 @@
   "mintage": "829332000",
   "ref_notes": "Jefferson nickel 1996; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1996.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1996.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "970",
@@ -17420,8 +17420,8 @@
   "mintage": "2525265",
   "ref_notes": "Jefferson nickel 1996; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1996.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1996.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "971",
@@ -17438,8 +17438,8 @@
   "mintage": "466736000",
   "ref_notes": "Jefferson nickel 1997; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1997.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1997.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "972",
@@ -17456,8 +17456,8 @@
   "mintage": "470972000",
   "ref_notes": "Jefferson nickel 1997; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1997.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1997.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "973",
@@ -17474,8 +17474,8 @@
   "mintage": "2796678",
   "ref_notes": "Jefferson nickel 1997; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1997.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1997.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "974",
@@ -17492,8 +17492,8 @@
   "mintage": "635360000",
   "ref_notes": "Jefferson nickel 1998; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1998.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1998.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "975",
@@ -17510,8 +17510,8 @@
   "mintage": "688272000",
   "ref_notes": "Jefferson nickel 1998; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1998.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1998.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "976",
@@ -17528,8 +17528,8 @@
   "mintage": "2086507",
   "ref_notes": "Jefferson nickel 1998; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1998.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1998.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "977",
@@ -17546,8 +17546,8 @@
   "mintage": "1066720000",
   "ref_notes": "Jefferson nickel 1999; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1999.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1999.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "978",
@@ -17564,8 +17564,8 @@
   "mintage": "1212000000",
   "ref_notes": "Jefferson nickel 1999; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1999.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1999.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "979",
@@ -17582,8 +17582,8 @@
   "mintage": "3347966",
   "ref_notes": "Jefferson nickel 1999; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.1999.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.1999.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "980",
@@ -17600,8 +17600,8 @@
   "mintage": "1509520000",
   "ref_notes": "Jefferson nickel 2000; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2000.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2000.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "981",
@@ -17618,8 +17618,8 @@
   "mintage": "846240000",
   "ref_notes": "Jefferson nickel 2000; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2000.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2000.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "982",
@@ -17636,8 +17636,8 @@
   "mintage": "4047993",
   "ref_notes": "Jefferson nickel 2000; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2000.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2000.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "983",
@@ -17654,8 +17654,8 @@
   "mintage": "627680000",
   "ref_notes": "Jefferson nickel 2001; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2001.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2001.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "984",
@@ -17672,8 +17672,8 @@
   "mintage": "675704000",
   "ref_notes": "Jefferson nickel 2001; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2001.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2001.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "985",
@@ -17690,8 +17690,8 @@
   "mintage": "3184606",
   "ref_notes": "Jefferson nickel 2001; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2001.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2001.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "986",
@@ -17708,8 +17708,8 @@
   "mintage": "691200000",
   "ref_notes": "Jefferson nickel 2002; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2002.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2002.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "987",
@@ -17726,8 +17726,8 @@
   "mintage": "539280000",
   "ref_notes": "Jefferson nickel 2002; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2002.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2002.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "988",
@@ -17744,8 +17744,8 @@
   "mintage": "3211995",
   "ref_notes": "Jefferson nickel 2002; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2002.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2002.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "989",
@@ -17762,8 +17762,8 @@
   "mintage": "383040000",
   "ref_notes": "Jefferson nickel 2003; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2003.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2003.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "990",
@@ -17780,8 +17780,8 @@
   "mintage": "441840000",
   "ref_notes": "Jefferson nickel 2003; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Bison",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2003.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2003.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "991",
@@ -17798,8 +17798,8 @@
   "mintage": "3298439",
   "ref_notes": "Jefferson nickel 2003; Full Steps (FS) designation adds significant premium for coins with complete Monticello steps \u2014 check the bottom two steps for completeness.",
   "variety": "Full Steps",
-  "obv_image": "/data/images/coins/5-cents.jefferson.2003.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2003.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "992",
@@ -18032,8 +18032,8 @@
   "mintage": "809280000",
   "ref_notes": "Monticello returned to the reverse in 2006 with a fresh new portrait of Jefferson on the obverse \u2014 the first full-face portrait on any circulating US coin in the modern era. Felix Schlag's original Monticello design was refined.",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1005",
@@ -18050,8 +18050,8 @@
   "mintage": "693120000",
   "ref_notes": "Monticello returned to the reverse in 2006 with a fresh new portrait of Jefferson on the obverse \u2014 the first full-face portrait on any circulating US coin in the modern era. Felix Schlag's original Monticello design was refined.",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1006",
@@ -18068,8 +18068,8 @@
   "mintage": "3054436",
   "ref_notes": "Monticello returned to the reverse in 2006 with a fresh new portrait of Jefferson on the obverse \u2014 the first full-face portrait on any circulating US coin in the modern era. Felix Schlag's original Monticello design was refined.",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1007",
@@ -18086,8 +18086,8 @@
   "mintage": "626160000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2007.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2007.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1008",
@@ -18104,8 +18104,8 @@
   "mintage": "571680000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2007.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2007.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1009",
@@ -18122,8 +18122,8 @@
   "mintage": "3054436",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2007.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2007.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1010",
@@ -18140,8 +18140,8 @@
   "mintage": "345600000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2008.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2008.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1011",
@@ -18158,8 +18158,8 @@
   "mintage": "279840000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2008.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2008.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1012",
@@ -18176,8 +18176,8 @@
   "mintage": "2169561",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2008.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2008.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1013",
@@ -18194,8 +18194,8 @@
   "mintage": "46800000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2009.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2009.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1014",
@@ -18212,8 +18212,8 @@
   "mintage": "39840000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2009.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2009.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1015",
@@ -18230,8 +18230,8 @@
   "mintage": "2995615",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2009.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2009.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1016",
@@ -18248,8 +18248,8 @@
   "mintage": "229920000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2010.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2010.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1017",
@@ -18266,8 +18266,8 @@
   "mintage": "260640000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2010.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2010.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1018",
@@ -18284,8 +18284,8 @@
   "mintage": "1689216",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2010.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2010.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1019",
@@ -18302,8 +18302,8 @@
   "mintage": "204800000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2011.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2011.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1020",
@@ -18320,8 +18320,8 @@
   "mintage": "196800000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2011.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2011.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1021",
@@ -18338,8 +18338,8 @@
   "mintage": "1673010",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2011.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2011.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1022",
@@ -18356,8 +18356,8 @@
   "mintage": "398800000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2012.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2012.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1023",
@@ -18374,8 +18374,8 @@
   "mintage": "464640000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2012.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2012.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1024",
@@ -18392,8 +18392,8 @@
   "mintage": "1237415",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2012.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2012.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1025",
@@ -18410,8 +18410,8 @@
   "mintage": "1024000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2013.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2013.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1026",
@@ -18428,8 +18428,8 @@
   "mintage": "1020800000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2013.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2013.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1027",
@@ -18446,8 +18446,8 @@
   "mintage": "1274505",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2013.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2013.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1028",
@@ -18464,8 +18464,8 @@
   "mintage": "1062400000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2014.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2014.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1029",
@@ -18482,8 +18482,8 @@
   "mintage": "1123200000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2014.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2014.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1030",
@@ -18500,8 +18500,8 @@
   "mintage": "1279674",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2014.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2014.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1031",
@@ -18518,8 +18518,8 @@
   "mintage": "1400000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2015.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2015.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1032",
@@ -18536,8 +18536,8 @@
   "mintage": "1300000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2015.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2015.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1033",
@@ -18554,8 +18554,8 @@
   "mintage": "1012776",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2015.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2015.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1034",
@@ -18572,8 +18572,8 @@
   "mintage": "1022400000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2016.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2016.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1035",
@@ -18590,8 +18590,8 @@
   "mintage": "1000800000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2016.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2016.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1036",
@@ -18608,8 +18608,8 @@
   "mintage": "1039104",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2016.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2016.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1037",
@@ -18626,8 +18626,8 @@
   "mintage": "1036640000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2017.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2017.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1038",
@@ -18644,8 +18644,8 @@
   "mintage": "892960000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2017.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2017.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1039",
@@ -18662,8 +18662,8 @@
   "mintage": "1208100",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2017.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2017.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1040",
@@ -18680,8 +18680,8 @@
   "mintage": "1040000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2018.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2018.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1041",
@@ -18698,8 +18698,8 @@
   "mintage": "1200000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2018.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2018.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1042",
@@ -18716,8 +18716,8 @@
   "mintage": "940268",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2018.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2018.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1043",
@@ -18734,8 +18734,8 @@
   "mintage": "1200000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2019.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2019.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1044",
@@ -18752,8 +18752,8 @@
   "mintage": "1440000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2019.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2019.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1045",
@@ -18770,8 +18770,8 @@
   "mintage": "898730",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2019.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2019.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1046",
@@ -18788,8 +18788,8 @@
   "mintage": "678400000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2020.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2020.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1047",
@@ -18806,8 +18806,8 @@
   "mintage": "650400000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2020.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2020.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1048",
@@ -18824,8 +18824,8 @@
   "mintage": "762904",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2020.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2020.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1049",
@@ -18842,8 +18842,8 @@
   "mintage": "1008000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2021.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2021.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1050",
@@ -18860,8 +18860,8 @@
   "mintage": "960000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2021.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2021.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1051",
@@ -18878,8 +18878,8 @@
   "mintage": "766400",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2021.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2021.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1052",
@@ -18896,8 +18896,8 @@
   "mintage": "1200000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2022.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2022.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1053",
@@ -18914,8 +18914,8 @@
   "mintage": "1200000000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2022.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2022.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1054",
@@ -18932,8 +18932,8 @@
   "mintage": "762000",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2022.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2022.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1055",
@@ -18950,8 +18950,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2023.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2023.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1056",
@@ -18968,8 +18968,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2023.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2023.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1057",
@@ -18986,8 +18986,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2023.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2023.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1058",
@@ -19004,8 +19004,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2024.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2024.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1059",
@@ -19022,8 +19022,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2024.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2024.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1060",
@@ -19040,8 +19040,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2024.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2024.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1061",
@@ -19058,8 +19058,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2025.obv.D.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2025.rev.D.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1062",
@@ -19076,8 +19076,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2025.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2025.rev.2.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1063",
@@ -19094,8 +19094,8 @@
   "mintage": "",
   "ref_notes": null,
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2025.obv.S-proof.2.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2025.rev.S-proof.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "1064",
@@ -101642,8 +101642,8 @@
   "mintage": "",
   "ref_notes": "2026 Semiquincentennial issue. The Jefferson nickel, introduced in 1938, features a one-year reverse design commemorating the 250th anniversary of American independence. Struck at Philadelphia and Denver. The Jefferson nickel's obverse portrait by Felix Schlag has been updated several times (2005, 2006) but the Monticello reverse returned in 2006.",
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2026.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2026.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "5882",
@@ -101660,8 +101660,8 @@
   "mintage": "",
   "ref_notes": "2026 Semiquincentennial issue. The Jefferson nickel, introduced in 1938, features a one-year reverse design commemorating the 250th anniversary of American independence. Struck at Philadelphia and Denver. The Jefferson nickel's obverse portrait by Felix Schlag has been updated several times (2005, 2006) but the Monticello reverse returned in 2006.",
   "variety": null,
-  "obv_image": "/data/images/coins/5-cents.jefferson.2026.obv.webp",
-  "rev_image": "/data/images/coins/5-cents.jefferson.2026.rev.webp"
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  },
  {
   "id": "5883",
@@ -117302,8 +117302,8 @@
   "mintage": "",
   "ref_notes": "1942-1945 Philadelphia wartime issue. The only pre-1980 Philadelphia P mint mark; added from the US Mint's P-mintmark history.",
   "variety": "Doubled Eye",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "6754",
@@ -117320,8 +117320,8 @@
   "mintage": "",
   "ref_notes": "1942-1945 Philadelphia wartime issue. The only pre-1980 Philadelphia P mint mark; added from the US Mint's P-mintmark history.",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "6756",
@@ -117338,8 +117338,8 @@
   "mintage": "",
   "ref_notes": "1942-1945 Philadelphia wartime issue. The only pre-1980 Philadelphia P mint mark; added from the US Mint's P-mintmark history.",
   "variety": "Doubled die reverse",
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson.rev.webp"
  },
  {
   "id": "6757",
@@ -117374,7 +117374,7 @@
   "mintage": null,
   "ref_notes": "2026-S Semiquincentennial proof issue (San Francisco). Dual-date 1776-2026 obverse; one-year commemorative reverse.",
   "variety": null,
-  "obv_image": "",
-  "rev_image": ""
+  "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
+  "rev_image": "/data/images/types/master/jefferson-return-to-monticello.rev.webp"
  }
 ]
