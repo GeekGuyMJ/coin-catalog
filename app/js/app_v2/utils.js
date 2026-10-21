@@ -195,6 +195,50 @@ export function formatMintMark(coin) {
 }
 
 /**
+ * Build the canonical coin identity label.
+ *
+ * A coin is identified by DENOMINATION + YEAR + MINT + TYPE. The wishlist
+ * used to name coins with year + mint + type only ("1796 Draped Bust"), so a
+ * listing never said what coin it was — penny, dime, half dollar?
+ * (Matthew, report B8, GGMJ-382.)
+ *
+ * This is the OFFLINE mirror of backend/services/coin_label.py. The two MUST
+ * produce identical labels: the self-hosted app labels the wishlist on the
+ * server, the public (offline-first) app labels it here in the browser.
+ * Change one, change the other.
+ *
+ * @param {Object} coin - A coin_reference row ({denomination, year, mint_mark, coin_type}).
+ * @returns {Object} {denomination, year, mint_mark, coin_type, label}
+ */
+export function buildCoinLabel(coin) {
+    if (!coin) return null;
+    const denomination = (coin.denomination || '').trim();
+    const coinType = (coin.coin_type || '').trim();
+    const yearStr = (coin.year === null || coin.year === undefined || coin.year === '')
+        ? '' : String(coin.year);
+    const mint = formatMintMark({
+        mint_mark: coin.mint_mark,
+        year: coin.year,
+        denomination: coin.denomination,
+        coin_type: coin.coin_type,
+    });
+
+    const parts = [];
+    if (denomination) parts.push(denomination);
+    if (yearStr) parts.push(yearStr);
+    if (mint) parts.push(mint);
+    if (coinType) parts.push(coinType);
+
+    return {
+        denomination: denomination,
+        year: coin.year,
+        mint_mark: mint,
+        coin_type: coinType,
+        label: parts.join(' '),
+    };
+}
+
+/**
  * Format a mintage count for compact display (e.g., 586.4M, 1.3B, 258K).
  *
  * @param {number|string} mintage - Numeric mintage count.

@@ -804,8 +804,29 @@ function buildWishlistCard(wishlist) {
             }
             
             var left = el('div', { style: 'display:flex;flex-direction:column;gap:2px;' });
-            var titleText = item.description || ('Coin #' + item.coin_id);
-            var title = el('div', { style: 'font-weight:600;color:var(--color-text-main);' + (item.acquired ? 'text-decoration:line-through;' : '') }, titleText);
+            // GGMJ-382 (Matthew, report B8): the card must say WHAT the coin is.
+            // The structured `coin` block carries denomination / year / mint /
+            // type separately; render them on their own lines so the entry is
+            // unambiguous. Fall back to the flat description for a listing
+            // with no catalogue row behind it.
+            var coin = item.coin || null;
+            var title = el('div', { style: 'font-weight:600;color:var(--color-text-main);' + (item.acquired ? 'text-decoration:line-through;' : '') });
+            if (coin && (coin.denomination || coin.coin_type || coin.year)) {
+                if (coin.denomination) {
+                    title.appendChild(el('span', { style: 'color:var(--color-accent);' }, coin.denomination));
+                    title.appendChild(document.createTextNode(' '));
+                }
+                var yearMint = [];
+                if (coin.year) yearMint.push(String(coin.year));
+                if (coin.mint_mark) yearMint.push(String(coin.mint_mark));
+                if (yearMint.length) {
+                    title.appendChild(document.createTextNode(yearMint.join(' ')));
+                    title.appendChild(document.createTextNode(' '));
+                }
+                if (coin.coin_type) title.appendChild(document.createTextNode(coin.coin_type));
+            } else {
+                title.appendChild(document.createTextNode(item.description || ('Coin #' + item.coin_id)));
+            }
             if (item.target_grade) {
                 title.appendChild(document.createTextNode(' '));
                 title.appendChild(el('span', {

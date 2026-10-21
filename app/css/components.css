@@ -421,7 +421,7 @@
 
 .view-toggle-btn.active {
     background: var(--color-accent);
-    color: white;
+    color: var(--color-accent-text);
     box-shadow: var(--shadow-sm);
 }
 
@@ -1301,7 +1301,7 @@ input[type="range"]::-webkit-slider-thumb {
     bottom: -4px;
     right: -4px;
     background: var(--color-accent);
-    color: #fff;
+    color: var(--color-accent-text);
     font-size: 0.65rem;
     font-weight: 700;
     padding: 0 5px;

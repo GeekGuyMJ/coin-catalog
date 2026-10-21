@@ -5,6 +5,7 @@
  */
 
 import Dexie from './dexie.js';
+import { buildCoinLabel } from './utils.js';
 
 // ============================================================
 // Database Initialization
@@ -1659,13 +1660,25 @@ export async function deleteOtherCollectableLocal(id) {
 }
 
 export async function fetchWishlistLocal() {
-    return db.wishlist_item.toArray();
+    const rows = await db.wishlist_item.toArray();
+    // GGMJ-382: rows stored before the fix carry a description with no
+    // denomination ("1796 Draped Bust"). Re-derive the full label from the
+    // LOCAL catalogue on read so the public (offline) app shows the same
+    // coin identity as the self-hosted app, without needing a migration.
+    const enriched = [];
+    for (const row of rows) {
+        const coin = row.coin_id ? await _getCoinRefAny(row.coin_id) : undefined;
+        const label = coin ? buildCoinLabel(coin) : undefined;
+        enriched.push(label ? { ...row, description: label.label, coin: label } : row);
+    }
+    return enriched;
 }
 
 export async function saveWishlistLocal(data) {
     const entry = {
         coin_id: data.coin_id ? Number(data.coin_id) : null,
         description: data.description || "",
+        coin: data.coin || null,
         category: data.category || "",
         target_grade: data.target_grade || "",
         max_price: Number(data.max_price || 0),
@@ -1693,9 +1706,14 @@ export async function addToWishlistLocal(coinId) {
     const existing = await db.wishlist_item.where('coin_id').equals(coinId).first();
     if (existing) return existing;
 
+    // GGMJ-382: the description must name the coin fully — denomination +
+    // year + mint + type. buildCoinLabel() is the offline mirror of
+    // backend/services/coin_label.py, so both platforms label identically.
+    const label = buildCoinLabel(coin);
     const entry = {
         coin_id: coinId,
-        description: `${coin.year} ${coin.mint_mark} ${coin.coin_type}`,
+        description: label ? label.label : `${coin.year} ${coin.mint_mark} ${coin.coin_type}`,
+        coin: label,
         category: "Coins",
         target_grade: "",
         max_price: 0,
