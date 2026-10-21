@@ -1,223 +1,225 @@
 {
-  "_comment": "Regression guard registry. files: markers that MUST be present in deployed bytes. absent: strings that must NOT appear. order: build-order rules. public_only: markers only on public. sw_min: minimum SW cache versions. When deliberately re-implementing a fix, update this registry IN THE SAME CHANGE and on BOTH apps.",
-  "files": {
-    "app/css/components.v2.css": [
-      "guide-spotlight",
-      "guide-popup",
-      "scrollbar-width: none",
-      ".coin-instance-tabs::-webkit-scrollbar",
-      "color: var(--color-accent-text);",
-      ".v1-form-actions {"
-    ],
-    "app/js/app_v2/album.js": [
-      "fetchInventory().then",
-      "renderAlbumView(null)",
-      "_albumSections.clear()",
-      "const typeObv = cfg && !cfg._deleted_obv_image ? cfg.obv_image : null;",
-      "const coinObv = coin._deleted_obv_image ? null : coin.obv_image;",
-      "&& !_c._deleted_obv_image) _repObv = _c.obv_image;"
-    ],
-    "app/js/app_v2/api.js": [
-      "new_url: body.new_url",
-      "searchCoinsLocal(url.searchParams)",
-      ": wrap(fetchInvestmentsLocal)",
-      "serverFetch('/api/backup/client')",
-      "serverFetch('/api/backup/client_restore'",
-      "confirm: 'RESTORE BACKUP'",
-      "originalFetch('/api/coin_bank_images'",
-      "scope: 'specific_coin'",
-      "purchase_price",
-      "current_value",
-      "date_acquired",
-      "personal_photo",
-      "personal_photos"
-    ],
-    "app/js/app_v2/catalog.js": [
-      "stepper-edit",
-      "editStepperQuantity",
-      "getTypeConfig(coin.coin_type, coin.section)",
-      "setInventory(await fetchInventory())",
-      "fetchTypeConfigs",
-      "autoOpenTypesInAlbumMode",
-      "GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY",
-      "Refresh all owned-counter badges",
-      "const obv = coin._deleted_obv_image",
-      "const rev = coin._deleted_rev_image",
-      "GGMJ-333: same gate chain as buildCoinRow",
-      "const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)",
-      "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;"
-    ],
-    "app/js/app_v2/db.js": [
-      "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
-      "_COLLIDING_TYPES.has(base)",
-      "factoryResetDataLocal",
-      "assignImageLocal",
-      "user_investment: '++id, name, category'",
-      "String(inv.coin_ref_id)",
-      "ownedRefs.has(String(coin.id))",
-      "ownedMap.has(String(c.id))",
-      "UPSERT by coin_ref_id"
-    ],
-    "app/js/app_v2/gallery.js": [
-      "_photosCache",
-      "renderGalleryCard"
-    ],
-    "app/js/app_v2/guide.js": [
-      "_installImageBlock",
-      "_closeAnyImageModal",
-      "currentStep === 5",
-      "requestAnimationFrame(settle)",
-      "_navDirection",
-      "retry, 50"
-    ],
-    "app/js/app_v2/images.js": [
-      "result.new_url || activeContext.b64",
-      "Could not refresh section coins",
-      "sectionQualified",
-      "scope: isItem ? 'specific_item' : (coinId ? 'specific_coin' : 'all')"
-    ],
-    "app/js/app_v2/infoDropdown.js": [
-      "Take the Tour"
-    ],
-    "app/js/app_v2/main.js": [
-      "first_launch"
-    ],
-    "app/js/app_v2/portfolio.js": [
-      "_dashboardRenderGeneration",
-      "renderGalleryCard",
-      "host.insertBefore(row, form.nextSibling)",
-      "}, 'Hide');",
-      "Hide is a COLLAPSE, not a cancel.",
-      "function buildInvestmentsCard(p)",
-      "'aria-label': 'Hide entry form'",
-      "Other Investments",
-      "'Canadian Copper Pennies 1920-1996': 'CanadianCopperPennies'",
-      "'Canadian Loonies (1$)': 'CanadianLoonies'",
-      "'CanadianHalfDollars', 'CanadianLoonies'",
-      "entry.metal_type === 'CanadianHalfDollars'",
-      "entry.metal_type === 'CanadianLoonies'",
-      "'Other Investments',"
-    ],
-    "app/js/app_v2/search.js": [
-      "initYearRange",
-      "const cfgRev = cfg._deleted_rev_image ? null : cfg.rev_image;",
-      "const cfgObv = cfg._deleted_obv_image ? null : cfg.obv_image;"
-    ],
-    "app/js/app_v2/utils.js": [
-      "_APP_BASE",
-      "resolveImageUrl"
-    ],
-    "app/js/app_v2/sync.js": [
-      "_utf8ToB64",
-      "_basicAuthHeader",
-      "TextEncoder().encode(str)",
-      "if (!creds || !creds.clientId || creds.clientId.startsWith('YOUR_')) {",
-      "if (!creds || !creds.scope) {",
-      "OneDrive: not configured.",
-      "import { getFullBackup, restoreBackup } from './api.js';",
-      "await getFullBackup();",
-      "await restoreBackup(data);"
-    ],
-    "app/css/themes.css": [
-      "--color-accent-text:  #06121f;"
-    ],
-    "app/js/app_v2/modals.js": [
-      "uploadCoinBankImage",
-      "uploadCoinImage",
-      "uploadImageAsDataUri"
-    ]
-  },
-  "absent": {
-    "app/js/app_v2/catalog.js": [
-      "renderAlbumType(firstCoinSection",
-      "coin._deleted_obv_image || coin._deleted_rev_image",
-      "const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);",
-      "const exObv = cfg.example_obv_image || cfg.obv_image || null;"
-    ],
-    "app/js/app_v2/search.js": [
-      "label: 'Min Year'",
-      "label: 'Max Year'",
-      "const imgSrc = cfg.rev_image || cfg.obv_image || null;"
-    ],
-    "app/js/app_v2/sync.js": [
-      "btoa(username + ':' + password)",
-      "CREDENTIALS.oneDrive.",
-      "  const creds = CREDENTIALS.oneDrive;\n  if (!creds.clientId || creds.clientId.startsWith('YOUR_')) {",
-      "await getFullBackupLocal()",
-      "await restoreBackupLocal(data)"
-    ],
-    "app/js/app_v2/portfolio.js": [
-      "}, 'Cancel');"
-    ],
-    "app/js/app_v2/images.js": [
-      "scope: isItem ? 'specific_item' : 'all'"
-    ],
-    "app/js/app_v2/album.js": [
-      "const obvImg = resolveImageUrl(coin.obv_image);",
-      "if (!_repObv && _c.obv_image) _repObv = _c.obv_image;"
-    ]
-  },
-  "order": {
-    "app/js/app_v2/portfolio.js": {
-      "before": "var cc = buildCompletionCard",
-      "after": "var sup = buildSupportCard",
-      "why": "Completion card second-from-last, Support last by default"
-    }
-  },
-  "public_only": {
-    "app/js/app_v2/api.js": [
-      "assignImage = isSelfHosted"
-    ],
-    "app/js/app_v2/db.js": [
-      "stats.investments_value += Number(inv.total_value || 0)"
-    ]
-  },
-  "sw_min": {
-    "app/sw.js": 449,
-    "frontend/sw.js": 448
-  },
-  "shared": {
-    "js/app_v2/dexie.js": {},
-    "js/app_v2/first_launch.js": {},
-    "js/app_v2/gallery.js": {},
-    "js/app_v2/modal-core.js": {},
-    "js/app_v2/serverPrefs.js": {},
-    "js/app_v2/spotHistory.js": {},
-    "js/app_v2/userCoins.js": {},
-    "css/base.css": {},
-    "css/components.css": {},
-    "css/themes.css": {}
-  },
-  "expected_differs": {
-    "sw.js": "Deployment-specific: different CACHE name/version cadence and precache BASE (/ vs /coin-catalog/app/).",
-    "js/app_v2/sw.js": "Deployment-specific SW registration helper.",
-    "index.html": "Deployment-specific: public has SW auto-reload bootstrap + data-publish-target; self-hosted has no-cache meta.",
-    "js/app_v2/utils.js": "Comment-only difference (catalog/catalogue spelling).",
-    "js/app_v2/api.js": "public_only lines declared in public_only key (assignImage = isSelfHosted block)."
-  },
-  "diverged_intentional": {
-    "js/app_v2/album.js": {},
-    "js/app_v2/api.js": {},
-    "js/app_v2/cards.js": {},
-    "js/app_v2/catalog.js": {},
-    "js/app_v2/db.js": {},
-    "js/app_v2/images.js": {},
-    "js/app_v2/infoDropdown.js": {},
-    "js/app_v2/inventory.js": {},
-    "js/app_v2/main.js": {},
-    "js/app_v2/modals.js": {},
-    "js/app_v2/notifications.js": {},
-    "js/app_v2/portfolio.js": {},
-    "js/app_v2/portfolio.min.js": {},
-    "js/app_v2/portfolio_history.js": {},
-    "js/app_v2/search.js": {},
-    "js/app_v2/settingsDropdown.js": {},
-    "js/app_v2/state.js": {},
-    "js/app_v2/stories.js": {},
-    "js/app_v2/sync.js": {},
-    "js/app_v2/wishlist.js": {},
-    "css/components.v2.css": {},
-    "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
-    "js/app_v2/guide.js": {}
+ "_comment": "Regression guard registry. files: markers that MUST be present in deployed bytes. absent: strings that must NOT appear. order: build-order rules. public_only: markers only on public. sw_min: minimum SW cache versions. When deliberately re-implementing a fix, update this registry IN THE SAME CHANGE and on BOTH apps. | GGMJ-410 (2026-10-21): bullion weight_unit must be honoured; the canonical grams-pivot conversion (bullionPriceUnits) is required in portfolio.js and db.js on every tree.",
+ "files": {
+  "app/css/components.v2.css": [
+   "guide-spotlight",
+   "guide-popup",
+   "scrollbar-width: none",
+   ".coin-instance-tabs::-webkit-scrollbar",
+   "color: var(--color-accent-text);",
+   ".v1-form-actions {"
+  ],
+  "app/js/app_v2/album.js": [
+   "fetchInventory().then",
+   "renderAlbumView(null)",
+   "_albumSections.clear()",
+   "const typeObv = cfg && !cfg._deleted_obv_image ? cfg.obv_image : null;",
+   "const coinObv = coin._deleted_obv_image ? null : coin.obv_image;",
+   "&& !_c._deleted_obv_image) _repObv = _c.obv_image;"
+  ],
+  "app/js/app_v2/api.js": [
+   "new_url: body.new_url",
+   "searchCoinsLocal(url.searchParams)",
+   ": wrap(fetchInvestmentsLocal)",
+   "serverFetch('/api/backup/client')",
+   "serverFetch('/api/backup/client_restore'",
+   "confirm: 'RESTORE BACKUP'",
+   "originalFetch('/api/coin_bank_images'",
+   "scope: 'specific_coin'",
+   "purchase_price",
+   "current_value",
+   "date_acquired",
+   "personal_photo",
+   "personal_photos"
+  ],
+  "app/js/app_v2/catalog.js": [
+   "stepper-edit",
+   "editStepperQuantity",
+   "getTypeConfig(coin.coin_type, coin.section)",
+   "setInventory(await fetchInventory())",
+   "fetchTypeConfigs",
+   "autoOpenTypesInAlbumMode",
+   "GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY",
+   "Refresh all owned-counter badges",
+   "const obv = coin._deleted_obv_image",
+   "const rev = coin._deleted_rev_image",
+   "GGMJ-333: same gate chain as buildCoinRow",
+   "const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)",
+   "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;"
+  ],
+  "app/js/app_v2/db.js": [
+   "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
+   "_COLLIDING_TYPES.has(base)",
+   "factoryResetDataLocal",
+   "assignImageLocal",
+   "user_investment: '++id, name, category'",
+   "String(inv.coin_ref_id)",
+   "ownedRefs.has(String(coin.id))",
+   "ownedMap.has(String(c.id))",
+   "UPSERT by coin_ref_id",
+   "function bullionPriceUnits(weight, unit, metal)"
+  ],
+  "app/js/app_v2/gallery.js": [
+   "_photosCache",
+   "renderGalleryCard"
+  ],
+  "app/js/app_v2/guide.js": [
+   "_installImageBlock",
+   "_closeAnyImageModal",
+   "currentStep === 5",
+   "requestAnimationFrame(settle)",
+   "_navDirection",
+   "retry, 50"
+  ],
+  "app/js/app_v2/images.js": [
+   "result.new_url || activeContext.b64",
+   "Could not refresh section coins",
+   "sectionQualified",
+   "scope: isItem ? 'specific_item' : (coinId ? 'specific_coin' : 'all')"
+  ],
+  "app/js/app_v2/infoDropdown.js": [
+   "Take the Tour"
+  ],
+  "app/js/app_v2/main.js": [
+   "first_launch"
+  ],
+  "app/js/app_v2/portfolio.js": [
+   "_dashboardRenderGeneration",
+   "renderGalleryCard",
+   "host.insertBefore(row, form.nextSibling)",
+   "}, 'Hide');",
+   "Hide is a COLLAPSE, not a cancel.",
+   "function buildInvestmentsCard(p)",
+   "'aria-label': 'Hide entry form'",
+   "Other Investments",
+   "'Canadian Copper Pennies 1920-1996': 'CanadianCopperPennies'",
+   "'Canadian Loonies (1$)': 'CanadianLoonies'",
+   "'CanadianHalfDollars', 'CanadianLoonies'",
+   "entry.metal_type === 'CanadianHalfDollars'",
+   "entry.metal_type === 'CanadianLoonies'",
+   "'Other Investments',",
+   "function bullionPriceUnits(weight, unit, metal)"
+  ],
+  "app/js/app_v2/search.js": [
+   "initYearRange",
+   "const cfgRev = cfg._deleted_rev_image ? null : cfg.rev_image;",
+   "const cfgObv = cfg._deleted_obv_image ? null : cfg.obv_image;"
+  ],
+  "app/js/app_v2/utils.js": [
+   "_APP_BASE",
+   "resolveImageUrl"
+  ],
+  "app/js/app_v2/sync.js": [
+   "_utf8ToB64",
+   "_basicAuthHeader",
+   "TextEncoder().encode(str)",
+   "if (!creds || !creds.clientId || creds.clientId.startsWith('YOUR_')) {",
+   "if (!creds || !creds.scope) {",
+   "OneDrive: not configured.",
+   "import { getFullBackup, restoreBackup } from './api.js';",
+   "await getFullBackup();",
+   "await restoreBackup(data);"
+  ],
+  "app/css/themes.css": [
+   "--color-accent-text:  #06121f;"
+  ],
+  "app/js/app_v2/modals.js": [
+   "uploadCoinBankImage",
+   "uploadCoinImage",
+   "uploadImageAsDataUri"
+  ]
+ },
+ "absent": {
+  "app/js/app_v2/catalog.js": [
+   "renderAlbumType(firstCoinSection",
+   "coin._deleted_obv_image || coin._deleted_rev_image",
+   "const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);",
+   "const exObv = cfg.example_obv_image || cfg.obv_image || null;"
+  ],
+  "app/js/app_v2/search.js": [
+   "label: 'Min Year'",
+   "label: 'Max Year'",
+   "const imgSrc = cfg.rev_image || cfg.obv_image || null;"
+  ],
+  "app/js/app_v2/sync.js": [
+   "btoa(username + ':' + password)",
+   "CREDENTIALS.oneDrive.",
+   "  const creds = CREDENTIALS.oneDrive;\n  if (!creds.clientId || creds.clientId.startsWith('YOUR_')) {",
+   "await getFullBackupLocal()",
+   "await restoreBackupLocal(data)"
+  ],
+  "app/js/app_v2/portfolio.js": [
+   "}, 'Cancel');"
+  ],
+  "app/js/app_v2/images.js": [
+   "scope: isItem ? 'specific_item' : 'all'"
+  ],
+  "app/js/app_v2/album.js": [
+   "const obvImg = resolveImageUrl(coin.obv_image);",
+   "if (!_repObv && _c.obv_image) _repObv = _c.obv_image;"
+  ]
+ },
+ "order": {
+  "app/js/app_v2/portfolio.js": {
+   "before": "var cc = buildCompletionCard",
+   "after": "var sup = buildSupportCard",
+   "why": "Completion card second-from-last, Support last by default"
   }
+ },
+ "public_only": {
+  "app/js/app_v2/api.js": [
+   "assignImage = isSelfHosted"
+  ],
+  "app/js/app_v2/db.js": [
+   "stats.investments_value += Number(inv.total_value || 0)"
+  ]
+ },
+ "sw_min": {
+  "app/sw.js": 449,
+  "frontend/sw.js": 449
+ },
+ "shared": {
+  "js/app_v2/dexie.js": {},
+  "js/app_v2/first_launch.js": {},
+  "js/app_v2/gallery.js": {},
+  "js/app_v2/modal-core.js": {},
+  "js/app_v2/serverPrefs.js": {},
+  "js/app_v2/spotHistory.js": {},
+  "js/app_v2/userCoins.js": {},
+  "css/base.css": {},
+  "css/components.css": {},
+  "css/themes.css": {}
+ },
+ "expected_differs": {
+  "sw.js": "Deployment-specific: different CACHE name/version cadence and precache BASE (/ vs /coin-catalog/app/).",
+  "js/app_v2/sw.js": "Deployment-specific SW registration helper.",
+  "index.html": "Deployment-specific: public has SW auto-reload bootstrap + data-publish-target; self-hosted has no-cache meta.",
+  "js/app_v2/utils.js": "Comment-only difference (catalog/catalogue spelling).",
+  "js/app_v2/api.js": "public_only lines declared in public_only key (assignImage = isSelfHosted block)."
+ },
+ "diverged_intentional": {
+  "js/app_v2/album.js": {},
+  "js/app_v2/api.js": {},
+  "js/app_v2/cards.js": {},
+  "js/app_v2/catalog.js": {},
+  "js/app_v2/db.js": {},
+  "js/app_v2/images.js": {},
+  "js/app_v2/infoDropdown.js": {},
+  "js/app_v2/inventory.js": {},
+  "js/app_v2/main.js": {},
+  "js/app_v2/modals.js": {},
+  "js/app_v2/notifications.js": {},
+  "js/app_v2/portfolio.js": {},
+  "js/app_v2/portfolio.min.js": {},
+  "js/app_v2/portfolio_history.js": {},
+  "js/app_v2/search.js": {},
+  "js/app_v2/settingsDropdown.js": {},
+  "js/app_v2/state.js": {},
+  "js/app_v2/stories.js": {},
+  "js/app_v2/sync.js": {},
+  "js/app_v2/wishlist.js": {},
+  "css/components.v2.css": {},
+  "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
+  "js/app_v2/guide.js": {}
+ }
 }

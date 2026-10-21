@@ -5,6 +5,58 @@
  */
 
 import Dexie from './dexie.js';
+
+// ---------------------------------------------------------------------------
+// Bullion weight units (GGMJ-410, 2026-10-21)
+// ---------------------------------------------------------------------------
+// A bullion row stores a weight AND the unit that weight is expressed in
+// (grams, troy ounces, pounds, ...).  The unit has to be honoured: a 1 g
+// bar of gold is worth 1/31.1035 of a 1 oz bar, and a row stored in
+// pounds is worth 14.5833 troy ounces (or, for copper, 1 pound -- copper
+// is quoted per lb).
+//
+// The conversion pivots through GRAMS, so one unit token means one thing
+// for every metal, and is then expressed in the unit the metal's spot
+// price is quoted in: TROY OUNCE for the precious metals, AVOIRDUPOIS
+// POUND for copper.
+//
+// This mirrors backend/services/valuation.py exactly, so the Bullion
+// card, the Metal Price Trends card and the Portfolio Overview always
+// value a holding identically.
+var BULLION_GRAM_PER_TROY_OZ = 31.1034768;
+var BULLION_GRAM_PER_LB = 453.59237;
+var BULLION_GRAM_PER_GRAIN = 0.06479891;   // 1 avoirdupois lb = 7000 grains
+
+var BULLION_UNIT_TO_GRAMS = {
+    'g': 1, 'gram': 1, 'grams': 1,
+    'kg': 1000, 'kilogram': 1000, 'kilograms': 1000,
+    'oz': BULLION_GRAM_PER_TROY_OZ, 'ozt': BULLION_GRAM_PER_TROY_OZ,
+    'ounce': BULLION_GRAM_PER_TROY_OZ, 'ounces': BULLION_GRAM_PER_TROY_OZ,
+    'troy oz': BULLION_GRAM_PER_TROY_OZ, 'troy ounce': BULLION_GRAM_PER_TROY_OZ,
+    'lb': BULLION_GRAM_PER_LB, 'lbs': BULLION_GRAM_PER_LB,
+    'pound': BULLION_GRAM_PER_LB, 'pounds': BULLION_GRAM_PER_LB,
+    'gr': BULLION_GRAM_PER_GRAIN, 'grain': BULLION_GRAM_PER_GRAIN, 'grains': BULLION_GRAM_PER_GRAIN
+};
+
+// Weight of a bullion row, in GRAMS.
+function bullionWeightGrams(weight, unit) {
+    var w = Number(weight) || 0;
+    var key = String(unit == null ? 'oz' : unit).trim().toLowerCase();
+    var per = BULLION_UNIT_TO_GRAMS[key];
+    if (per === undefined) per = BULLION_GRAM_PER_TROY_OZ;  // unknown -> troy oz
+    return w * per;
+}
+
+// Weight of a bullion row in the unit its spot price is quoted in:
+// troy ounce for the precious metals, avoirdupois pound for copper.
+function bullionPriceUnits(weight, unit, metal) {
+    var grams = bullionWeightGrams(weight, unit);
+    if (String(metal == null ? '' : metal).trim().toLowerCase() === 'copper') {
+        return grams / BULLION_GRAM_PER_LB;
+    }
+    return grams / BULLION_GRAM_PER_TROY_OZ;
+}
+
 import { buildCoinLabel } from './utils.js';
 
 // ============================================================
@@ -1517,7 +1569,6 @@ export async function fetchPortfolioLocal() {
     const bullionItems = await db.raw_bullion.toArray();
     bullionItems.forEach(b => {
         const metal = (b.metal_type || "").toLowerCase();
-        const weightOz = b.weight || 0;
         const purity = b.purity || 1.0;
         const spotMap = {
             "gold":      spotPrices.gold_oz,
@@ -1532,7 +1583,11 @@ export async function fetchPortfolioLocal() {
         // 10-unit holding as a single unit.
         const qty = Number(b.amount);
         const qtySafe = (isFinite(qty) && qty > 0) ? qty : 1;
-        stats.raw_bullion += weightOz * qtySafe * purity * price;
+        // 2026-10-21 (GGMJ-410): honour `weight_unit`. A row stored in
+        // grams is not a troy ounce, and copper is quoted per POUND.
+        // Canonical conversion, shared with backend/services/valuation.py.
+        const units = bullionPriceUnits(b.weight, b.weight_unit, metal);
+        stats.raw_bullion += units * qtySafe * purity * price;
     });
 
     // ---- Bulk Coins ----

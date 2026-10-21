@@ -16,6 +16,58 @@ import { openPortfolioHistoryModal } from './portfolio_history.js';
 
 import { fetchInvestments, saveInvestment, deleteInvestment, fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
 
+// ---------------------------------------------------------------------------
+// Bullion weight units (GGMJ-410, 2026-10-21)
+// ---------------------------------------------------------------------------
+// A bullion row stores a weight AND the unit that weight is expressed in
+// (grams, troy ounces, pounds, ...).  The unit has to be honoured: a 1 g
+// bar of gold is worth 1/31.1035 of a 1 oz bar, and a row stored in
+// pounds is worth 14.5833 troy ounces (or, for copper, 1 pound -- copper
+// is quoted per lb).
+//
+// The conversion pivots through GRAMS, so one unit token means one thing
+// for every metal, and is then expressed in the unit the metal's spot
+// price is quoted in: TROY OUNCE for the precious metals, AVOIRDUPOIS
+// POUND for copper.
+//
+// This mirrors backend/services/valuation.py exactly, so the Bullion
+// card, the Metal Price Trends card and the Portfolio Overview always
+// value a holding identically.
+var BULLION_GRAM_PER_TROY_OZ = 31.1034768;
+var BULLION_GRAM_PER_LB = 453.59237;
+var BULLION_GRAM_PER_GRAIN = 0.06479891;   // 1 avoirdupois lb = 7000 grains
+
+var BULLION_UNIT_TO_GRAMS = {
+    'g': 1, 'gram': 1, 'grams': 1,
+    'kg': 1000, 'kilogram': 1000, 'kilograms': 1000,
+    'oz': BULLION_GRAM_PER_TROY_OZ, 'ozt': BULLION_GRAM_PER_TROY_OZ,
+    'ounce': BULLION_GRAM_PER_TROY_OZ, 'ounces': BULLION_GRAM_PER_TROY_OZ,
+    'troy oz': BULLION_GRAM_PER_TROY_OZ, 'troy ounce': BULLION_GRAM_PER_TROY_OZ,
+    'lb': BULLION_GRAM_PER_LB, 'lbs': BULLION_GRAM_PER_LB,
+    'pound': BULLION_GRAM_PER_LB, 'pounds': BULLION_GRAM_PER_LB,
+    'gr': BULLION_GRAM_PER_GRAIN, 'grain': BULLION_GRAM_PER_GRAIN, 'grains': BULLION_GRAM_PER_GRAIN
+};
+
+// Weight of a bullion row, in GRAMS.
+function bullionWeightGrams(weight, unit) {
+    var w = Number(weight) || 0;
+    var key = String(unit == null ? 'oz' : unit).trim().toLowerCase();
+    var per = BULLION_UNIT_TO_GRAMS[key];
+    if (per === undefined) per = BULLION_GRAM_PER_TROY_OZ;  // unknown -> troy oz
+    return w * per;
+}
+
+// Weight of a bullion row in the unit its spot price is quoted in:
+// troy ounce for the precious metals, avoirdupois pound for copper.
+function bullionPriceUnits(weight, unit, metal) {
+    var grams = bullionWeightGrams(weight, unit);
+    if (String(metal == null ? '' : metal).trim().toLowerCase() === 'copper') {
+        return grams / BULLION_GRAM_PER_LB;
+    }
+    return grams / BULLION_GRAM_PER_TROY_OZ;
+}
+
+
 var _portfolioData = null;
 var _bulkCoinsData = [];
 
@@ -466,17 +518,10 @@ function _computeMetalMeltNow(prices) {
             // 1 so a single-unit entry still contributes its own value.
             var qty = Number(item.amount);
             if (!isFinite(qty) || qty <= 0) qty = 1;
-            var w = rawW * qty;
-            if (m === 'copper') {
-                if (unit === 'oz' || unit === 'ozt') w = w / 16;
-                else if (unit === 'g') w = w / 453.592;
-                else if (unit === 'kg') w = w * 2.20462;
-            } else {
-                if (unit === 'g') w = w / 31.1035;
-                else if (unit === 'kg') w = w * 32.1507;
-                else if (unit === 'lbs') w = w * 14.5833;
-                else if (unit === 'oz') w = w / 1.09714;
-            }
+            // 2026-10-21 (GGMJ-410): honour `weight_unit` -- a row stored in
+            // grams is not a troy ounce. Canonical conversion, shared with
+            // the server, so the two agree.
+            var w = bullionPriceUnits(rawW, unit, m) * qty;
             melt[m] += w * spot;
         });
     } catch (e) {}
@@ -1718,18 +1763,10 @@ function buildBullionCard(items, p, prices) {
         var rawW = item.weight || 0;
         var iAmt = item.amount || 1.0;
         var spotKey = m === 'copper' ? 'copper_lb' : m + '_oz';
-        var w = rawW * iAmt;
-        // Convert to valuation unit (lbs for copper, ozt for precious metals)
-        if (m === 'copper') {
-            if (unit === 'oz' || unit === 'ozt') w = w / 16;
-            else if (unit === 'g')   w = w / 453.592;
-            else if (unit === 'kg')  w = w * 2.20462;
-        } else {
-            if (unit === 'g')        w = w / 31.1035;
-            else if (unit === 'kg')  w = w * 32.1507;
-            else if (unit === 'lbs') w = w * 14.5833;
-            else if (unit === 'oz')  w = w / 1.09714;
-        }
+        // 2026-10-21 (GGMJ-410): honour `weight_unit` -- a row stored in
+        // grams is not a troy ounce. Canonical conversion, shared with
+        // the server, so the card and the Portfolio Overview agree.
+        var w = bullionPriceUnits(rawW, unit, m) * iAmt;
         var spot = prices[spotKey] || 0;
         totals[m] += w * spot;
         entriesByMetal[m].push(item);
@@ -1774,19 +1811,10 @@ function buildBullionCard(items, p, prices) {
                 subParts.push(iW.toFixed(2) + ' ' + iUnit + ' × ' + iAmt.toFixed(0));
                 if (item.purity && item.purity < 1) subParts.push(((item.purity * 100) % 1 === 0) ? (item.purity * 100).toFixed(0) + '%' : (item.purity * 100).toFixed(1) + '%');
                 // Value for this item (convert to standard valuation unit)
-                var convW = iW * iAmt;
-                if (m === 'copper') {
-                    // Convert to lbs
-                    if (iUnit === 'oz' || iUnit === 'ozt') convW = convW / 16;
-                    else if (iUnit === 'g')   convW = convW / 453.592;
-                    else if (iUnit === 'kg')  convW = convW * 2.20462;
-                } else {
-                    // Convert to troy oz
-                    if (iUnit === 'g')        convW = convW / 31.1035;
-                    else if (iUnit === 'kg')  convW = convW * 32.1507;
-                    else if (iUnit === 'lbs') convW = convW * 14.5833;
-                    else if (iUnit === 'oz')  convW = convW / 1.09714;
-                }
+                // 2026-10-21 (GGMJ-410): canonical conversion, shared with
+                // the server, so the row value matches the card total and
+                // the Portfolio Overview.
+                var convW = bullionPriceUnits(iW, iUnit, m) * iAmt;
                 var val = convW * (prices[spotKey] || 0);
                 if (val > 0) subParts.push('$' + val.toFixed(2));
                 info.appendChild(el('div', { style: 'font-size:0.75em;color:var(--color-text-muted);' }, subParts.join(' · ')));
