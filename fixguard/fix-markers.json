@@ -28,7 +28,8 @@
    "getTypeConfig(coin.coin_type, coin.section)",
    "setInventory(await fetchInventory())",
    "fetchTypeConfigs",
-   "autoOpenTypesInAlbumMode"
+   "autoOpenTypesInAlbumMode",
+   "GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY"
   ],
   "app/js/app_v2/db.js": [
    "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
@@ -104,7 +105,8 @@
  },
  "absent": {
   "app/js/app_v2/catalog.js": [
-   "renderAlbumType(firstCoinSection"
+   "renderAlbumType(firstCoinSection",
+   "coin._deleted_obv_image || coin._deleted_rev_image"
   ],
   "app/js/app_v2/search.js": [
    "label: 'Min Year'",
@@ -137,8 +139,8 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 437,
-  "frontend/sw.js": 434
+  "app/sw.js": 439,
+  "frontend/sw.js": 439
  },
  "shared": {
   "js/app_v2/dexie.js": {},

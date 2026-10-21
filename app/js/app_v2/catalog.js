@@ -1242,14 +1242,21 @@ function buildCoinRow(coin) {
     // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
     var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
     var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-    // GGMJ-205: if the user explicitly deleted this coin's image, show placeholder — never fall through to type images.
-    if (coin._deleted_obv_image || coin._deleted_rev_image) {
-        var obvSrc = coin._deleted_obv_image ? null : coin.obv_image;
-        var revSrc = coin._deleted_rev_image ? null : coin.rev_image;
-    } else {
-        var obvSrc = coin.obv_image || specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);
-        var revSrc = coin.rev_image || specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null);
-    }
+    // GGMJ-205: an explicitly deleted side shows a placeholder — never falls
+    // through to a type image.
+    // GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY.  The old code
+    // combined the two flags into one branch, so deleting the obverse also
+    // blanked the reverse: the surviving side was read from the COIN ONLY
+    // (coin.rev_image, normally null because the type config holds the
+    // image) and the type-level fallback chain was skipped.  A coin whose
+    // type config holds both images then rendered TWO placeholders instead
+    // of one image + one placeholder.
+    var obvSrc = coin._deleted_obv_image
+        ? null
+        : (coin.obv_image || specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null));
+    var revSrc = coin._deleted_rev_image
+        ? null
+        : (coin.rev_image || specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null));
     if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
     if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
