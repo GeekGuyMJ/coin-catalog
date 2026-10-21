@@ -16,12 +16,21 @@ import { showToast } from './notifications.js';
 import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js';
 import { saveCustomTheme } from './themes.js';
 import { factoryResetDataLocal } from './db.js';
-import { uploadCoinBankImage, uploadCoinImage, uploadImageAsDataUri } from './api.js';
 
 // ============================================================
 // NEW ORCHESTRATOR — used by cards.js, stories.js, info.js
-// ============================================================
+//
+// Static modal container IDs: these are one-time build targets injected into index.html.
+// Removing them from the DOM means re-open cannot find them via document.getElementById().
+// Prefer hiding (display:none + is-dismissed) rather than removal.
+const STATIC_IDS = new Set([
+    'cards-modal-container',
+    'stories-modal-container',
+    'info-modal-container',
+    'modal-inventory-details',
+]);
 
+// ============================================================
 const activeModals = new Set();
 
 function getBackdrop() {
@@ -52,11 +61,37 @@ export function openModal(modalId) {
     modalEl.classList.remove('is-dismissed');
     modalEl.setAttribute('aria-hidden', 'false');
     activeModals.add(modalId);
+    // For static modals, clear the display:none applied by closeModal.
+    // Must be an explicit value (not ''), because ID-scoped rules like
+    // '#stories-modal-container { display: none; }' outrank the
+    // '.modal-window-wrapper:not(.is-dismissed) { display: flex }' class rule.
+    if (STATIC_IDS.has(modalId)) { modalEl.style.display = 'flex'; }
 }
 
 export function closeModal(modalId) {
     const modalEl = document.getElementById(modalId);
     if (!modalEl) return;
+    // For static modal containers, hide instead of removing from DOM.
+    // Once removed, re-open cannot find them via document.getElementById().
+    if (STATIC_IDS.has(modalId)) {
+        modalEl.classList.add('is-dismissed');
+        modalEl.setAttribute('aria-hidden', 'true');
+        modalEl.style.display = 'none';
+        activeModals.delete(modalId);
+        // Do NOT remove the element -- keep it hidden but present
+        if (activeModals.size === 0) {
+            const backdrop = getBackdrop();
+            backdrop.classList.remove('fade-in');
+            backdrop.classList.add('fade-out');
+            // Remove backdrop after animation
+            setTimeout(function() {
+                if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+            }, 300);
+            document.body.classList.remove('modal-open');
+        }
+        return;
+    }
+    // Original removal behavior for dynamic/ephemeral modals
     modalEl.classList.add('is-dismissed');
     modalEl.setAttribute('aria-hidden', 'true');
     activeModals.delete(modalId);
@@ -77,7 +112,8 @@ export function closeModal(modalId) {
 }
 
 export function dismissAllModals() {
-    activeModals.forEach(modalId => closeModal(modalId));
+    // Snapshot first: closeModal() deletes from activeModals as it runs.
+    Array.from(activeModals).forEach(modalId => closeModal(modalId));
 }
 
 // Global Keyboard Trap
@@ -151,6 +187,9 @@ export function openModalLegacy(modalId) {
     modal.classList.add('open');
     openModalsStack.push(modalId);
     updateBodyScrollLock();
+    // Static containers are opened by the new orchestrator (openModal), which sets an
+    // explicit inline display. Restore it here too in case the legacy path opens it.
+    if (STATIC_IDS.has(modalId)) { modal.style.display = 'flex'; }
     try { _ccDirectTapBind(modal); } catch (e) { console.warn('[modals] direct-tap bind failed:', e); }
 }
 
@@ -162,6 +201,11 @@ export function closeModalLegacy(modalId) {
     modal.classList.add('is-dismissed');
     modal.setAttribute('aria-hidden', 'true');
     if (typeof modal.inert !== 'undefined') modal.inert = true;
+    // Static containers must be hidden, never removed -- they are one-time build
+    // targets, so removal makes every subsequent re-open a no-op.
+    if (STATIC_IDS.has(modalId)) {
+        modal.style.display = 'none';
+    }
     openModalsStack = openModalsStack.filter(id => id !== modalId);
     updateBodyScrollLock();
     if (modal.dataset.ephemeral === 'true') {
@@ -183,6 +227,7 @@ export function closeAllModals() {
             modal.classList.add('is-dismissed');
             modal.setAttribute('aria-hidden', 'true');
             if (typeof modal.inert !== 'undefined') modal.inert = true;
+            if (STATIC_IDS.has(id)) { modal.style.display = 'none'; }
         }
     });
     openModalsStack = [];
@@ -193,6 +238,15 @@ export function closeAllModals() {
         m.classList.add('is-dismissed');
         m.setAttribute('aria-hidden', 'true');
         if (typeof m.inert !== 'undefined') m.inert = true;
+    });
+    // Also hide any static container still showing (Escape key path).
+    STATIC_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.classList.add('is-dismissed');
+            el.setAttribute('aria-hidden', 'true');
+            el.style.display = 'none';
+        }
     });
     const bd = document.getElementById('modal-backdrop');
     if (bd) { bd.classList.add('fade-out'); bd.classList.remove('fade-in'); }
@@ -208,6 +262,13 @@ document.addEventListener('click', (e) => {
     // 2026-08-31: closest() so clicks landing on child nodes of the close button still work
     const closeEl = e.target instanceof Element ? e.target.closest('[data-action="close-modal"]') : null;
     if (closeEl) {
+        // Static containers use the new orchestrator (class .modal-window-wrapper);
+        // dynamic overlays use the legacy stack API (class .modal-overlay).
+        const staticModal = closeEl.closest('.modal-window-wrapper');
+        if (staticModal && STATIC_IDS.has(staticModal.id)) {
+            closeModal(staticModal.id);
+            return;
+        }
         const modal = closeEl.closest('.modal-overlay');
         if (modal) { closeModalLegacy(modal.id); }
         return;
@@ -1570,22 +1631,19 @@ export function openImageManager() {
         const file = files[0];
         if (!file) return;
         const side = confirm('Save as Obverse? Cancel for Reverse.') ? 'obv' : 'rev';
+        const form = new FormData();
+        form.append('coin_type', coinType);
+        form.append('side', side);
+        form.append('image', file);
         showToast('Uploading ' + coinType + '...', 'info');
         try {
-            // GGMJ-340: '/api/upload' does not exist. The Coin Bank endpoint is
-            // POST /api/coin_bank_images and it speaks JSON with a base64 data
-            // URI, not multipart FormData.
-            const image = await uploadImageAsDataUri(file);
-            const res = await uploadCoinBankImage({
-                coin_type: coinType,
-                side: side,
-                image: image,
-            });
-            if (res && res.status === 'saved') {
+            const res = await fetch('/api/upload', { method: 'POST', body: form });
+            const data = await res.json();
+            if (data.ok) {
                 showToast('Image uploaded for ' + coinType, 'success');
                 loadData();
             } else {
-                showToast('Upload failed: ' + ((res && res.error) || 'unknown'), 'error');
+                showToast('Upload failed: ' + (data.error || 'unknown'), 'error');
             }
         } catch (err) {
             showToast('Upload error: ' + err.message, 'error');
@@ -2060,41 +2118,22 @@ function openImageUploadModal(coinId) {
     createModal('modal-image-upload', 'Add Coin Images', body, footer);
     openModal('modal-image-upload');
     
-    async function handleFileUpload(file, type, cid) {
+    function handleFileUpload(file, type, cid) {
         if (!file) return;
+        var formData = new FormData();
+        formData.append('coin_id', cid);
+        formData.append('type', type);
+        formData.append('image', file);
+        
         showToast('Uploading ' + type + ' image...', 'info');
-        try {
-            // GGMJ-340: '/api/upload' does not exist. A per-coin image is
-            // written by POST /api/assign_image with scope='specific_coin' and
-            // item_id=<CoinReference.id>. That endpoint names the saved file
-            // after the coin, so the coin's own metadata (coin_type / year /
-            // mint_mark) is needed — the modal only knows the id, so fetch it.
-            var coin = null;
-            try {
-                var res0 = await fetch('/api/coins/' + cid);
-                if (res0.ok) coin = await res0.json();
-            } catch (e) {
-                console.warn('[image-upload] could not read coin ' + cid + ': ' + e.message);
-            }
-
-            var image = await uploadImageAsDataUri(file);
-            var res = await uploadCoinImage({
-                coin_id: cid,
-                side: type,
-                image: image,
-                coin_type: coin ? coin.coin_type : '',
-                year: coin ? coin.year : null,
-                mint_mark: coin ? coin.mint_mark : null,
-            });
-            if (res && res.status !== 'error') {
+        fetch('/api/upload', { method: 'POST', body: formData }).then(function(r) { return r.json(); }).then(function(res) {
+            if (res.ok) {
                 showToast(type.charAt(0).toUpperCase() + type.slice(1) + ' image uploaded!', 'success');
                 setTimeout(function() { location.reload(); }, 800);
             } else {
-                showToast('Upload failed: ' + ((res && res.error) || 'unknown'), 'error');
+                showToast('Upload failed: ' + (res.error || 'unknown'), 'error');
             }
-        } catch (err) {
-            showToast('Upload failed: ' + err.message, 'error');
-        }
+        }).catch(function() { showToast('Upload failed', 'error'); });
     }
 }
 
@@ -2110,7 +2149,7 @@ export function openCustomThemeDesigner(slot) {
         { key: 'color-text-main',    label: 'Main Text',           default: '#f8f9fa' },
         { key: 'color-text-muted',   label: 'Secondary Text',      default: '#adb5bd' },
         { key: 'color-accent',       label: 'Accent & Buttons',    default: '#60a5fa' },
-        { key: 'color-accent-text',  label: 'Button Text',         default: '#06121f' },
+        { key: 'color-accent-text',  label: 'Button Text',         default: '#ffffff' },
         { key: 'color-border',       label: 'Border Color',        default: '#495057' },
         { key: 'color-border-light', label: 'Divider',             default: '#343a40' },
         { key: 'color-accord-bg',    label: 'Row / Section BG',    default: '#2b3035' },
