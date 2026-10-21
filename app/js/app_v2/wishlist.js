@@ -263,9 +263,27 @@ function buildWishlistRow(item) {
     const left = el('div', { className: 'wishlist-row-left' });
 
     const title = el('div', { className: 'wishlist-row-title' });
-    // Build a readable title from available fields
-    const titleText = item.description || ('Coin #' + item.coin_id);
-    title.appendChild(document.createTextNode(titleText));
+    // GGMJ-382 (Matthew, report B8): the listing must say WHAT the coin is.
+    // The structured coin block carries denomination / year / mint / type
+    // separately; render them so the entry is unambiguous. Fall back to the
+    // flat description for a listing with no catalogue row behind it.
+    const coin = item.coin || null;
+    if (coin && (coin.denomination || coin.coin_type || coin.year)) {
+        if (coin.denomination) {
+            title.appendChild(el('span', { style: 'color:var(--color-accent);' }, escHtml(coin.denomination)));
+            title.appendChild(document.createTextNode(' '));
+        }
+        const yearMint = [];
+        if (coin.year) yearMint.push(String(coin.year));
+        if (coin.mint_mark) yearMint.push(String(coin.mint_mark));
+        if (yearMint.length) {
+            title.appendChild(document.createTextNode(yearMint.join(' ')));
+            title.appendChild(document.createTextNode(' '));
+        }
+        if (coin.coin_type) title.appendChild(document.createTextNode(escHtml(coin.coin_type)));
+    } else {
+        title.appendChild(document.createTextNode(item.description || ('Coin #' + item.coin_id)));
+    }
 
     if (item.target_grade) {
         title.appendChild(document.createTextNode(' '));
