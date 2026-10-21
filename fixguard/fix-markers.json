@@ -31,7 +31,8 @@
       "current_value",
       "date_acquired",
       "personal_photo",
-      "personal_photos"
+      "personal_photos",
+      "export const isSearchIndexReady"
     ],
     "app/js/app_v2/catalog.js": [
       "stepper-edit",
@@ -59,7 +60,8 @@
       "ownedMap.has(String(c.id))",
       "UPSERT by coin_ref_id",
       "function bullionPriceUnits(weight, unit, metal)",
-      "return { status: 'error', error: 'Coin not found' };"
+      "return { status: 'error', error: 'Coin not found' };",
+      "await whenSearchIndexReady();"
     ],
     "app/js/app_v2/gallery.js": [
       "_photosCache",
@@ -105,7 +107,8 @@
     "app/js/app_v2/search.js": [
       "initYearRange",
       "const cfgRev = cfg._deleted_rev_image ? null : cfg.rev_image;",
-      "const cfgObv = cfg._deleted_obv_image ? null : cfg.obv_image;"
+      "const cfgObv = cfg._deleted_obv_image ? null : cfg.obv_image;",
+      "Preparing the catalog index"
     ],
     "app/js/app_v2/utils.js": [
       "_APP_BASE",
