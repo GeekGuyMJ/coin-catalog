@@ -10,9 +10,14 @@
 // ============================================================
 // Environment detection
 // ============================================================
-const isSelfHosted = location.hostname.includes('opaleye-bluegill.ts.net') || 
-                     location.hostname.includes('192.168.0.115') ||
-                     location.hostname === 'localhost';
+const isSelfHosted = location.hostname === 'localhost' || 
+                     location.hostname === '127.0.0.1' ||
+                     // Self-hosted Tailscale/LAN: check for any .ts.net or private IP
+                     (location.hostname.endsWith('.ts.net') && !location.hostname.includes('github.io') && !location.hostname.includes('pages.dev')) ||
+                     // Private IP ranges (192.168.x.x, 10.x.x.x, 172.16-31.x.x)
+                     /^192\.168\./.test(location.hostname) ||
+                     /^10\./.test(location.hostname) ||
+                     /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(location.hostname);
 
 // ============================================================
 // Imports
@@ -100,11 +105,11 @@ async function serverFetch(path, init) {
 // Core catalog APIs
 export const fetchCoinsForSection = wrap(fetchCoinsForSectionLocal);
 
-export const fetchCoin = isSelfHosted
+export const fetchCoin = isSelfHosted ? fetchCoinLocal : wrap(fetchCoinLocal);
     ? async (coinId) => serverFetch('/api/coins/' + coinId)
     : wrap(fetchCoinLocal);
 
-export const fetchInventory = isSelfHosted
+export const fetchInventory = isSelfHosted ? fetchInventoryLocal : wrap(fetchInventoryLocal);
     ? async () => serverFetch('/api/inventory')
     : wrap(fetchInventoryLocal);
 
@@ -139,18 +144,20 @@ export const fetchStatus = isSelfHosted
     ? async () => serverFetch('/api/status')
     : wrap(fetchStatusLocal);
 
-// Image APIs — assignImage already uses originalFetch (server-backed)
-export const assignImage = async (data) => {
-    const res = await originalFetch('/api/assign_image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data || {}),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) return { status: 'error', error: body.error || ('HTTP ' + res.status) };
-    try { await assignImageLocal(data); } catch (_) { /* non-fatal */ }
-    return { status: body.status || 'success', message: body.message, updated: body.updated };
-};
+// Image APIs — assignImage uses server when self-hosted, local DB when public
+export const assignImage = isSelfHosted ? assignImageLocal : wrap(assignImageLocal);
+    ? async (data) => {
+        const res = await originalFetch('/api/assign_image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data || {}),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) return { status: 'error', error: body.error || ('HTTP ' + res.status) };
+        try { await assignImageLocal(data); } catch (_) { /* non-fatal */ }
+        return { status: body.status || 'success', message: body.message, updated: body.updated };
+      }
+    : wrap(assignImageLocal);
 
 export const fetchCoinBankImages = isSelfHosted
     ? async (params = {}) => {

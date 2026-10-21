@@ -71,6 +71,7 @@ export function renderSections() {
         const group = buildCountryGroup(country, countrySections);
         container.appendChild(group);
     }
+let autoOpenTypesInAlbumMode = false;
     
     // Now that everything is in the DOM, restore expanded sections
     initStickyHeaders();
