@@ -745,6 +745,8 @@ export async function promoteToDefaultHandler() {
         return;
     }
     
+    const scope = activeContext.scope || 'all';
+    
     // First press confirmation
     const promoteBtn = document.getElementById('ii-btn-promote-default');
     if (promoteBtn && promoteBtn.dataset.confirming !== 'true') {
