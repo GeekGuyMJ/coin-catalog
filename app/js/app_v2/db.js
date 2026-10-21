@@ -2279,11 +2279,21 @@ export async function assignImageLocal(data) {
         } else {
             // Save to the specific coin reference record (item_id = coin_ref_id) so the
             // album/catalog, which read db.coins_reference.obv_image / rev_image, display it.
+            // GGMJ-407: on the static deployments (GitHub Pages / Cloudflare Pages)
+            // `coins_reference` is seeded from data/coins.json, whose `id` values are
+            // JSON STRINGS, while rows written at runtime carry NUMBERS. Dexie primary
+            // keys are typed, so `get(Number(id))` missed every seeded row and the
+            // per-coin upload silently wrote nothing. Resolve the row with
+            // _getCoinRefAny() and write with the key that actually exists.
+            const coin = await _getCoinRefAny(item_id);
+            if (!coin) {
+                // Never report success when no row matched -- a false success toast is
+                // what made this defect invisible.
+                return { status: 'error', error: 'Coin not found' };
+            }
+            const refId = coin.id;
             const sideMap = { "obv":"obv_image", "rev":"rev_image", "proof_obv":"proof_obv_image", "proof_rev":"proof_rev_image" };
             const sideKey = sideMap[side] || "obv_image";
-            const coin = await _getCoinRefAny(item_id);
-            if (!coin) return { status: "success" };
-            const refId = coin.id;
             const updates = {};
             if (image) {
                 updates[sideKey] = image;
@@ -2297,7 +2307,6 @@ export async function assignImageLocal(data) {
             // creating a fake "owned" row. The per-coin reference image belongs on
             // db.coins_reference so the album shows it. Personal photos are a separate
             // specific_item scope.
-            
         }
     } else if (scope === "specific_item") {
         // Save to specific inventory entry by its id — item_id is user_inventory.id

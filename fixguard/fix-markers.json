@@ -57,7 +57,8 @@
    "ownedRefs.has(String(coin.id))",
    "ownedMap.has(String(c.id))",
    "UPSERT by coin_ref_id",
-   "function bullionPriceUnits(weight, unit, metal)"
+   "function bullionPriceUnits(weight, unit, metal)",
+   "return { status: 'error', error: 'Coin not found' };"
   ],
   "app/js/app_v2/gallery.js": [
    "_photosCache",
@@ -130,6 +131,11 @@
   ]
  },
  "absent": {
+  "app/js/app_v2/db.js": [
+   "if (!coin) return { status: \"success\" };",
+   "if (!coin) return { status: success };",
+   "const sideMap = { obv:obv_image, rev:rev_image"
+  ],
   "app/js/app_v2/catalog.js": [
    "renderAlbumType(firstCoinSection",
    "coin._deleted_obv_image || coin._deleted_rev_image",
