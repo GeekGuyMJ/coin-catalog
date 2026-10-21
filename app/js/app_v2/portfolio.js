@@ -1194,7 +1194,7 @@ function buildEmptyPortfolioCard() {
 var _invEntries = null;
 function buildInvestmentsCard(p) {
     var card = el('div', { className: 'card dashboard-card', id: 'card-investments' });
-    card.appendChild(el('div', { className: 'card-title' }, 'Investments'));
+    card.appendChild(el('div', { className: 'card-title' }, 'Other Investments'));
 
     var listWrap = el('div', { className: 'inv-list', style: 'display:flex;flex-direction:column;gap:8px;' });
     var totalRow = el('div', { className: 'finance-item grand-total', style: 'margin-top:8px;' });
@@ -1205,7 +1205,7 @@ function buildInvestmentsCard(p) {
         var total = 0;
         (_invEntries || []).forEach(function (e) { total += (e.total_value || 0); });
         totalRow.textContent = '';
-        totalRow.appendChild(el('span', { className: 'finance-label' }, 'Total Investments'));
+        totalRow.appendChild(el('span', { className: 'finance-label' }, 'Total Other Investments'));
         totalRow.appendChild(el('span', { className: 'finance-value bold' }, fmtMoney(total)));
     }
 
@@ -1222,7 +1222,7 @@ function buildInvestmentsCard(p) {
     function renderList() {
         listWrap.textContent = '';
         if (!_invEntries || !_invEntries.length) {
-            listWrap.appendChild(el('div', { className: 'dashboard-detail', style: 'text-align:center;padding:10px 0;' }, 'No external investments yet'));
+            listWrap.appendChild(el('div', { className: 'dashboard-detail', style: 'text-align:center;padding:10px 0;' }, 'No Other Investments yet'));
         } else {
             _invEntries.forEach(function (e) {
                 var row = el('div', { className: 'finance-item', style: 'flex-wrap:wrap;gap:4px;' });
@@ -1274,7 +1274,7 @@ function buildInvestmentsCard(p) {
                     _invEntries.push(saved);
                     renderList(); refreshTotal();
                     name.value = ''; valIn.value = ''; costIn.value = ''; dateIn.value = '';
-                    _showCardToast('Investment added', 'success');
+                    _showCardToast('Other Investments added', 'success');
                 })
                 .catch(function (err) { _showCardToast('Failed to save: ' + err.message, 'error'); });
         };

@@ -62,7 +62,8 @@
    "}, 'Hide');",
    "Hide is a COLLAPSE, not a cancel.",
    "function buildInvestmentsCard(p)",
-   "'aria-label': 'Hide entry form'"
+   "'aria-label': 'Hide entry form'",
+   "Other Investments"
   ],
   "app/js/app_v2/search.js": [
    "initYearRange"
@@ -113,8 +114,8 @@
   ]
  },
  "sw_min": {
-  "app/sw.js": 430,
-  "frontend/sw.js": 430
+  "app/sw.js": 432,
+  "frontend/sw.js": 432
  },
  "shared": {
   "js/app_v2/dexie.js": {},
@@ -157,7 +158,7 @@
   "js/app_v2/sync.js": {},
   "js/app_v2/wishlist.js": {},
   "css/components.v2.css": {},
-  "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
+  "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional — do not force-sync.",
   "js/app_v2/guide.js": {}
  }
 }
