@@ -2163,7 +2163,7 @@ window.addEventListener('cc-inventory-updated', async (e) => {
                 }
             }
         }
-    });
+    }
 
     // Refresh all owned-counter badges so the DOM reflects the new qty
     // immediately instead of waiting for a page reload (GGMJ-399 reactivity fix).

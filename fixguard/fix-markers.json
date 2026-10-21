@@ -36,7 +36,8 @@
       "setInventory(await fetchInventory())",
       "fetchTypeConfigs",
       "autoOpenTypesInAlbumMode",
-      "GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY"
+      "GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY",
+      "Refresh all owned-counter badges"
     ],
     "app/js/app_v2/db.js": [
       "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
@@ -155,8 +156,8 @@
     ]
   },
   "sw_min": {
-    "app/sw.js": 446,
-    "frontend/sw.js": 445
+    "app/sw.js": 447,
+    "frontend/sw.js": 446
   },
   "shared": {
     "js/app_v2/dexie.js": {},
