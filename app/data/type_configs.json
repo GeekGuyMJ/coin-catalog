@@ -7675,18 +7675,6 @@
   "key_price": 50.0
  },
  {
-  "id": 6,
-  "coin_type": "Jefferson",
-  "obv_image": "/data/images/types/jefferson_obv.webp",
-  "rev_image": "/data/images/types/jefferson_default_rev.webp",
-  "proof_obv_image": null,
-  "proof_rev_image": null,
-  "base_price": 0.05,
-  "key_price": 10.0,
-  "_deleted_obv_image": true,
-  "_deleted_rev_image": true
- },
- {
   "id": 487,
   "coin_type": "Jefferson (Return to Monticello)",
   "obv_image": "/data/images/types/master/jefferson-return-to-monticello.obv.webp",
@@ -13118,6 +13106,6 @@
   "obv_image": "/data/images/types/master/jefferson.obv.webp",
   "rev_image": "/data/images/types/master/jefferson.rev.webp",
   "proof_obv_image": "/data/images/types/master/jefferson-proof.obv.webp",
-  "proof_rev_image": "/data/images/types/master/jefferson-proof.rev.webp"
+  "proof_rev_image": null
  }
 ]
