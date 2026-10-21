@@ -113,8 +113,10 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     // real coin photo instead of a placeholder when one exists.
     let _repObv = null, _repRev = null;
     for (const _c of typeCoins) {
-        if (!_repObv && _c.obv_image) _repObv = _c.obv_image;
-        if (!_repRev && _c.rev_image) _repRev = _c.rev_image;
+        // GGMJ-333: a per-coin _deleted flag must gate the representative
+        // fallback too, or the deleted image comes back as the type example.
+        if (!_repObv && _c.obv_image && !_c._deleted_obv_image) _repObv = _c.obv_image;
+        if (!_repRev && _c.rev_image && !_c._deleted_rev_image) _repRev = _c.rev_image;
         if (_repObv && _repRev) break;
     }
     // 2026-09-01 GHOST FIX: after a type-level deletion (_deleted flags), do NOT fall back
@@ -373,9 +375,11 @@ function renderAlbumGrid(container, sectionName, coins) {
 
         // Type thumbnail
         const thumbWrap = el('div', { className: 'album-type-thumb' });
-        if (cfg.obv_image) {
+        // Respect _deleted flags on the type config - deleted images must not reappear
+        const typeObv = cfg && !cfg._deleted_obv_image ? cfg.obv_image : null;
+        if (typeObv) {
             const img = el('img', {
-                src: resolveImageUrl(cfg.obv_image),
+                src: resolveImageUrl(typeObv),
                 alt: mainType,
                 loading: 'lazy',
                 dataset: { action: 'view-img', type: mainType, side: 'obv' },
@@ -447,8 +451,11 @@ function buildCoinHole(coin, typeCfg, qtyOverride) {
     }
     
     // Prefer the coin's own uploaded image (per-coin), then fall back to the type-config default.
-    const obvImg = resolveImageUrl(coin.obv_image);
-    const revImg = resolveImageUrl(coin.rev_image);
+    // Respect coin-level _deleted flags - deleted images must not reappear (GGMJ-333)
+    const coinObv = coin._deleted_obv_image ? null : coin.obv_image;
+    const coinRev = coin._deleted_rev_image ? null : coin.rev_image;
+    const obvImg = resolveImageUrl(coinObv);
+    const revImg = resolveImageUrl(coinRev);
     let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
     // A re-upload reuses the same filename, so without a UNIQUE bust the
     // browser serves the previously cached bytes and the album shows the

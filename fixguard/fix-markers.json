@@ -12,7 +12,10 @@
     "app/js/app_v2/album.js": [
       "fetchInventory().then",
       "renderAlbumView(null)",
-      "_albumSections.clear()"
+      "_albumSections.clear()",
+      "const typeObv = cfg && !cfg._deleted_obv_image ? cfg.obv_image : null;",
+      "const coinObv = coin._deleted_obv_image ? null : coin.obv_image;",
+      "&& !_c._deleted_obv_image) _repObv = _c.obv_image;"
     ],
     "app/js/app_v2/api.js": [
       "new_url: body.new_url",
@@ -37,7 +40,10 @@
       "fetchTypeConfigs",
       "autoOpenTypesInAlbumMode",
       "GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY",
-      "Refresh all owned-counter badges"
+      "Refresh all owned-counter badges",
+      "const obv = coin._deleted_obv_image",
+      "const rev = coin._deleted_rev_image",
+      "GGMJ-333: same gate chain as buildCoinRow"
     ],
     "app/js/app_v2/db.js": [
       "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
@@ -120,7 +126,8 @@
   "absent": {
     "app/js/app_v2/catalog.js": [
       "renderAlbumType(firstCoinSection",
-      "coin._deleted_obv_image || coin._deleted_rev_image"
+      "coin._deleted_obv_image || coin._deleted_rev_image",
+      "const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);"
     ],
     "app/js/app_v2/search.js": [
       "label: 'Min Year'",
@@ -138,6 +145,10 @@
     ],
     "app/js/app_v2/images.js": [
       "scope: isItem ? 'specific_item' : 'all'"
+    ],
+    "app/js/app_v2/album.js": [
+      "const obvImg = resolveImageUrl(coin.obv_image);",
+      "if (!_repObv && _c.obv_image) _repObv = _c.obv_image;"
     ]
   },
   "order": {
@@ -156,8 +167,8 @@
     ]
   },
   "sw_min": {
-    "app/sw.js": 447,
-    "frontend/sw.js": 446
+    "app/sw.js": 448,
+    "frontend/sw.js": 447
   },
   "shared": {
     "js/app_v2/dexie.js": {},
@@ -200,7 +211,7 @@
     "js/app_v2/sync.js": {},
     "js/app_v2/wishlist.js": {},
     "css/components.v2.css": {},
-    "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional — do not force-sync.",
+    "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
     "js/app_v2/guide.js": {}
   }
 }

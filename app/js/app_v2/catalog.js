@@ -2449,10 +2449,17 @@ export function openCoinDetailModal(coinId) {
         }
         
         const getDisplayImgSrc = (side) => {
+            // GGMJ-333: same gate chain as buildCoinRow. A coin-level deletion
+            // blanks that side outright (no fall-through to the type image);
+            // a type-level deletion blocks only that type's image.
             const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
             const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
-            const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);
-            const rev = specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null);
+            const obv = coin._deleted_obv_image
+                ? null
+                : (coin.obv_image || specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null));
+            const rev = coin._deleted_rev_image
+                ? null
+                : (coin.rev_image || specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null));
             let src = side === 'rev' ? (rev || obv) : (obv || rev);
             if (src && !src.includes('?')) src += '';
             return src;
