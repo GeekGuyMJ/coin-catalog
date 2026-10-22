@@ -334,6 +334,13 @@
       "marker": "hdrLabel",
       "note": "Pricing Rules boxes labelled Common and Key",
       "path": "js/app_v2/modals.js"
+    },
+    "GGMJ-463": {
+      "expect": "present",
+      "marker": "Create one table for all rows instead of one table per row",
+      "note": "GGMJ-463: _longGuide builds one <table> with all rows instead of one <table> per row; the comment marks the fix block in _longGuide()",
+      "path": "app/js/app_v2/infoDropdown.js",
+      "scope": "_longGuide"
     }
   }
 }
