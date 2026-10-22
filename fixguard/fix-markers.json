@@ -148,6 +148,10 @@
       "overflow: visible",
       "padding-left:    calc(var(--space-4) * 2)",
       "padding-right:   calc(var(--space-4) * 2)"
+    ],
+    "app/js/app_v2/env.js": [
+      "export function isSelfHostedHost",
+      "export const isSelfHosted ="
     ]
   },
   "absent": {
@@ -160,13 +164,15 @@
     "app/js/app_v2/db.js": [
       "if (!coin) return { status: \"success\" };",
       "if (!coin) return { status: success };",
-      "const sideMap = { obv:obv_image, rev:rev_image"
+      "const sideMap = { obv:obv_image, rev:rev_image",
+      "host.includes('opaleye-bluegill')"
     ],
     "app/js/app_v2/catalog.js": [
       "renderAlbumType(firstCoinSection",
       "coin._deleted_obv_image || coin._deleted_rev_image",
       "const obv = specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null);",
-      "const exObv = cfg.example_obv_image || cfg.obv_image || null;"
+      "const exObv = cfg.example_obv_image || cfg.obv_image || null;",
+      "host.includes('opaleye-bluegill')"
     ],
     "app/js/app_v2/search.js": [
       "label: 'Min Year'",
@@ -191,6 +197,9 @@
     "app/js/app_v2/album.js": [
       "const obvImg = resolveImageUrl(coin.obv_image);",
       "if (!_repObv && _c.obv_image) _repObv = _c.obv_image;"
+    ],
+    "app/js/app_v2/api.js": [
+      "location.hostname.includes('opaleye-bluegill.ts.net')"
     ]
   },
   "order": {

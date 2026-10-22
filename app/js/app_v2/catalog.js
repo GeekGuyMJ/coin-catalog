@@ -25,8 +25,8 @@ import {
 } from './state.js';
 
 import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchTypeConfigs, fetchSections,
-        isSelfHosted as _isSelfHosted,
 } from './api.js';
+import { isSelfHosted } from './env.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
@@ -416,13 +416,10 @@ function buildSectionCard(sec) {
 
     // Self-hosted only: "Publish to public" button in the section header
     // GGMJ-423: isSelfHosted must not be awaited inside a non-async function.
-    // The previous `await import('./env.js')` sat inside this
-    // NON-async function, which is a module-load SyntaxError and took the whole
-    // app down on GitHub Pages. isSelfHosted comes from api.js (which re-exports
-    // it from ./env.js - the single source of truth added by GGMJ-388). It is a
-    // FUNCTION on the published branch but a BOOLEAN on the self-hosted and
-    // cloudflare trees, so normalise both shapes here.
-    const isSelfHosted = typeof _isSelfHosted === 'function' ? _isSelfHosted() : _isSelfHosted;
+    // GGMJ-388: isSelfHosted is imported from ./env.js - the single source of
+    // truth shared by api.js, catalog.js and db.js. It is a BOOLEAN, so it is
+    // never awaited (an `await import(...)` inside this NON-async function was
+    // a module-load SyntaxError that took the whole app down on GitHub Pages).
     if (isSelfHosted) {
         const publishBtn = el('button', {
             className: 'btn-section-publish',
