@@ -50,7 +50,9 @@
       "GGMJ-333: same gate chain as buildCoinRow",
       "const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)",
       "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;",
-      "GGMJ-423: isSelfHosted must not be awaited inside a non-async function"
+      "GGMJ-423: isSelfHosted must not be awaited inside a non-async function",
+    "publishPreviewWarning",
+    "GGMJ-442: publish preview warns BEFORE anything is overwritten."
     ],
     "app/js/app_v2/db.js": [
       "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
@@ -206,8 +208,8 @@
     ]
   },
   "sw_min": {
-    "app/sw.js": 449,
-    "frontend/sw.js": 449,
+    "app/sw.js": 465,
+    "frontend/sw.js": 475,
     "js/app_v2/sw.js": 0
   },
   "shared": {

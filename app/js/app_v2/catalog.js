@@ -2614,23 +2614,110 @@ export async function openPublishSectionModal(sectionName) {
     }, sectionName));
     bodyWrap.appendChild(el('p', {
         style: 'font-size: var(--font-size-xs); color: var(--color-text-muted); line-height:1.5;'
-    }, 'This will copy all user-tier images for this section into the master defaults, update the database, and create an export package ready to deploy to the public app. This action is one-way.'));
+    }, 'This copies the user-tier images for this section into the master defaults, updates the database, and creates an export package ready to deploy to the public app. Master images that already exist are backed up before they are replaced, master images owned by another section are never touched, and every publish is written to a log so it can be undone.'));
+
+    // GGMJ-442: publish preview warns BEFORE anything is overwritten.
+    const previewBox = el('div', {
+        style: 'margin: var(--space-2) 0; padding: var(--space-3); border:1px solid var(--color-border, rgba(128,128,128,0.35)); border-radius: var(--radius-sm); font-size: var(--font-size-xs); line-height:1.6;'
+    });
+    previewBox.appendChild(el('p', {
+        style: 'margin:0; color: var(--color-text-muted);'
+    }, 'Checking what this publish would change...'));
+    bodyWrap.appendChild(previewBox);
 
     let running = false;
     const btnPublish = el('button', { className: 'btn-primary' }, 'Publish Section');
+    btnPublish.disabled = true;
     const btnCancel = el('button', { className: 'btn-secondary', dataset: { action: 'close-modal' } }, 'Cancel');
     const footer = el('div', { style: 'display:flex; gap: var(--space-2); justify-content:flex-end;' }, btnCancel, btnPublish);
 
     const modalId = 'modal-publish-section';
-    modals.createModal(modalId, '📤 Publish Section to Public', bodyWrap, footer);
+    modals.createModal(modalId, '\u{1F4E4} Publish Section to Public', bodyWrap, footer);
 
     const resultBox = el('div', { style: 'margin-top: var(--space-3); font-size: var(--font-size-sm); line-height:1.6;' });
+
+    // GGMJ-442: publishPreviewWarning - the preview endpoint reports what the
+    // publish WOULD do, so the user sees the overwrite list before it happens.
+    async function publishPreviewWarning(section) {
+        return await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/publish_preview?section=' + encodeURIComponent(section), true);
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try { resolve(JSON.parse(xhr.responseText)); }
+                    catch (e) { reject(new Error('Invalid JSON from publish preview: ' + xhr.responseText)); }
+                } else {
+                    let detail = xhr.responseText || ('HTTP ' + xhr.status);
+                    try { detail = JSON.parse(xhr.responseText).error || detail; } catch (e) {}
+                    reject(new Error(detail));
+                }
+            };
+            xhr.onerror = () => reject(new Error('Network error calling /api/publish_preview'));
+            xhr.send();
+        });
+    }
+
+    function renderPreview(preview) {
+        previewBox.innerHTML = '';
+        const s = preview.summary || {};
+        const replace = preview.would_replace || [];
+        const skip = preview.would_skip || [];
+        const create = preview.would_create || [];
+
+        const head = el('p', { style: 'margin:0 0 var(--space-1); font-weight:700;' });
+        head.textContent = `This publish will add ${create.length} master image(s)`
+            + (replace.length ? `, REPLACE ${replace.length} existing master image(s)` : '')
+            + (skip.length ? `, and SKIP ${skip.length} image(s) owned by another section` : '')
+            + '.';
+        previewBox.appendChild(head);
+
+        if (replace.length) {
+            previewBox.appendChild(el('p', {
+                style: 'margin:0 0 var(--space-1); color: var(--color-warning, #b26a00); font-weight:600;'
+            }, `The ${replace.length} image(s) below will be backed up first and can be restored with Undo:`));
+            const ul = el('ul', { style: 'margin:0 0 var(--space-2); padding-left: var(--space-4);' });
+            replace.slice(0, 12).forEach((r) => ul.appendChild(el('li', {}, r.name)));
+            if (replace.length > 12) {
+                ul.appendChild(el('li', {}, `...and ${replace.length - 12} more`));
+            }
+            previewBox.appendChild(ul);
+        }
+
+        if (skip.length) {
+            previewBox.appendChild(el('p', {
+                style: 'margin:0 0 var(--space-1); color: var(--color-info, #1565c0); font-weight:600;'
+            }, 'These will NOT be touched (another section owns them):'));
+            const ul = el('ul', { style: 'margin:0 0 var(--space-2); padding-left: var(--space-4);' });
+            skip.slice(0, 12).forEach((r) => ul.appendChild(el('li', {}, r.name)));
+            if (skip.length > 12) {
+                ul.appendChild(el('li', {}, `...and ${skip.length - 12} more`));
+            }
+            previewBox.appendChild(ul);
+        }
+
+        if (!replace.length && !skip.length) {
+            previewBox.appendChild(el('p', {
+                style: 'margin:0; color: var(--color-text-muted);'
+            }, 'No existing master image would be replaced.'));
+        }
+    }
+
+    try {
+        const preview = await publishPreviewWarning(sectionName);
+        renderPreview(preview);
+    } catch (err) {
+        previewBox.innerHTML = '';
+        previewBox.appendChild(el('p', {
+            style: 'margin:0; color: var(--color-warning, #b26a00);'
+        }, 'Could not check what this publish would change (' + err.message + '). Publishing still backs up every master image it replaces.'));
+    }
+    btnPublish.disabled = false;
 
     btnPublish.addEventListener('click', async () => {
         if (running) return;
         running = true;
         btnPublish.disabled = true;
-        btnPublish.textContent = 'Publishing…';
+        btnPublish.textContent = 'Publishing\u2026';
         resultBox.innerHTML = '';
         bodyWrap.appendChild(resultBox);
 
@@ -2657,14 +2744,73 @@ export async function openPublishSectionModal(sectionName) {
 
             if (result.status === 'success') {
                 const ok = el('p', { style: 'color: var(--color-success, #2e7d32); font-weight:600;' },
-                    `✓ Published — ${result.images_copied} images copied, ${result.types_updated} types updated.`);
+                    `\u2713 Published \u2014 ${result.images_copied} images copied, ${result.types_updated} types updated.`);
                 resultBox.appendChild(ok);
+
+                // GGMJ-442: report exactly what was replaced / skipped, and make
+                // the publish reversible from here.
+                const replaced = result.files_replaced || 0;
+                const skipped = result.files_skipped || 0;
+                if (replaced) {
+                    resultBox.appendChild(el('p', {
+                        style: 'margin-top: var(--space-2); color: var(--color-warning, #b26a00);'
+                    }, `${replaced} existing master image(s) were replaced. The previous file of each was backed up.`));
+                }
+                if (skipped) {
+                    resultBox.appendChild(el('p', {
+                        style: 'margin-top: var(--space-2); color: var(--color-info, #1565c0);'
+                    }, `${skipped} image(s) were skipped because another section owns them.`));
+                }
+
                 resultBox.appendChild(el('p', { style: 'margin-top: var(--space-2);' }, `Export package: `));
                 resultBox.appendChild(el('code', {
                     style: 'display:block; background: var(--color-bg-body); padding: var(--space-2); border-radius: var(--radius-sm); margin: var(--space-1) 0; word-break: break-all;'
                 }, result.export_path));
                 resultBox.appendChild(el('p', { style: 'margin-top: var(--space-2); font-size: var(--font-size-xs); color: var(--color-text-muted);' },
                     'To deploy: run scripts/deploy_published_section.sh with the export path, then push to GitHub.'));
+
+                if (result.publish_id) {
+                    const undoBtn = el('button', { className: 'btn-secondary' }, 'Undo this publish');
+                    undoBtn.addEventListener('click', async () => {
+                        if (!window.confirm('Undo this publish and restore the master images it replaced?')) return;
+                        undoBtn.disabled = true;
+                        undoBtn.textContent = 'Undoing\u2026';
+                        try {
+                            const undone = await new Promise((resolve, reject) => {
+                                const xhr = new XMLHttpRequest();
+                                xhr.open('POST', '/api/publish_undo', true);
+                                xhr.setRequestHeader('Content-Type', 'application/json');
+                                xhr.onload = () => {
+                                    if (xhr.status >= 200 && xhr.status < 300) {
+                                        try { resolve(JSON.parse(xhr.responseText)); }
+                                        catch (e) { reject(new Error('Invalid JSON from publish undo: ' + xhr.responseText)); }
+                                    } else {
+                                        let detail = xhr.responseText || ('HTTP ' + xhr.status);
+                                        try { detail = JSON.parse(xhr.responseText).error || detail; } catch (e) {}
+                                        reject(new Error(detail));
+                                    }
+                                };
+                                xhr.onerror = () => reject(new Error('Network error calling /api/publish_undo'));
+                                xhr.send(JSON.stringify({ publish_id: result.publish_id }));
+                            });
+                            undoBtn.remove();
+                            resultBox.appendChild(el('p', {
+                                style: 'margin-top: var(--space-2); color: var(--color-success, #2e7d32); font-weight:600;'
+                            }, `\u2713 Undone \u2014 ${(undone.restored || []).length} master image(s) restored, ${(undone.removed || []).length} created image(s) removed.`));
+                        } catch (err) {
+                            undoBtn.disabled = false;
+                            undoBtn.textContent = 'Undo this publish';
+                            resultBox.appendChild(el('p', {
+                                style: 'margin-top: var(--space-2); color: var(--color-danger, #c62828);'
+                            }, 'Undo failed: ' + err.message));
+                        }
+                    });
+                    resultBox.appendChild(undoBtn);
+                    resultBox.appendChild(el('p', {
+                        style: 'margin-top: var(--space-1); font-size: var(--font-size-xs); color: var(--color-text-muted);'
+                    }, `Publish id: ${result.publish_id}`));
+                }
+
                 btnPublish.remove();
                 btnCancel.textContent = 'Done';
             } else {
