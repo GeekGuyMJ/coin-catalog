@@ -274,25 +274,41 @@ def _landing_marker_scope(text, scope):
     return None
 
 
-def landing_gate(only_issue=None, report_only=False):
+def landing_gate(only_issue=None, report_only=False, list_only=False):
     """The GGMJ-445 landing gate.
 
     For every shared-file fix recorded in the registry's `landings` section,
     fetch the SERVED bytes of each of the three deployments and prove the fix
     is live there. Prints a per-deployment PASS/FAIL table with the measured
     byte counts, and returns the list of failures.
+
+    `only_issue` restricts the run to ONE issue. An issue with no landing
+    entry is a FAILURE, not a vacuous pass: a shared-file fix that nobody
+    registered a marker for cannot be verified, and a guardrail that is
+    trivially bypassed by omitting a marker is not a guardrail.
     """
     landings = REG.get('landings', {})
     if not landings:
         print('LANDING GATE: no `landings` section in the registry — nothing to check.')
+        return ['no `landings` section in the registry']
+
+    if list_only:
+        for i in sorted(landings):
+            print('  %s  %s  %s  expect=%s%s' % (
+                i, landings[i].get('path'), landings[i].get('marker'),
+                landings[i].get('expect', 'present'),
+                ('  scope=%s' % landings[i]['scope']) if landings[i].get('scope') else ''))
         return []
 
     issues = sorted(landings)
     if only_issue:
-        issues = [i for i in issues if i == only_issue]
-        if not issues:
-            print(f'LANDING GATE: no landing entry for {only_issue}.')
-            return []
+        if only_issue not in landings:
+            msg = ('no landing entry for %s — a shared-file fix cannot be closed '
+                   'without a registered marker' % only_issue)
+            print('LANDING GATE: FAIL — %s' % msg)
+            print('Register it in fix-markers.json\'s `landings` section first.')
+            return [msg]
+        issues = [only_issue]
 
     # One fetch per (deployment, path), reused across issues.
     cache = {}
@@ -469,7 +485,10 @@ def main():
             i = args.index('--issue')
             if i + 1 < len(args):
                 only_issue = args[i + 1]
-        errors = landing_gate(only_issue, report_only)
+        if '--list' in args:
+            errors = landing_gate(list_only=True)
+        else:
+            errors = landing_gate(only_issue, report_only)
     else:
         print(__doc__)
         return 2
