@@ -13,9 +13,9 @@
 
 import { el, escHtml } from './utils.js';
 import { showToast } from './notifications.js';
-import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig } from './state.js';
+import { getSections, getInventory, getSpotPrices, purgeUserInventoryTables, getTypeConfig, getTypeConfigs } from './state.js';
 import { saveCustomTheme } from './themes.js';
-import { factoryResetDataLocal } from './db.js';
+import { factoryResetDataLocal, fetchSectionsLocal, fetchCoinsForSectionLocal, fetchTypeConfigsLocal, savePricingRulesLocal } from './db.js';
 import { uploadCoinBankImage, uploadCoinImage, uploadImageAsDataUri } from './api.js';
 
 // ============================================================
@@ -1764,153 +1764,206 @@ export function openPricingRulesModal() {
     );
     body.appendChild(info);
 
-    var rules = {};
-    fetch('/api/pricing_rules').then(function(r){return r.json();}).then(function(data){
-        rules = data || {};
-        renderRules();
-    }).catch(function(){ renderRules(); });
+    var status = el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);padding:4px 0;' }, 'Loading sections…');
+    body.appendChild(status);
 
-    function renderRules() {
-        body.innerHTML = '';
-        body.appendChild(info);
+    if (typeof createModal === 'function') {
+        createModal('modal-pricing-rules', 'Pricing Rules', body, null);
+    }
 
-        fetch('/api/coins?limit=5000').then(function(r){return r.json();}).then(function(data){
-            var coins = data.coins || data || [];
+    // GGMJ-432: this modal used to fetch ALL 5,000+ coins and then build
+    // ~2,200 DOM nodes (1,464 number inputs + 732 Save buttons) before it
+    // showed anything - while all 23 <details> sections were CLOSED, so
+    // almost none of that work was visible.
+    //
+    // Now the modal is interactive as soon as the 23 section shells are on
+    // screen:
+    //   * the section list comes from state, which boot already loaded;
+    //   * the price rules are fetched once, in the background;
+    //   * a section's type rows are built the first time THAT section is
+    //     opened, from that section's coins only;
+    //   * nothing is built twice - the tree is built once, per section.
+    var rulesPromise = fetchTypeConfigsLocal().catch(function () {
+        // Fall back to the copy boot already put in state.
+        return getTypeConfigs() || {};
+    });
+
+    var sections = getSections() || [];
+    if (sections.length) {
+        renderSectionShells(sections);
+    } else {
+        fetchSectionsLocal().then(function (data) {
+            renderSectionShells(data || []);
+        }).catch(function () {
+            status.textContent = 'Could not load the coin sections.';
+        });
+    }
+
+    function renderSectionShells(list) {
+        if (status.parentNode) status.parentNode.removeChild(status);
+        var names = [];
+        list.forEach(function (s) {
+            var name = (s && s.section) || 'Other';
+            if (names.indexOf(name) === -1) names.push(name);
+        });
+        names.sort(function (a, b) {
+            // Map section names to their broader category for ordering
+            function sectionRank(s) {
+                if (/^US\b/.test(s)) return 0;
+                if (/^Canadian\b/.test(s)) return 1;
+                if (/^UK\b/.test(s)) return 2;
+                if (/^Euro\b/.test(s)) return 3;
+                if (/Bullion/.test(s)) return 4;
+                if (/Scrap/.test(s)) return 5;
+                if (/Paper/.test(s)) return 6;
+                return 999;
+            }
+            var ra = sectionRank(a), rb = sectionRank(b);
+            if (ra !== rb) return ra - rb;
+            return a.localeCompare(b);
+        });
+        names.forEach(function (name) {
+            body.appendChild(buildSectionShell(name));
+        });
+    }
+
+    function buildSectionShell(name) {
+        var secDiv = el('details', { style: 'margin-bottom:16px; border:1px solid var(--color-border-light); border-radius:var(--radius-base); background:var(--color-bg-card);' });
+        var summary = el('summary', { style: 'font-size:0.85em;font-weight:700;color:var(--color-accent);text-transform:uppercase;letter-spacing:0.06em; cursor:pointer; outline:none; user-select:none; padding:10px 12px; margin:0;' }, name);
+        secDiv.appendChild(summary);
+        var contentDiv = el('div', { style: 'padding: 0 12px 12px 12px;' });
+        secDiv.appendChild(contentDiv);
+
+        // Build this section's rows the first time it is opened, and only
+        // once. That is what keeps ~2,200 DOM nodes off the open path.
+        var built = false;
+        secDiv.addEventListener('toggle', function () {
+            if (!secDiv.open || built) return;
+            built = true;
+            buildSectionRows(name, contentDiv);
+        });
+        return secDiv;
+    }
+
+    function buildSectionRows(name, contentDiv) {
+        contentDiv.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-muted);padding:6px 0;' }, 'Loading types…'));
+
+        Promise.all([rulesPromise, fetchCoinsForSectionLocal(name)]).then(function (res) {
+            var rules = res[0] || {};
+            var payload = res[1];
+            var coins = Array.isArray(payload) ? payload : ((payload && payload.coins) || []);
+
+            // The distinct coin types of THIS section. Same three fields as
+            // before (coin_type, section, face value) - but read from this
+            // section's rows only, instead of from all 5,000+ rows.
             var typeMap = {};
-            coins.forEach(function(c) {
+            coins.forEach(function (c) {
                 var ct = c.coin_type || c.type || '';
+                if (!ct) return;
                 if (!typeMap[ct]) {
                     var fv = parseFloat(c.face_value);
                     if (isNaN(fv)) fv = parseFloat(c.denomination);
                     if (isNaN(fv)) fv = 0;
-                    typeMap[ct] = {section: c.section || 'Other', face: fv};
+                    typeMap[ct] = fv;
                 }
             });
 
-            var bySection = {};
-            Object.keys(typeMap).forEach(function(ct) {
-                var sec = typeMap[ct].section;
-                if (!bySection[sec]) bySection[sec] = [];
-                bySection[sec].push(ct);
-            });
-
-            var standardOrder = ['US Coins', 'Canadian Coins', 'UK Coins', 'Euro Coins', 'Bullion', 'Scrap', 'Paper Currency'];
-            var secNames = Object.keys(bySection).sort(function(a, b) {
-                // Map section names to their broader category for ordering
-                function sectionRank(s) {
-                    if (/^US\b/.test(s)) return 0;
-                    if (/^Canadian\b/.test(s)) return 1;
-                    if (/^UK\b/.test(s)) return 2;
-                    if (/^Euro\b/.test(s)) return 3;
-                    if (/Bullion/.test(s)) return 4;
-                    if (/Scrap/.test(s)) return 5;
-                    if (/Paper/.test(s)) return 6;
-                    return 999;
-                }
-                var ra = sectionRank(a), rb = sectionRank(b);
-                if (ra !== rb) return ra - rb;
+            // sort types by denomination value (small to large)
+            var types = Object.keys(typeMap).sort(function (a, b) {
+                var valA = typeMap[a];
+                var valB = typeMap[b];
+                if (valA !== valB) return valA - valB;
                 return a.localeCompare(b);
             });
 
-            secNames.forEach(function(sec) {
-                var secDiv = el('details', { style: 'margin-bottom:16px; border:1px solid var(--color-border-light); border-radius:var(--radius-base); background:var(--color-bg-card);' });
-                var summary = el('summary', { style: 'font-size:0.85em;font-weight:700;color:var(--color-accent);text-transform:uppercase;letter-spacing:0.06em; cursor:pointer; outline:none; user-select:none; padding:10px 12px; margin:0;' }, sec);
-                secDiv.appendChild(summary);
-                var contentDiv = el('div', { style: 'padding: 0 12px 12px 12px;' });
-
-                // GGMJ-433: a header row for THIS section, above its own type rows,
-                // so the two price boxes are labelled wherever the user has scrolled
-                // to (the sections are <details> that open independently, so a single
-                // global header at the top of the modal would not follow them down).
-                // base_price = Common, key_price = Key - the inputs are NOT swapped.
-                // The Save column is sized by a hidden clone of the Save button, so
-                // the Common/Key labels stay aligned with the 70px inputs whatever
-                // font the button renders at.
-                var hdr = el('div', { style: 'display:flex;align-items:center;gap:6px;padding:6px 0 8px 0;border-bottom:1px solid var(--color-border);' });
-                var hdrLabel = 'font-size:0.72em;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;';
-                hdr.appendChild(el('span', { style: 'flex:1;padding-right:8px;' + hdrLabel }, 'Coin Type'));
-                hdr.appendChild(el('span', { style: 'width:70px;text-align:center;' + hdrLabel }, 'Common'));
-                hdr.appendChild(el('span', { style: 'width:70px;text-align:center;' + hdrLabel }, 'Key'));
-                // The Save cell is a hidden clone of the real Save button, so the
-                // header row's last column is exactly as wide as the type rows'
-                // last column. Both rows start with a flex:1 cell, so if the two
-                // rows' trailing columns differ in width the flex:1 cell
-                // absorbs the difference and the Common/Key labels drift off the
-                // inputs. A clone of the SAME element (a button, same class, same
-                // font size) keeps the two rows identical.
-                hdr.appendChild(el('button', { className: 'btn-secondary', type: 'button', style: 'font-size:0.75em;padding:4px 8px;visibility:hidden;pointer-events:none;' }, 'Save'));
-                contentDiv.appendChild(hdr);
-
-                // sort types by denomination value (small to large)
-                var types = bySection[sec].sort(function(a, b) {
-                    var valA = typeMap[a].face;
-                    var valB = typeMap[b].face;
-                    if (valA !== valB) return valA - valB;
-                    return a.localeCompare(b);
-                });
-                
-                types.forEach(function(ct) {
-                    var rule = rules[ct] || {};
-                    var basePrice = rule.base_price != null ? rule.base_price : '';
-                    var keyPrice = rule.key_price != null ? rule.key_price : '';
-
-                    var row = el('div', { style: 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--color-border-light);' });
-                    row.appendChild(el('span', { style: 'flex:1;font-size:0.82em;padding-right:8px;' }, ct));
-
-                    var baseInput = el('input', { type:'number', step:'0.5', value: basePrice, placeholder:'Base $', style:'width:70px;padding:4px;font-size:0.75em;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-body);color:var(--color-text-main);' });
-                    var keyInput = el('input', { type:'number', step:'1.0', value: keyPrice, placeholder:'Key $', style:'width:70px;padding:4px;font-size:0.75em;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-body);color:var(--color-text-main);' });
-                    var saveBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.75em;padding:4px 8px;' }, 'Save');
-
-                    baseInput.addEventListener('change', function(){ saveRule(ct, 'base_price', baseInput); });
-                    keyInput.addEventListener('change', function(){ saveRule(ct, 'key_price', keyInput); });
-                    saveBtn.onclick = function() {
-                        // Visual feedback - disable and show saving state
-                        var origText = saveBtn.textContent;
-                        saveBtn.disabled = true;
-                        saveBtn.textContent = 'Saving...';
-                        saveRule(ct, 'base_price', baseInput);
-                        saveRule(ct, 'key_price', keyInput);
-                        setTimeout(function() {
-                            saveBtn.textContent = '✓ Saved';
-                            saveBtn.style.color = 'var(--color-success)';
-                            setTimeout(function() {
-                                saveBtn.disabled = false;
-                                saveBtn.textContent = origText;
-                                saveBtn.style.color = '';
-                            }, 1200);
-                        }, 400);
-                    };
-
-                    row.appendChild(baseInput);
-                    row.appendChild(keyInput);
-                    row.appendChild(saveBtn);
-                    contentDiv.appendChild(row);
-                });
-                secDiv.appendChild(contentDiv);
-                body.appendChild(secDiv);
+            contentDiv.innerHTML = '';
+            contentDiv.appendChild(buildHeaderRow());
+            types.forEach(function (ct) {
+                contentDiv.appendChild(buildTypeRow(ct, rules));
             });
+        }).catch(function () {
+            contentDiv.innerHTML = '';
+            contentDiv.appendChild(el('div', { style: 'font-size:0.8em;color:var(--color-text-error);padding:6px 0;' }, 'Could not load the types for this section.'));
         });
+    }
+
+    // GGMJ-433: a header row for THIS section, above its own type rows,
+    // so the two price boxes are labelled wherever the user has scrolled
+    // to (the sections are <details> that open independently, so a single
+    // global header at the top of the modal would not follow them down).
+    // base_price = Common, key_price = Key - the inputs are NOT swapped.
+    // The Save column is sized by a hidden clone of the Save button, so
+    // the Common/Key labels stay aligned with the 70px inputs whatever
+    // font the button renders at.
+    function buildHeaderRow() {
+        var hdr = el('div', { style: 'display:flex;align-items:center;gap:6px;padding:6px 0 8px 0;border-bottom:1px solid var(--color-border);' });
+        var hdrLabel = 'font-size:0.72em;font-weight:700;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.05em;';
+        hdr.appendChild(el('span', { style: 'flex:1;padding-right:8px;' + hdrLabel }, 'Coin Type'));
+        hdr.appendChild(el('span', { style: 'width:70px;text-align:center;' + hdrLabel }, 'Common'));
+        hdr.appendChild(el('span', { style: 'width:70px;text-align:center;' + hdrLabel }, 'Key'));
+        // The Save cell is a hidden clone of the real Save button, so the
+        // header row's last column is exactly as wide as the type rows'
+        // last column. Both rows start with a flex:1 cell, so if the two
+        // rows' trailing columns differ in width the flex:1 cell
+        // absorbs the difference and the Common/Key labels drift off the
+        // inputs. A clone of the SAME element (a button, same class, same
+        // font size) keeps the two rows identical.
+        hdr.appendChild(el('button', { className: 'btn-secondary', type: 'button', style: 'font-size:0.75em;padding:4px 8px;visibility:hidden;pointer-events:none;' }, 'Save'));
+        return hdr;
+    }
+
+    function buildTypeRow(ct, rules) {
+        var rule = rules[ct] || {};
+        var basePrice = rule.base_price != null ? rule.base_price : '';
+        var keyPrice = rule.key_price != null ? rule.key_price : '';
+
+        var row = el('div', { style: 'display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--color-border-light);' });
+        row.appendChild(el('span', { style: 'flex:1;font-size:0.82em;padding-right:8px;' }, ct));
+
+        var baseInput = el('input', { type:'number', step:'0.5', value: basePrice, placeholder:'Base $', style:'width:70px;padding:4px;font-size:0.75em;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-body);color:var(--color-text-main);' });
+        var keyInput = el('input', { type:'number', step:'1.0', value: keyPrice, placeholder:'Key $', style:'width:70px;padding:4px;font-size:0.75em;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-body);color:var(--color-text-main);' });
+        var saveBtn = el('button', { className: 'btn-secondary', style: 'font-size:0.75em;padding:4px 8px;' }, 'Save');
+
+        baseInput.addEventListener('change', function(){ saveRule(ct, 'base_price', baseInput); });
+        keyInput.addEventListener('change', function(){ saveRule(ct, 'key_price', keyInput); });
+        saveBtn.onclick = function() {
+            // Visual feedback - disable and show saving state
+            var origText = saveBtn.textContent;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            saveRule(ct, 'base_price', baseInput);
+            saveRule(ct, 'key_price', keyInput);
+            setTimeout(function() {
+                saveBtn.textContent = '\u2713 Saved';
+                saveBtn.style.color = 'var(--color-success)';
+                setTimeout(function() {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = origText;
+                    saveBtn.style.color = '';
+                }, 1200);
+            }, 400);
+        };
+
+        row.appendChild(baseInput);
+        row.appendChild(keyInput);
+        row.appendChild(saveBtn);
+        return row;
     }
 
     function saveRule(coinType, field, input) {
         var val = parseFloat(input.value) || 0;
         var data = { coin_type: coinType };
         data[field] = val;
-        fetch('/api/pricing_rules', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        }).then(function(r){ return r.json(); }).then(function(){
+        // Same persisted format as before: one field per request, so a
+        // base price save never overwrites the key price (and vice versa).
+        savePricingRulesLocal(data).then(function(){
             showToast('Pricing rule saved', 'success');
         }).catch(function(){
             showToast('Failed to save pricing rule', 'error');
         });
     }
-
-    if (typeof createModal === 'function') {
-        createModal('modal-pricing-rules', 'Pricing Rules', body, null);
-    }
 }
+
 
 // ============================================================
 // COMPLETION DASHBOARD
