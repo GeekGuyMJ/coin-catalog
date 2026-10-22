@@ -375,39 +375,68 @@ function showFolderColorModal() {
 }
 
 // Card Visibility
-function showCardVisibilityModal() {
+async function showCardVisibilityModal() {
  // GGMJ-431: derive the list from the cards the dashboard ACTUALLY
  // renders, instead of a hard-coded array. The old array listed 9 cards
  // while the dashboard renders 15, so six cards (investments, trend,
  // gallery, backup, support, search) could not be hidden at all, and a
- // newly added card would never appear here. The card's own .card-title
+ // newly added card would never appear here. Each card's own .card-title
  // supplies the label, so there is no second list of titles to keep in
  // sync.
  //
  // card-search lives OUTSIDE #dashboard-grid (it is the search bar), so
  // the grid is scanned first and any remaining card in the document is
  // appended after it.
+ //
+ // The dashboard renders asynchronously, so on a cold load the grid can
+ // still be empty when this panel is opened - which is how the first
+ // version of this fix produced a ONE-row list (only card-search) while
+ // the dashboard went on to render 15 cards. A bounded wait is not
+ // enough: measured on the preview the grid populates at t=3.5s, past
+ // any fixed budget. The list is therefore kept in sync with the DOM by
+ // a MutationObserver: the panel is built with whatever is rendered at
+ // open time and re-derived whenever the grid changes, so a cold open
+ // corrects itself and a card added in a future release appears here
+ // automatically.
  const grid = document.getElementById('dashboard-grid');
  const seen = new Set();
  const cards = [];
  const addCard = (elCard) => {
   if (!elCard || seen.has(elCard.id)) return;
   seen.add(elCard.id);
+  // Prefer the card's own .card-title. card-search is the one card with
+  // no title element, so fall back to its accessible name (the sr-only
+  // <label>), then to a readable form of the id - never the bare id.
   const titleEl = elCard.querySelector('.card-title');
-  const label = (titleEl ? titleEl.textContent : '').trim() || elCard.id;
+  const ariaEl = elCard.querySelector('[aria-label]');
+  const srEl = elCard.querySelector('.sr-only');
+  const label = (titleEl ? titleEl.textContent : '').trim()
+   || (ariaEl ? (ariaEl.getAttribute('aria-label') || '') : '').trim()
+   || (srEl ? srEl.textContent : '').trim()
+   || elCard.id.replace(/^card-/, '').replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
   cards.push({ key: elCard.id, label });
  };
- if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
- document.querySelectorAll('[id^=card-]').forEach(addCard);
- 
+ const collect = () => {
+  seen.clear();
+  cards.length = 0;
+  if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
+  document.querySelectorAll('[id^=card-]').forEach(addCard);
+ };
+ collect();
+
  // The app reads and writes the 'cc-card-visibility' JSON MAP
  // (portfolio.js parses it on every dashboard render). The old code
  // wrote a separate localStorage key per card, which nothing read, so
  // every toggle was a no-op and the card came back on reload.
- let vis = {};
- try { vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}'); } catch(e) {}
- if (!vis || typeof vis !== 'object') vis = {};
- 
+ const readVis = () => {
+  try {
+   const v = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
+   return (v && typeof v === 'object') ? v : {};
+  } catch(e) { return {}; }
+ };
+ let vis = readVis();
+
  const applyCardVisibility = (key, visible) => {
   // Hide the live card as well as persisting the choice, so the toggle
   // is visible without a reload.
@@ -415,27 +444,62 @@ function showCardVisibilityModal() {
    elCard.style.display = visible ? '' : 'none';
   });
  };
- 
- const controls = cards.map(c => {
- const checked = vis[c.key] !== false;
- return el('div', { className: 'settings-toggle-row' }, [
- el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
-  const on = e.target.checked;
-  vis[c.key] = on;
-  localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
-  applyCardVisibility(c.key, on);
-  dispatchSettingsChange('cc-card-visibility', vis);
- }}),
- el('label', { for: 'vis-' + c.key }, c.label),
- ]);
+
+ const buildControls = (list) => list.map(c => {
+  const checked = vis[c.key] !== false;
+  return el('div', { className: 'settings-toggle-row' }, [
+   el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
+    const on = e.target.checked;
+    vis[c.key] = on;
+    localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
+    applyCardVisibility(c.key, on);
+    dispatchSettingsChange('cc-card-visibility', vis);
+   }}),
+   el('label', { for: 'vis-' + c.key }, c.label),
+  ]);
  });
- 
+
+ const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
  const body = _sectionBody(
- 'Dashboard Card Visibility',
- 'Show or hide entire dashboard cards.',
- [{ control: el('div', { className: 'settings-toggle-group' }, controls) }]
+  'Dashboard Card Visibility',
+  'Show or hide entire dashboard cards.',
+  [{ control: group }]
  );
- createModal('modal-settings-card-visibility', 'Card Visibility', body, null);
+ const overlay = createModal('modal-settings-card-visibility', 'Card Visibility', body, null);
+
+ // Keep the list in sync with the rendered cards. The observer fires
+ // the instant the dashboard renders, so a cold open that found an empty
+ // grid is corrected a moment later without the user reopening the
+ // panel.
+ let observer = null;
+ const stop = () => {
+  if (observer) { observer.disconnect(); observer = null; }
+ };
+ const refresh = () => {
+  // The panel was closed: stop observing and do not rebuild a detached
+  // modal.
+  if (!document.getElementById('modal-settings-card-visibility')) { stop(); return; }
+  vis = readVis();
+  collect();
+  group.replaceChildren(...buildControls(cards));
+ };
+ if (grid && typeof MutationObserver !== 'undefined') {
+  observer = new MutationObserver(() => refresh());
+  observer.observe(grid, { childList: true });
+ }
+ // Also stop when the panel is closed without the grid changing.
+ if (typeof MutationObserver !== 'undefined') {
+  const layer = document.getElementById('modal-layer');
+  if (layer) {
+   const closeWatcher = new MutationObserver(() => {
+    if (!document.getElementById('modal-settings-card-visibility')) {
+     stop();
+     closeWatcher.disconnect();
+    }
+   });
+   closeWatcher.observe(layer, { childList: true });
+  }
+ }
 }
 
 // Display Filters
