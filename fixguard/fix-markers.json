@@ -136,7 +136,8 @@
     "app/js/app_v2/modals.js": [
       "uploadCoinBankImage",
       "uploadCoinImage",
-      "uploadImageAsDataUri"
+      "uploadImageAsDataUri",
+      "var hdrLabel ="
     ],
     "app/css/base.css": [
       "overflow: visible",

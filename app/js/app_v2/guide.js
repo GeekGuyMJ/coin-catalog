@@ -190,8 +190,8 @@ const TOUR_STEPS = [
         body: 'Here\u2019s Lincoln Wheat in album form. Owned coins are filled in; empty slots are still missing from your collection. Tap any filled coin to open its details.',
         before: async () => {
             await ensureSectionOpen('section-USCoinageLargeSmallCent');
-            await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             await switchToAlbum();
+            await openType('Lincoln Wheat', 'section-USCoinageLargeSmallCent');
             const grid = document.querySelector('#section-USCoinageLargeSmallCent .type-content.album-inline');
             if (grid) await scrollToEl(grid);
         }
@@ -636,6 +636,13 @@ async function openType(typeName, sectionId) {
     if (content && !content.classList.contains('open')) {
         target.click();
         await new Promise(r => setTimeout(r, 1200));
+        // GGMJ-427: in album view a type group starts closed, so this click is
+        // what opens it - and the album grid is rendered asynchronously. Wait for
+        // the grid to appear so the tour highlights the album, not a bare header.
+        for (let i = 0; i < 30; i++) {
+            if (content.querySelector('.album-holes-grid, .album-inline-title')) break;
+            await new Promise(r => setTimeout(r, 100));
+        }
     }
 }
 
