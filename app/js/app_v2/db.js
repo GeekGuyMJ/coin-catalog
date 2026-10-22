@@ -5,6 +5,7 @@
  */
 
 import Dexie from './dexie.js';
+import { isSelfHosted } from './env.js';
 
 // ---------------------------------------------------------------------------
 // Bullion weight units (GGMJ-410, 2026-10-21)
@@ -835,8 +836,9 @@ export async function fetchCoinsForSectionLocal(sectionName) {
     // performed the upload. Public (GitHub Pages) has no backend, so it is skipped and
     // falls back to the seeded IndexedDB data. Guarded + non-fatal on failure.
     try {
-        const _selfHosted = (await import('./env.js')).isSelfHosted();
-        if (_selfHosted) {
+        // GGMJ-388: isSelfHosted imported from ./env.js
+        if (isSelfHosted) {
+
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
                 const _res = await _native('/api/coins?section=' + encodeURIComponent(sectionName));
@@ -1179,8 +1181,9 @@ export async function fetchTypeConfigsLocal() {
     // so it is skipped and falls back to the seeded IndexedDB data.
     // Guarded + non-fatal on failure.
     try {
-        const _selfHosted = (await import('./env.js')).isSelfHosted();
-        if (_selfHosted) {
+        // GGMJ-388: isSelfHosted imported from ./env.js
+        if (isSelfHosted) {
+
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
                 const _res2 = await _native('/api/pricing_rules');
@@ -1266,8 +1269,9 @@ export async function fetchTypeConfigsLocal() {
     // images appear WITHOUT the user having to clear IndexedDB. Never overrides
     // a locally deleted field or a user-assigned base64 image.
     try {
-        const _selfHosted2 = (await import('./env.js')).isSelfHosted();
-        if (!_selfHosted2) {
+        // GGMJ-388: isSelfHosted imported from ./env.js
+        if (!isSelfHosted) {
+
             const _native2 = window.__nativeFetch || window.fetch;
             if (typeof _native2 === 'function') {
                 const _jres = await _native2('data/type_configs.json');
@@ -3005,8 +3009,9 @@ export async function importCSVLocal(csvText) {
 export async function publishSectionLocal(sectionName) {
     console.log('[db] publishSectionLocal called for:', sectionName);
     // Self-hosted detection: Tailscale MagicDNS hostname or LAN IP.
-    const isSelfHosted = (await import('./env.js')).isSelfHosted();
+    // GGMJ-388: isSelfHosted imported from ./env.js
     if (!isSelfHosted) {
+
         // Public/indexedDB version: stub — real publishing only works on self-hosted.
         return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };
     }

@@ -21,9 +21,11 @@
 // three lines. Commit e8e749d replaced them with an import of the FUNCTION
 // exported by ./env.js, so every `isSelfHosted ? <server> : <local>` test in
 // this file was true on a static host and every public-build fetch 404'd.
-export const isSelfHosted = location.hostname.includes('opaleye-bluegill.ts.net') || 
-                     location.hostname.includes('192.168.0.115') ||
-                     location.hostname === 'localhost';
+// 2026-10-21 (GGMJ-388): the detection RULE now lives in ONE place
+// (./env.js) and is imported by api.js, catalog.js and db.js, so the three
+// files can no longer disagree about which host the app is running on.
+import { isSelfHosted } from './env.js';
+export { isSelfHosted };
 
 // ============================================================
 // Imports
