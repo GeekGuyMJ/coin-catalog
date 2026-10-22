@@ -32,7 +32,8 @@
       "date_acquired",
       "personal_photo",
       "personal_photos",
-      "export const isSearchIndexReady"
+      "export const isSearchIndexReady",
+      "GGMJ-423: isSelfHosted must be a BOOLEAN here."
     ],
     "app/js/app_v2/catalog.js": [
       "stepper-edit",

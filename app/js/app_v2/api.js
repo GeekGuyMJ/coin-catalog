@@ -16,9 +16,14 @@
 // search MUST filter client-side. Previously this was module-private, and
 // importing it produced a LOAD-TIME SyntaxError that killed the whole
 // search module on every host.
-// 2026-10-21 (GGMJ-388): single source of truth moved to ./env.js
-import { isSelfHosted } from './env.js';
-export { isSelfHosted };
+// GGMJ-423: isSelfHosted must be a BOOLEAN here.
+// The self-hosted tree and the Cloudflare branch both export exactly these
+// three lines. Commit e8e749d replaced them with an import of the FUNCTION
+// exported by ./env.js, so every `isSelfHosted ? <server> : <local>` test in
+// this file was true on a static host and every public-build fetch 404'd.
+export const isSelfHosted = location.hostname.includes('opaleye-bluegill.ts.net') || 
+                     location.hostname.includes('192.168.0.115') ||
+                     location.hostname === 'localhost';
 
 // ============================================================
 // Imports
