@@ -94,7 +94,7 @@ async function fetchPortfolioAsync() {
         setCustomCategories(cust || []);
         setOtherCollectables(other || []);
         
-        return { portfolio: port, /* GGMJ-446: the array case MUST be tested first - every array has an
+        return { portfolio: port, /* GGMJ-447: the array case MUST be tested first - every array has an
    .entries method (Array.prototype.entries), so `x.entries ? x.entries : x`
    returns that METHOD for an array and the caller then calls .forEach on a
    function. The {entries:[...]} server shape is the second case. */ bulkEntries: Array.isArray(bulkEntries) ? bulkEntries : (bulkEntries && Array.isArray(bulkEntries.entries) ? bulkEntries.entries : []) };
