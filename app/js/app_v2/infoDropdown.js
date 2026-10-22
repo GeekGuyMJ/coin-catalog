@@ -205,17 +205,20 @@ function _longGuide(title, intro, sections, opts) {
 
         if (s.t) inner.appendChild(el('p', { className: 'info-text' }, s.t));
         (s.l || []).forEach(li => inner.appendChild(el('li', { className: 'info-li' }, li)));
-        (s.tbl || []).forEach(row => {
+        // Create one table for all rows instead of one table per row
+        if (s.tbl && s.tbl.length > 0) {
             const t = el('table', { className: 'info-guide-tbl' });
             const tb = el('tbody');
-            row.forEach((cell, ci) => {
+            s.tbl.forEach(row => {
                 const tr = el('tr');
-                tr.appendChild(el(ci === 0 ? 'th' : 'td', {}, String(cell)));
+                row.forEach((cell, ci) => {
+                    tr.appendChild(el(ci === 0 ? 'th' : 'td', {}, String(cell)));
+                });
                 tb.appendChild(tr);
             });
             t.appendChild(tb);
             inner.appendChild(t);
-        });
+        }
 
         node.appendChild(h);
         node.appendChild(inner);
