@@ -111,3 +111,75 @@ because self-hosted's search.js predated that fix. Fixguard's `absent`
 rule now blocks the regression, but **the underlying drift between the two
 trees is what allowed it**. This document plus the pre-push sync-check are
 the structural fix (GGMJ-181).
+
+## Landing gate (required before closing a shared-file issue)
+
+**A shared-file fix is not shipped until it is live on ALL THREE
+deployments, and no issue that touches a shared file may be closed until that
+has been MEASURED on the served bytes.**
+
+Three deployments, three separate trees:
+
+| deployment | served from | built from |
+|---|---|---|
+| self-hosted | `http://192.168.0.115` | `/root/coin_catalog_v2` @ `deployed-frontend`, published to `/root/coin_catalog_live/current` (a release directory) |
+| GitHub Pages | `https://geekguymj.github.io/coin-catalog/app` | `/root/coin-catalog-public` @ `published` (pushed) |
+| Cloudflare Pages | `https://coin-catalog.pages.dev` | `/root/coin-catalog-public` @ `cloudflare` (LOCAL branch, never pushed) |
+
+A commit that exists in a clone is a CLAIM. `git log --all` finds commits that
+are on no branch any deployment builds from - a dangling commit looks merged
+and never deploys. That is how GGMJ-412 stayed broken on Cloudflare while
+`git log --all` showed the fix.
+
+### The check
+
+```sh
+python3 /root/fixguard/fixguard.py landing-gate            # all shared-file fixes
+python3 /root/fixguard/fixguard.py landing-gate --issue GGMJ-412
+```
+
+It fetches the SERVED bytes of each deployment over the wire and checks, per
+issue, three things per deployment:
+
+1. **the marker** - read from the bytes the server actually serves;
+2. **the ancestor check** - the fix commit must be an ancestor of the ref that
+   deployment is built from, so a dangling commit cannot pass;
+3. **byte identity** - the served file must equal the committed file, and on
+   self-hosted the file in the published release directory, so an un-published
+   commit cannot pass.
+
+A FAIL blocks the close. The per-issue markers live in `fix-markers.json`'s
+`landings` section, so the marker set is reviewable data rather than a list
+inside a script.
+
+### Closing an issue
+
+Use the closer, which runs the gate and refuses to close when it fails:
+
+```sh
+python3 scripts/close_issue.py GGMJ-412 --run-id <run-id>
+```
+
+The close comment carries the gate's per-deployment table with the measured
+byte counts, so the record shows the measurement rather than an assertion.
+
+### Markers that must be scoped
+
+A marker is a string in a file, and a file can hold many features. A
+file-level marker for a fix that only applies to ONE function reports a MISS
+forever, and an always-FAIL row teaches the reader to discount the whole
+table. GGMJ-432 is the example: `modals.js` holds many modals and three
+OTHER modals in it legitimately fetch 5000 coins, so the pricing-modal fix is
+scoped to `openPricingRulesModal`:
+
+```json
+"GGMJ-432": {
+  "path": "js/app_v2/modals.js",
+  "marker": "limit=5000",
+  "expect": "absent",
+  "scope": "openPricingRulesModal"
+}
+```
+
+A scoped marker whose scope cannot be found FAILS the gate - a marker that
+cannot be located must not pass silently.
