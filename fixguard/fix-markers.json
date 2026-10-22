@@ -51,8 +51,8 @@
       "const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)",
       "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;",
       "GGMJ-423: isSelfHosted must not be awaited inside a non-async function",
-    "publishPreviewWarning",
-    "GGMJ-442: publish preview warns BEFORE anything is overwritten."
+      "publishPreviewWarning",
+      "GGMJ-442: publish preview warns BEFORE anything is overwritten."
     ],
     "app/js/app_v2/db.js": [
       "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
@@ -255,7 +255,70 @@
     "js/app_v2/sync.js": {},
     "js/app_v2/wishlist.js": {},
     "css/components.v2.css": {},
-    "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
+    "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional — do not force-sync.",
     "js/app_v2/guide.js": {}
+  },
+  "landings": {
+    "GGMJ-412": {
+      "expect": "present",
+      "marker": "repaintTypeBadges",
+      "note": "type/section/country owned-count badges repaint after a write",
+      "path": "js/app_v2/catalog.js"
+    },
+    "GGMJ-424": {
+      "expect": "present",
+      "marker": "header-coin-img",
+      "note": "header coin image",
+      "path": "index.html"
+    },
+    "GGMJ-425": {
+      "expect": "absent",
+      "marker": "id=\"view-toggle\"",
+      "note": "duplicate view toggle removed",
+      "path": "index.html"
+    },
+    "GGMJ-426": {
+      "expect": "present",
+      "marker": "position: sticky",
+      "note": "sticky section headers",
+      "path": "css/components.v2.css"
+    },
+    "GGMJ-427": {
+      "expect": "absent",
+      "marker": "autoOpenTypesInAlbumMode",
+      "note": "album/folder view starts with type groups CLOSED",
+      "path": "js/app_v2/catalog.js"
+    },
+    "GGMJ-429": {
+      "expect": "present",
+      "marker": "shared class owns the font family",
+      "note": "the shared button class owns the font family",
+      "path": "css/components.v2.css"
+    },
+    "GGMJ-430": {
+      "expect": "present",
+      "marker": "info-guide-h",
+      "note": "info guide heading contrast",
+      "path": "css/components.v2.css"
+    },
+    "GGMJ-431": {
+      "expect": "present",
+      "marker": "buildCardVisibilityRows",
+      "note": "card visibility rows",
+      "path": "js/app_v2/modals.js"
+    },
+    "GGMJ-432": {
+      "expect": "absent",
+      "marker": "limit=5000",
+      "note": "Pricing Rules modal is lazy: it must NOT bulk-fetch 5000 coins. SCOPED to openPricingRulesModal on purpose - three OTHER modals in modals.js legitimately fetch limit=5000, so a file-level grep for that string reports a MISS that can never pass.",
+      "path": "js/app_v2/modals.js",
+      "scope": "openPricingRulesModal"
+    },
+    "GGMJ-433": {
+      "expect": "present",
+      "marker": "hdrLabel",
+      "note": "Pricing Rules boxes labelled Common and Key",
+      "path": "js/app_v2/modals.js"
+    }
   }
 }
