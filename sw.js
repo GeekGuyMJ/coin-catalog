@@ -65,7 +65,7 @@ async function networkFirst(request, cacheable) {
     if (cached) return cached;
     // For images, return 404 instead of throwing
     const url = new URL(request.url);
-    if (request.destination === 'image' || url.pathname.startsWith('/data/images/') || url.pathname.match(/\.(webp|png|jpg|jpeg|gif|svg)$/i)) {
+    if (request.destination === 'image' || url.pathname.includes('/data/images/') || url.pathname.match(/\.(webp|png|jpg|jpeg|gif|svg)$/i)) {
       return new Response('', { status: 404, statusText: 'Not Found' });
     }
     throw err;
@@ -89,7 +89,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   // IMAGES: network-first
-  if (_u.pathname.startsWith('/data/images/')) {
+  if (_u.pathname.includes('/data/images/')) {
     event.respondWith(networkFirst(event.request, false));
     return;
   }

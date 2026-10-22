@@ -67,7 +67,7 @@ async function networkFirst(request, cacheable) {
     const cached = await caches.match(request);
     if (cached) return cached;
     const url = new URL(request.url);
-    if (request.destination === 'image' || url.pathname.startsWith('/data/images/') || url.pathname.match(/\.(webp|png|jpg|jpeg|gif|svg)$/i)) {
+    if (request.destination === 'image' || url.pathname.includes('/data/images/') || url.pathname.match(/\.(webp|png|jpg|jpeg|gif|svg)$/i)) {
       return new Response('', { status: 404, statusText: 'Not Found' });
     }
     throw err;
@@ -87,7 +87,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(networkFirst(event.request, true));
     return;
   }
-  if (u.pathname.startsWith('/data/images/') || u.pathname.startsWith(BASE + 'data/images/')) {
+  if (u.pathname.includes('/data/images/') || u.pathname.startsWith(BASE + 'data/images/')) {
     event.respondWith(networkFirst(event.request, false));
     return;
   }

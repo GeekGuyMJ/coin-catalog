@@ -408,8 +408,7 @@ function buildSectionCard(sec) {
     const chevron = el('span', { className: 'section-chevron', 'aria-hidden': 'true' }, '▾');
 
     // Self-hosted only: "Publish to public" button in the section header
-    const host = window.location.hostname || '';
-    const isSelfHosted = host.includes('opaleye-bluegill') || host.includes('ts.net') || host.includes('192.168.');
+    const isSelfHosted = (await import('./env.js')).isSelfHosted();
     if (isSelfHosted) {
         const publishBtn = el('button', {
             className: 'btn-section-publish',

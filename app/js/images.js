@@ -316,8 +316,11 @@ export async function openCoinBankModal() {
     closeModal('modal-replace-scope');
     openModal('modal-coin-bank');
     
-    const label = document.getElementById('cb-context-label');
-    if (label) label.textContent = `Showing images for ${activeContext.typeStr}`;
+    /* GGMJ-440: the context label is written by loadCoinBankImages(), the
+       one place the SCOPE is decided. It used to be written here (at modal
+       open) and never cleared, so "Showing images for <type>" survived a
+       Browse All click and kept claiming a one-type scope over the whole
+       bank. */
     
     loadCoinBankImages('context');
 }
@@ -335,6 +338,18 @@ async function loadCoinBankImages(mode) {
     } else {
         btnCtx.className = 'btn-secondary';
         btnAll.className = 'btn-primary';
+    }
+
+    /* GGMJ-440: the label states the SCOPE, so it is set here — in the one
+       place the scope is switched — and cleared whenever the scope is not
+       the clicked coin's type. It used to be written only when the modal
+       opened, so it survived every scope change and kept claiming a
+       single type while the grid showed the whole bank. */
+    const label = document.getElementById('cb-context-label');
+    if (label) {
+        label.textContent = (mode === 'context' && activeContext && activeContext.typeStr)
+            ? `Showing images for ${activeContext.typeStr}`
+            : '';
     }
 
     try {

@@ -835,8 +835,7 @@ export async function fetchCoinsForSectionLocal(sectionName) {
     // performed the upload. Public (GitHub Pages) has no backend, so it is skipped and
     // falls back to the seeded IndexedDB data. Guarded + non-fatal on failure.
     try {
-        const _host = (window.location && window.location.hostname) || '';
-        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.') || _host === 'localhost';
+        const _selfHosted = (await import('./env.js')).isSelfHosted();
         if (_selfHosted) {
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
@@ -1180,8 +1179,7 @@ export async function fetchTypeConfigsLocal() {
     // so it is skipped and falls back to the seeded IndexedDB data.
     // Guarded + non-fatal on failure.
     try {
-        const _host = (window.location && window.location.hostname) || '';
-        const _selfHosted = _host.includes('opaleye-bluegill') || _host.includes('ts.net') || _host.includes('192.168.') || _host === 'localhost';
+        const _selfHosted = (await import('./env.js')).isSelfHosted();
         if (_selfHosted) {
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
@@ -1268,8 +1266,7 @@ export async function fetchTypeConfigsLocal() {
     // images appear WITHOUT the user having to clear IndexedDB. Never overrides
     // a locally deleted field or a user-assigned base64 image.
     try {
-        const _host2 = (window.location && window.location.hostname) || '';
-        const _selfHosted2 = _host2.includes('opaleye-bluegill') || _host2.includes('ts.net') || _host2.includes('192.168.') || _host2 === 'localhost';
+        const _selfHosted2 = (await import('./env.js')).isSelfHosted();
         if (!_selfHosted2) {
             const _native2 = window.__nativeFetch || window.fetch;
             if (typeof _native2 === 'function') {
@@ -3008,8 +3005,7 @@ export async function importCSVLocal(csvText) {
 export async function publishSectionLocal(sectionName) {
     console.log('[db] publishSectionLocal called for:', sectionName);
     // Self-hosted detection: Tailscale MagicDNS hostname or LAN IP.
-    const host = window.location.hostname || '';
-    const isSelfHosted = host.includes('opaleye-bluegill') || host.includes('ts.net') || host.includes('192.168.');
+    const isSelfHosted = (await import('./env.js')).isSelfHosted();
     if (!isSelfHosted) {
         // Public/indexedDB version: stub — real publishing only works on self-hosted.
         return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };

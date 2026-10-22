@@ -82,7 +82,8 @@
       "result.new_url || activeContext.b64",
       "Could not refresh section coins",
       "sectionQualified",
-      "scope: isItem ? 'specific_item' : (coinId ? 'specific_coin' : 'all')"
+      "scope: isItem ? 'specific_item' : (coinId ? 'specific_coin' : 'all')",
+      "label.textContent = (mode === 'context' && activeContext && activeContext.typeStr)"
     ],
     "app/js/app_v2/infoDropdown.js": [
       "Take the Tour"
@@ -175,7 +176,8 @@
       "}, 'Cancel');"
     ],
     "app/js/app_v2/images.js": [
-      "scope: isItem ? 'specific_item' : 'all'"
+      "scope: isItem ? 'specific_item' : 'all'",
+      "if (label) label.textContent = `Showing images for ${activeContext.typeStr}`;"
     ],
     "app/js/app_v2/album.js": [
       "const obvImg = resolveImageUrl(coin.obv_image);",
@@ -199,7 +201,8 @@
   },
   "sw_min": {
     "app/sw.js": 449,
-    "frontend/sw.js": 449
+    "frontend/sw.js": 449,
+    "js/app_v2/sw.js": 0
   },
   "shared": {
     "js/app_v2/dexie.js": {},
@@ -211,7 +214,8 @@
     "js/app_v2/userCoins.js": {},
     "css/base.css": {},
     "css/components.css": {},
-    "css/themes.css": {}
+    "css/themes.css": {},
+    "js/app_v2/env.js": {}
   },
   "expected_differs": {
     "sw.js": "Deployment-specific: different CACHE name/version cadence and precache BASE (/ vs /coin-catalog/app/).",
