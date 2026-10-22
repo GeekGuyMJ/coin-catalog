@@ -1337,6 +1337,44 @@ async function _fetchGoldApiSpot(key) {
 // 2026-09-10: Cloudflare Worker proxy (unlimited, CORS-safe, 15-min edge cache).
 // Replaces direct gold-api.com calls which were rate-limited to 100 req/day.
 // Worker URL: https://coin-catalog-spot.matt-e-jenkins.workers.dev
+/**
+ * GGMJ-439 (ported from the self-hosted tree, the SSOT source): upsert a
+ * type config. Called by images.js to anchor the type-header example
+ * image when a specific coin receives its first image.
+ */
+export async function upsertTypeConfigLocal(data) {
+    const coinType = (data && data.coin_type || '').trim();
+    if (!coinType) throw new Error('coin_type is required');
+    const updates = {};
+    ['obv_image', 'rev_image', 'proof_obv_image', 'proof_rev_image',
+     'example_obv_image', 'example_rev_image'].forEach((f) => {
+        if (data[f] !== undefined) updates[f] = data[f];
+    });
+    if (data.base_price !== undefined) updates.base_price = Number(data.base_price) || 0;
+    if (data.key_price !== undefined) updates.key_price = Number(data.key_price) || 0;
+    const existing = await db.coin_type_config.get(coinType);
+    if (existing) {
+        await db.coin_type_config.update(coinType, updates);
+    } else {
+        await db.coin_type_config.add(Object.assign({ coin_type: coinType }, updates));
+    }
+    const cfg = await db.coin_type_config.get(coinType);
+    return {
+        id: cfg.id,
+        coin_type: cfg.coin_type,
+        obv_image: cfg.obv_image || null,
+        rev_image: cfg.rev_image || null,
+        proof_obv_image: cfg.proof_obv_image || null,
+        proof_rev_image: cfg.proof_rev_image || null,
+        example_obv_image: cfg.example_obv_image || null,
+        example_rev_image: cfg.example_rev_image || null,
+        _deleted_obv_image: !!cfg._deleted_obv_image,
+        _deleted_rev_image: !!cfg._deleted_rev_image,
+        base_price: cfg.base_price || 0,
+        key_price: cfg.key_price || 0,
+    };
+}
+
 export async function fetchSpotPricesLocal() {
     const WORKER_URL = "https://coin-catalog-spot.matt-e-jenkins.workers.dev";
 

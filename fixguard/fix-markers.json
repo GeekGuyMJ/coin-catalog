@@ -268,6 +268,12 @@
     "js/app_v2/guide.js": {}
   },
   "landings": {
+    "GGMJ-388": {
+      "expect": "present",
+      "marker": "export const isSelfHosted =",
+      "note": "the shared detection module js/app_v2/env.js is served by all three deployments and exports the boolean isSelfHosted that api.js, catalog.js and db.js all import",
+      "path": "js/app_v2/env.js"
+    },
     "GGMJ-412": {
       "expect": "present",
       "marker": "repaintTypeBadges",

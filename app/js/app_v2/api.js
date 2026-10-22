@@ -39,6 +39,7 @@ import {
     updateInventoryLocal,
     deleteInventoryEntryLocal,
     fetchTypeConfigsLocal,
+    upsertTypeConfigLocal,
     fetchSpotPricesLocal,
     fetchRawBullionLocal,
     saveRawBullionLocal,
@@ -202,6 +203,14 @@ export const fetchTypeConfigs = isSelfHosted
         return data;
     }
     : wrap(fetchTypeConfigsLocal);
+
+export const upsertTypeConfig = isSelfHosted
+    ? async (data) => serverFetch('/api/type-configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+    })
+    : wrap(upsertTypeConfigLocal);
 
 export const fetchBullion = isSelfHosted
     ? async () => serverFetch('/api/bullion')
