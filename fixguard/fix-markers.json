@@ -95,6 +95,7 @@
       "first_launch"
     ],
     "app/js/app_v2/portfolio.js": [
+      "Array.isArray(bulkEntries) ? bulkEntries",
       "_dashboardRenderGeneration",
       "renderGalleryCard",
       "host.insertBefore(row, form.nextSibling)",
@@ -177,6 +178,7 @@
       "await restoreBackupLocal(data)"
     ],
     "app/js/app_v2/portfolio.js": [
+      "(bulkEntries && bulkEntries.entries) ? bulkEntries.entries",
       "}, 'Cancel');"
     ],
     "app/js/app_v2/images.js": [
