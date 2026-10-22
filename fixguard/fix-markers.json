@@ -154,7 +154,8 @@
     "app/index.html": [
       "view-list-btn",
       "view-album-btn",
-      "id=\"view-toggle\""
+      "id=\"view-toggle\"",
+      "<option value=\"custom-designer\" disabled>"
     ],
     "app/js/app_v2/db.js": [
       "if (!coin) return { status: \"success\" };",
