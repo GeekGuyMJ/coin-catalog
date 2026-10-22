@@ -94,7 +94,10 @@ async function fetchPortfolioAsync() {
         setCustomCategories(cust || []);
         setOtherCollectables(other || []);
         
-        return { portfolio: port, bulkEntries: (bulkEntries && bulkEntries.entries) ? bulkEntries.entries : (Array.isArray(bulkEntries) ? bulkEntries : []) };
+        return { portfolio: port, /* GGMJ-446: the array case MUST be tested first - every array has an
+   .entries method (Array.prototype.entries), so `x.entries ? x.entries : x`
+   returns that METHOD for an array and the caller then calls .forEach on a
+   function. The {entries:[...]} server shape is the second case. */ bulkEntries: Array.isArray(bulkEntries) ? bulkEntries : (bulkEntries && Array.isArray(bulkEntries.entries) ? bulkEntries.entries : []) };
     } catch (e) {
         console.error('Failed to fetch complete portfolio:', e);
         return null;
@@ -3387,7 +3390,7 @@ document.addEventListener('click', async function(e) {
                 notes: notesIn.value.trim()
             });
             var freshEntries = await fetchBulkEntries();
-            _bulkCoinsData = (freshEntries && freshEntries.entries) ? freshEntries.entries : (Array.isArray(freshEntries) ? freshEntries : []);
+            _bulkCoinsData = Array.isArray(freshEntries) ? freshEntries : (freshEntries && Array.isArray(freshEntries.entries) ? freshEntries.entries : []);
             // Refresh portfolio data for real-time updates
             var freshP = await fetchPortfolioAsync();
             _portfolioData = freshP && freshP.portfolio ? freshP.portfolio : freshP;
@@ -3411,7 +3414,7 @@ document.addEventListener('click', async function(e) {
             var { fetchBulkEntries, deleteBulkEntry } = await import('./api.js');
             await deleteBulkEntry(entryId);
             var freshEntries = await fetchBulkEntries();
-            _bulkCoinsData = (freshEntries && freshEntries.entries) ? freshEntries.entries : (Array.isArray(freshEntries) ? freshEntries : []);
+            _bulkCoinsData = Array.isArray(freshEntries) ? freshEntries : (freshEntries && Array.isArray(freshEntries.entries) ? freshEntries.entries : []);
             _showCardToast('deleted', 'info');
             _saving = false;
             renderDashboard();
