@@ -47,7 +47,8 @@
       "const rev = coin._deleted_rev_image",
       "GGMJ-333: same gate chain as buildCoinRow",
       "const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)",
-      "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;"
+      "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;",
+      "GGMJ-423: isSelfHosted must not be awaited inside a non-async function"
     ],
     "app/js/app_v2/db.js": [
       "_SERIES_WITH_SHARED_OBVERSE.has(prefix)",
