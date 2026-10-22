@@ -10,7 +10,7 @@
  */
 
 import { openModal, closeModal, closeAllModals, openModalLegacy, closeModalLegacy } from './modals.js';
-import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault } from './api.js';
+import { assignImage, fetchCoinBankImages, deleteCoinBankImage, updateCoinBankImageInfo, resetImageToMaster, promoteToDefault, upsertTypeConfig } from './api.js';
 import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg, getMainType, getSubType, isCompositionSub } from './utils.js';
 import { setTypeConfigs, getSections, getCoinsForSection, getInventoryEntries, setInventory } from './state.js';
@@ -924,6 +924,35 @@ export async function executeImageAssignment() {
                 if (scope === 'specific_item' || scope === 'specific_coin') {
                     const newInv = await fetchInventory();
                     setInventory(newInv);
+                }
+
+                // GGMJ-439: Anchor the type-header example image on first per-coin install.
+                // When a specific coin gets an image (scope === 'specific_coin' with a coinId),
+                // write it to coin_type_config.example_obv_image / example_rev_image as the
+                // stable header override. Only write if not already set (first-write-wins).
+                // On removal (isRemoveAction), clear the override if it matches the deleted image.
+                if (scope === 'specific_coin' && activeContext.coinId) {
+                    const targetKey = activeContext.section
+                        ? (activeContext.section + ' — ' + activeContext.typeStr)
+                        : activeContext.typeStr;
+                    const exampleKey = activeContext.side === 'obv' ? 'example_obv_image' : 'example_rev_image';
+                    const field = activeContext.side === 'obv' ? 'obv_image' : 'rev_image';
+                    const currentOverride = updatedConfigs[targetKey]?.[exampleKey];
+                    if (isRemoveAction) {
+                        // Deleting the image that IS the anchor -> clear the override so header shows placeholder
+                        if (currentOverride && currentOverride === activeContext.el?.src) {
+                            await upsertTypeConfig({ coin_type: targetKey, [exampleKey]: null });
+                        }
+                    } else if (!currentOverride) {
+                        // First image for this type/side -> anchor it
+                        const newUrl = result.new_url || updatedConfigs[targetKey]?.[field];
+                        if (newUrl) {
+                            await upsertTypeConfig({ coin_type: targetKey, [exampleKey]: newUrl });
+                            // Refetch type configs so the new override is available for the re-render
+                            const refreshed = await fetchTypeConfigs();
+                            setTypeConfigs(refreshed);
+                        }
+                    }
                 }
 
                 // If type-level change, update local state & DOM immediately so change is visual instantly.
