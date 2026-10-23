@@ -15,6 +15,7 @@ import { initSpotHistory, getSeriesForPeriod } from './spotHistory.js';
 import { openPortfolioHistoryModal } from './portfolio_history.js';
 
 import { fetchInvestments, saveInvestment, deleteInvestment, fetchBullion, fetchRawBullion, fetchBulkCoins, fetchCoinWeight, fetchScrap, fetchOtherCollectables, fetchPaperCurrency, fetchCustomCategories, fetchBulkEntries, addBulkEntry, deleteBulkEntry } from './api.js';
+import { buildInvestmentsCard } from './investments.js';
 
 // ---------------------------------------------------------------------------
 // Bullion weight units (GGMJ-410, 2026-10-21)
@@ -626,7 +627,7 @@ function buildSpotTrendCard(prices) {
     });
     card.appendChild(legend);
 
-    var readout = el('div', { style: 'font-size:0.9em;margin-top:6px;padding:8px 10px;background:var(--color-accord-bg);border-radius:6px;' });
+    var readout = el('div', { className: 'trend-footnote', style: 'font-size:0.72em;margin-top:4px;padding:4px 6px;background:var(--color-accord-bg);border-radius:6px;line-height:1.35;' });
     card.appendChild(readout);
 
     var cursorT = (tMin + tMax) / 2;
@@ -680,7 +681,7 @@ function buildSpotTrendCard(prices) {
         var dt = new Date(cursorT);
         var timePart = (activePeriod === '1D' || activePeriod === '1W') ? ' ' + dt.toLocaleTimeString() : '';
         var line1 = '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;"><span>@ ' + dt.toLocaleDateString() + timePart + '</span><span style="font-weight:700;color:var(--color-accent);">Est. collection value: $' + totalAtT.toFixed(2) + '</span></div>';
-        var line2 = '<div style="display:flex;flex-wrap:wrap;gap:6px 12px;font-size:1.0em;margin-top:4px;">' + priceBits.join('') + '</div>';
+        var line2 = '<div style="display:flex;flex-wrap:wrap;gap:4px 10px;font-size:0.95em;margin-top:2px;">' + priceBits.join('') + '</div>';
         var minT = null, maxT = null;
         metals.forEach(function(m){ var ser = seriesByMetal[m.key]; if (!ser || !ser.length) return; ser.forEach(function(pt){ if (minT===null||pt.t<minT) minT=pt.t; if (maxT===null||pt.t>maxT) maxT=pt.t; }); });
         var spanTxt = 'No price history yet';
@@ -763,14 +764,7 @@ export async function renderDashboard() {
     // buildSpotPricesCard(prices)` runs earlier); only its append moves.
     var pc = buildPortfolioBreakdownCard(p);
     if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
-    // 2026-10-20: Investments card (Gemini-4 spec).
-    // 2026-10-21 (GGMJ-378): no longer gated on isSelfHosted. The static
-    // deployments have no /api/investments backend, so the card used to be
-    // absent from GH Pages and CF Pages entirely; api.js now routes the
-    // three investments calls to a local Dexie store there, so the card is
-    // built everywhere and simply reads local data on the static hosts.
-    var ic = buildInvestmentsCard(p);
-    if (ic) { if (vis['card-investments'] === false) ic.style.display = 'none'; addDragHandle(ic); c.appendChild(ic); }
+
     // Spot prices card (built above, before the synchronous DOM update).
     if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
 
@@ -810,6 +804,12 @@ export async function renderDashboard() {
     var g2 = renderGalleryCard();
     if (g2) { if (vis['card-gallery'] === false) g2.style.display='none'; addDragHandle(g2); c.appendChild(g2); }
 
+    // Other Investments card (GGMJ-474, 2026-10-23): default position is
+    // 5TH FROM THE END of the card order (i.e. after Photos & Documents,
+    // before Collection Completion). Was appended near the top before.
+    var ic = buildInvestmentsCard(p);
+    if (ic) { if (vis['card-investments'] === false) ic.style.display = 'none'; addDragHandle(ic); c.appendChild(ic); }
+
     // Completion ("Percentage Finished")
     // 2026-10-09 (Matthew) DEFAULT ORDER for a new install:
     //   Portfolio Overview, Live Spot Prices, Metal Price Trends,
@@ -835,7 +835,8 @@ export async function renderDashboard() {
 
     // Support card — always render LAST, respects visibility toggle.
     var sup = buildSupportCard();
-    if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup); }
+    if (sup) { if (vis['card-support'] === false) sup.style.display='none'; addDragHandle(sup); c.appendChild(sup);     attachCardHelpIcons();
+}
 
     // Re-apply sort order after rebuilding DOM
     applyDashboardOrder();
@@ -905,7 +906,7 @@ function buildWishlistCard(wishlist) {
                 }, item.target_grade));
             }
             left.appendChild(title);
-            
+
             var metaParts = [];
             if (item.category) metaParts.push(item.category);
             if (item.max_price) metaParts.push('Max: $' + Number(item.max_price).toFixed(2));
@@ -1209,6 +1210,58 @@ function buildSupportCard() {
     return card;
 }
 
+
+
+// ===== Help icons (question mark in circle) — GGMJ-451 =====
+function makeCardHelpIcon(cardKey, helpText) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'help-icon';
+    btn.setAttribute('aria-label', 'Help');
+    btn.title = helpText;
+    btn.style.cssText = 'width:20px;height:20px;border-radius:50%;border:1px solid var(--color-border);background:var(--color-bg-card);color:var(--color-text-main);font-size:0.68rem;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:8px;';
+    btn.textContent = '?';
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        openCardHelpPopup(cardKey, helpText);
+    });
+    return btn;
+}
+
+function openCardHelpPopup(cardKey, helpText) {
+    const existing = document.getElementById('card-help-' + cardKey);
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.id = 'card-help-' + cardKey;
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5);max-width:360px;width:88vw;box-shadow:var(--shadow-xl);position:relative;';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.style.cssText = 'position:absolute;top:var(--space-2);right:var(--space-2);background:none;border:none;color:var(--color-text-muted);font-size:1.5rem;cursor:pointer;';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Close');
+    const title = document.createElement('h3');
+    title.style.cssText = 'margin:0 0 var(--space-3) 0;color:var(--color-accent);font-size:var(--font-size-lg);';
+    title.textContent = cardKey.replace(/^card-/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const body = document.createElement('div');
+    body.style.cssText = 'font-size:var(--font-size-sm);color:var(--color-text-main);line-height:1.5;';
+    body.textContent = helpText;
+    const okBtn = document.createElement('button');
+    okBtn.className = 'btn-secondary';
+    okBtn.style.cssText = 'margin-top:var(--space-3);padding:4px 12px;float:right;';
+    okBtn.textContent = 'Got it';
+    okBtn.addEventListener('click', () => overlay.remove());
+    closeBtn.addEventListener('click', () => overlay.remove());
+    box.appendChild(closeBtn);
+    box.appendChild(title);
+    box.appendChild(body);
+    box.appendChild(okBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
 function buildCompletionCard(sections) {
     if (!sections || !sections.length) return null;
     var total = sections.reduce(function(s,e){return s+e.total;}, 0);
@@ -1256,139 +1309,6 @@ function buildEmptyPortfolioCard() {
 // investments_value (p.investments_value from the backend) and gets a
 // checkbox in the breakdown grid like every other bucket.
 var _invEntries = null;
-function buildInvestmentsCard(p) {
-    var card = el('div', { className: 'card dashboard-card', id: 'card-investments' });
-    card.appendChild(el('div', { className: 'card-title' }, 'Other Investments'));
-
-    var listWrap = el('div', { className: 'inv-list', style: 'display:flex;flex-direction:column;gap:8px;' });
-    var totalRow = el('div', { className: 'finance-item grand-total', style: 'margin-top:8px;' });
-
-    function fmtMoney(v) { return '$' + (v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-
-    function refreshTotal() {
-        var total = 0;
-        (_invEntries || []).forEach(function (e) { total += (e.total_value || 0); });
-        totalRow.textContent = '';
-        totalRow.appendChild(el('span', { className: 'finance-label' }, 'Total Other Investments'));
-        totalRow.appendChild(el('span', { className: 'finance-value bold' }, fmtMoney(total)));
-    }
-
-    function removeEntry(id) {
-        deleteInvestment(id).then(function () {
-            _invEntries = (_invEntries || []).filter(function (e) { return e.id !== id; });
-            renderList();
-            refreshTotal();
-            fetchPortfolioAsync().then(function (pd) {
-                _portfolioData = pd && pd.portfolio ? pd.portfolio : pd;
-                _bulkCoinsData = pd && pd.bulkEntries ? pd.bulkEntries : [];
-                renderDashboard();
-            });
-        }).catch(function (err) {
-            _showCardToast('Failed to delete: ' + err.message, 'error');
-        });
-    }
-
-    function renderList() {
-        listWrap.textContent = '';
-        if (!_invEntries || !_invEntries.length) {
-            listWrap.appendChild(el('div', { className: 'dashboard-detail', style: 'text-align:center;padding:10px 0;' }, 'No Other Investments yet'));
-        } else {
-            _invEntries.forEach(function (e) {
-                var row = el('div', { className: 'finance-item', style: 'flex-wrap:wrap;gap:4px;' });
-                var info = el('div', { style: 'flex:1;min-width:0;' });
-                info.appendChild(el('span', { className: 'finance-label' }, (e.category || 'Stocks') + (e.as_of_date ? ' · ' + e.as_of_date : '')));
-                info.appendChild(el('div', { style: 'font-weight:600;overflow-wrap:anywhere;' }, e.name || 'Unnamed'));
-                row.appendChild(info);
-                var val = el('div', { style: 'text-align:right;' });
-                val.appendChild(el('span', { className: 'finance-value' }, fmtMoney(e.total_value)));
-                if (e.gain !== null && e.gain !== undefined) {
-                    var up = (e.gain || 0) >= 0;
-                    val.appendChild(el('div', { style: 'font-size:0.78em;color:' + (up ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';' },
-                        ((e.gain || 0) > 0 ? '+' : ((e.gain || 0) < 0 ? '-' : '')) + fmtMoney(Math.abs(e.gain || 0))));
-                }
-                row.appendChild(val);
-                var del = el('button', { className: 'btn-secondary', title: 'Remove', style: 'padding:2px 8px;font-size:0.8em;margin-left:6px;' }, '✕');
-                del.onclick = function () { removeEntry(e.id); };
-                row.appendChild(del);
-                listWrap.appendChild(row);
-            });
-        }
-    }
-
-    function renderForm() {
-        // 2026-10-21 (GGMJ-384/B3, Matthew): built as a .v1-form with
-        // .v1-input/.v1-select controls so it is shaped and themed like the
-        // other five data-entry cards. The old version used bare inputs --
-        // which fall through to the browser's default light chrome, because
-        // the app has no global input rule -- and a bare button.btn-primary
-        // with align-self:flex-start instead of the shared .v1-add-btn.
-        var form = el('div', { className: 'v1-form' });
-        var name = el('input', { className: 'v1-input', type: 'text', placeholder: 'Name (e.g. Fidelity 401k)' });
-        var cat = el('select', { className: 'v1-select' });
-        ['Stocks', 'ETFs / Funds', 'Retirement', 'Crypto', 'Bonds / CDs', 'Other'].forEach(function (c) {
-            var o = el('option', { value: c }, c); cat.appendChild(o);
-        });
-        var valIn = el('input', { className: 'v1-input', type: 'number', placeholder: 'Current value', step: '0.01', min: '0' });
-        var costIn = el('input', { className: 'v1-input', type: 'number', placeholder: 'Purchase price (optional)', step: '0.01', min: '0' });
-        var dateIn = el('input', { className: 'v1-input', type: 'date' });
-        var addBtn = el('button', { className: 'v1-add-btn' }, '+ Add');
-        addBtn.onclick = function () {
-            var v = parseFloat(valIn.value);
-            if (!name.value.trim() || isNaN(v)) { _showCardToast('Enter a name and value', 'error'); return; }
-            var cost = costIn.value === '' ? null : parseFloat(costIn.value);
-            saveInvestment({ name: name.value.trim(), category: cat.value, total_value: v,
-                             purchase_price: cost, as_of_date: dateIn.value || '' })
-                .then(function (saved) {
-                    _invEntries = _invEntries || [];
-                    _invEntries.push(saved);
-                    renderList(); refreshTotal();
-                    fetchPortfolioAsync().then(function (pd) {
-                        _portfolioData = pd && pd.portfolio ? pd.portfolio : pd;
-                        _bulkCoinsData = pd && pd.bulkEntries ? pd.bulkEntries : [];
-                        renderDashboard();
-                    });
-                    name.value = ''; valIn.value = ''; costIn.value = ''; dateIn.value = '';
-                    _showCardToast('Other Investments added', 'success');
-                })
-                .catch(function (err) { _showCardToast('Failed to save: ' + err.message, 'error'); });
-        };
-        [name, cat, valIn, costIn, dateIn].forEach(function (w) {
-            form.appendChild(w);
-        });
-        form.appendChild(addBtn);
-        // _foldCardForm() MOVES addBtn out of the form into the action row,
-        // so it has to be a child of the form first (every other card does
-        // the same). Stash it so the caller can hand it to the helper.
-        form._addBtn = addBtn;
-        return form;
-    }
-
-    card.appendChild(listWrap);
-    card.appendChild(totalRow);
-    var formEl = renderForm();
-    card.appendChild(formEl);
-    // 2026-10-21 (GGMJ-384/B3, Matthew): the form must fold through the SAME
-    // helper the other five cards use. A second hand-rolled toggle is how the
-    // Investments card came to have no fold control at all in the first place.
-    // The form has to be in the card (a real parent) before this call, because
-    // the helper inserts its action row as the form's SIBLING.
-    _foldCardForm(formEl, formEl._addBtn, 'investments', '+ Add');
-
-    // Load entries. On self-hosted these come from /api/investments; on the
-    // static deployments from the local Dexie store (GGMJ-378).
-    if (typeof fetchInvestments === 'function') {
-        fetchInvestments().then(function (entries) {
-            _invEntries = entries || [];
-            renderList(); refreshTotal();
-        }).catch(function () {
-            _invEntries = []; renderList(); refreshTotal();
-        });
-    } else {
-        renderList(); refreshTotal();
-    }
-    return card;
-}
-
 function buildPortfolioBreakdownCard(p) {
     var total = p.total_estimated_value || 0;
     var melt = p.total_melt || 0;
@@ -1518,27 +1438,101 @@ function buildPortfolioBreakdownCard(p) {
     // Second pass after layout settles -- the first can fire pre-resize.
     setTimeout(() => drawChart(activePeriod), 400);
 
+    // 2026-10-20 (Matthew-approved Gemini-4 spec): rows now carry keys so each box
+    // can be toggled in/out of the hero Total Portfolio (what-if filtering). The
+    // sparkline keeps recording rawTotal so history charts are never distorted.
+    var rowDefs = [];
+    if (p.gold_coin_melt>0)      rowDefs.push(['gold_coin_melt','Gold Coins Melt',p.gold_coin_melt]);
+    if (p.silver_coin_melt>0)    rowDefs.push(['silver_coin_melt','Silver Coins Melt',p.silver_coin_melt]);
+    if (p.copper_coin_melt>0)     rowDefs.push(['copper_coin_melt','Copper Coins Melt',p.copper_coin_melt]);
+    if (p.platinum_coin_melt>0)   rowDefs.push(['platinum_coin_melt','Platinum Coins Melt',p.platinum_coin_melt]);
+    if (p.palladium_coin_melt>0)  rowDefs.push(['palladium_coin_melt','Palladium Coins Melt',p.palladium_coin_melt]);
+    if (p.collectable_value>0)     rowDefs.push(['collectable_value','Collectible Premium',p.collectable_value]);
+    if (p.raw_bullion>0)          rowDefs.push(['raw_bullion','Bullion Holdings',p.raw_bullion]);
+    if (p.bulk_coins_value>0)     rowDefs.push(['bulk_coins_value','Bulk Coins',p.bulk_coins_value]);
+    if (p.scrap_value>0)          rowDefs.push(['scrap_value','Scrap Metal',p.scrap_value]);
+    if (p.paper_value>0)          rowDefs.push(['paper_value','Paper Currency',p.paper_value]);
+    if (p.other_value>0)          rowDefs.push(['other_value','Other Collectibles',p.other_value]);
+    // 2026-10-21 (GGMJ-383): the Investments bucket was missing here. The
+    // hero total is recomputed as the sum of the VISIBLE ROWS, so a bucket
+    // with no row is also a bucket with no value -- the server's
+    // total_estimated_value included investments_value, the hero did not.
+    if (p.investments_value>0)    rowDefs.push(['investments_value','Other Investments',p.investments_value]);
+    if (face>0)                    rowDefs.push(['face_value','Face Value',face]);
+
+    var heroValEl = card.querySelector('.portfolio-hero .finance-value');
+    var rawTotal = total;
+
+    function refreshHeroAndDims() {
+        var shown = 0;
+        rowDefs.forEach(function (rd) {
+            if (_ccIsIncluded(rd[0])) shown += (rd[2] || 0);
+        });
+        if (heroValEl) heroValEl.textContent = fmt(shown);
+        // Master melt checkbox state reflects the 5 metal melt boxes.
+        var meltKeys = ['gold_coin_melt','silver_coin_melt','copper_coin_melt','platinum_coin_melt','palladium_coin_melt'];
+        var active = meltKeys.filter(function (k) {
+            return rowDefs.some(function (rd) { return rd[0] === k; });
+        });
+        var checked = active.filter(function (k) { return _ccIsIncluded(k); });
+        if (masterCb) {
+            masterCb.checked = active.length > 0 && checked.length === active.length;
+            masterCb.indeterminate = checked.length > 0 && checked.length < active.length;
+        }
+        if (meltValEl) {
+            var meltShown = 0;
+            meltKeys.forEach(function (k) {
+                if (_ccIsIncluded(k)) {
+                    var rd = rowDefs.find(function (r) { return r[0] === k; });
+                    if (rd) meltShown += (rd[2] || 0);
+                }
+            });
+            meltValEl.textContent = fmt(meltShown);
+        }
+    }
+
     var g = el('div',{className:'finance-grid'});
-    if (p.gold_coin_melt>0) g.appendChild(fRow('Gold Coins Melt',fmt(p.gold_coin_melt)));
-    if (p.silver_coin_melt>0) g.appendChild(fRow('Silver Coins Melt',fmt(p.silver_coin_melt)));
-    if (p.copper_coin_melt>0) g.appendChild(fRow('Copper Coins Melt',fmt(p.copper_coin_melt)));
-    if (p.platinum_coin_melt>0) g.appendChild(fRow('Platinum Coins Melt',fmt(p.platinum_coin_melt)));
-    if (p.palladium_coin_melt>0) g.appendChild(fRow('Palladium Coins Melt',fmt(p.palladium_coin_melt)));
-    if (p.collectable_value>0) g.appendChild(fRow('Collectible Premium',fmt(p.collectable_value)));
-    if (p.raw_bullion>0) g.appendChild(fRow('Bullion Holdings',fmt(p.raw_bullion)));
-    if (p.bulk_coins_value>0) g.appendChild(fRow('Bulk Coins',fmt(p.bulk_coins_value)));
-    if (p.scrap_value>0) g.appendChild(fRow('Scrap Metal',fmt(p.scrap_value)));
-    if (p.paper_value>0) g.appendChild(fRow('Paper Currency',fmt(p.paper_value)));
-    if (p.other_value>0) g.appendChild(fRow('Other Collectibles',fmt(p.other_value)));
-    // 2026-10-21 (GGMJ-383): the Investments bucket was missing from the
-    // breakdown grid. The server's total_estimated_value includes
-    // investments_value; the card showed a breakdown that did not, so the
-    // visible rows did not sum to the stated total.
-    if (p.investments_value>0) g.appendChild(fRow('Other Investments',fmt(p.investments_value)));
-    if (face>0) g.appendChild(fRow('Face Value',fmt(face)));
-    g.appendChild(fRow('Total Melt Value',fmt(melt),true));
+    var meltValEl = null, masterCb = null;
+    rowDefs.forEach(function (rd) {
+        var row = fRow(rd[1], fmt(rd[2]));
+        _ccMakeRowCheckbox(row, rd[0], refreshHeroAndDims);
+        g.appendChild(row);
+    });
+    // Master melt row: checkbox toggles all 5 metal melt boxes.
+    var meltRow = fRow('Total Melt Value', fmt(melt), true);
+    masterCb = el('input', {type: 'checkbox'});
+    masterCb.className = 'cc-include-cb';
+    masterCb.style.margin = '0 6px 0 0';
+    var meltKeys = ['gold_coin_melt','silver_coin_melt','copper_coin_melt','platinum_coin_melt','palladium_coin_melt'];
+    var activeMelt = meltKeys.filter(function (k) {
+        return rowDefs.some(function (rd) { return rd[0] === k; });
+    });
+    var checkedMelt = activeMelt.filter(function (k) { return _ccIsIncluded(k); });
+    masterCb.checked = activeMelt.length > 0 && checkedMelt.length === activeMelt.length;
+    masterCb.indeterminate = checkedMelt.length > 0 && checkedMelt.length < activeMelt.length;
+    masterCb.addEventListener('change', function () {
+        var inc = _ccIncluded();
+        activeMelt.forEach(function (k) { inc[k] = masterCb.checked; });
+        _ccSaveIncluded(inc);
+        // Sync the individual melt checkboxes now visible in the grid.
+        g.querySelectorAll('.finance-item').forEach(function (row) {
+            var cb = row.querySelector('.cc-include-cb');
+            if (!cb) return;
+            var lab = row.querySelector('.finance-label');
+            var label = lab ? lab.textContent : '';
+            var map = {'Gold Coins Melt':'gold_coin_melt','Silver Coins Melt':'silver_coin_melt','Copper Coins Melt':'copper_coin_melt','Platinum Coins Melt':'platinum_coin_melt','Palladium Coins Melt':'palladium_coin_melt'};
+            if (map[label]) { cb.checked = masterCb.checked; row.classList.toggle('is-unchecked', !cb.checked); }
+        });
+        refreshHeroAndDims();
+    });
+    var meltLab = meltRow.querySelector('.finance-label');
+    if (meltLab) { meltLab.insertBefore(masterCb, meltLab.firstChild); }
+    else { meltRow.insertBefore(masterCb, meltRow.firstChild); }
+    meltValEl = meltRow.querySelector('.finance-value');
+    g.appendChild(meltRow);
 
     card.appendChild(g);
+    refreshHeroAndDims();
 
     return card;
 }
@@ -1548,6 +1542,42 @@ function fRow(label,value,isBold,isClass) {
     d.appendChild(el('span',{className:'finance-label'},label));
     d.appendChild(el('span',{className:'finance-value'+(isBold?' bold':'')},value));
     return d;
+}
+
+// 2026-10-20 (Matthew-approved Gemini-4 spec): Portfolio Overview checkboxes.
+// Each breakdown box gets a persisted checkbox (localStorage cc-overview-included).
+// Unchecked boxes dim (.is-unchecked, opacity .45) and drop out of the hero total.
+// The Total Melt Value row gets a MASTER checkbox that toggles all 5 metal melt
+// boxes at once and shows indeterminate state on partial selection.
+function _ccIncluded() {
+    try { return JSON.parse(localStorage.getItem('cc-overview-included') || '{}'); }
+    catch (e) { return {}; }
+}
+function _ccSaveIncluded(obj) {
+    try { localStorage.setItem('cc-overview-included', JSON.stringify(obj)); } catch (e) {}
+}
+function _ccIsIncluded(key) {
+    var inc = _ccIncluded();
+    return !(key in inc) || inc[key] !== false;
+}
+function _ccMakeRowCheckbox(row, key, onToggle) {
+    var cb = el('input', {type: 'checkbox'});
+    cb.checked = _ccIsIncluded(key);
+    cb.className = 'cc-include-cb';
+    cb.style.margin = '0 6px 0 0';
+    cb.addEventListener('change', function () {
+        var inc = _ccIncluded();
+        inc[key] = cb.checked;
+        _ccSaveIncluded(inc);
+        row.classList.toggle('is-unchecked', !cb.checked);
+        if (typeof onToggle === 'function') onToggle();
+    });
+    row.classList.toggle('is-unchecked', !cb.checked);
+    // Checkbox leads the label inside the existing label span.
+    var lab = row.querySelector('.finance-label');
+    if (lab) { lab.insertBefore(cb, lab.firstChild); }
+    else { row.insertBefore(cb, row.firstChild); }
+    return cb;
 }
 
 
@@ -1597,6 +1627,11 @@ function _formSetOpen(key, open) {
  *   addBtn the existing .v1-add-btn (kept, given the toggle role)
  *   key    unique per card, e.g. 'paper'
  *   label  the collapsed-state label, e.g. 'Add Banknote'
+ *
+ * 2026-10-21 (GGMJ-384/B3): buildInvestmentsCard() now comes through here
+ * too. It used to hand-build its form with no fold control at all, which is
+ * how the Investments card ended up as the only data-entry card that could
+ * not be collapsed.
  */
 function _foldCardForm(form, addBtn, key, label) {
     if (!form || !addBtn) return;
@@ -1609,8 +1644,8 @@ function _foldCardForm(form, addBtn, key, label) {
     var row = el('div', { className: 'v1-form-actions' });
     // 2026-10-21 (GGMJ-384/B4, Matthew): this control reads "Hide", not
     // "Cancel" -- Hide implies the data is KEPT, Cancel implies it is
-    // discarded. The class name stays .v1-cancel-btn because components.v2.css
-    // styles that class; only the visible label changed.
+    // discarded. The class name stays .v1-cancel-btn because
+    // components.v2.css styles that class; only the visible label changed.
     var cancel = el('button', {
         className: 'v1-cancel-btn',
         type: 'button',
@@ -1688,6 +1723,9 @@ function _foldCardForm(form, addBtn, key, label) {
     // It used to confirm("Discard what you typed?") and form.reset(), which
     // threw the user's typing away -- the opposite of what "Hide" means.
     // Now it only folds the form away; reopening shows the values intact.
+    // Nothing depended on that reset: a successful add re-renders the
+    // dashboard, which rebuilds every card form empty, so the reset only
+    // ever punished an abandoned entry.
     cancel.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -3618,3 +3656,48 @@ function openLocalLightbox(base64Src) {
     lightbox.classList.add('is-active');
 }
 
+
+
+// ===== Help icons for all dashboard cards — GGMJ-451 =====
+const _cardHelpTexts = {
+    'card-portfolio': 'Total estimated value of your coin portfolio, broken down by metal type (melt value) plus collectibles, bullion, and other categories.',
+    'card-spot': 'Live precious metal spot prices with sparklines showing the session trend for gold, silver, copper, platinum, and palladium.',
+    'card-trend': 'Multi-metal spot trend chart showing estimated collection value over time periods from 1 day to 10 years.',
+    'card-bullion': 'Tracks your physical precious metals by weight — gold, silver, platinum, palladium, copper. Enter troy ounces or pounds and the card values them at live spot prices.',
+    'card-scrap': 'Scrap precious metal items (jewelry, silverware, etc.) with weight, purity, and estimated melt value.',
+    'card-paper': 'Paper currency notes with denomination, series year, condition, and estimated value.',
+    'card-coinweight': 'Coins tracked by weight (e.g. bags of wheat cents). Enter weight and unit — the card values them at live spot prices.',
+    'card-custom': 'Items in your custom collection categories — anything you collect that isn’t a coin (stamps, cards, memorabilia, etc.).',
+    'card-user-custom': 'Your custom dashboard cards — create personalized cards for any tracking need.',
+    'card-gallery': 'Photos and documents related to your collection — upload and organize images of your coins.',
+    'card-completion': 'Shows your collection completion percentage — how many of the catalogued coin types you own vs. still need.',
+    'card-wishlist': 'Coins you are actively hunting. Add coins to your wishlist from the catalog detail panel.',
+    'card-backup': 'Export your collection as CSV, back up as JSON, or restore from a backup file.',
+    'card-support': 'Support the Coin Catalog app development. Contributions help keep this project running.',
+    'card-investments': 'Track investments outside your coin collection (stocks, ETFs, retirement accounts, crypto, etc.). Add entries with name, category, current value, optional purchase price, and as-of date. Click the pencil icon on any entry to edit its date or value.',
+};
+
+function attachCardHelpIcons() {
+    Object.entries(_cardHelpTexts).forEach(([cardId, helpText]) => {
+        const card = document.getElementById(cardId);
+        if (!card) return;
+        const title = card.querySelector('.card-title');
+        if (!title || title.querySelector('.help-icon')) return;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'help-icon';
+        btn.setAttribute('aria-label', 'Help');
+        btn.title = helpText;
+        btn.style.cssText = 'width:20px;height:20px;border-radius:50%;border:1px solid var(--color-border);background:var(--color-bg-card);color:var(--color-text-main);font-size:0.68rem;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:8px;';
+        btn.textContent = '?';
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            openCardHelpPopup(cardId, helpText);
+        });
+        title.appendChild(btn);
+    });
+}
+
+
+// Call attachCardHelpIcons at the end of renderDashboard
