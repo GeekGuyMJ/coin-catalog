@@ -27,9 +27,34 @@ import {
 // Sparkline helper — shared between per-entry and card-total sparklines
 // ---------------------------------------------------------------------------
 
+/** Resolve a CSS color (including var(--custom-property)) to a concrete rgba value
+ *  so it can be safely concatenated with alpha hex for CanvasGradient.addColorStop(). */
+function _resolveCanvasColor(color) {
+    if (!color) return 'rgba(96, 165, 250, 1)'; // fallback: --color-accent default
+    // If already a concrete color (rgb, rgba, #hex, named), return as-is
+    if (!color.startsWith('var(')) return color;
+    // Resolve CSS custom property via a temporary element
+    const tmp = document.createElement('div');
+    tmp.style.color = color;
+    document.body.appendChild(tmp);
+    const resolved = getComputedStyle(tmp).color;
+    document.body.removeChild(tmp);
+    // resolved is like "rgb(96, 165, 250)" or "rgba(96, 165, 250, 1)"
+    // Convert to rgba with alpha=1 for consistent concatenation
+    if (resolved.startsWith('rgb(')) {
+        return resolved.replace('rgb(', 'rgba(').replace(')', ', 1)');
+    }
+    if (resolved.startsWith('rgba(')) {
+        return resolved;
+    }
+    return resolved; // fallback
+}
+
 /** Draw a compact sparkline on a canvas element. */
 function drawSparkline(canvas, values, color, width, height) {
     if (!values || values.length < 2) return;
+    // Resolve CSS custom properties before using color in canvas gradients
+    color = _resolveCanvasColor(color);
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
@@ -198,7 +223,7 @@ let _invEntries = [];   // current entries, loaded from server
  * Returns a DOM element or null.
  */
 export function buildInvestmentsCard() {
-    const card = el('div', { className: 'card dashboard-card', id: 'card-investments' });
+    const card = el('div', { className: 'card dashboard-card', id: 'card-investments', 'data-card-label': 'Other Investments', 'data-card-desc': 'Stocks, bonds, retirement accounts and other holdings' });
 
     // --- Card title with total in top-right + help icon ---
     const titleBar = el('div', {
@@ -211,8 +236,13 @@ export function buildInvestmentsCard() {
         'Add entries with name, category, current value, optional purchase price, and as-of date. ' +
         'Click the pencil icon on any entry to edit its date or value. ' +
         'Each entry and the card total show a sparkline trend when values change.');
+    // Position help icon absolutely on card root (like drag handle) for consistent 32px gap
+    helpIcon.style.position = 'absolute';
+    helpIcon.style.top = 'var(--space-4)';
+    helpIcon.style.right = 'calc(var(--space-4) + 28px)';
+    helpIcon.style.zIndex = '3';
     titleBar.appendChild(titleLabel);
-    titleBar.appendChild(helpIcon);
+    // Help icon appended to card root below, not titleBar
 
     // Top-right total
     const totalDisplay = el('div', {
@@ -322,6 +352,7 @@ export function buildInvestmentsCard() {
     card.appendChild(edgeRight);
     card.appendChild(edgeLeft);
     card.appendChild(dragHandle);
+    card.appendChild(helpIcon); // Help icon on card root for consistent gap with drag handle
 
     // --- Render function ---
     function render() {
