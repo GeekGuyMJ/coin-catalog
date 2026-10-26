@@ -1577,24 +1577,24 @@ export function openImageManager() {
             badgeWrap.appendChild(revBadge);
             row.appendChild(badgeWrap);
             const drop = el('div', {
-                style: 'width: 56px; height: 56px; border: 2px dashed var(--color-border); border-radius: 8px; display:flex; align-items:center; justify-content:center; cursor:pointer; color: var(--color-text-muted); font-size: 0.7em; text-align:center; transition: all 0.15s; background: var(--color-bg-body);',
-                ondragover: "event.preventDefault(); this.style.borderColor='var(--color-accent)'; this.style.background='rgba(96,165,250,0.08)';",
-                ondragleave: "this.style.borderColor='var(--color-border)'; this.style.background='var(--color-bg-body)';",
-                ondrop: "event.preventDefault(); this.style.borderColor='var(--color-border)'; this.style.background='var(--color-bg-body)'; handleDrop(event, '" + ct + "');",
-                onclick: "triggerUpload('" + ct + "')"
-            }, '+');
+                            style: 'width: 56px; height: 56px; border: 2px dashed var(--color-border); border-radius: 8px; display:flex; align-items:center; justify-content:center; cursor:pointer; color: var(--color-text-muted); font-size: 0.7em; text-align:center; transition: all 0.15s; background: var(--color-bg-body);',
+                            ondragover: (e) => { e.preventDefault(); e.target.style.borderColor = 'var(--color-accent)'; e.target.style.background = 'rgba(96,165,250,0.08)'; },
+                            ondragleave: (e) => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.background = 'var(--color-bg-body)'; },
+                            ondrop: (e) => { e.preventDefault(); e.target.style.borderColor = 'var(--color-border)'; e.target.style.background = 'var(--color-bg-body)'; handleDrop(e, ct); },
+                            onclick: () => triggerUpload(ct)
+                        }, '+');
             drop.title = 'Click or drop image for ' + ct;
             row.appendChild(drop);
             const camBtn = el('button', {
-                className: 'btn-secondary',
-                style: 'padding:6px 10px; font-size:0.75em;',
-                title: 'Take photo for ' + ct,
-                onclick: "triggerCamera('" + ct + "')"
-            }, '📷');
-            row.appendChild(camBtn);
-            listDiv.appendChild(row);
-        });
-    }
+                            className: 'btn-secondary',
+                            style: 'padding:6px 10px; font-size:0.75em;',
+                            title: 'Take photo for ' + ct,
+                            onclick: () => triggerCamera(ct)
+                        }, '📷');
+                        row.appendChild(camBtn);
+                        listDiv.appendChild(row);
+                    });
+                }
     
     const fileMap = {};
     function getFileInput(coinType) {

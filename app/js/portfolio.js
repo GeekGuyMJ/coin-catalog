@@ -6,10 +6,11 @@
 import { el } from './utils.js';
 import { onChange, getSpotPrices, getInventory, getSections,
     getScrapMetal, getPaperCurrency, getCustomCategories, getOtherCollectables,
-    getBullion,
-} from './state.js';
+    getBullion } from './state.js';
 import { openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal } from './modals.js';
 import { openPortfolioHistoryModal } from './portfolio_history.js';
+import { buildInvestmentsCard } from './investments.js';
+import { renderCustomCardsOnDashboard } from './app_v2/settingsDropdown.js';
 
 var _portfolioData = null;
 
@@ -142,13 +143,197 @@ function applyDashboardOrder() {
 }
 
 
-function addDragHandle(card) {
+export function addDragHandle(card) {
     if (!card) return;
-    const handle = document.createElement('span');
-    handle.className = 'drag-handle';
-    handle.textContent = '≡';
-    handle.title = 'Drag to reorder';
-    card.appendChild(handle);
+
+    // Hamburger drag handle (top-right) — always added, even on mobile
+    const hamburger = document.createElement('div');
+    hamburger.className = 'drag-handle';
+    hamburger.draggable = true;
+    hamburger.title = 'Drag to reorder';
+    hamburger.style.cssText = 'position:absolute;top:var(--space-4);right:var(--space-4);font-size:1.5rem;color:var(--color-text-muted);cursor:grab;user-select:none;opacity:0.5;z-index:3;line-height:1;';
+    hamburger.textContent = '☰';
+    card.appendChild(hamburger);
+
+    // Don't add resize handles on touch/mobile — CSS disables them anyway
+    if (window.innerWidth <= 768) return;
+
+    // Create right edge handle
+    const handleRight = document.createElement('div');
+    handleRight.className = 'edge-handle edge-handle-right';
+    handleRight.title = 'Drag to resize width';
+
+    // Create left edge handle
+    const handleLeft = document.createElement('div');
+    handleLeft.className = 'edge-handle edge-handle-left';
+    handleLeft.title = 'Drag to resize width';
+
+    let guideOverlay = null;
+
+    const sizeClasses = ['card-w-25', 'card-w-50', 'card-w-75', 'card-w-100'];
+
+    function getSpanFromClass() {
+        if (card.classList.contains('card-w-100')) return 4;
+        if (card.classList.contains('card-w-75')) return 3;
+        if (card.classList.contains('card-w-50')) return 2;
+        return 1; // card-w-25 or default
+    }
+
+    function setSpan(span) {
+        span = Math.max(1, Math.min(4, span));
+        const currentSpan = getSpanFromClass();
+        if (span === currentSpan) return; // No change
+
+        card.classList.remove(...sizeClasses);
+        card.classList.add(sizeClasses[span - 1]);
+        // Persist
+        try {
+            const sizes = JSON.parse(localStorage.getItem('cc-card-sizes') || '{}');
+            sizes[card.id] = sizeClasses[span - 1];
+            localStorage.setItem('cc-card-sizes', JSON.stringify(sizes));
+        } catch(err) {}
+    }
+
+    // Get the logical number of CSS grid columns active right now
+    function getGridCols() {
+        const grid = document.getElementById('dashboard-grid');
+        if (!grid) return 4;
+        // Read the actual computed columns from the grid
+        const style = window.getComputedStyle(grid);
+        const tpl = style.getPropertyValue('grid-template-columns');
+        // Count space-separated values (each is a column size)
+        return tpl.trim().split(/\s+/).length || 4;
+    }
+
+    function createGuideOverlay(grid, cols) {
+        if (guideOverlay) return;
+        guideOverlay = document.createElement('div');
+        guideOverlay.className = 'grid-guide-overlay';
+        guideOverlay.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;display:grid;pointer-events:none;z-index:9998;';
+        guideOverlay.style.gridTemplateColumns = 'repeat(' + cols + ', 1fr)';
+        guideOverlay.style.gap = getComputedStyle(grid).gap;
+        guideOverlay.style.padding = getComputedStyle(grid).padding;
+
+        for (let i = 0; i < cols; i++) {
+            const col = document.createElement('div');
+            col.style.cssText = 'background:rgba(255,255,255,0.05);border:1px dashed rgba(255,255,255,0.3);border-radius:12px;';
+            guideOverlay.appendChild(col);
+        }
+
+        grid.style.position = 'relative';
+        grid.appendChild(guideOverlay);
+    }
+
+    function onMouseDown(e, direction) {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const grid = document.getElementById('dashboard-grid');
+        if (!grid) return;
+
+        const cols = getGridCols();           // actual CSS column count
+        createGuideOverlay(grid, cols);
+        document.body.style.cursor = 'ew-resize';
+
+        const gridRect = grid.getBoundingClientRect();
+        const gridStyle = window.getComputedStyle(grid);
+        const paddingH = parseFloat(gridStyle.paddingLeft) + parseFloat(gridStyle.paddingRight);
+        const gapPx = parseFloat(gridStyle.columnGap) || 16;
+
+        // Width of one CSS column
+        const colWidth = (gridRect.width - paddingH - gapPx * (cols - 1)) / cols;
+        const cardRect = card.getBoundingClientRect();
+
+        const onMouseMove = function(eMove) {
+            let newWidth = direction === 1
+                ? eMove.clientX - cardRect.left   // right-edge drag
+                : cardRect.right - eMove.clientX; // left-edge drag
+            const ratio = newWidth / (gridRect.width - paddingH);
+            let logicalSpan = Math.max(1, Math.round(ratio * 4));
+            // Ensure it doesn't exceed 4
+            logicalSpan = Math.min(4, logicalSpan);
+
+            setSpan(logicalSpan);
+        };
+
+        const onMouseUp = function() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.style.cursor = '';
+            if (guideOverlay && guideOverlay.parentNode) {
+                guideOverlay.parentNode.removeChild(guideOverlay);
+                guideOverlay = null;
+            }
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    }
+
+    handleRight.addEventListener('mousedown', (e) => onMouseDown(e, 1));
+    handleLeft.addEventListener('mousedown', (e) => onMouseDown(e, -1));
+
+    card.appendChild(handleRight);
+    card.appendChild(handleLeft);
+}
+
+/** Create a small "?" in a circle help button for a card. */
+function makeCardHelpIcon(cardKey, helpText) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'help-icon';
+    btn.setAttribute('aria-label', 'Help');
+    btn.title = helpText;
+    btn.style.cssText = 'width:20px;height:20px;border-radius:50%;border:1px solid var(--color-border);background:var(--color-bg-card);color:var(--color-text-main);font-size:0.68rem;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:8px;';
+    btn.textContent = '?';
+    btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        e.preventDefault();
+        openCardHelpPopup(cardKey, helpText);
+    });
+    return btn;
+}
+
+/** Open a small popup explaining how to use a card. */
+function openCardHelpPopup(cardKey, helpText) {
+    const existing = document.getElementById('card-help-' + cardKey);
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'card-help-' + cardKey;
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+
+    const box = document.createElement('div');
+    box.style.cssText = 'background:var(--color-bg-card);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-5);max-width:360px;width:88vw;box-shadow:var(--shadow-xl);position:relative;';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.style.cssText = 'position:absolute;top:var(--space-2);right:var(--space-2);background:none;border:none;color:var(--color-text-muted);font-size:1.5rem;cursor:pointer;';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Close');
+
+    const title = document.createElement('h3');
+    title.style.cssText = 'margin:0 0 var(--space-3) 0;color:var(--color-accent);font-size:var(--font-size-lg);';
+    title.textContent = cardKey.replace(/^card-/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    const body = document.createElement('div');
+    body.style.cssText = 'font-size:var(--font-size-sm);color:var(--color-text-main);line-height:1.5;';
+    body.textContent = helpText;
+
+    const okBtn = document.createElement('button');
+    okBtn.className = 'btn-secondary';
+    okBtn.style.cssText = 'margin-top:var(--space-3);padding:4px 12px;float:right;';
+    okBtn.textContent = 'Got it';
+    okBtn.addEventListener('click', () => overlay.remove());
+    closeBtn.addEventListener('click', () => overlay.remove());
+
+    box.appendChild(closeBtn);
+    box.appendChild(title);
+    box.appendChild(body);
+    box.appendChild(okBtn);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
 }
 
 export function initPortfolio() {
@@ -180,29 +365,47 @@ export function renderDashboard() {
 
     // Always build all cards, respecting visibility toggles
     var cc = buildCompletionCard(getSections());
-    if (cc) { if (vis['card-completion'] === false) cc.style.display='none'; addDragHandle(cc); c.appendChild(cc); }
+    if (cc) {
+        if (vis['card-completion'] === false) cc.style.display = 'none';
+        addDragHandle(cc);
+        cc.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-completion',
+            'Shows your collection completion percentage — how many of the catalogued coin types you own vs. still need.'));
+        c.appendChild(cc);
+    }
 
     var pc = buildPortfolioBreakdownCard(p);
-    if (pc) { if (vis['card-portfolio'] === false) pc.style.display='none'; addDragHandle(pc); c.appendChild(pc); }
+    if (pc) {
+        if (vis['card-portfolio'] === false) pc.style.display = 'none';
+        addDragHandle(pc);
+        pc.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-portfolio',
+            'Total estimated value of your coin portfolio, broken down by metal type (melt value) plus collectibles, bullion, and other categories.'));
+        c.appendChild(pc);
+    }
 
     // Bullion card - always render (shows empty state if no data)
     var bi = getBullion();
     var bc = buildBullionCard(bi, p, prices);
-    if (bc) { if (vis['card-bullion'] === false) bc.style.display='none'; addDragHandle(bc); c.appendChild(bc); }
+    if (bc) { if (vis['card-bullion'] === false) bc.style.display='none'; addDragHandle(bc); bc.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-bullion', 'Tracks your physical precious metals by weight — gold, silver, platinum, palladium, copper. Enter troy ounces or pounds and the card values them at live spot prices.')); c.appendChild(bc); }
 
     // Spot prices card - always render (shows loading state if no data)
     var sc = buildSpotPricesCard(prices);
-    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); c.appendChild(sc); }
+    if (sc) { if (vis['card-spot'] === false) sc.style.display='none'; addDragHandle(sc); sc.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-spot', 'Live precious metal spot prices with sparklines showing the session trend for gold, silver, copper, platinum, and palladium.')); c.appendChild(sc); }
+
+    // Other Investments card - always render (shows empty state if no data)
+    var ic = buildInvestmentsCard();
+    if (ic) { if (vis['card-investments'] === false) ic.style.display='none'; addDragHandle(ic); c.appendChild(ic); }
 
     var sm = getScrapMetal();
-    if (sm.length > 0) { var s2 = buildScrapMetalCard(sm, prices); if (s2) { if (vis['card-scrap'] === false) s2.style.display='none'; addDragHandle(s2); c.appendChild(s2); } }
+    if (sm.length > 0) { var s2 = buildScrapMetalCard(sm, prices); if (s2) { if (vis['card-scrap'] === false) s2.style.display='none'; addDragHandle(s2); s2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-scrap', 'Scrap precious metal items (jewelry, silverware, etc.) with weight, purity, and estimated melt value.')); c.appendChild(s2); } }
 
     var pap = getPaperCurrency();
-    if (pap.length > 0) { var p2 = buildPaperCurrencyCard(pap); if (p2) { if (vis['card-paper'] === false) p2.style.display='none'; addDragHandle(p2); c.appendChild(p2); } }
+    if (pap.length > 0) { var p2 = buildPaperCurrencyCard(pap); if (p2) { if (vis['card-paper'] === false) p2.style.display='none'; addDragHandle(p2); p2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-paper', 'Paper currency notes with denomination, series year, condition, and estimated value.')); c.appendChild(p2); } }
 
     var cats = getCustomCategories(); var cols = getOtherCollectables();
-    if (cats.length > 0) { var c2 = buildCustomCategoriesCard(cats, cols); if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c.appendChild(c2); } }
-}
+     if (cats.length > 0) { var c2 = buildCustomCategoriesCard(cats, cols); if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-custom', 'Items in your custom collection categories — anything you collect that isn't a coin (stamps, cards, memorabilia, etc.).')); c.appendChild(c2); } }
+
+     // Render custom dashboard cards
+     renderCustomCardsOnDashboard();
 
 function buildCompletionCard(sections) {
     if (!sections || !sections.length) return null;
@@ -268,7 +471,6 @@ function fRow(label,value,isBold,isClass) {
 
 
 function buildBullionCard(items, p, prices) {
-    if (!Array.isArray(items)) items = [];
     var card = el('div',{className:'card dashboard-card bullion-card',id:'card-bullion'});
     card.appendChild(el('div',{className:'card-title'},'\u2728 Bullion Holdings'));
 
@@ -351,6 +553,7 @@ function buildBullionCard(items, p, prices) {
     return card;
 }
 
+
 // Spot price history storage
 function _getSpotHistory() {
     try { return JSON.parse(localStorage.getItem('spot_history') || '{}'); } catch(e) { return {}; }
@@ -422,9 +625,9 @@ function buildSpotPricesCard(prices) {
     var metals = [
         {key:'gold_oz',l:'Gold',c:'#d4af37'},
         {key:'silver_oz',l:'Silver',c:'#94a3b8'},
+        {key:'copper_lb',l:'Copper',c:'#b45309'},
         {key:'platinum_oz',l:'Platinum',c:'#38bdf8'},
-        {key:'palladium_oz',l:'Palladium',c:'#a78bfa'},
-        {key:'copper_lb',l:'Copper',c:'#b45309'}
+        {key:'palladium_oz',l:'Palladium',c:'#a78bfa'}
     ];
     metals.forEach(function(m) {
         if (prices[m.key]) _addSpotPoint(history, m.key, prices[m.key], 60);
@@ -432,7 +635,7 @@ function buildSpotPricesCard(prices) {
     _saveSpotHistory(history);
     // Seed empty histories so sparklines show on first load
     var now = Date.now();
-    metals.forEach(function(m) {
+    METALS.forEach(function(m) {
         if (prices[m.key] && (!history[m.key] || history[m.key].length === 0)) {
             history[m.key] = [
                 { t: now - 86400000, v: prices[m.key] * 0.98 },

@@ -565,7 +565,7 @@ function _fmtAxis(t) {
 }
 
 function buildSpotTrendCard(prices) {
-    var card = el('div', { className: 'card dashboard-card trend-card', id: 'card-trend', style: 'display:flex;flex-direction:column;' });
+    var card = el('div', { className: 'card dashboard-card trend-card', id: 'card-trend', style: 'display:flex;flex-direction:column;', 'data-card-label': 'Metal Price Trends', 'data-card-desc': 'Price history for each metal over time' });
     var titleRow = el('div', { style: 'display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;padding-right:28px;' });
     titleRow.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, 'Metal Price Trends'));
 
@@ -846,10 +846,16 @@ export async function renderDashboard() {
     // have their real heights back.
     if (typeof _coi20Pin === 'function') _coi20Pin();
 
+
+    // Listen for card visibility changes from settings dropdown/modals
+    // and re-render the dashboard so visibility toggles take effect immediately
+    window.addEventListener('cc-card-visibility-changed', () => {
+        renderDashboard();
+    });
 }
 
 function buildWishlistCard(wishlist) {
-    var card = el('div', { className: 'card dashboard-card wishlist-card', id: 'card-wishlist', style: 'display:flex;flex-direction:column;' });
+    var card = el('div', { className: 'card dashboard-card wishlist-card', id: 'card-wishlist', style: 'display:flex;flex-direction:column;', 'data-card-label': 'Wishlist', 'data-card-desc': 'Display target grade, price, notes, and acquired state' });
     
     // Header
     var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-right:28px;flex-shrink:0;' });
@@ -966,7 +972,9 @@ function buildBackupCard() {
     const card = el('div', {
         className: 'card dashboard-card backup-card',
         id: 'card-backup',
-        style: 'display:flex;flex-direction:column;'
+        style: 'display:flex;flex-direction:column;',
+        'data-card-label': 'Your Backup',
+        'data-card-desc': 'Plain-language backup, auto-backup and recovery'
     });
     card.appendChild(el('div', { className: 'card-title' }, 'Your Backup'));
 
@@ -1115,48 +1123,42 @@ function buildBackupCard() {
         actions.appendChild(el('button', {
             className: 'btn-secondary',
             style: 'width:100%;',
-            onclick: (e) => {
+            onclick: async (e) => {
                 const b = e.currentTarget;
-                if (b.dataset.armed === '1') {
-                    delete b.dataset.armed;
-                    b.textContent = 'Recover From Backup';
-                    b.classList.remove('btn-primary');
+                // If not armed, arm it and wait for second click
+                if (b.dataset.armed !== '1') {
+                    b.dataset.armed = '1';
+                    b.textContent = 'Tap again to confirm — this replaces this device\u2019s data';
+                    b.classList.add('btn-primary');
+                    setTimeout(() => {
+                        if (b.dataset.armed === '1') {
+                            delete b.dataset.armed;
+                            b.textContent = 'Recover From Backup';
+                            b.classList.remove('btn-primary');
+                        }
+                    }, 6000);
                     return;
                 }
-                // Restoring overwrites local data, so make it deliberate.
-                b.dataset.armed = '1';
-                b.textContent = 'Tap again to confirm — this replaces this device\u2019s data';
-                b.classList.add('btn-primary');
-                setTimeout(() => {
-                    if (b.dataset.armed === '1') {
-                        delete b.dataset.armed;
-                        b.textContent = 'Recover From Backup';
-                        b.classList.remove('btn-primary');
-                    }
-                }, 6000);
-            },
-            ondblclick: null
-        }, 'Recover From Backup'));
-        // the actual restore runs on the second click
-        actions.lastChild.addEventListener('click', async (e) => {
-            const b = e.currentTarget;
-            if (b.dataset.armed !== '1') return;   // first click only armed it
-            b.textContent = 'Recovering...';
-            b.disabled = true;
-            // Clear any previous failure - we are about to try again.
-            card._backupLastError = null;
-            try {
-                await sync.syncFromCloud();
-                b.textContent = 'Recovered';
-                setTimeout(() => location.reload(), 900);
-            } catch (err) {
-                b.textContent = 'Recovery Failed';
-                // Show the reason inline on the card (not just a toast).
-                card._backupLastError = { op: 'restore', message: err && err.message ? String(err.message) : 'unknown' };
-                paint();
-                b.disabled = false;
+                // Second click (armed): run the restore
+                delete b.dataset.armed;
+                b.textContent = 'Recovering...';
+                b.disabled = true;
+                b.classList.remove('btn-primary');
+                // Clear any previous failure - we are about to try again.
+                card._backupLastError = null;
+                try {
+                    await sync.syncFromCloud();
+                    b.textContent = 'Recovered';
+                    setTimeout(() => location.reload(), 900);
+                } catch (err) {
+                    b.textContent = 'Recovery Failed';
+                    // Show the reason inline on the card (not just a toast).
+                    card._backupLastError = { op: 'restore', message: err && err.message ? String(err.message) : 'unknown' };
+                    paint();
+                    b.disabled = false;
+                }
             }
-        }, true);
+        }, 'Recover From Backup'));
 
         actions.appendChild(el('button', {
             style: 'width:100%;background:transparent;border:none;color:var(--color-text-muted);'
@@ -1187,7 +1189,7 @@ function buildBackupCard() {
 }
 
 function buildSupportCard() {
-    const card = el('div', { className: 'card dashboard-card support-card', id: 'card-support', style: 'display:flex;flex-direction:column;' });
+    const card = el('div', { className: 'card dashboard-card support-card', id: 'card-support', style: 'display:flex;flex-direction:column;', 'data-card-label': 'Support This App', 'data-card-desc': 'Ways to support the app' });
     const hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;padding-right:28px;flex-shrink:0;' });
     hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;' }, '♥ Support This App'));
     card.appendChild(hdr);
@@ -1267,7 +1269,7 @@ function buildCompletionCard(sections) {
     var total = sections.reduce(function(s,e){return s+e.total;}, 0);
     var owned = sections.reduce(function(s,e){return s+e.owned;}, 0);
     var pct = total > 0 ? Math.round(owned/total*100) : 0;
-    var card = el('div',{className:'card dashboard-card completion-card',id:'card-completion'});
+    var card = el('div',{className:'card dashboard-card completion-card',id:'card-completion', 'data-card-label': 'Collection Completion', 'data-card-desc': 'Progress towards completing your sets'});
     card.append(
         el('div',{className:'card-title'},'Collection Completion'),
         el('div',{className:'dashboard-big-number'}, pct+'%'),
@@ -1281,7 +1283,7 @@ function buildCompletionCard(sections) {
 
 
 function buildEmptyPortfolioCard() {
-    var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio'});
+    var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio', 'data-card-label': 'Portfolio Overview', 'data-card-desc': 'Total portfolio, melt values, premium'});
     card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
     var body = el('div',{style:'width:100%; min-width:0; padding:12px 4px; text-align:center; color:var(--color-text-muted); font-size:0.9em; line-height:1.5; word-break:normal; overflow-wrap:normal; white-space:normal;'});
     // 2026-09-29: this was a \uD83E\uDE99 gold-coin emoji, which rendered as
@@ -1342,7 +1344,7 @@ function buildPortfolioBreakdownCard(p) {
         localStorage.setItem('cc-portfolio-history', JSON.stringify(history));
     }
 
-    var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio'});
+    var card = el('div',{className:'card dashboard-card portfolio-card',id:'card-portfolio', 'data-card-label': 'Portfolio Overview', 'data-card-desc': 'Total portfolio, melt values, premium'});
     card.appendChild(el('div',{className:'card-title',style:'justify-content:flex-start;text-align:left;'},'Portfolio Overview'));
 
     // Top section: Total on top, Sparkline below it
@@ -1458,7 +1460,11 @@ function buildPortfolioBreakdownCard(p) {
     // with no row is also a bucket with no value -- the server's
     // total_estimated_value included investments_value, the hero did not.
     if (p.investments_value>0)    rowDefs.push(['investments_value','Other Investments',p.investments_value]);
-    if (face>0)                    rowDefs.push(['face_value','Face Value',face]);
+    // Face value is NOT a separate additive component — it's already the
+    // floor baked into numismatic values. Including it in rowDefs would
+    // double-count (GGMJ-482). Render as a muted informational row after
+    // the melt summary instead.
+    var faceValueInfo = face > 0 ? face : 0;
 
     var heroValEl = card.querySelector('.portfolio-hero .finance-value');
     var rawTotal = total;
@@ -1530,6 +1536,16 @@ function buildPortfolioBreakdownCard(p) {
     else { meltRow.insertBefore(masterCb, meltRow.firstChild); }
     meltValEl = meltRow.querySelector('.finance-value');
     g.appendChild(meltRow);
+
+    // Face value informational row (muted, no checkbox, not summed into hero)
+    // GGMJ-482: face value is already the floor baked into numismatic values,
+    // so we show it as a non-additive reference after the melt summary.
+    if (faceValueInfo > 0) {
+        var faceRow = fRow('Face Value (nominal, not added to total)', fmt(faceValueInfo));
+        faceRow.style.opacity = '0.55';
+        faceRow.style.fontSize = '0.85em';
+        g.appendChild(faceRow);
+    }
 
     card.appendChild(g);
     refreshHeroAndDims();
@@ -1787,7 +1803,7 @@ function _foldCardForm(form, addBtn, key, label) {
 
 function buildBullionCard(items, p, prices) {
     if (!Array.isArray(items)) items = [];
-    var card = el('div', { className: 'card dashboard-card bullion-card', id: 'card-bullion', style: 'display:flex;flex-direction:column;' });
+    var card = el('div', { className: 'card dashboard-card bullion-card', id: 'card-bullion', style: 'display:flex;flex-direction:column;', 'data-card-label': 'Bullion Holdings', 'data-card-desc': 'Metal weight entry and valuation' });
 
     // Totals per metal
     var totals = { gold: 0, silver: 0, platinum: 0, palladium: 0, copper: 0 };
@@ -2094,7 +2110,7 @@ function calcCoinValue(entry, prices) {
 }
 
 function buildCoinsByWeightCard(bulkEntries, prices) {
-    var card = el('div', { className: 'card dashboard-card coinweight-card', id: 'card-coinweight', style: 'display:flex;flex-direction:column;' });
+    var card = el('div', { className: 'card dashboard-card coinweight-card', id: 'card-coinweight', style: 'display:flex;flex-direction:column;', 'data-card-label': 'Bulk Coins', 'data-card-desc': 'Unsorted coins by weight (wheat cents, etc.)' });
 
     // Header with total value and name
     var totalVal = 0;
@@ -2350,9 +2366,34 @@ function getSeededChartData(metalKey, currentPrice, period) {
     return data;
 }
 
+// Resolve a CSS color (including var(--custom-property)) to a concrete rgb/rgba value
+// so it can be safely concatenated with alpha hex for CanvasGradient.addColorStop().
+function _resolveCanvasColor(color) {
+    if (!color) return 'rgba(96, 165, 250, 1)'; // fallback: --color-accent default
+    // If already a concrete color (rgb, rgba, #hex, named), return as-is
+    if (!color.startsWith('var(')) return color;
+    // Resolve CSS custom property via a temporary element
+    var tmp = document.createElement('div');
+    tmp.style.color = color;
+    document.body.appendChild(tmp);
+    var resolved = getComputedStyle(tmp).color;
+    document.body.removeChild(tmp);
+    // resolved is like "rgb(96, 165, 250)" or "rgba(96, 165, 250, 1)"
+    // Convert to rgba with alpha=1 for consistent concatenation
+    if (resolved.startsWith('rgb(')) {
+        return resolved.replace('rgb(', 'rgba(').replace(')', ', 1)');
+    }
+    if (resolved.startsWith('rgba(')) {
+        return resolved;
+    }
+    return resolved; // fallback
+}
+
 // Draw a sparkline canvas (crisp High-DPI support)
 function _sparkline(canvas, data, color, width, height) {
     if (!data || data.length < 2) return;
+    // Resolve CSS custom properties before using color in canvas gradients
+    color = _resolveCanvasColor(color);
     var dpr = window.devicePixelRatio || 1;
     canvas.width = width * dpr;
     canvas.height = height * dpr;
@@ -2631,7 +2672,7 @@ function buildScrapMetalCard(items, prices) {
         totalVal += ((i.weight_grams||0) / 31.1035) * (i.purity||1) * spot;
     });
 
-    var card = el('div', { className: 'card dashboard-card scrap-card', id: 'card-scrap', style: 'display:flex;flex-direction:column;' });
+    var card = el('div', { className: 'card dashboard-card scrap-card', id: 'card-scrap', style: 'display:flex;flex-direction:column;', 'data-card-label': 'Scrap Precious Metals', 'data-card-desc': 'Scrap metal entries and melt estimate' });
     // Header with title + totals
     var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;gap:8px;' });
     hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;min-width:0;' }, 'Scrap Precious Metals'));
@@ -2804,7 +2845,7 @@ function buildPaperCurrencyCard(items) {
     var totalVal = 0;
     items.forEach(function(i) { totalVal += i.value || 0; });
 
-    var card = el('div', { className: 'card dashboard-card paper-card', id: 'card-paper', style: 'display:flex;flex-direction:column;' });
+    var card = el('div', { className: 'card dashboard-card paper-card', id: 'card-paper', style: 'display:flex;flex-direction:column;', 'data-card-label': 'Paper Currency', 'data-card-desc': 'Paper currency entries and value' });
 
     var hdr = el('div', { style: 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;flex-shrink:0;gap:8px;' });
     hdr.appendChild(el('div', { className: 'card-title', style: 'margin-bottom:0;min-width:0;' }, 'Paper Currency'));
@@ -3056,15 +3097,16 @@ function buildCustomDashboardCardsCard(p) {
     var list = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:0;max-height:200px;margin-bottom:0;' });
 
     defs.forEach(function (def) {
-        var bg = def.bgColor || 'var(--color-bg-card)';
-        var fg = def.textColor || 'var(--color-text-main)';
         var resolved = _resolveCustomCardValue(def, p);
         var text = _formatCustomCardValue(def, resolved);
         var style = def.displayStyle || 'bigNumber';
 
+        // Colors come from the theme only — bgColor/textColor on stored
+        // card definitions are ignored. Theme variables fall back to the
+        // card's default look.
         var row = el('div', {
             className: 'user-custom-card',
-            style: 'background:' + bg + '; color:' + fg + '; border:1px solid var(--color-border);' +
+            style: 'background:var(--color-bg-card); color:var(--color-text-main); border:1px solid var(--color-border);' +
                    'border-radius:var(--radius-base); padding:10px 12px; margin-bottom:8px;' +
                    'display:flex; gap:10px; align-items:center; justify-content:space-between;'
         });
@@ -3660,13 +3702,13 @@ function openLocalLightbox(base64Src) {
 
 // ===== Help icons for all dashboard cards — GGMJ-451 =====
 const _cardHelpTexts = {
-    'card-portfolio': 'Total estimated value of your coin portfolio, broken down by metal type (melt value) plus collectibles, bullion, and other categories.',
+    'card-portfolio': 'Total estimated value of your coin portfolio, broken down by metal type (melt value) plus collectibles, bullion, and other categories. Precious-metal bulk lots (copper pennies, 90% silver) are included in their respective Melt rows. The Bulk Coins row shows only non-precious-metal bulk lots at face value. Face Value is shown as a nominal reference below the melt summary and is not added to the total (it\'s already the floor baked into numismatic values).',
     'card-spot': 'Live precious metal spot prices with sparklines showing the session trend for gold, silver, copper, platinum, and palladium.',
     'card-trend': 'Multi-metal spot trend chart showing estimated collection value over time periods from 1 day to 10 years.',
     'card-bullion': 'Tracks your physical precious metals by weight — gold, silver, platinum, palladium, copper. Enter troy ounces or pounds and the card values them at live spot prices.',
     'card-scrap': 'Scrap precious metal items (jewelry, silverware, etc.) with weight, purity, and estimated melt value.',
     'card-paper': 'Paper currency notes with denomination, series year, condition, and estimated value.',
-    'card-coinweight': 'Coins tracked by weight (e.g. bags of wheat cents). Enter weight and unit — the card values them at live spot prices.',
+    'card-coinweight': 'Enter weight, unit, and type — the card estimates the coin\'s greater value by either its metal at live spot price or its collector/face value. Copper Pennies and 90% Silver Coins use melt value; all other types use face value.',
     'card-custom': 'Items in your custom collection categories — anything you collect that isn’t a coin (stamps, cards, memorabilia, etc.).',
     'card-user-custom': 'Your custom dashboard cards — create personalized cards for any tracking need.',
     'card-gallery': 'Photos and documents related to your collection — upload and organize images of your coins.',
@@ -3674,7 +3716,7 @@ const _cardHelpTexts = {
     'card-wishlist': 'Coins you are actively hunting. Add coins to your wishlist from the catalog detail panel.',
     'card-backup': 'Export your collection as CSV, back up as JSON, or restore from a backup file.',
     'card-support': 'Support the Coin Catalog app development. Contributions help keep this project running.',
-    'card-investments': 'Track investments outside your coin collection (stocks, ETFs, retirement accounts, crypto, etc.). Add entries with name, category, current value, optional purchase price, and as-of date. Click the pencil icon on any entry to edit its date or value.',
+
 };
 
 function attachCardHelpIcons() {

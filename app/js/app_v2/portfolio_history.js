@@ -1,6 +1,29 @@
 import { createModal } from './modals.js';
 import { el } from './utils.js';
 
+// Resolve a CSS color (including var(--custom-property)) to a concrete rgb/rgba value
+// so it can be safely concatenated with alpha hex for CanvasGradient.addColorStop().
+function _resolveCanvasColor(color) {
+    if (!color) return 'rgba(96, 165, 250, 1)'; // fallback: --color-accent default
+    // If already a concrete color (rgb, rgba, #hex, named), return as-is
+    if (!color.startsWith('var(')) return color;
+    // Resolve CSS custom property via a temporary element
+    var tmp = document.createElement('div');
+    tmp.style.color = color;
+    document.body.appendChild(tmp);
+    var resolved = getComputedStyle(tmp).color;
+    document.body.removeChild(tmp);
+    // resolved is like "rgb(96, 165, 250)" or "rgba(96, 165, 250, 1)"
+    // Convert to rgba with alpha=1 for consistent concatenation
+    if (resolved.startsWith('rgb(')) {
+        return resolved.replace('rgb(', 'rgba(').replace(')', ', 1)');
+    }
+    if (resolved.startsWith('rgba(')) {
+        return resolved;
+    }
+    return resolved; // fallback
+}
+
 export function openPortfolioHistoryModal() {
     var historyStr = localStorage.getItem('cc-portfolio-history');
     var history = [];
@@ -28,6 +51,8 @@ export function initPortfolioHistory() {}
 
 function _drawBigSparkline(canvas, data, color, width, height) {
     if (!data || data.length < 2) return;
+    // Resolve CSS custom properties before using color in canvas gradients
+    color = _resolveCanvasColor(color);
     canvas.width = width;
     canvas.height = height;
     var ctx = canvas.getContext('2d');

@@ -6,10 +6,11 @@
  */
 
 import { el, escHtml } from './utils.js';
-import { getSpotPrices } from './state.js';
+import { getSpotPrices, setFilterHideProofs, setFilterHideErrors, setFilterKeyDatesOnly } from './state.js';
 import { showToast } from './notifications.js';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
 import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, openResetDataModal, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
+import { getAutoBackupHours } from './sync.js';
 
 let _dropdownEl = null;
 
@@ -446,17 +447,19 @@ async function showCardVisibilityModal() {
  };
 
  const buildControls = (list) => list.map(c => {
-  const checked = vis[c.key] !== false;
-  return el('div', { className: 'settings-toggle-row' }, [
-   el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
-    const on = e.target.checked;
-    vis[c.key] = on;
-    localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
-    applyCardVisibility(c.key, on);
-    dispatchSettingsChange('cc-card-visibility', vis);
-   }}),
-   el('label', { for: 'vis-' + c.key }, c.label),
-  ]);
+   const checked = vis[c.key] !== false;
+   return el('div', { className: 'settings-toggle-row' }, [
+    el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
+     const on = e.target.checked;
+     vis[c.key] = on;
+     localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
+     applyCardVisibility(c.key, on);
+     dispatchSettingsChange('cc-card-visibility', vis);
+     // Also fire a generic change event for portfolio.js to listen to
+     window.dispatchEvent(new CustomEvent('cc-card-visibility-changed'));
+    }}),
+    el('label', { for: 'vis-' + c.key }, c.label),
+   ]);
  });
 
  const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
@@ -507,7 +510,7 @@ function showDisplayFiltersModal() {
  const hideProofs = localStorage.getItem('cc-hide-proofs') === 'true';
  const hideErrors = localStorage.getItem('cc-hide-errors') === 'true';
  const keyDatesOnly = localStorage.getItem('cc-key-dates-only') === 'true';
- 
+
  const controls = [
  {key: 'cc-hide-proofs', label: 'Hide proof coins', checked: hideProofs },
  {key: 'cc-hide-errors', label: 'Hide error/variety coins', checked: hideErrors },
@@ -515,13 +518,14 @@ function showDisplayFiltersModal() {
  ].map(c => 
  el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: c.key, checked: c.checked, onchange: (e) => {
- localStorage.setItem(c.key, e.target.checked);
- dispatchSettingsChange(c.key, e.target.checked);
+ if (c.key === 'cc-hide-proofs') setFilterHideProofs(e.target.checked);
+ else if (c.key === 'cc-hide-errors') setFilterHideErrors(e.target.checked);
+ else if (c.key === 'cc-key-dates-only') setFilterKeyDatesOnly(e.target.checked);
  }}),
  el('label', { for: c.key }, c.label),
  ])
  );
- 
+
  const body = _sectionBody(
  'Display Filters',
  'Control which coins appear in the catalog. Changes apply on next load.',
@@ -540,18 +544,22 @@ function showBullionVisibilityModal() {
  {key: 'palladium', label: 'Palladium', color: '#a78bfa' },
  {key: 'copper', label: 'Copper', color: '#b45309' },
  ];
- 
+
+ // Read from the single JSON object (matches modals.js and portfolio.js)
+ const bullionVis = JSON.parse(localStorage.getItem('cc-bullion-vis') || '{}');
+
  const controls = metals.map(m => {
- const checked = localStorage.getItem(`cc-bullion-vis-${m.key}`) !== 'false';
+ const checked = bullionVis[m.key] !== false;
  return el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: `cc-bullion-vis-${m.key}`, checked, onchange: (e) => {
- localStorage.setItem(`cc-bullion-vis-${m.key}`, e.target.checked);
- dispatchSettingsChange('cc-bullion-vis', { [m.key]: e.target.checked });
+ bullionVis[m.key] = e.target.checked;
+ localStorage.setItem('cc-bullion-vis', JSON.stringify(bullionVis));
+ dispatchSettingsChange('cc-bullion-vis', bullionVis);
  }}),
  el('label', { for: `cc-bullion-vis-${m.key}`, style: `color: ${m.color}; font-weight: 600;` }, m.label),
  ]);
  });
- 
+
  const body = _sectionBody(
  'Bullion Metals Visibility',
  'Show/hide metal rows in the Bullion Holdings card.',
@@ -564,10 +572,10 @@ function showBullionVisibilityModal() {
 function showExportModal() {
     const control = el('div', { className: 'settings-action-group' }, [
  el('button', { className: 'btn-primary', onclick: () => window.location.href = '/api/backup/zip' }, 'Download Full Backup (ZIP)'),
- el('button', { className: 'btn-secondary', onclick: () => window.location.href = '/api/backup/full' }, 'Export All (CSV)'),
+ el('button', { className: 'btn-secondary', onclick: () => window.location.href = '/api/backup/csv' }, 'Export All (CSV)'),
  el('button', { className: 'btn-secondary', onclick: backupJSON }, 'Backup JSON'),
  ]);
- 
+
  const body = _sectionBody(
  'Export & Backup',
  'Download your collection data for safekeeping or migration.',
@@ -768,12 +776,12 @@ export async function showCloudSyncModal() {
                                     try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
                                 }
                             }, ...[
-                                el('option', { value: '6' }, '6 hours'),
-                                el('option', { value: '12' }, '12 hours'),
-                                el('option', { value: '24' }, 'Daily (24 hours)'),
-                                el('option', { value: '48' }, 'Every 2 days'),
-                                el('option', { value: '72' }, 'Every 3 days'),
-                                el('option', { value: '168' }, 'Weekly'),
+                                el('option', { value: '6', selected: getAutoBackupHours() === 6 }, '6 hours'),
+                                el('option', { value: '12', selected: getAutoBackupHours() === 12 }, '12 hours'),
+                                el('option', { value: '24', selected: getAutoBackupHours() === 24 }, 'Daily (24 hours)'),
+                                el('option', { value: '48', selected: getAutoBackupHours() === 48 }, 'Every 2 days'),
+                                el('option', { value: '72', selected: getAutoBackupHours() === 72 }, 'Every 3 days'),
+                                el('option', { value: '168', selected: getAutoBackupHours() === 168 }, 'Weekly'),
                             ]),
                         ]),
                     ])
@@ -820,8 +828,15 @@ function showCustomCardModal() {
  { id: 'completion', label: 'Completion %', formatter: v => v + '%' },
  { id: 'goldMelt', label: 'Gold Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'silverMelt', label: 'Silver Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'platinumMelt', label: 'Platinum Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'palladiumMelt', label: 'Palladium Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'copperMelt', label: 'Copper Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'bulkValue', label: 'Bulk Coins Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'paperValue', label: 'Paper Currency Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'scrapValue', label: 'Scrap Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'rawBullion', label: 'Raw Bullion Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'otherValue', label: 'Other Collectables Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'faceValue', label: 'Face Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'custom', label: 'Custom Text/Number', formatter: v => v },
  ];
  
@@ -903,28 +918,7 @@ function showCustomCardModal() {
  placeholder: 'Enter custom text or number'
  })
  ]),
- 
- // Optional: Background color
- el('div', { className: 'form-group' }, [
- el('label', {}, 'Background Color'),
- el('input', { 
- type: 'color', 
- id: 'custom-card-bg-color', 
- className: 'cc-color-input',
- value: '#2d4a2d'
- })
- ]),
- 
- // Optional: Text color
- el('div', { className: 'form-group' }, [
- el('label', {}, 'Text Color'),
- el('input', { 
- type: 'color', 
- id: 'custom-card-text-color', 
- className: 'cc-color-input',
- value: '#ffffff'
- })
- ]),
+
  ]);
  
  const modalId = 'modal-custom-card';
@@ -937,25 +931,21 @@ function showCustomCardModal() {
  const dataSource = document.getElementById('custom-card-source').value;
  const displayStyle = document.getElementById('custom-card-style').value;
  const customValue = document.getElementById('custom-card-custom-value').value;
- const bgColor = document.getElementById('custom-card-bg-color').value;
- const textColor = document.getElementById('custom-card-text-color').value;
- 
+
  if (!title) {
  showToast('Please enter a card title', 'error');
  return;
  }
- 
+
  const newCard = {
  id: Date.now().toString(),
  title,
  dataSource,
  displayStyle,
  customValue: dataSource === 'custom' ? customValue : null,
- bgColor,
- textColor,
  createdAt: new Date().toISOString()
  };
- 
+
  customCards.push(newCard);
  localStorage.setItem('cc-custom-cards', JSON.stringify(customCards));
  showToast('Custom card created!', 'success');
@@ -1059,8 +1049,6 @@ function renderCustomCardsOnDashboard() {
  // Create card element
  const cardEl = document.createElement('div');
  cardEl.className = 'card dashboard-card custom-dashboard-card';
- cardEl.style.backgroundColor = card.bgColor;
- cardEl.style.color = card.textColor;
  cardEl.style.gridColumn = 'span 1';
  cardEl.innerHTML = `
  <div class="card-title">${card.title}</div>

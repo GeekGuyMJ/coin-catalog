@@ -27,34 +27,9 @@ import {
 // Sparkline helper — shared between per-entry and card-total sparklines
 // ---------------------------------------------------------------------------
 
-/** Resolve a CSS color (including var(--custom-property)) to a concrete rgba value
- *  so it can be safely concatenated with alpha hex for CanvasGradient.addColorStop(). */
-function _resolveCanvasColor(color) {
-    if (!color) return 'rgba(96, 165, 250, 1)'; // fallback: --color-accent default
-    // If already a concrete color (rgb, rgba, #hex, named), return as-is
-    if (!color.startsWith('var(')) return color;
-    // Resolve CSS custom property via a temporary element
-    const tmp = document.createElement('div');
-    tmp.style.color = color;
-    document.body.appendChild(tmp);
-    const resolved = getComputedStyle(tmp).color;
-    document.body.removeChild(tmp);
-    // resolved is like "rgb(96, 165, 250)" or "rgba(96, 165, 250, 1)"
-    // Convert to rgba with alpha=1 for consistent concatenation
-    if (resolved.startsWith('rgb(')) {
-        return resolved.replace('rgb(', 'rgba(').replace(')', ', 1)');
-    }
-    if (resolved.startsWith('rgba(')) {
-        return resolved;
-    }
-    return resolved; // fallback
-}
-
 /** Draw a compact sparkline on a canvas element. */
 function drawSparkline(canvas, values, color, width, height) {
     if (!values || values.length < 2) return;
-    // Resolve CSS custom properties before using color in canvas gradients
-    color = _resolveCanvasColor(color);
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
@@ -223,7 +198,7 @@ let _invEntries = [];   // current entries, loaded from server
  * Returns a DOM element or null.
  */
 export function buildInvestmentsCard() {
-    const card = el('div', { className: 'card dashboard-card', id: 'card-investments', 'data-card-label': 'Other Investments', 'data-card-desc': 'Stocks, bonds, retirement accounts and other holdings' });
+    const card = el('div', { className: 'card dashboard-card', id: 'card-investments' });
 
     // --- Card title with total in top-right + help icon ---
     const titleBar = el('div', {
@@ -236,18 +211,14 @@ export function buildInvestmentsCard() {
         'Add entries with name, category, current value, optional purchase price, and as-of date. ' +
         'Click the pencil icon on any entry to edit its date or value. ' +
         'Each entry and the card total show a sparkline trend when values change.');
-    // Position help icon absolutely on card root (like drag handle) for consistent 32px gap
-    helpIcon.style.position = 'absolute';
-    helpIcon.style.top = 'var(--space-4)';
-    helpIcon.style.right = 'calc(var(--space-4) + 28px)';
-    helpIcon.style.zIndex = '3';
-    titleBar.appendChild(titleLabel);
-    // Help icon appended to card root below, not titleBar
+    // Place help icon inside card-title for proper header layout
+    titleLabel.appendChild(helpIcon);
 
     // Top-right total
     const totalDisplay = el('div', {
         style: 'font-size:0.85em;font-weight:700;color:var(--color-accent);white-space:nowrap;',
     }, fmtMoney(0));
+    titleBar.appendChild(titleLabel);
     titleBar.appendChild(totalDisplay);
 
     card.appendChild(titleBar);
@@ -347,12 +318,11 @@ export function buildInvestmentsCard() {
         draggable: true,
         title: 'Drag to reorder',
         style: 'position:absolute;top:var(--space-4);right:var(--space-4);font-size:1.5rem;color:var(--color-text-muted);cursor:grab;user-select:none;opacity:0.5;z-index:3;',
-    }, '≡');
+    }, '☰');
 
     card.appendChild(edgeRight);
     card.appendChild(edgeLeft);
     card.appendChild(dragHandle);
-    card.appendChild(helpIcon); // Help icon on card root for consistent gap with drag handle
 
     // --- Render function ---
     function render() {
@@ -364,9 +334,15 @@ export function buildInvestmentsCard() {
             }, 'No Other Investments yet'));
         } else {
             _invEntries.forEach((e) => {
+                // Two-row layout for mobile: Row 1 = info + value, Row 2 = sparkline + buttons
                 const row = el('div', {
                     className: 'finance-item',
-                    style: 'flex-wrap:wrap;gap:4px;align-items:center;',
+                    style: 'display:flex;flex-direction:column;gap:4px;',
+                });
+
+                // Row 1: info (left) + value (right)
+                const row1 = el('div', {
+                    style: 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;',
                 });
 
                 // Left: info (name + category/date)
@@ -381,16 +357,23 @@ export function buildInvestmentsCard() {
                 info.appendChild(label);
                 info.appendChild(nameDiv);
 
-                // Per-entry edit icon (pencil)
-                const editBtn = el('button', {
-                    className: 'btn-icon',
-                    title: 'Edit entry',
-                    'aria-label': 'Edit investment',
-                    style: 'padding:var(--space-1);border-radius:var(--radius-sm);',
-                }, '✏️');
-                editBtn.addEventListener('click', (ev) => {
-                    ev.stopPropagation();
-                    openEditDialog(e);
+                // Right: value + change
+                const valBox = el('div', { style: 'text-align:right;flex-shrink:0;' });
+                valBox.appendChild(el('span', { className: 'finance-value' }, fmtMoney(e.total_value)));
+                const gain = (e.total_value || 0) - (e.purchase_price || 0);
+                if (e.purchase_price != null && e.purchase_price !== '') {
+                    const up = gain >= 0;
+                    valBox.appendChild(el('div', {
+                        style: 'font-size:0.72em;color:' + (up ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';',
+                    }, ((gain > 0 ? '+' : gain < 0 ? '−' : '')) + fmtMoney(Math.abs(gain))));
+                }
+
+                row1.appendChild(info);
+                row1.appendChild(valBox);
+
+                // Row 2: sparkline + buttons (edit, delete)
+                const row2 = el('div', {
+                    style: 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;',
                 });
 
                 // Per-entry sparkline (canvas)
@@ -404,32 +387,28 @@ export function buildInvestmentsCard() {
                     style: 'flex-shrink:0;background:color-mix(in srgb, var(--color-bg-body) 40%, transparent);border-radius:4px;',
                     title: 'Entry value trend',
                 });
-
-                // Right: value + change + sparkline
-                const right = el('div', {
-                    style: 'display:flex;align-items:center;gap:8px;flex-shrink:0;',
-                });
-
-                const valBox = el('div', { style: 'text-align:right;' });
-                valBox.appendChild(el('span', { className: 'finance-value' }, fmtMoney(e.total_value)));
-                const gain = (e.total_value || 0) - (e.purchase_price || 0);
-                if (e.purchase_price != null && e.purchase_price !== '') {
-                    const up = gain >= 0;
-                    valBox.appendChild(el('div', {
-                        style: 'font-size:0.72em;color:' + (up ? 'var(--color-accent)' : 'var(--color-text-muted)') + ';',
-                    }, ((gain > 0 ? '+' : gain < 0 ? '−' : '')) + fmtMoney(Math.abs(gain))));
-                }
-
-                right.appendChild(valBox);
-                right.appendChild(editBtn);
-                right.appendChild(sparkWrap);
                 sparkWrap.appendChild(sparkCanvas);
 
-                // Remove button
+                // Buttons group
+                const btnGroup = el('div', {
+                    style: 'display:flex;align-items:center;gap:6px;flex-shrink:0;',
+                });
+
+                const editBtn = el('button', {
+                    className: 'btn-icon',
+                    title: 'Edit entry',
+                    'aria-label': 'Edit investment',
+                    style: 'padding:var(--space-1);border-radius:var(--radius-sm);',
+                }, '✏️');
+                editBtn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    openEditDialog(e);
+                });
+
                 const del = el('button', {
                     className: 'btn-secondary',
                     title: 'Remove',
-                    style: 'padding:2px 8px;font-size:0.8em;margin-left:6px;',
+                    style: 'padding:2px 8px;font-size:0.8em;',
                 }, '✕');
                 del.addEventListener('click', () => {
                     deleteInvestment(e.id).then(() => {
@@ -440,10 +419,15 @@ export function buildInvestmentsCard() {
                         showToast('Failed to delete: ' + err.message, 'error');
                     });
                 });
-                right.appendChild(del);
 
-                row.appendChild(info);
-                row.appendChild(right);
+                btnGroup.appendChild(editBtn);
+                btnGroup.appendChild(del);
+
+                row2.appendChild(sparkWrap);
+                row2.appendChild(btnGroup);
+
+                row.appendChild(row1);
+                row.appendChild(row2);
                 listWrap.appendChild(row);
 
                 // Draw per-entry sparkline after DOM insertion

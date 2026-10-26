@@ -288,7 +288,7 @@ function buildCountryGroup(country, sections) {
     viewToggle.append(listBtn, albumBtn);
 
     const chevron = el('span', { className: 'section-chevron' }, '▾');
-    const dragHandle = el('span', { className: 'drag-handle', onclick: e => e.stopPropagation() }, '≡');
+    const dragHandle = el('span', { className: 'drag-handle', onclick: e => e.stopPropagation() }, '☰');
     header.append(left, viewToggle, dragHandle, chevron);
 
     const content = el('div', { className: 'country-group-content', id: groupId + '-content' });
@@ -410,7 +410,7 @@ function buildSectionCard(sec) {
         title: 'Drag to reorder',
         style: 'font-size:1.2rem; color:var(--color-text-muted); cursor:grab; user-select:none; margin-left:auto; padding:0 var(--space-2); display:flex; align-items:center; flex-shrink:0;',
         onclick: e => e.stopPropagation(),
-    }, '≡');
+    }, '☰');
 
     const chevron = el('span', { className: 'section-chevron', 'aria-hidden': 'true' }, '▾');
 

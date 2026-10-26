@@ -85,6 +85,8 @@ export function renderGalleryCard() {
         className: 'card dashboard-card gallery-card',
         id: 'card-gallery',
         style: 'display:flex;flex-direction:column;',
+        'data-card-label': 'Photos & Documents',
+        'data-card-desc': 'Capture or upload pictures to document your collection',
     });
 
     // Header

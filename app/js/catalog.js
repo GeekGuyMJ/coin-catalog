@@ -23,7 +23,7 @@ import {
     getTypeConfig,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchCoinNotes, saveCoinNotes } from './api.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
@@ -89,7 +89,7 @@ export function renderSections() {
         const firstSectionHeader = firstCountryGroup.querySelector('.section-header');
         if (firstSectionHeader) {
             const sectionName = firstSectionHeader.dataset.section;
-            if (sectionName && !_expandedSections.has(sectionName)) {
+            if (sectionName && !_expandedSections.has(sectionName) && !sectionName.includes('Half Cent')) {
                 expandSection(sectionName);
             }
         }
@@ -163,7 +163,7 @@ function buildCountryGroup(country, sections) {
     viewToggle.append(listBtn, albumBtn);
 
     const chevron = el('span', { className: 'section-chevron' }, '▾');
-    const dragHandle = el('span', { className: 'drag-handle' }, '≡');
+    const dragHandle = el('span', { className: 'drag-handle' }, '☰');
     header.append(left, viewToggle, dragHandle, chevron);
 
     const content = el('div', { className: 'country-group-content', id: groupId + '-content' });
@@ -179,6 +179,14 @@ function buildCountryGroup(country, sections) {
         header.setAttribute('aria-expanded', 'true');
         chevron.style.transform = 'rotate(180deg)';
     }
+
+    // Keyboard: Enter/Space toggles country group
+    header.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            header.click();
+        }
+    });
 
     wrapper.append(header, content);
     return wrapper;
@@ -514,15 +522,17 @@ function buildTypeAccordion(mainType, typeCoins) {
 
 var SLOT_GRADES = ['', 'PO-1', 'FR-2', 'AG-3', 'G-4', 'G-6', 'VG-8', 'VG-10', 'F-12', 'F-15', 'VF-20', 'VF-25', 'VF-30', 'VF-35', 'EF-40', 'EF-45', 'AU-50', 'AU-53', 'AU-55', 'AU-58', 'MS-60', 'MS-61', 'MS-62', 'MS-63', 'MS-64', 'MS-65', 'MS-66', 'MS-67', 'MS-68', 'MS-69', 'MS-70', 'PF-60', 'PF-65', 'PF-70', 'Proof'];
 
+// Track slot counts in memory only (not localStorage) to avoid stale state
+const _slotCounts = new Map();
+
 function getSlotCount(coinId) {
-    var stored = parseInt(localStorage.getItem("slots_" + coinId));
-    if (stored === null || isNaN(stored)) stored = 1;
+    if (_slotCounts.has(coinId)) {
+        return Math.min(_slotCounts.get(coinId), getInventoryTotalQty(coinId) || 0);
+    }
     var qty = getInventoryTotalQty(coinId) || 0;
     if (qty === 0) return 0;
-    return Math.min(Math.max(0, stored), qty);
+    return 1; // Always start with 1 slot
 }
-
-// Grade option groups for select dropdown
 var GRADE_GROUPS = [
     ['Poor to Good', [['P-1','P-1·Poor'],['FA-2','FA-2·Fair'],['AG-3','AG-3·About Good'],['G-4','G-4·Good'],['G-6','G-6·Good']]],
     ['Very Good to Fine', [['VG-8','VG-8·Very Good'],['VG-10','VG-10·Very Good'],['F-12','F-12·Fine'],['F-15','F-15·Fine']]],
@@ -547,8 +557,9 @@ function buildGradeOptions(selectedGrade) {
 }
 
 /**
- * Build per-entry detail cards (V1-inspired layout).
- * Each count entry (slot) gets its own card with photo, field grid, and notes.
+ * Build per-entry detail cards with instance tabs and encapsulated photos.
+ * Each count entry gets its own card with multi-photo strip, compact field grid, and notes.
+ * Cards are hidden/shown via tab switching — only one instance visible at a time.
  */
 function buildCoinSlots(coinId) {
     var qty = getInventoryTotalQty(coinId) || 0;
@@ -556,9 +567,21 @@ function buildCoinSlots(coinId) {
     var slotCount = getSlotCount(coinId);
     var entries = getInventoryEntries(coinId) || [];
     var html = '<div class="coin-entries">';
+
+    // Instance tab row (only if > 1 slot)
+    if (slotCount > 1) {
+        html += '<div class="coin-instance-tabs" role="tablist">';
+        for (var t = 0; t < slotCount; t++) {
+            var isActive = t === 0 ? ' active' : '';
+            html += '<button class="coin-instance-tab' + isActive + '" role="tab" data-action="switch-instance" data-instance-idx="' + t + '" aria-selected="' + (t === 0 ? 'true' : 'false') + '">Coin ' + (t + 1) + '</button>';
+        }
+        html += '</div>';
+    }
+
     for (var i = 0; i < slotCount; i++) {
         var entry = entries[i] || {};
-        html += '<div class="coin-entry-card">';
+        var isVisible = i === 0 ? '' : ' style="display:none;"';
+        html += '<div class="coin-entry-card' + (i === 0 ? ' is-active' : '') + '" data-instance-idx="' + i + '"' + isVisible + '>';
         // Header row
         html += '<div class="coin-entry-header">';
         html += '<span class="coin-entry-num">Coin #' + (i + 1) + '</span>';
@@ -566,13 +589,40 @@ function buildCoinSlots(coinId) {
             html += '<button class="coin-entry-remove" data-action="remove-slot" data-slot-idx="' + i + '">Remove</button>';
         }
         html += '</div>';
-        // Fields grid (2-column compact, no per-slot photo — photo is at top of panel)
-        html += '<div class="coin-entry-fields" style="padding:var(--space-2) var(--space-3);">';
-        html += '<div class="coin-field coin-field-grade"><label>Grade</label><select class="slot-grade" data-slot-idx="' + i + '">' + buildGradeOptions(entry.grade) + '</select></div>';
-        html += '<div class="coin-field coin-field-price"><label>Price Paid ($)</label><input type="number" class="slot-price" data-slot-idx="' + i + '" step="0.01" value="' + (entry.purchase_price || '') + '" placeholder="0.00"></div>';
-        html += '<div class="coin-field coin-field-value"><label>Current Value ($)</label><input type="number" class="slot-value" data-slot-idx="' + i + '" step="0.01" value="' + (entry.current_value || '') + '" placeholder="0.00"></div>';
-        html += '<div class="coin-field coin-field-date"><label>Date Acquired</label><input type="date" class="slot-date" data-slot-idx="' + i + '" value="' + (entry.date_acquired || '') + '"></div>';
-        html += '</div>';
+
+        // Body: photo strip + fields side by side
+        html += '<div class="coin-entry-body">';
+
+        // Multi-photo strip (3 slots: Obv, Rev, Error)
+        html += '<div class="coin-entry-photo-strip">';
+        var photoLabels = ['Obv', 'Rev', 'Err'];
+        var photoSlots = ['obv', 'rev', 'err'];
+        for (var p = 0; p < 3; p++) {
+            var pSlot = photoSlots[p];
+            var pLabel = photoLabels[p];
+            var existingPhoto = entry['photo_' + pSlot + '_b64'] || entry.personal_photo || '';
+            html += '<div class="coin-entry-photo-slot" data-photo-slot="' + pSlot + '" data-slot-idx="' + i + '">';
+            if (existingPhoto) {
+                html += '<div class="coin-entry-photo-circle has-photo"><img src="' + existingPhoto + '" alt="' + pLabel + '" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + i + '" data-photo-slot="' + pSlot + '"></div>';
+            } else {
+                html += '<div class="coin-entry-photo-circle"><img src="' + placeholderCoinSvg() + '" class="coin-entry-photo-icon" alt="Add photo"></div>';
+            }
+            html += '<button class="coin-entry-photo-btn" data-action="slot-photo" data-slot-idx="' + i + '" data-photo-slot="' + pSlot + '">' + pLabel + '</button>';
+            html += '<span class="slot-photo-name" data-slot-idx="' + i + '" data-photo-slot="' + pSlot + '" data-photo-b64="' + existingPhoto + '">' + (existingPhoto ? '✓' : '') + '</span>';
+            html += '</div>';
+        }
+        html += '</div>'; // end photo-strip
+
+        // Compact 4-column fields grid
+        html += '<div class="coin-entry-fields">';
+        html += '<div class="coin-field"><label>Grade</label><select class="slot-grade" data-slot-idx="' + i + '">' + buildGradeOptions(entry.grade) + '</select></div>';
+        html += '<div class="coin-field"><label>Price ($)</label><input type="number" class="slot-price" data-slot-idx="' + i + '" step="0.01" value="' + (entry.purchase_price || '') + '" placeholder="0.00"></div>';
+        html += '<div class="coin-field"><label>Value ($)</label><input type="number" class="slot-value" data-slot-idx="' + i + '" step="0.01" value="' + (entry.current_value || '') + '" placeholder="0.00"></div>';
+        html += '<div class="coin-field"><label>Date</label><input type="date" class="slot-date" data-slot-idx="' + i + '" value="' + (entry.date_acquired || '') + '"></div>';
+        html += '</div>'; // end fields
+
+        html += '</div>'; // end entry-body
+
         // Notes (full width below)
         html += '<div class="coin-entry-notes">';
         html += '<label>Notes</label>';
@@ -590,11 +640,12 @@ function saveCoinSlots(coinId, panelEl) {
     var slotCount = getSlotCount(coinId);
     var entries = getInventoryEntries(coinId) || [];
     var promises = [];
-    // Use panelEl to scope querySelector to this coin's detail panel only
     var root = panelEl || document;
     var entriesContainer = root.querySelector('.coin-entries');
     if (!entriesContainer) { return Promise.resolve(); }
     var cards = entriesContainer.querySelectorAll('.coin-entry-card');
+    var photoSlotKeys = ['obv', 'rev', 'err'];
+    var photoPayloadKeys = ['photo_obv_b64', 'photo_rev_b64', 'photo_err_b64'];
     for (var i = 0; i < slotCount; i++) {
         var entry = entries[i] || {};
         var card = cards[i];
@@ -604,16 +655,22 @@ function saveCoinSlots(coinId, panelEl) {
         var value = card.querySelector('.slot-value') ? parseFloat(card.querySelector('.slot-value').value) || 0 : 0;
         var date = card.querySelector('.slot-date') ? card.querySelector('.slot-date').value : '';
         var notes = card.querySelector('.slot-notes') ? card.querySelector('.slot-notes').value.trim() : '';
-        var photoEl = card.querySelector('.slot-photo-name');
-        var hasPhoto = photoEl && photoEl.dataset && photoEl.dataset.photoB64;
         var payload = {
             coin_ref_id: coinId, quantity: 1,
             grade: grade, purchase_price: price, current_value: value,
             date_acquired: date, notes: notes
         };
         if (entry.id) payload.id = entry.id;
-        if (hasPhoto) {
-            payload.personal_photo = photoEl.dataset.photoB64;
+        // Collect per-slot photos
+        for (var p = 0; p < 3; p++) {
+            var nameEl = card.querySelector('.slot-photo-name[data-photo-slot="' + photoSlotKeys[p] + '"]');
+            if (nameEl && nameEl.dataset.photoB64) {
+                payload[photoPayloadKeys[p]] = nameEl.dataset.photoB64;
+            }
+        }
+        // Backwards compat: also set personal_photo to obv if present
+        if (payload.photo_obv_b64 && !payload.personal_photo) {
+            payload.personal_photo = payload.photo_obv_b64;
         }
         promises.push(updateInventory(coinId, payload));
     }
@@ -687,22 +744,8 @@ function buildCoinRow(coin) {
     row.appendChild(wl);
     wrapper.appendChild(row);
 
-    // Expandable detail panel — V1-style compact layout
+    // Expandable detail panel — compact layout with inventory gate
     var dp = el("div", {className: "coin-detail-panel"});
-
-    // Photo placeholder at top (V1 style: small circle + text)
-    var photoCircle = el("div", {className: "coin-entry-photo-circle", style: "width:48px;height:48px;margin:0 auto var(--space-1);"},
-        el("svg", {className: "coin-entry-photo-icon", viewBox: "0 0 24 24", width: "20", height: "20", fill: "none", stroke: "currentColor", strokeWidth: "1.5"},
-            el("rect", {x: "3", y: "3", width: "18", height: "18", rx: "2", ry: "2"}),
-            el("circle", {cx: "8.5", cy: "8.5", r: "1.5"}),
-            el("polyline", {points: "21 15 16 10 5 21"})
-        )
-    );
-    var photoWrap = el("div", {className: "coin-detail-photo", style: "text-align:center;padding:var(--space-2) 0;"},
-        photoCircle,
-        el("div", {style: "font-size:var(--font-size-xs);color:var(--color-text-muted);"}, "Tap to add photo")
-    );
-    dp.appendChild(photoWrap);
 
     // Reference notes section (compact, shown by default)
     var refToggle, rd;
@@ -717,30 +760,45 @@ function buildCoinRow(coin) {
         dp.appendChild(rd);
     }
 
-    // Mintage line (V1 style: single compact line)
+    // User-editable notes — always present as an editable textarea
+    var userNotesWrap = el("div", {style: "padding:var(--space-1) var(--space-3);"},
+        el("div", {style: "display:flex;align-items:center;gap:var(--space-2);margin-bottom:2px;"},
+            el("span", {style: "font-weight:600;font-size:var(--font-size-sm);color:var(--color-text-main);"}, "\u270F\uFE0F Your Notes"),
+            el("span", {style: "font-size:var(--font-size-xs);color:var(--color-text-muted);"}, "(autosaves)")
+        ),
+        el("textarea", {
+            className: "user-notes-input",
+            rows: 2,
+            placeholder: "Add your own notes for this coin...",
+            style: "width:100%;background:var(--color-bg-input);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);color:var(--color-text-main);font-size:var(--font-size-sm);resize:vertical;min-height:40px;box-sizing:border-box;",
+            dataset: {coinId: coin.id},
+        }, coin.user_notes || "")
+    );
+    dp.appendChild(userNotesWrap);
+
+    // Mintage line (single compact line)
     if (coin.mintage) {
-        var mintageEl = el("div", {style: "padding:var(--space-2) var(--space-4);font-size:var(--font-size-sm);color:var(--color-text-muted);"},
+        var mintageEl = el("div", {style: "padding:var(--space-1) var(--space-3);font-size:var(--font-size-sm);color:var(--color-text-muted);"},
             el("span", {style: "font-weight:600;color:var(--color-text-main);"}, "Mintage: "),
             coin.mintage.toLocaleString()
         );
         dp.appendChild(mintageEl);
     }
 
-    // Slots wrapper (rebuildable)
+    // Slots wrapper (rebuildable) — photos are now INSIDE each slot card
     var slotsDiv = el("div", {className: "coin-slots-wrap"});
     dp.appendChild(slotsDiv);
 
-    // Shared Notes (V1 style: pencil icon + label + textarea)
-    var sharedNotesWrap = el("div", {style: "padding:var(--space-2) var(--space-4);"},
-        el("div", {style: "display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);"},
-            el("span", {style: "font-size:var(--font-size-sm);"}, "\u270F\uFE0F"),
-            el("span", {style: "font-weight:600;font-size:var(--font-size-sm);color:var(--color-text-main);"}, "Shared Notes")
+    // Shared Notes
+    var sharedNotesWrap = el("div", {style: "padding:var(--space-1) var(--space-3);"},
+        el("div", {style: "display:flex;align-items:center;gap:var(--space-2);margin-bottom:2px;"},
+            el("span", {style: "font-weight:600;font-size:var(--font-size-sm);color:var(--color-text-main);"}, "\u270F\uFE0F Shared Notes")
         ),
         el("textarea", {
             className: "shared-notes-input",
-            rows: 3,
+            rows: 2,
             placeholder: "Add shared notes for this coin...",
-            style: "width:100%;background:var(--color-bg-body);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:var(--space-2) var(--space-3);color:var(--color-text-main);font-size:var(--font-size-sm);resize:vertical;min-height:60px;"
+            style: "width:100%;background:var(--color-bg-input);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);color:var(--color-text-main);font-size:var(--font-size-sm);resize:vertical;min-height:40px;box-sizing:border-box;"
         }, coin.shared_notes || "")
     );
     dp.appendChild(sharedNotesWrap);
@@ -773,21 +831,37 @@ function buildCoinRow(coin) {
                 saveCoinSlots(coin.id, dp);
             }, 800);
         }
+
+        // User-editable notes autosave
+        if (e.target.closest('.user-notes-input')) {
+            clearTimeout(dp._userNotesTimeout);
+            dp._userNotesTimeout = setTimeout(function() {
+                var ta = dp.querySelector('.user-notes-input');
+                var notes = ta ? ta.value : '';
+                saveCoinNotes(coin.id, notes).catch(function(err) {
+                    console.warn('Failed to save user notes:', err);
+                });
+            }, 800);
+        }
     });
 
     // Track if user explicitly opened the historical note
     var histNoteWasOpen = false;
 
-    // Toggle detail panel open/closed
+    // Toggle detail panel open/closed — INVENTORY GATE: only show slots when qty >= 1
     function toggleDetail(forceOpen) {
+        var qty = getInventoryTotalQty(coin.id);
         var isOpen = forceOpen !== undefined ? forceOpen : !dp.classList.contains("open");
         if (isOpen) {
             dp.classList.add("open");
             detailBtn.textContent = "\u25b2 Less";
             row.classList.add("is-expanded");
-            rebuildSlots();
+            // Only rebuild slots (with photos) when inventory >= 1
+            if (qty >= 1) {
+                rebuildSlots();
+            }
             // If qty is 0 and there's a historical note, auto-open it
-            if (getInventoryTotalQty(coin.id) === 0 && refToggle && rd) {
+            if (qty === 0 && refToggle && rd) {
                 rd.style.display = "block";
                 refToggle.textContent = "\uD83D\uDCD6 Hide Notes";
                 histNoteWasOpen = true;
@@ -836,7 +910,7 @@ function buildCoinRow(coin) {
             var currentCount = getSlotCount(coin.id);
             var maxQty = getInventoryTotalQty(coin.id) || 0;
             if (currentCount < maxQty) {
-                localStorage.setItem("slots_" + coin.id, currentCount + 1);
+                _slotCounts.set(coin.id, currentCount + 1);
                 rebuildSlots();
             }
             return;
@@ -849,7 +923,7 @@ function buildCoinRow(coin) {
             var rmIdx = parseInt(rmSlotBtn.dataset.slotIdx, 10);
             var currentSlots = getSlotCount(coin.id);
             var newCount = Math.max(0, currentSlots - 1);
-            localStorage.setItem("slots_" + coin.id, newCount);
+            _slotCounts.set(coin.id, newCount);
             // Remove the inventory entry for this slot
             var rmEntries = getInventoryEntries(coin.id) || [];
             if (rmEntries[rmIdx] && rmEntries[rmIdx].id) {
@@ -864,11 +938,31 @@ function buildCoinRow(coin) {
             return;
         }
 
-        // Photo upload button
+        // Switch instance tab
+        var tabBtn = e.target.closest('[data-action="switch-instance"]');
+        if (tabBtn) {
+            e.stopPropagation();
+            var tIdx = parseInt(tabBtn.dataset.instanceIdx, 10);
+            // Update tab active states
+            dp.querySelectorAll('.coin-instance-tab').forEach(function(t, ti) {
+                t.classList.toggle('active', ti === tIdx);
+                t.setAttribute('aria-selected', ti === tIdx ? 'true' : 'false');
+            });
+            // Show the selected card, hide others
+            dp.querySelectorAll('.coin-entry-card').forEach(function(card) {
+                var cardIdx = parseInt(card.dataset.instanceIdx, 10);
+                card.style.display = cardIdx === tIdx ? '' : 'none';
+                card.classList.toggle('is-active', cardIdx === tIdx);
+            });
+            return;
+        }
+
+        // Photo upload button — supports data-photo-slot (obv, rev, err)
         var photoBtn = e.target.closest('[data-action="slot-photo"]');
         if (photoBtn) {
             e.stopPropagation();
             var pIdx = parseInt(photoBtn.dataset.slotIdx, 10);
+            var pSlot = photoBtn.dataset.photoSlot || 'obv';
             var fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*';
@@ -879,42 +973,40 @@ function buildCoinRow(coin) {
                 reader.onload = function(re) {
                     var img = new Image();
                     img.onload = function() {
-                        var SIZE = 300;
+                        // Canvas compression pipeline — max 300x300, keep aspect ratio
+                        var MAX = 300;
                         var canvas = document.createElement('canvas');
-                        canvas.width = SIZE;
-                        canvas.height = SIZE;
+                        var scale = Math.min(MAX / img.width, MAX / img.height, 1);
+                        canvas.width = Math.round(img.width * scale);
+                        canvas.height = Math.round(img.height * scale);
                         var ctx = canvas.getContext('2d');
-                        var scale = Math.max(SIZE / img.width, SIZE / img.height);
-                        var drawW = img.width * scale;
-                        var drawH = img.height * scale;
-                        var offX = (SIZE - drawW) / 2;
-                        var offY = (SIZE - drawH) / 2;
-                        ctx.fillStyle = '#000000';
-                        ctx.fillRect(0, 0, SIZE, SIZE);
-                        ctx.drawImage(img, offX, offY, drawW, drawH);
-                        var b64 = canvas.toDataURL('image/webp', 0.85);
-                        // Store photo data on the slot's photo name element
-                        var nameEl = dp.querySelector('.slot-photo-name[data-slot-idx="' + pIdx + '"]');
+                        ctx.fillStyle = '#1a1a1a';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        var b64 = canvas.toDataURL('image/webp', 0.8);
+                        // Store on the per-slot photo name element
+                        var nameSel = '.slot-photo-name[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"]';
+                        var nameEl = dp.querySelector(nameSel);
                         if (nameEl) {
-                            nameEl.textContent = file.name;
+                            nameEl.textContent = '✓';
                             nameEl.dataset.photoB64 = b64;
                         }
-                        // Update photo circle in the entry card
-                        var photoCircle = dp.querySelector('.coin-entry-photo-circle[data-slot-idx="' + pIdx + '"]');
-                        if (photoCircle) {
-                            photoCircle.innerHTML = '<img src="' + b64 + '" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + pIdx + '" alt="Coin photo" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" title="Click to zoom">';
+                        // Update the thumbnail circle for this specific photo slot
+                        var slotCircle = dp.querySelector('.coin-entry-photo-slot[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"] .coin-entry-photo-circle');
+                        if (slotCircle) {
+                            slotCircle.classList.add('has-photo');
+                            slotCircle.innerHTML = '<img src="' + b64 + '" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + pIdx + '" data-photo-slot="' + pSlot + '" alt="' + pSlot + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" title="Click to zoom">';
                         }
-                        // Update button text to "Change" and add remove button
-                        var photoActions = dp.querySelector('.coin-entry-photo-actions');
-                        if (photoActions) {
-                            var btn = photoActions.querySelector('.coin-entry-photo-btn');
-                            if (btn) btn.textContent = 'Change';
-                            if (!photoActions.querySelector('.coin-entry-photo-remove')) {
-                                var rmBtn = el('button', {type:'button', className:'coin-entry-photo-remove', dataset:{action:'slot-photo-remove','slot-idx':String(pIdx)}}, 'Remove');
-                                photoActions.appendChild(rmBtn);
-                            }
+                        // Change the label button to "Change"
+                        var labelBtn = dp.querySelector('.coin-entry-photo-btn[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"]');
+                        if (labelBtn) labelBtn.textContent = 'Change';
+                        // Add remove button for this slot if not present
+                        var photoSlotEl = dp.querySelector('.coin-entry-photo-slot[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"]');
+                        if (photoSlotEl && !photoSlotEl.querySelector('.coin-entry-photo-remove')) {
+                            var rmBtn = el('button', {type:'button', className:'coin-entry-photo-remove', dataset:{action:'slot-photo-remove','slot-idx':String(pIdx),'photo-slot':pSlot}}, '✕');
+                            photoSlotEl.appendChild(rmBtn);
                         }
-                        // Auto-save the photo
+                        // Auto-save
                         saveCoinSlots(coin.id, dp);
                     };
                     img.src = re.target.result;
@@ -938,40 +1030,31 @@ function buildCoinRow(coin) {
             return;
         }
 
-        // Photo remove button
+        // Photo remove button — supports data-photo-slot
         var photoRmBtn = e.target.closest('[data-action="slot-photo-remove"]');
         if (photoRmBtn) {
             e.stopPropagation();
             var prIdx = parseInt(photoRmBtn.dataset.slotIdx, 10);
-            var nameEl2 = dp.querySelector('.slot-photo-name[data-slot-idx="' + prIdx + '"]');
+            var prSlot = photoRmBtn.dataset.photoSlot || 'obv';
+            // Clear the data holder
+            var nameEl2 = dp.querySelector('.slot-photo-name[data-slot-idx="' + prIdx + '"][data-photo-slot="' + prSlot + '"]');
             if (nameEl2) {
-                nameEl2.textContent = 'No photo';
+                nameEl2.textContent = '';
                 delete nameEl2.dataset.photoB64;
             }
-            // Remove preview from photo circle
-            var photoCircle2 = dp.querySelector('.coin-entry-photo-circle[data-slot-idx="' + prIdx + '"]');
-            if (photoCircle2) {
-                photoCircle2.innerHTML = '<svg class="coin-entry-photo-icon" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+            // Reset the thumbnail circle
+            var slotCircle2 = dp.querySelector('.coin-entry-photo-slot[data-slot-idx="' + prIdx + '"][data-photo-slot="' + prSlot + '"] .coin-entry-photo-circle');
+            if (slotCircle2) {
+                slotCircle2.classList.remove('has-photo');
+                slotCircle2.innerHTML = '<svg class="coin-entry-photo-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
             }
-            // Reset button text and remove the remove button
-            var photoActions2 = photoBtn ? photoBtn.closest('.coin-entry-photo-actions') : null;
-            if (!photoActions2) {
-                photoActions2 = dp.querySelector('.coin-entry-photo-actions');
-            }
-            if (photoActions2) {
-                var addBtn2 = photoActions2.querySelector('.coin-entry-photo-btn');
-                if (addBtn2) addBtn2.textContent = 'Add Photo';
-                var rmBtn2 = photoActions2.querySelector('.coin-entry-photo-remove');
-                if (rmBtn2) rmBtn2.remove();
-            }
-            // Clear photo from inventory entry
-            var entries2 = getInventoryEntries(coin.id) || [];
-            if (entries2[prIdx]) {
-                updateInventory(coin.id, { id: entries2[prIdx].id, coin_ref_id: coin.id, quantity: 1, grade: entries2[prIdx].grade||'', purchase_price: entries2[prIdx].purchase_price||0, current_value: entries2[prIdx].current_value||0, date_acquired: entries2[prIdx].date_acquired||'', notes: entries2[prIdx].notes||'', personal_photo: '' });
-                fetchInventory().then(function() {
-                    window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: coin.id } }));
-                });
-            }
+            // Reset label button
+            var labelBtn2 = dp.querySelector('.coin-entry-photo-btn[data-slot-idx="' + prIdx + '"][data-photo-slot="' + prSlot + '"]');
+            if (labelBtn2) labelBtn2.textContent = prSlot.charAt(0).toUpperCase() + prSlot.slice(1);
+            // Remove the remove button
+            if (photoRmBtn.parentNode) photoRmBtn.remove();
+            // Clear photo from data model on save
+            saveCoinSlots(coin.id, dp);
             return;
         }
     });
@@ -1151,27 +1234,30 @@ async function handleCatalogClick(e) {
         return;
     }
 
-    // Country group header toggle (must come BEFORE section check so section
-    // clicks inside the country group don't collapse the country)
-    const countryHeader = target.closest('[data-action="toggle-country"]');
-    if (countryHeader) {
-        e.stopPropagation();
-        const isOpen = countryHeader.nextElementSibling.classList.toggle('open');
-        countryHeader.setAttribute('aria-expanded', String(isOpen));
-        const chev = countryHeader.querySelector('.section-chevron');
-        if (chev) {
-            chev.style.transform = isOpen ? 'rotate(180deg)' : '';
-        }
-        if (isOpen) _expandedCountries.add(countryHeader.dataset.country);
-        else _expandedCountries.delete(countryHeader.dataset.country);
-        return;
-    }
-
-    // Section header toggle
+    // Section header toggle (check FIRST - section header is inside country group header)
     const sectionHeader = target.closest('[data-action="toggle-section"]');
     if (sectionHeader) {
         e.stopPropagation();
         await expandSection(sectionHeader.dataset.section);
+        return;
+    }
+
+    // Country group header toggle
+    const countryHeader = target.closest('[data-action="toggle-country"]');
+    if (countryHeader) {
+        e.stopPropagation();
+        const country = countryHeader.dataset.country;
+        const groupId = 'group-' + country.replace(/\s+/g, '-').toLowerCase();
+        const group = document.getElementById(groupId);
+        const content = group?.querySelector('.country-group-content');
+        const chevron = countryHeader.querySelector('.section-chevron');
+        if (content) {
+            const isOpen = content.classList.toggle('open');
+            countryHeader.setAttribute('aria-expanded', String(isOpen));
+            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
+            if (isOpen) _expandedCountries.add(country);
+            else _expandedCountries.delete(country);
+        }
         return;
     }
 
@@ -1195,7 +1281,7 @@ async function handleCatalogClick(e) {
     const wlBtn = target.closest('[data-action="add-wishlist"]');
     if (wlBtn) {
         e.stopPropagation();
-        await toggleWishlist(parseInt(wlBtn.dataset.coinId, 10));
+        await toggleWishlist(wlBtn.dataset.coinId);
         return;
     }
 
@@ -1345,7 +1431,9 @@ window.addEventListener('cc-inventory-updated', async (e) => {
         }
     });
 
-    // FIX: If the affected coin's detail panel is open, rebuild its slots
+    // Only rebuild slots if the affected coin's detail panel is open AND
+    // the quantity actually changed (not on every autosave). This prevents
+    // the textarea focus-steal bug where typing notes triggers a rebuild.
     if (affectedCoinId) {
         document.querySelectorAll('.coin-row').forEach(row => {
             const cid = parseInt(row.dataset.coinId, 10);
@@ -1353,23 +1441,28 @@ window.addEventListener('cc-inventory-updated', async (e) => {
             const wrapper = row.closest('.coin-row-wrapper');
             if (!wrapper) return;
             const dp = wrapper.querySelector('.coin-detail-panel');
-            const detailBtn = row.querySelector('.coin-row-detail-toggle');
             if (!dp) return;
             const isOpen = dp.classList.contains('open');
+            if (!isOpen) return; // Don't touch closed panels
+
+            const oldSlotCount = getSlotCount(cid);
             const newQty = stateMod.getInventoryTotalQty(cid);
-            // Rebuild slots
-            const slotsDiv = wrapper.querySelector('.coin-slots-wrap');
-            if (slotsDiv) {
-                if (newQty > 0) {
-                    slotsDiv.innerHTML = buildCoinSlots(cid);
-                } else {
-                    slotsDiv.innerHTML = '';
-                }
+            // Clamp slot count to new quantity
+            if (oldSlotCount > newQty) {
+                _slotCounts.set(cid, Math.max(0, newQty));
             }
-            // Only auto-expand if the panel was already open AND user had historical note open
-            if (newQty > 0 && isOpen && dp.dataset.histOpen === 'true') {
-                // Panel was already open, rebuild slots to show new coin slot
-                if (slotsDiv) slotsDiv.innerHTML = buildCoinSlots(cid);
+            const newSlotCount = Math.min(oldSlotCount, newQty);
+
+            // Only rebuild if slot count or quantity actually changed
+            if (newSlotCount !== oldSlotCount || (newQty > 0 && dp.dataset.histOpen === 'true')) {
+                const slotsDiv = wrapper.querySelector('.coin-slots-wrap');
+                if (slotsDiv) {
+                    if (newQty > 0) {
+                        slotsDiv.innerHTML = buildCoinSlots(cid);
+                    } else {
+                        slotsDiv.innerHTML = '';
+                    }
+                }
             }
         });
     }
@@ -1472,9 +1565,7 @@ export async function setCatalogViewMode(mode) {
             var header = typeWrapper.querySelector('.type-header');
             var mainType = header ? header.querySelector('.type-title')?.textContent?.trim() : '';
             if (secName && mainType) {
-                import('./album.js').then(m => {
-                    if (m.renderAlbumType) m.renderAlbumType(secName, mainType, typeContent, header);
-                });
+                renderAlbumType(secName, mainType, typeContent, header);
             }
         });
     }

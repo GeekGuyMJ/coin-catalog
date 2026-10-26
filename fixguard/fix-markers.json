@@ -341,6 +341,12 @@
       "note": "GGMJ-463: _longGuide builds one <table> with all rows instead of one <table> per row; the comment marks the fix block in _longGuide()",
       "path": "app/js/app_v2/infoDropdown.js",
       "scope": "_longGuide"
+    },
+    "GGMJ-477": {
+      "expect": "present",
+      "marker": "their metal at live spot price or their collector/face value",
+      "note": "GGMJ-477: coinweight help text describes both metal-at-spot and face-value estimation paths, matching calcCoinValue behavior",
+      "path": "js/app_v2/portfolio.js"
     }
   }
 }
