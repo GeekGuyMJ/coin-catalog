@@ -79,7 +79,7 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     container.innerHTML = '<div class="section-loading">Loading album...</div>';
 
     let coins = _albumLoaded[sectionName];
-    if (!coins) {
+    if (!Array.isArray(coins) || coins.length === 0) {
         coins = await fetchCoinsForSection(sectionName);
         _albumLoaded[sectionName] = coins;
     }
@@ -211,7 +211,7 @@ export async function renderAlbumView(sectionName) {
 
     // Load coins if needed
     let coins = _albumLoaded[sectionName] || getCoinsForSection(sectionName);
-    if (!coins) {
+    if (!Array.isArray(coins) || coins.length === 0) {
         try {
             const gridArea = container.querySelector('#album-grid-area');
             if (gridArea) gridArea.innerHTML = '<div class="section-loading">Loading coins…</div>';

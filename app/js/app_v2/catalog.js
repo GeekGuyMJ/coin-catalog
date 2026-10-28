@@ -486,7 +486,7 @@ async function expandSection(sectionName) {
 
     // Already loaded?
     const cached = getCoinsForSection(sectionName);
-    if (cached) {
+    if (Array.isArray(cached) && cached.length > 0) {
         renderTypeAccordions(content, cached);
         return;
     }

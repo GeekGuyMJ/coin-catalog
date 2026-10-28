@@ -358,10 +358,27 @@ export function whenSearchIndexReady() {
 }
 
 export async function initDb() {
-    // Check if database needs seeding
+    // Fast-path: if DB is already fully populated, just open the search gate and return
     const refCount = await db.coins_reference.count();
+    const configCount = await db.coin_type_config.count();
+    if (refCount >= 6000 && configCount >= 100) {
+        openSearchIndexGate();
+        return;
+    }
+
+    // Check if database needs seeding
+    
+    // GGMJ-460: Set the data version early so that re-entrant initDb() calls
+    // (e.g., from service worker controllerchange reload during the multi-second
+    // seed) see the version already set and skip re-running migrations.
+    const versionKey = '_hermes_db_data_version';
+    const storedVersion = parseInt(localStorage.getItem(versionKey) || '0', 10);
+    if (storedVersion < DB_DATA_VERSION) {
+        localStorage.setItem(versionKey, String(DB_DATA_VERSION));
+    }
+    
     try {
-        console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
+        console.log('IndexedDB empty or incomplete. Fetching master coins catalog from JSON...');
         const response = await fetch('data/coins.json');
         if (!response.ok) {
             throw new Error(`Failed to load coins.json: HTTP ${response.status}`);
@@ -450,6 +467,10 @@ export async function initDb() {
     }
 
     // Run data migrations (update existing IndexedDB data when coins.json has changed)
+    // CRITICAL: Set data version BEFORE runMigrations() so it doesn't re-run
+    // migrations that fetch coins.json again (migrations 7->8, 8->9, 9->10 all fetch coins.json).
+    // Without this, fresh profile triggers 5x coins.json fetch (~34K rows each).
+    localStorage.setItem('_hermes_db_data_version', String(DB_DATA_VERSION));
     await runMigrations();
     try { healImagesFromSeed(); } catch (e) { console.warn('[db] heal error:', e); }
 }
@@ -460,12 +481,61 @@ export async function initDb() {
 // Runs once per version bump.
 // ============================================================
 
-const DB_DATA_VERSION = 10;  // Increment when coins.json has structural updates
+const DB_DATA_VERSION = 11;  // Increment when coins.json has structural updates
 
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
     const storedVersion = parseInt(localStorage.getItem(versionKey) || '0', 10);
-    if (storedVersion >= DB_DATA_VERSION) return;
+    if (storedVersion >= DB_DATA_VERSION) {
+        // Verify database is actually populated before skipping migrations
+        const refCount = await db.coins_reference.count();
+        const configCount = await db.coin_type_config.count();
+        if (refCount >= 6000 && configCount >= 100) {
+            return;
+        }
+        // Database is incomplete - continue with migrations to heal it
+        console.log('[db] runMigrations: version current but DB incomplete, running migrations anyway');
+    }
+
+    // 2026-10-21 (GGMJ-227): re-point stale type image paths.
+    // The type-config seed only fills EMPTY fields, so a browser that
+    // seeded before the Jefferson era fix kept its old (now 404) paths.
+    // The shipped type_configs.json is the authority for a TYPE's image, so
+    // a stored path that differs from the seed's is replaced by the seed's
+    // value when that value is a real file in the shipped image tree.
+    try {
+        const cfgRes = await fetch(new URL('data/type_configs.json', document.baseURI).href);
+        if (cfgRes.ok) {
+            const shipped = await cfgRes.json();
+            const shippedList = Array.isArray(shipped) ? shipped : (shipped.types || []);
+            const byType = new Map();
+            shippedList.forEach((c) => { if (c && c.coin_type) byType.set(c.coin_type, c); });
+            const stored = await db.coin_type_config.toArray();
+            let repointed = 0;
+            for (const cfg of stored) {
+                const want = byType.get(cfg.coin_type);
+                if (!want) continue;
+                for (const field of ['obv_image', 'rev_image', 'proof_obv_image', 'proof_rev_image']) {
+                    const seedVal = want[field];
+                    const curVal = cfg[field];
+                    if (!seedVal || !curVal || seedVal === curVal) continue;
+                    // Never overwrite a user-assigned image (base64 data).
+                    if (typeof curVal === 'string' && curVal.indexOf('data:') === 0) continue;
+                    // Only replace when the stored path is one of ours and the
+                    // seeded one is a real shipped file.
+                    if (curVal.indexOf('/data/images/') !== 0) continue;
+                    if (seedVal.indexOf('/data/images/') !== 0) continue;
+                    await db.coin_type_config.update(cfg.coin_type, { [field]: seedVal });
+                    repointed++;
+                }
+            }
+            if (repointed) {
+                console.log(`[db] re-pointed ${repointed} stale type image path(s)`);
+            }
+        }
+    } catch (e) {
+        console.warn('[db] type image path refresh skipped:', e);
+    }
 
     console.log(`Running data migration v${storedVersion} → v${DB_DATA_VERSION}...`);
 
@@ -697,6 +767,7 @@ export async function runMigrations() {
         }
     }
 
+
     // Migration 9 → 10 (GGMJ-229): re-type the rows whose coin_type changed in
     // the shipped catalogue. The public app seeds its IndexedDB with a TOP-UP
     // (add missing ids, never update existing ones), so a browser that seeded
@@ -836,9 +907,7 @@ export async function fetchCoinsForSectionLocal(sectionName) {
     // performed the upload. Public (GitHub Pages) has no backend, so it is skipped and
     // falls back to the seeded IndexedDB data. Guarded + non-fatal on failure.
     try {
-        // GGMJ-388: isSelfHosted imported from ./env.js
         if (isSelfHosted) {
-
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
                 const _res = await _native('/api/coins?section=' + encodeURIComponent(sectionName));
@@ -1155,6 +1224,193 @@ export async function deleteInventoryEntryLocal(entryId) {
     return { status: "deleted" };
 }
 
+// ---------------------------------------------------------------------------
+// TYPE & IMAGE MANAGER (GGMJ-227 Phase 1) — local (IndexedDB) implementations
+// ---------------------------------------------------------------------------
+// The static deployments have no backend, so the Type & Image Manager edits
+// the browser's own IndexedDB copies of coin_type_config and coins_reference.
+
+/** Every type config, with the year span and coin count the manager shows. */
+export async function fetchTypeGroupsLocal(params = {}) {
+    const q = (params && params.coin_type ? params.coin_type : '').toLowerCase();
+    const configs = await db.coin_type_config.toArray();
+    const yearsByType = new Map();
+    const coins = await db.coins_reference.toArray();
+    coins.forEach((c) => {
+        if (!c.coin_type) return;
+        if (!yearsByType.has(c.coin_type)) yearsByType.set(c.coin_type, []);
+        yearsByType.get(c.coin_type).push(c);
+    });
+    return configs
+        .filter((cfg) => !q || (cfg.coin_type || '').toLowerCase().includes(q))
+        .map((cfg) => {
+            const rows = yearsByType.get(cfg.coin_type) || [];
+            const years = rows.map((r) => r.year).filter((y) => y != null);
+            return {
+                id: cfg.id,
+                coin_type: cfg.coin_type,
+                obv_image: cfg.obv_image || null,
+                rev_image: cfg.rev_image || null,
+                proof_obv_image: cfg.proof_obv_image || null,
+                proof_rev_image: cfg.proof_rev_image || null,
+                example_obv_image: cfg.example_obv_image || null,
+                example_rev_image: cfg.example_rev_image || null,
+                _deleted_obv_image: !!cfg._deleted_obv_image,
+                _deleted_rev_image: !!cfg._deleted_rev_image,
+                base_price: cfg.base_price || 0,
+                key_price: cfg.key_price || 0,
+                year_start: years.length ? Math.min.apply(null, years) : null,
+                year_end: years.length ? Math.max.apply(null, years) : null,
+                coin_count: rows.length,
+                distinct_years: new Set(years).size,
+            };
+        })
+        .sort((a, b) => (a.coin_type || '').localeCompare(b.coin_type || ''));
+}
+
+/** The years (and coins) mapped to one type. */
+export async function fetchTypeYearsLocal(coinType) {
+    const rows = await db.coins_reference.where('coin_type').equals(coinType).toArray();
+    const byYear = new Map();
+    rows.forEach((r) => {
+        if (!byYear.has(r.year)) byYear.set(r.year, { year: r.year, coins: [] });
+        byYear.get(r.year).coins.push({
+            id: r.id,
+            mint_mark: r.mint_mark || '',
+            section: r.section || '',
+        });
+    });
+    return {
+        coin_type: coinType,
+        years: Array.from(byYear.keys()).sort((a, b) => a - b)
+            .map((y) => byYear.get(y)),
+        distinct_years: byYear.size,
+        coin_count: rows.length,
+    };
+}
+
+/** Re-assign years to a type: detach them from whatever type held them. */
+export async function setTypeYearsLocal(coinType, years) {
+    const wanted = new Set((years || []).map(Number));
+    // Get the section for this coinType to filter by
+    const configs = await db.coin_type_config.toArray();
+    const cfg = configs.find(c => c.coin_type === coinType);
+    const section = cfg ? cfg.section : null;
+    
+    await db.transaction('rw', db.coins_reference, async () => {
+        const rows = await db.coins_reference.toArray();
+        for (const r of rows) {
+            if (!wanted.has(Number(r.year))) continue;
+            if (r.coin_type === coinType) continue;
+            // Only reassign if the coin is in the same section (prevents cross-denomination bleed)
+            if (section && r.section !== section) continue;
+            await db.coins_reference.update(r.id, { coin_type: coinType });
+        }
+    });
+    return await fetchTypeYearsLocal(coinType);
+}
+
+/** Create or update a type config. */
+export async function upsertTypeConfigLocal(data) {
+    const coinType = (data && data.coin_type || '').trim();
+    if (!coinType) throw new Error('coin_type is required');
+    const updates = {};
+    ['obv_image', 'rev_image', 'proof_obv_image', 'proof_rev_image',
+     'example_obv_image', 'example_rev_image'].forEach((f) => {
+        if (data[f] !== undefined) updates[f] = data[f];
+    });
+    if (data.base_price !== undefined) updates.base_price = Number(data.base_price) || 0;
+    if (data.key_price !== undefined) updates.key_price = Number(data.key_price) || 0;
+    const existing = await db.coin_type_config.get(coinType);
+    if (existing) {
+        await db.coin_type_config.update(coinType, updates);
+    } else {
+        await db.coin_type_config.add(Object.assign({ coin_type: coinType }, updates));
+    }
+    const cfg = await db.coin_type_config.get(coinType);
+    return {
+        id: cfg.id,
+        coin_type: cfg.coin_type,
+        obv_image: cfg.obv_image || null,
+        rev_image: cfg.rev_image || null,
+        proof_obv_image: cfg.proof_obv_image || null,
+        proof_rev_image: cfg.proof_rev_image || null,
+        example_obv_image: cfg.example_obv_image || null,
+        example_rev_image: cfg.example_rev_image || null,
+        _deleted_obv_image: !!cfg._deleted_obv_image,
+        _deleted_rev_image: !!cfg._deleted_rev_image,
+        base_price: cfg.base_price || 0,
+        key_price: cfg.key_price || 0,
+    };
+}
+
+/** Delete a type config. */
+export async function deleteTypeConfigLocal(coinType) {
+    const existing = await db.coin_type_config.get(coinType);
+    if (!existing) throw new Error('Type config not found: ' + coinType);
+    await db.coin_type_config.delete(coinType);
+    return { status: 'deleted', coin_type: coinType };
+}
+
+/** Bind an image to a type side. */
+export async function assignTypeImageLocal(coinType, side, image) {
+    const field = { obv: 'obv_image', rev: 'rev_image',
+                    proof_obv: 'proof_obv_image', proof_rev: 'proof_rev_image' }[side];
+    if (!field) throw new Error("side must be 'obv', 'rev', 'proof_obv' or 'proof_rev'");
+    const existing = await db.coin_type_config.get(coinType);
+    if (!existing) {
+        await db.coin_type_config.add({ coin_type: coinType });
+    }
+    const updates = {};
+    updates[field] = image || null;
+    // The flag column is "_deleted_<field>_image", not "_deleted_<side>".
+    // "_deleted_obv" is a key nothing reads, so a soft-deleted config
+    // stayed deleted after a fresh assignment.
+    updates['_deleted_' + field] = false;
+    await db.coin_type_config.update(coinType, updates);
+    const cfg = await db.coin_type_config.get(coinType);
+    return {
+        id: cfg.id,
+        coin_type: cfg.coin_type,
+        obv_image: cfg.obv_image || null,
+        rev_image: cfg.rev_image || null,
+        proof_obv_image: cfg.proof_obv_image || null,
+        proof_rev_image: cfg.proof_rev_image || null,
+        _deleted_obv_image: !!cfg._deleted_obv_image,
+        _deleted_rev_image: !!cfg._deleted_rev_image,
+        base_price: cfg.base_price || 0,
+        key_price: cfg.key_price || 0,
+    };
+}
+
+/** The type images available to the picker. */
+export async function fetchTypeImagesLocal() {
+    const configs = await db.coin_type_config.toArray();
+    const pairs = new Map();
+    configs.forEach((cfg) => {
+        [['obv', cfg.obv_image], ['rev', cfg.rev_image],
+         ['proof_obv', cfg.proof_obv_image], ['proof_rev', cfg.proof_rev_image]]
+            .forEach(([side, path]) => {
+                if (!path) return;
+                if (typeof path !== 'string' || path.indexOf('data:') === 0) return;
+                const file = path.split('/').pop();
+                // Strip the extension and then the side marker. BOTH
+                // separator styles occur on disk: "<base>.obv.webp" (the
+                // canonical form) and "<base>_obv.webp". Only the underscore
+                // form was recognised, so the canonical images never paired
+                // with their reverse. The proof markers are tested first,
+                // because a stem ending in "_proof_obv" also ends in "_obv".
+                const base = file
+                    .replace(/\.(webp|png|jpe?g|gif)$/i, '')
+                    .replace(/[._]proof_(obv|rev)$/i, '')
+                    .replace(/[._](obv|rev)$/i, '');
+                if (!pairs.has(base)) pairs.set(base, { base: base });
+                pairs.get(base)[side] = file;
+            });
+    });
+    return Array.from(pairs.values()).sort((a, b) => a.base.localeCompare(b.base));
+}
+
 export async function fetchTypeConfigsLocal() {
     const configs = await db.coin_type_config.toArray();
     const result = {};
@@ -1181,9 +1437,7 @@ export async function fetchTypeConfigsLocal() {
     // so it is skipped and falls back to the seeded IndexedDB data.
     // Guarded + non-fatal on failure.
     try {
-        // GGMJ-388: isSelfHosted imported from ./env.js
         if (isSelfHosted) {
-
             const _native = window.__nativeFetch || window.fetch;
             if (typeof _native === 'function') {
                 const _res2 = await _native('/api/pricing_rules');
@@ -1269,9 +1523,7 @@ export async function fetchTypeConfigsLocal() {
     // images appear WITHOUT the user having to clear IndexedDB. Never overrides
     // a locally deleted field or a user-assigned base64 image.
     try {
-        // GGMJ-388: isSelfHosted imported from ./env.js
         if (!isSelfHosted) {
-
             const _native2 = window.__nativeFetch || window.fetch;
             if (typeof _native2 === 'function') {
                 const _jres = await _native2('data/type_configs.json');
@@ -1337,44 +1589,6 @@ async function _fetchGoldApiSpot(key) {
 // 2026-09-10: Cloudflare Worker proxy (unlimited, CORS-safe, 15-min edge cache).
 // Replaces direct gold-api.com calls which were rate-limited to 100 req/day.
 // Worker URL: https://coin-catalog-spot.matt-e-jenkins.workers.dev
-/**
- * GGMJ-439 (ported from the self-hosted tree, the SSOT source): upsert a
- * type config. Called by images.js to anchor the type-header example
- * image when a specific coin receives its first image.
- */
-export async function upsertTypeConfigLocal(data) {
-    const coinType = (data && data.coin_type || '').trim();
-    if (!coinType) throw new Error('coin_type is required');
-    const updates = {};
-    ['obv_image', 'rev_image', 'proof_obv_image', 'proof_rev_image',
-     'example_obv_image', 'example_rev_image'].forEach((f) => {
-        if (data[f] !== undefined) updates[f] = data[f];
-    });
-    if (data.base_price !== undefined) updates.base_price = Number(data.base_price) || 0;
-    if (data.key_price !== undefined) updates.key_price = Number(data.key_price) || 0;
-    const existing = await db.coin_type_config.get(coinType);
-    if (existing) {
-        await db.coin_type_config.update(coinType, updates);
-    } else {
-        await db.coin_type_config.add(Object.assign({ coin_type: coinType }, updates));
-    }
-    const cfg = await db.coin_type_config.get(coinType);
-    return {
-        id: cfg.id,
-        coin_type: cfg.coin_type,
-        obv_image: cfg.obv_image || null,
-        rev_image: cfg.rev_image || null,
-        proof_obv_image: cfg.proof_obv_image || null,
-        proof_rev_image: cfg.proof_rev_image || null,
-        example_obv_image: cfg.example_obv_image || null,
-        example_rev_image: cfg.example_rev_image || null,
-        _deleted_obv_image: !!cfg._deleted_obv_image,
-        _deleted_rev_image: !!cfg._deleted_rev_image,
-        base_price: cfg.base_price || 0,
-        key_price: cfg.key_price || 0,
-    };
-}
-
 export async function fetchSpotPricesLocal() {
     const WORKER_URL = "https://coin-catalog-spot.matt-e-jenkins.workers.dev";
 
@@ -1629,13 +1843,6 @@ export async function fetchPortfolioLocal() {
         scrap_value:          0.0,
         paper_value:          0.0,
         other_value:          0.0,
-        // 2026-10-21 (GGMJ-383): the local fallback must expose the same
-        // bucket the server does. The backend's valuation.py adds
-        // investments_value from the user_investment table and includes it in
-        // total_estimated_value; the local path read no such store, so on the
-        // static deployments an investment showed in its own card but never
-        // in the Portfolio Overview.
-        investments_value:    0.0,
     };
 
     let pureCoinCount = 0;
@@ -1801,13 +2008,6 @@ export async function fetchPortfolioLocal() {
         otherQty += qty;
     });
 
-    // ---- Investments (External Investments card) ----
-    // Mirrors backend/services/valuation.py: sum the entries' total_value.
-    const investmentItems = await db.user_investment.toArray();
-    investmentItems.forEach(inv => {
-        stats.investments_value += Number(inv.total_value || 0);
-    });
-
     // ---- Totals ----
     stats.total_physical_coins = pureCoinCount;
     stats.total_items = pureCoinCount + paperCount + otherQty;
@@ -1827,7 +2027,6 @@ export async function fetchPortfolioLocal() {
         stats.bulk_coins_value +
         stats.scrap_value +
         stats.paper_value +
-        stats.investments_value +
         stats.other_value
     );
 
@@ -1990,7 +2189,7 @@ export async function fetchWishlistLocal() {
     const enriched = [];
     for (const row of rows) {
         const coin = row.coin_id ? await _getCoinRefAny(row.coin_id) : undefined;
-        const label = coin ? buildCoinLabel(coin) : undefined;
+        const label = coin ? buildCoinLabel(coin) : null;
         enriched.push(label ? { ...row, description: label.label, coin: label } : row);
     }
     return enriched;
@@ -3047,9 +3246,7 @@ export async function importCSVLocal(csvText) {
 export async function publishSectionLocal(sectionName) {
     console.log('[db] publishSectionLocal called for:', sectionName);
     // Self-hosted detection: Tailscale MagicDNS hostname or LAN IP.
-    // GGMJ-388: isSelfHosted imported from ./env.js
     if (!isSelfHosted) {
-
         // Public/indexedDB version: stub — real publishing only works on self-hosted.
         return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };
     }

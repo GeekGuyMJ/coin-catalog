@@ -68,10 +68,12 @@ function openSettingsDropdown(btn) {
  {key: 'colorblind', label: 'Colorblind Assist', section: 'accessibility' },
  
  // Catalog
- {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
- {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
- 
- // Data & Backup
+  {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
+  {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
+  {key: 'typeManager', label: 'Type & Image Manager', section: 'catalog' },
+  {key: 'imageManager', label: 'Coin Image Bank', section: 'catalog' },
+
+  // Data & Backup
  {key: 'export', label: 'Export & Backup', section: 'data' },
  {key: 'import', label: 'Import & Restore', section: 'data' },
  
@@ -79,14 +81,13 @@ function openSettingsDropdown(btn) {
  {key: 'cloudSync', label: 'Cloud Sync', section: 'cloud' },
  
  // Advanced
- {key: 'pricingRules', label: 'Pricing Rules', section: 'advanced' },
- {key: 'completion', label: 'Completion Dashboard', section: 'advanced' },
- {key: 'missingImages', label: 'Find Missing Images', section: 'advanced' },
- {key: 'imageManager', label: 'Coin Image Bank', section: 'advanced' },
- {key: 'printChecklist', label: 'Print Checklist', section: 'advanced' },
- {key: 'customCard', label: 'Custom Dashboard Card', section: 'advanced' },
- 
- // Danger Zone
+  {key: 'pricingRules', label: 'Pricing Rules', section: 'advanced' },
+  {key: 'completion', label: 'Completion Dashboard', section: 'advanced' },
+  {key: 'missingImages', label: 'Find Missing Images', section: 'advanced' },
+  {key: 'printChecklist', label: 'Print Checklist', section: 'advanced' },
+  {key: 'customCard', label: 'Custom Dashboard Card', section: 'advanced' },
+
+  // Danger Zone
  {key: 'purgeInventory', label: 'Reset Data / Images', section: 'danger' },
  ];
 
@@ -173,10 +174,12 @@ export function openSettingsSection(key) {
  case 'colorblind': showColorblindModal(); break;
  
  // Catalog
- case 'displayFilters': showDisplayFiltersModal(); break;
- case 'bullionVis': showBullionVisibilityModal(); break;
- 
- // Data & Backup
+  {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
+  {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
+  {key: 'typeManager', label: 'Type & Image Manager', section: 'catalog' },
+  {key: 'imageManager', label: 'Coin Image Bank', section: 'catalog' },
+
+  // Data & Backup
  case 'export': showExportModal(); break;
  case 'import': showImportModal(); break;
  

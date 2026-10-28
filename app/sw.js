@@ -1,8 +1,11 @@
 // Coin Catalog — Public GitHub Pages Service Worker
 // v271: NETWORK-FIRST for JS/JSON/images; cache-first for CSS/icons.
 // Bumping CACHE purges all previously-cached (possibly stale) assets.
-const CACHE = "coin-catalog-v467";
-const BASE = "/coin-catalog/app/";
+const CACHE = "coin-catalog-v514";
+// GGMJ-460: Dynamic base path — GitHub Pages serves from /coin-catalog/app/,
+// Cloudflare Pages and self-hosted serve from root /. Derive from the SW's
+// own location so it works on all deployments.
+const BASE = new URL("./", self.location).pathname;
 const ASSETS = [
   BASE,
   BASE + "index.html",
