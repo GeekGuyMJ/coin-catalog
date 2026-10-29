@@ -4554,13 +4554,26 @@ body.ready-mode-active .ready-badge { display: flex; }
 
 /* ===== Colorblind Assist (deuteranopia / protanopia safe palette) ===== */
 /* Recolor badges into distinct blue / purple / orange hues (Okabe-Ito CVD-safe),
-   plus folder/owned accents into distinguishable tones. */
+   plus folder/owned accents into distinguishable tones. */body.cc-colorblind .badge-super-rare { color: #009e73; background: rgba(0,158,115,0.16); }
+
 body.cc-colorblind .badge-key   { color: #0072b2; background: rgba(0,114,178,0.16); }
 body.cc-colorblind .badge-proof { color: #cc79a7; background: rgba(204,121,167,0.16); }
 body.cc-colorblind .badge-error { color: #e69f00; background: rgba(230,159,0,0.16); }
 body.cc-colorblind .badge-silver{ color: #8a6d3b; background: rgba(138,109,59,0.16); }
+body.cc-colorblind .badge-semi-key { color: #e69f00; background: rgba(230,159,0,0.16); }
 body.cc-colorblind .badge-key, body.cc-colorblind .badge-proof,
-body.cc-colorblind .badge-error { border: 1px solid currentColor; }
+body.cc-colorblind .badge-error, body.cc-colorblind .badge-semi-key { border: 1px solid currentColor; }
+
+/* Colorblind overrides for status colors (success/danger) */
+body.cc-colorblind {
+    --color-success: #009e73;
+    --color-danger:  #cc79a7;
+}
+
+/* Colorblind overrides for trend indicators */
+body.cc-colorblind .trend-up   { color: #009e73; }
+body.cc-colorblind .trend-down { color: #cc79a7; }
+body.cc-colorblind .trend-neutral { color: #e69f00; }
 .spot-item {
     flex-wrap: nowrap !important;
     gap: 8px !important;

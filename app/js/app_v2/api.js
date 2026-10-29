@@ -123,22 +123,21 @@ async function serverFetch(path, init) {
 // ============================================================
 
 // Core catalog APIs
-/* 2026-10-01: this was the ONLY coin endpoint with no isSelfHosted
-   branch -- every other one (fetchSections, fetchCoin, fetchInventory)
-   had it. So on self-hosted the section LIST came from the database while
-   the coin ROWS came from IndexedDB, which db.js seeds from
-   data/coins.json. The two stores number rows independently:
-
-       positions where the coin matches      633 of 5,970  (10.6%)
-       shared ids naming a DIFFERENT coin    591 of 900    (66%)
-
-   That mismatch rendered two Canadian coins (a 1940 fifty-cent and a
-   1941 cent) as 2026 Jefferson nickels. Routing the rows to the same
-   API the section list uses removes the second source entirely. */
+// 2026-10-01: this was the ONLY coin endpoint with no isSelfHosted
+// branch -- every other one (fetchSections, fetchCoin, fetchInventory)
+// had it. So on self-hosted the section LIST came from the database while
+// the coin ROWS came from IndexedDB, which db.js seeds from
+// data/coins.json. The two stores number rows independently:
+//
+//     positions where the coin matches      633 of 5,970  (10.6%)
+//     shared ids naming a DIFFERENT coin    591 of 900    (66%)
+//
+// That mismatch rendered two Canadian coins (a 1940 fifty-cent and a
+// 1941 cent) as 2026 Jefferson nickels. Routing the rows to the same
+// API the section list uses removes the second source entirely.
 export const fetchCoinsForSection = isSelfHosted
-    ? async (section) => serverFetch(
-        '/api/coins?section=' + encodeURIComponent(section))
-    : wrap(fetchCoinsForSectionLocal);
+   ? async (sectionName) => serverFetch('/api/coins?section=' + encodeURIComponent(sectionName || ''))
+   : wrap(fetchCoinsForSectionLocal);
 
 export const fetchCoin = isSelfHosted
     ? async (coinId) => serverFetch('/api/coins/' + coinId)
@@ -422,11 +421,13 @@ export const deleteUserCoin = isSelfHosted
 
 // Reset / purge all data (mode: 'data_only' | 'full_reset')
 export const factoryResetData = isSelfHosted
-    ? async (mode) => serverFetch('/api/backup/factory_reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: mode || 'data_only' }),
-    })
+    ? async (mode) => {
+        return serverFetch('/api/backup/factory_reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode: mode || 'data_only' }),
+        });
+      }
     : wrap(factoryResetDataLocal);
 
 // Local-only features (no server equivalent) - always use local DB

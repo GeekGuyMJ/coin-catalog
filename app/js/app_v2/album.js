@@ -93,8 +93,9 @@ export async function renderAlbumType(sectionName, typeName, container, header) 
     
     // Set folder color dynamically
     const fc = localStorage.getItem('cc-folder-color') || 'green';
-    const fcMap = (localStorage.getItem('cc-colorblind')==='1'?{green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'}:{green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'});
-    const ftMap = {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
+    const isColorblind = localStorage.getItem('cc-colorblind') === '1';
+    const fcMap = isColorblind ? {green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'} : {green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'};
+    const ftMap = isColorblind ? {green:'#7db3d8',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#aaaaaa',purple:'#c9a0d4',gray:'#aaaaaa'} : {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
     const fcVal = fcMap[fc] || fcMap.green;
     const ftVal = ftMap[fc] || ftMap.green;
     container.style.background = 'var(--folder-color)';
@@ -315,8 +316,9 @@ function renderAlbumLayout(container) {
     
     // Set folder color dynamically
     const fc = localStorage.getItem('cc-folder-color') || 'green';
-    const fcMap = (localStorage.getItem('cc-colorblind')==='1'?{green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'}:{green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'});
-    const ftMap = {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
+    const isColorblind = localStorage.getItem('cc-colorblind') === '1';
+    const fcMap = isColorblind ? {green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'} : {green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'};
+    const ftMap = isColorblind ? {green:'#7db3d8',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#aaaaaa',purple:'#c9a0d4',gray:'#aaaaaa'} : {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
     const fcVal = fcMap[fc] || fcMap.green;
     const ftVal = ftMap[fc] || ftMap.green;
     document.documentElement.style.setProperty('--folder-color', fcVal);

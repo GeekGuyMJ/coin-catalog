@@ -182,6 +182,42 @@ window.openPaperCurrencyModal = openPaperCurrencyModal;
 window.openCollectablesModal  = openCollectablesModal;
 
 // ============================================================
+<<<<<<< HEAD
+=======
+// View Toggle — List vs Album
+// ============================================================
+
+function initViewToggle() {
+    const toggle = document.getElementById('view-toggle');
+    if (!toggle) return;
+    toggle.style.display = 'inline-flex';
+
+    const listBtn = document.getElementById('view-list-btn');
+    const albumBtn = document.getElementById('view-album-btn');
+
+    if (!listBtn || !albumBtn) return;
+
+    listBtn.addEventListener('click', () => {
+        if (listBtn.classList.contains('active')) return;
+        listBtn.classList.add('active');
+        albumBtn.classList.remove('active');
+        const container = document.getElementById('catalog-container');
+        if (container) container.classList.remove('album-mode');
+        import('./catalog.js').then(m => m.renderSections());
+    });
+
+    albumBtn.addEventListener('click', () => {
+        if (albumBtn.classList.contains('active')) return;
+        albumBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        const container = document.getElementById('catalog-container');
+        if (container) container.classList.add('album-mode');
+        import('./album.js').then(m => m.renderAlbumView(null));
+    });
+}
+
+// ============================================================
+>>>>>>> 544878f (Critical security fix + Coin Catalog v2 feature changes)
 // Splash control — defined here so it's always available
 // ============================================================
 

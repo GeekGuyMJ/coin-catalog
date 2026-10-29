@@ -376,90 +376,94 @@ function showFolderColorModal() {
 
 // Card Visibility
 async function showCardVisibilityModal() {
- // GGMJ-431: derive the list from the cards the dashboard ACTUALLY
- // renders, instead of a hard-coded array. The old array listed 9 cards
- // while the dashboard renders 15, so six cards (investments, trend,
- // gallery, backup, support, search) could not be hidden at all, and a
- // newly added card would never appear here. Each card's own .card-title
- // supplies the label, so there is no second list of titles to keep in
- // sync.
- //
- // card-search lives OUTSIDE #dashboard-grid (it is the search bar), so
- // the grid is scanned first and any remaining card in the document is
- // appended after it.
- //
- // The dashboard renders asynchronously, so on a cold load the grid can
- // still be empty when this panel is opened - which is how the first
- // version of this fix produced a ONE-row list (only card-search) while
- // the dashboard went on to render 15 cards. A bounded wait is not
- // enough: measured on the preview the grid populates at t=3.5s, past
- // any fixed budget. The list is therefore kept in sync with the DOM by
- // a MutationObserver: the panel is built with whatever is rendered at
- // open time and re-derived whenever the grid changes, so a cold open
- // corrects itself and a card added in a future release appears here
- // automatically.
- const grid = document.getElementById('dashboard-grid');
- const seen = new Set();
- const cards = [];
- const addCard = (elCard) => {
-  if (!elCard || seen.has(elCard.id)) return;
-  seen.add(elCard.id);
-  // Prefer the card's own .card-title. card-search is the one card with
-  // no title element, so fall back to its accessible name (the sr-only
-  // <label>), then to a readable form of the id - never the bare id.
-  const titleEl = elCard.querySelector('.card-title');
-  const ariaEl = elCard.querySelector('[aria-label]');
-  const srEl = elCard.querySelector('.sr-only');
-  const label = (titleEl ? titleEl.textContent : '').trim()
-   || (ariaEl ? (ariaEl.getAttribute('aria-label') || '') : '').trim()
-   || (srEl ? srEl.textContent : '').trim()
-   || elCard.id.replace(/^card-/, '').replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, c => c.toUpperCase());
-  cards.push({ key: elCard.id, label });
- };
- const collect = () => {
-  seen.clear();
-  cards.length = 0;
-  if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
-  document.querySelectorAll('[id^=card-]').forEach(addCard);
- };
- collect();
+// GGMJ-431: derive the list from the cards the dashboard ACTUALLY
+// renders, instead of a hard-coded array. The old array listed 9 cards
+// while the dashboard renders 15, so six cards (investments, trend,
+// gallery, backup, support, search) could not be hidden at all, and a
+// newly added card would never appear here. Each card's own .card-title
+// supplies the label, so there is no second list of titles to keep in
+// sync.
+//
+// card-search lives OUTSIDE #dashboard-grid (it is the search bar), so
+// the grid is scanned first and any remaining card in the document is
+// appended after it.
+//
+// The dashboard renders asynchronously, so on a cold load the grid can
+// still be empty when this panel is opened - which is how the first
+// version of this fix produced a ONE-row list (only card-search) while
+// the dashboard went on to render 15 cards. A bounded wait is not
+// enough: measured on the preview the grid populates at t=3.5s, past
+// any fixed budget. The list is therefore kept in sync with the DOM by
+// a MutationObserver: the panel is built with whatever is rendered at
+// open time and re-derived whenever the grid changes, so a cold open
+// corrects itself and a card added in a future release appears here
+// automatically.
+const grid = document.getElementById('dashboard-grid');
+const seen = new Set();
+const cards = [];
+const addCard = (elCard) => {
+ if (!elCard || seen.has(elCard.id)) return;
+ seen.add(elCard.id);
+ // Prefer the card's own .card-title. card-search is the one card with
+ // no title element, so fall back to its accessible name (the sr-only
+ // <label>), then to a readable form of the id - never the bare id.
+ const titleEl = elCard.querySelector('.card-title');
+ const ariaEl = elCard.querySelector('[aria-label]');
+ const srEl = elCard.querySelector('.sr-only');
+ const label = (titleEl ? titleEl.textContent : '').trim()
+  || (ariaEl ? (ariaEl.getAttribute('aria-label') || '') : '').trim()
+  || (srEl ? srEl.textContent : '').trim()
+  || elCard.id.replace(/^card-/, '').replace(/[-_]+/g, ' ')
+   .replace(/\b\w/g, c => c.toUpperCase());
+ cards.push({ key: elCard.id, label });
+};
+const collect = () => {
+ seen.clear();
+ cards.length = 0;
+ if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
+ document.querySelectorAll('[id^=card-]').forEach(addCard);
+};
+collect();
 
- // The app reads and writes the 'cc-card-visibility' JSON MAP
- // (portfolio.js parses it on every dashboard render). The old code
- // wrote a separate localStorage key per card, which nothing read, so
- // every toggle was a no-op and the card came back on reload.
- const readVis = () => {
-  try {
-   const v = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
-   return (v && typeof v === 'object') ? v : {};
-  } catch(e) { return {}; }
- };
- let vis = readVis();
+// The app reads and writes the 'cc-card-visibility' JSON MAP
+// (portfolio.js parses it on every dashboard render). The old code
+// wrote a separate localStorage key per card, which nothing read, so
+// every toggle was a no-op and the card came back on reload.
+const readVis = () => {
+ try {
+  const v = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
+  return (v && typeof v === 'object') ? v : {};
+ } catch(e) { return {}; }
+};
+let vis = readVis();
 
- const applyCardVisibility = (key, visible) => {
-  // Hide the live card as well as persisting the choice, so the toggle
-  // is visible without a reload.
-  document.querySelectorAll('#' + CSS.escape(key)).forEach(elCard => {
-   elCard.style.display = visible ? '' : 'none';
-  });
- };
-
- const buildControls = (list) => list.map(c => {
-  const checked = vis[c.key] !== false;
-  return el('div', { className: 'settings-toggle-row' }, [
-   el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
-    const on = e.target.checked;
-    vis[c.key] = on;
-    localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
-    applyCardVisibility(c.key, on);
-    dispatchSettingsChange('cc-card-visibility', vis);
-   }}),
-   el('label', { for: 'vis-' + c.key }, c.label),
-  ]);
+const applyCardVisibility = (key, visible) => {
+// Hide the live card as well as persisting the choice, so the toggle
+// is visible without a reload.
+document.querySelectorAll('#' + CSS.escape(key)).forEach(elCard => {
+ elCard.style.display = visible ? '' : 'none';
  });
+};
 
- const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
+const buildControls = (list) => list.map(c => {
+ const checked = vis[c.key] !== false;
+ return el('div', { className: 'settings-toggle-row' }, [
+  el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
+   const on = e.target.checked;
+   vis[c.key] = on;
+   localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
+   applyCardVisibility(c.key, on);
+   dispatchSettingsChange('cc-card-visibility', vis);
+   // Apply immediately: re-render the dashboard so the toggle takes effect live
+   import('./portfolio.js').then(function(m) {
+   if (m.renderDashboard) m.renderDashboard();
+   });
+  }}),
+  el('label', { for: 'vis-' + c.key }, c.label),
+ ]);
+});
+
+const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
  const body = _sectionBody(
   'Dashboard Card Visibility',
   'Show or hide entire dashboard cards.',
@@ -820,8 +824,15 @@ function showCustomCardModal() {
  { id: 'completion', label: 'Completion %', formatter: v => v + '%' },
  { id: 'goldMelt', label: 'Gold Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'silverMelt', label: 'Silver Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'platinumMelt', label: 'Platinum Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'palladiumMelt', label: 'Palladium Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'copperMelt', label: 'Copper Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'bulkValue', label: 'Bulk Coins Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'paperValue', label: 'Paper Currency Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'scrapValue', label: 'Scrap Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'rawBullion', label: 'Raw Bullion Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'otherValue', label: 'Other Collectables Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
+ { id: 'faceValue', label: 'Face Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
  { id: 'custom', label: 'Custom Text/Number', formatter: v => v },
  ];
  
@@ -903,30 +914,8 @@ function showCustomCardModal() {
  placeholder: 'Enter custom text or number'
  })
  ]),
- 
- // Optional: Background color
- el('div', { className: 'form-group' }, [
- el('label', {}, 'Background Color'),
- el('input', { 
- type: 'color', 
- id: 'custom-card-bg-color', 
- className: 'cc-color-input',
- value: '#2d4a2d'
- })
- ]),
- 
- // Optional: Text color
- el('div', { className: 'form-group' }, [
- el('label', {}, 'Text Color'),
- el('input', { 
- type: 'color', 
- id: 'custom-card-text-color', 
- className: 'cc-color-input',
- value: '#ffffff'
- })
- ]),
- ]);
- 
+]));
+
  const modalId = 'modal-custom-card';
  const footer = el('div', { className: 'modal-footer' }, [
  el('button', { className: 'btn-secondary', onclick: () => closeModal(modalId) }, 'Cancel'),
@@ -937,25 +926,21 @@ function showCustomCardModal() {
  const dataSource = document.getElementById('custom-card-source').value;
  const displayStyle = document.getElementById('custom-card-style').value;
  const customValue = document.getElementById('custom-card-custom-value').value;
- const bgColor = document.getElementById('custom-card-bg-color').value;
- const textColor = document.getElementById('custom-card-text-color').value;
- 
+
  if (!title) {
  showToast('Please enter a card title', 'error');
  return;
  }
- 
+
  const newCard = {
  id: Date.now().toString(),
  title,
  dataSource,
  displayStyle,
  customValue: dataSource === 'custom' ? customValue : null,
- bgColor,
- textColor,
  createdAt: new Date().toISOString()
  };
- 
+
  customCards.push(newCard);
  localStorage.setItem('cc-custom-cards', JSON.stringify(customCards));
  showToast('Custom card created!', 'success');
@@ -1059,8 +1044,6 @@ function renderCustomCardsOnDashboard() {
  // Create card element
  const cardEl = document.createElement('div');
  cardEl.className = 'card dashboard-card custom-dashboard-card';
- cardEl.style.backgroundColor = card.bgColor;
- cardEl.style.color = card.textColor;
  cardEl.style.gridColumn = 'span 1';
  cardEl.innerHTML = `
  <div class="card-title">${card.title}</div>
