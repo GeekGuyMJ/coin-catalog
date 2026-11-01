@@ -914,7 +914,7 @@ function showCustomCardModal() {
  placeholder: 'Enter custom text or number'
  })
  ]),
-]));
+]);
 
  const modalId = 'modal-custom-card';
  const footer = el('div', { className: 'modal-footer' }, [

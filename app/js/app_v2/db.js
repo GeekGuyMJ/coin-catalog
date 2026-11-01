@@ -1380,6 +1380,37 @@ export async function upsertTypeConfigLocal(data) {
     };
 }
 
+/** Bind an image to a type side. */
+export async function assignTypeImageLocal(coinType, side, image) {
+    const field = { obv: 'obv_image', rev: 'rev_image',
+                    proof_obv: 'proof_obv_image', proof_rev: 'proof_rev_image' }[side];
+    if (!field) throw new Error("side must be 'obv', 'rev', 'proof_obv' or 'proof_rev'");
+    const existing = await db.coin_type_config.get(coinType);
+    if (!existing) {
+        await db.coin_type_config.add({ coin_type: coinType });
+    }
+    const updates = {};
+    updates[field] = image || null;
+    // The flag column is "_deleted_<field>_image", not "_deleted_<side>".
+    // "_deleted_obv" is a key nothing reads, so a soft-deleted config
+    // stayed deleted after a fresh assignment.
+    updates['_deleted_' + field] = false;
+    await db.coin_type_config.update(coinType, updates);
+    const cfg = await db.coin_type_config.get(coinType);
+    return {
+        id: cfg.id,
+        coin_type: cfg.coin_type,
+        obv_image: cfg.obv_image || null,
+        rev_image: cfg.rev_image || null,
+        proof_obv_image: cfg.proof_obv_image || null,
+        proof_rev_image: cfg.proof_rev_image || null,
+        _deleted_obv_image: !!cfg._deleted_obv_image,
+        _deleted_rev_image: !!cfg._deleted_rev_image,
+        base_price: cfg.base_price || 0,
+        key_price: cfg.key_price || 0,
+    };
+}
+
 export async function fetchSpotPricesLocal() {
     const WORKER_URL = "https://coin-catalog-spot.matt-e-jenkins.workers.dev";
 
