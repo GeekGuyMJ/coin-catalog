@@ -358,27 +358,19 @@ export function whenSearchIndexReady() {
 }
 
 export async function initDb() {
-    // Fast-path: if DB is already fully populated, just open the search gate and return
+    // Fast-path: if DB is already fully populated, just open the search gate and return.
+    // This avoids re-fetching coins.json and type_configs.json on every boot.
     const refCount = await db.coins_reference.count();
     const configCount = await db.coin_type_config.count();
     if (refCount >= 6000 && configCount >= 100) {
+        console.log('[db] initDb fast-path: DB already seeded (refCount=' + refCount + ', configCount=' + configCount + ')');
         openSearchIndexGate();
         return;
     }
 
     // Check if database needs seeding
-    
-    // GGMJ-460: Set the data version early so that re-entrant initDb() calls
-    // (e.g., from service worker controllerchange reload during the multi-second
-    // seed) see the version already set and skip re-running migrations.
-    const versionKey = '_hermes_db_data_version';
-    const storedVersion = parseInt(localStorage.getItem(versionKey) || '0', 10);
-    if (storedVersion < DB_DATA_VERSION) {
-        localStorage.setItem(versionKey, String(DB_DATA_VERSION));
-    }
-    
     try {
-        console.log('IndexedDB empty or incomplete. Fetching master coins catalog from JSON...');
+        console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
         const response = await fetch('data/coins.json');
         if (!response.ok) {
             throw new Error(`Failed to load coins.json: HTTP ${response.status}`);
@@ -419,7 +411,8 @@ export async function initDb() {
         openSearchIndexGate();
     }
 
-    const configCount = await db.coin_type_config.count();
+    // configCount was already fetched for the fast-path check above.
+    // Only seed type configs if we didn't take the fast-path (i.e., configCount < 100).
     let needsSeed = configCount === 0;
     if (needsSeed) {
         console.log('Fetching type configs from JSON...');
@@ -486,16 +479,7 @@ const DB_DATA_VERSION = 11;  // Increment when coins.json has structural updates
 export async function runMigrations() {
     const versionKey = '_hermes_db_data_version';
     const storedVersion = parseInt(localStorage.getItem(versionKey) || '0', 10);
-    if (storedVersion >= DB_DATA_VERSION) {
-        // Verify database is actually populated before skipping migrations
-        const refCount = await db.coins_reference.count();
-        const configCount = await db.coin_type_config.count();
-        if (refCount >= 6000 && configCount >= 100) {
-            return;
-        }
-        // Database is incomplete - continue with migrations to heal it
-        console.log('[db] runMigrations: version current but DB incomplete, running migrations anyway');
-    }
+    if (storedVersion >= DB_DATA_VERSION) return;
 
     // 2026-10-21 (GGMJ-227): re-point stale type image paths.
     // The type-config seed only fills EMPTY fields, so a browser that
@@ -1817,7 +1801,11 @@ export async function fetchPortfolioLocal() {
 
     // Map references for quick access
     const refMap = {};
-    references.forEach(r => { refMap[r.id] = r; });
+    references.forEach(r => { 
+        refMap[r.id] = r; 
+        // Also index by string version for reliable lookup regardless of type
+        refMap[String(r.id)] = r; 
+    });
 
     // Map type configs
     const configs = {};
@@ -1843,6 +1831,7 @@ export async function fetchPortfolioLocal() {
         scrap_value:          0.0,
         paper_value:          0.0,
         other_value:          0.0,
+        investments_value:    0.0,
     };
 
     let pureCoinCount = 0;
@@ -1898,13 +1887,17 @@ export async function fetchPortfolioLocal() {
         const mt = b.metal_type || "";
         const wt = b.total_weight_grams || 0;
         if (mt === "CopperPennies") {
-            stats.bulk_coins_value += wt * 0.95 * (spot.copper || 0);
+            // Pre-1982 copper pennies: 3.11g each, 95% copper → copper melt
+            stats.copper_coin_melt += wt * 0.95 * (spot.copper || 0);
         } else if (mt === "ZincPennies") {
+            // Post-1982 zinc pennies: 2.5g each → face value $0.01
             stats.bulk_coins_value += (wt / 2.5) * 0.01;
         } else if (mt === "Nickels") {
+            // Nickels: 5.0g each → face value $0.05
             stats.bulk_coins_value += (wt / 5.0) * 0.05;
         } else if (mt === "SilverCoins90") {
-            stats.bulk_coins_value += wt * 0.90 * (spot.silver || 0);
+            // 90% silver coins by weight → silver melt
+            stats.silver_coin_melt += wt * 0.90 * (spot.silver || 0);
         } else if (mt === "EisenhowerClad") {
             // 2026-10-10 (Matthew), corrected: the Eisenhower series ended 1978
             // and every circulation strike is copper-nickel clad -- no silver.
@@ -2027,7 +2020,8 @@ export async function fetchPortfolioLocal() {
         stats.bulk_coins_value +
         stats.scrap_value +
         stats.paper_value +
-        stats.other_value
+        stats.other_value +
+        stats.investments_value
     );
 
     // Round all floats
