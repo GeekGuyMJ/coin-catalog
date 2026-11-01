@@ -913,6 +913,7 @@ function buildWishlistCard(wishlist) {
     var itemsDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;display:flex;flex-direction:column;gap:6px;padding-right:4px;' });
     
     if (!wishlist || wishlist.length === 0) {
+        itemsDiv.classList.add('is-empty');
         itemsDiv.appendChild(el('p', { style: 'font-size:0.82em;color:var(--color-text-muted);margin:0;padding:10px 0;text-align:center;' }, 'Your wishlist is empty. Tap the ♥ heart next to any coin in the catalog to add it.'));
     } else {
         wishlist.forEach(function(item) {
@@ -1836,6 +1837,7 @@ function buildBullionCard(items, p, prices) {
     // Entries list grouped by metal — flex-grow to fill card height
     var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (items.length === 0) {
+        listDiv.classList.add('is-empty');
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No bullion entries yet. Add your first entry below.'));
         // Remove min-height gap when empty
         listDiv.style.minHeight = '0';
@@ -2124,6 +2126,7 @@ function buildCoinsByWeightCard(bulkEntries, prices) {
     // Entries list — flex-grow to fill card height
     var entriesDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (!bulkEntries || bulkEntries.length === 0) {
+        entriesDiv.classList.add('is-empty');
         entriesDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No bulk coin entries yet. Add your first batch below.'));
     } else {
         // Group entries by metal type
@@ -2700,6 +2703,7 @@ function buildScrapMetalCard(items, prices) {
     // Existing items list
     var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (items.length === 0) {
+        listDiv.classList.add('is-empty');
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No scrap items yet.'));
     } else {
         items.forEach(function(item) {
@@ -2873,6 +2877,7 @@ function buildPaperCurrencyCard(items) {
     // Items list
     var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (items.length === 0) {
+        listDiv.classList.add('is-empty');
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No banknotes yet.'));
         // Remove min-height gap when empty
         listDiv.style.minHeight = '0';
@@ -3182,6 +3187,7 @@ function buildCustomCategoriesCard(categories, collectables) {
     // Items list grouped by category
     var listDiv = el('div', { className: 'v1-item-list', style: 'flex:1;overflow-y:auto;min-height:80px;max-height:200px;margin-bottom:10px;' });
     if (collectables.length === 0) {
+        listDiv.classList.add('is-empty');
         listDiv.appendChild(el('p', { style: 'font-size:0.8em;color:var(--color-text-muted);margin:0 0 6px;' }, 'No collectables yet.'));
         // Remove min-height gap when empty
         listDiv.style.minHeight = '0';
