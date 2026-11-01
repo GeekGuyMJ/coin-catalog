@@ -410,6 +410,11 @@ let _otherCollectables = [];
 export const getOtherCollectables = () => _otherCollectables;
 export const setOtherCollectables = (v) => { _otherCollectables = v; };
 
+// ---- Portfolio History Log ----
+let _portfolioHistoryLog = [];
+export const getValueHistoryLog = () => _portfolioHistoryLog;
+export const setValueHistoryLog = (v) => { _portfolioHistoryLog = v; _notify('portfolioHistory', v); };
+
 
 // ---- Purge All Inventory ----
 /**

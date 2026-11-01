@@ -401,8 +401,7 @@ export function renderDashboard() {
     if (pap.length > 0) { var p2 = buildPaperCurrencyCard(pap); if (p2) { if (vis['card-paper'] === false) p2.style.display='none'; addDragHandle(p2); p2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-paper', 'Paper currency notes with denomination, series year, condition, and estimated value.')); c.appendChild(p2); } }
 
     var cats = getCustomCategories(); var cols = getOtherCollectables();
-    if (cats.length > 0) { var c2 = buildCustomCategoriesCard(cats, cols); if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-custom', 'Items in your custom collection categories — anything you collect that is not a coin (stamps, cards, memorabilia, etc.).')); c.appendChild(c2); } }
-}
+    if (cats.length > 0) { var c2 = buildCustomCategoriesCard(cats, cols); if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-custom', 'Items in your custom collection categories - anything you collect that is not a coin (stamps, cards, memorabilia, etc.).')); c.appendChild(c2); } }
 
 function buildCompletionCard(sections) {
     if (!sections || !sections.length) return null;

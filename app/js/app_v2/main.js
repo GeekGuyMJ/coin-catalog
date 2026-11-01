@@ -26,7 +26,6 @@ import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrenc
 import { openStoriesModal } from './stories.js';
 import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDropdown.js';
 import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection, showCloudSyncModal } from './settingsDropdown.js';
-import { openTypeManager, closeTypeManager } from './typeManager.js';
 import { handleOAuthCallback } from './sync.js';
 import { initWishlist, openWishlistPanel } from './wishlist.js';
 
