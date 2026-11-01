@@ -402,6 +402,7 @@ export function renderDashboard() {
 
     var cats = getCustomCategories(); var cols = getOtherCollectables();
     if (cats.length > 0) { var c2 = buildCustomCategoriesCard(cats, cols); if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-custom', 'Items in your custom collection categories - anything you collect that is not a coin (stamps, cards, memorabilia, etc.).')); c.appendChild(c2); } }
+}
 
 function buildCompletionCard(sections) {
     if (!sections || !sections.length) return null;

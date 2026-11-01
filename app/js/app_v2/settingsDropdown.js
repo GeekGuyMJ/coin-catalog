@@ -11,7 +11,6 @@ import { setTheme, getCustomThemeName } from './themes.js';
 import { isSelfHosted } from './env.js';
 import { showToast } from './notifications.js';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
-import { openTypeManager } from './typeManager.js';
 import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, openResetDataModal, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
 
 let _dropdownEl = null;
@@ -72,7 +71,6 @@ function openSettingsDropdown(btn) {
  // Catalog
  {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
  {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
- {key: 'typeManager', label: 'Type & Image Manager', section: 'catalog' },
 
  // Data & Backup
  
@@ -190,7 +188,6 @@ export function openSettingsSection(key) {
  case 'pricingRules': openPricingRulesModal(); break;
  case 'completion': openCompletionDashboard(); break;
  case 'missingImages': filterMissingImages(); break;
-    case 'typeManager': openTypeManager(); break;
  case 'imageManager': openImageManager(); break;
  case 'saveDefaults': saveCurrentImagesAsDefaults(); break;
  case 'printChecklist': openPrintChecklist(); break;

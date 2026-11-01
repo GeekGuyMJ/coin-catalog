@@ -312,7 +312,7 @@ function buildCountryGroup(country, sections) {
     });
 
     // Restore expansion state
-    if (_expandedCountries.has(country)) {
+    if (_expandedCountries.has(country) || sections.some(sec => _expandedSections.has(sec.section))) {
         content.classList.add('open');
         header.setAttribute('aria-expanded', 'true');
         chevron.style.transform = 'rotate(180deg)';
