@@ -1,0 +1,8 @@
+node_modules/
+*.bak
+*.bak_*
+*.bak.*
+package.json
+package-lock.json
+sync_test.txt
+find_half.py

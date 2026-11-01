@@ -3584,6 +3584,15 @@ function showAbout() {
  `Version ${version}`,
  [
  { text: 'A coin and collectable collection tracker with live metal prices, album view, and comprehensive inventory management.' },
+ { heading: 'Privacy & Data Ownership — 100% Yours, Zero Data Collected', list: [
+ 'All collection data is stored locally on your server — no cloud sync unless you explicitly configure it',
+ 'No accounts, no sign-in, no telemetry, no third-party analytics, no tracking pixels',
+ 'Live spot prices are fetched from a public metals API (Yahoo Finance) — no personal data sent',
+ 'Images you upload stay on your server; they never leave your infrastructure',
+ 'Export your full data anytime from Settings → Data & Backup (JSON, CSV, ZIP)',
+ 'Factory Reset options: wipe everything, or keep your uploaded images',
+ 'You own your data. Period.',
+ ]},
  { heading: 'What it does', list: [
  'Tracks 6,400+ US coin types across albums and sections (Half Cent through modern issues, US Gold, Bullion Eagles, Commemoratives, State/Park Quarters, Presidential Dollars, First Spouse coins, plus Canadian coins cent through $2 Toonie)',
  '4-level hierarchy: Section → Series → Sub-type → Individual coin — every variety has its own entry',
@@ -6848,14 +6857,17 @@ function showImageSources() {
 function showPrivacy() {
  const version = window.APP_VERSION || 'dev';
  const body = _sectionBody(
- 'Privacy & Reporting Bugs',
+ 'Privacy & Data Ownership — 100% Yours, Zero Data Collected',
  `Coin Catalog v2 — ${version}`,
  [
  { heading: 'Your data stays yours', list: [
- 'All collection data is stored locally on your your server',
- 'No accounts, no telemetry, no third-party analytics',
- 'Live spot prices are fetched from a public metals API only',
- 'Export anytime from Settings → Data & Backup',
+ 'All collection data is stored locally on your server — no cloud sync unless you explicitly configure it',
+ 'No accounts, no sign-in, no telemetry, no third-party analytics, no tracking pixels',
+ 'Live spot prices are fetched from a public metals API (Yahoo Finance) — no personal data sent',
+ 'Images you upload stay on your server; they never leave your infrastructure',
+ 'Export your full data anytime from Settings → Data & Backup (JSON, CSV, ZIP)',
+ 'Factory Reset options: wipe everything, or keep your uploaded images',
+ 'You own your data. Period.',
  ]},
  { heading: 'Reporting a bug', list: [
  'Through Telegram: message the catalog bot with a description and screenshot',

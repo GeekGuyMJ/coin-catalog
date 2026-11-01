@@ -1,4 +1,48 @@
 /*
+/* =========================================================================
+   GGMJ-426 - sticky headers need a NON-SCROLLING ancestor
+
+   base.css sets overflow-x: hidden on <body> and .container. That computes
+   to overflow: hidden auto, which makes BOTH of them scroll containers - and
+   position: sticky pins to the nearest SCROLLING ancestor. The headers were
+   therefore pinning to a scrollport that never scrolled, while the document
+   scrolled straight past them.
+
+   base.css is byte-locked to the other tree by the fixguard shared-file
+   check, so the correction lives here: components.v2.css is the file that is
+   allowed to differ between the two trees. overflow-x: clip keeps the
+   horizontal clipping GGMJ-183 needed, but unlike hidden it does NOT create
+   a scroll container - so the document becomes the sticky scrollport again.
+   ========================================================================= */
+body,
+.container {
+    overflow-x:    clip;
+}
+
+:root {
+    /* GGMJ-426: the measured height of a .section-header (42px desktop,
+       36px on a phone). updateStickyOffsets() sets this on each
+       .section-card as --my-section-header-height; this is the fallback
+       used before that runs, and it is what the .type-header offset
+       falls back to. */
+    --section-header-height: 42px;
+}
+
+/* GGMJ-426: base.css's own `@media (max-width: 768px)` block still says
+   the country header is 48px, but it MEASURES 56px on a 375px viewport,
+   so the section header was told to pin at 48px and overlapped the
+   country header by 8px. base.css is byte-locked to the other tree by the
+   fixguard shared-file check, so the corrected values are set here -
+   components.v2.css is loaded after base.css, so these win. */
+@media (max-width: 768px) {
+    :root {
+        --country-bar-height: 56px;
+        --section-bar-top:    56px;
+        --section-header-height: 36px;
+        --type-bar-top:       92px;
+    }
+}
+
  * components.css — Coin Catalog v2
  *
  * Reusable UI components: cards, buttons, modals, badges, steppers,
@@ -87,104 +131,6 @@
 .btn-secondary:hover:not(:disabled) {
     background: var(--color-accord-bg);
     border-color: var(--color-accent);
-}
-
-
-/* GGMJ-428: the Other Investments card, brought in line with every other
-   dashboard card.
-
-   (a) The section rows were too big: the 'Stocks' section label rendered
-       at 13.6px/600 while the item under it rendered at 16px/400, so the
-       item text was LARGER than its own section heading. The heading is now
-       0.85rem/700 uppercase muted with the same 6px 0 2px margins the other
-       cards use, and the item names are 0.9em/600 - the same 0.9em/600 the
-       other cards use - so the heading is visibly the larger of the two.
-
-   (b) The total was a big showy box at the BOTTOM of the card: a
-       254x88px .finance-item.grand-total with a 2px accent border, a
-       24px/700 accent value and a 13.6px/600 label. Every other card puts
-       its total in the card header row as a small right-aligned figure,
-       so the card becomes a 2-column grid and the total moves up into the
-       header row beside the title, restyled to that pattern: value
-       1.1rem/700 in the accent colour, the label 0.8rem muted beneath it,
-       no border, no background, right-aligned.
-
-   Everything here is scoped to #card-investments. The shared
-   .finance-item.grand-total rule is NOT changed - the Portfolio Overview
-   card uses it too and must keep its hero look. */
-#card-investments {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: baseline;
-    column-gap: 8px;
-    row-gap: 10px;
-}
-#card-investments > .card-title {
-    grid-column: 1;
-    grid-row: 1;
-    margin-bottom: 0;
-}
-#card-investments > .finance-item.grand-total {
-    grid-column: 2;
-    grid-row: 1;
-}
-#card-investments > .inv-list {
-    grid-column: 1 / -1;
-    grid-row: 2;
-}
-#card-investments > .v1-form {
-    grid-column: 1 / -1;
-    grid-row: 3;
-}
-#card-investments > .v1-form-actions {
-    grid-column: 1 / -1;
-    grid-row: 4;
-}
-#card-investments > .finance-item.grand-total {
-    background: none;
-    border: 0;
-    border-radius: 0;
-    padding: 0;
-    margin: 0;
-    text-align: right;
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: flex-end;
-    gap: 0;
-    min-width: 0;
-}
-#card-investments > .finance-item.grand-total .finance-value.bold {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--color-accent);
-    line-height: 1.15;
-    white-space: nowrap;
-}
-#card-investments > .finance-item.grand-total .finance-label {
-    font-size: 0.8rem;
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: 0;
-    color: var(--color-text-muted);
-    margin: 0;
-    max-width: 7.5em;
-    text-align: right;
-}
-#card-investments .inv-list .finance-item {
-    padding: 6px 8px;
-    font-size: 0.85rem;
-}
-#card-investments .inv-list .finance-label {
-    font-size: 1em;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--color-text-muted);
-    margin: 6px 0 2px;
-}
-#card-investments .inv-list .finance-item > div > div {
-    font-size: 0.9em;
-    font-weight: 600;
 }
 
 /* GGMJ-429: ONE type scale and ONE height for the dashboard card ACTION
@@ -388,6 +334,9 @@
 .badge-error { color: #f97316; background: rgba(249, 115, 22, 0.12); }
 .badge-historical { color: #a78bfa; background: rgba(167, 139, 250, 0.12); }
 
+.badge-super-rare { color: #e879f9; background: rgba(232, 121, 249, 0.12); }
+
+
 .count-badge {
     font-size:     0.7rem;
     font-weight:   600;
@@ -416,6 +365,16 @@
 /* =========================================================================
    Search bar
    ========================================================================= */
+
+#card-search.card.search-card {
+    background:    var(--color-bg-card);
+    border:        2px solid var(--color-border);
+    border-radius: 12px;
+    padding:       var(--space-4);
+    margin-bottom: var(--space-4);
+    box-shadow:    var(--shadow-md);
+    overflow:      clip;
+}
 
 .search-card {
     padding: var(--space-4);
@@ -514,6 +473,189 @@
     box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
 
+/* ================================================================
+   Compact Search Toolbar (GGMJ-538)
+   Two-row layout:
+   Row 1: Search input + inline Min/Max year
+   Row 2: Filter pills + inline sort selector
+   ================================================================ */
+
+#card-search.compact-toolbar {
+    padding: var(--space-2) var(--space-3);
+    margin-bottom: var(--space-3);
+}
+
+#card-search.compact-toolbar .search-toolbar-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-2);
+}
+
+#card-search.compact-toolbar .search-toolbar-row:last-child {
+    margin-bottom: 0;
+}
+
+#card-search.compact-toolbar .search-toolbar-row-1 {
+    gap: var(--space-2);
+}
+
+#card-search.compact-toolbar .search-input-wrapper {
+    flex: 1;
+    min-width: 200px;
+    max-width: 100%;
+}
+
+#card-search.compact-toolbar .search-input {
+    width: 100%;
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--font-size-sm);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-body);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-main);
+}
+
+#card-search.compact-toolbar .search-input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+#card-search.compact-toolbar .year-range-inline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex-wrap: wrap;
+}
+
+#card-search.compact-toolbar .year-input-inline {
+    flex: 1 1 80px;
+    min-width: 80px;
+    max-width: 120px;
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-body);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-main);
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+#card-search.compact-toolbar .year-input-inline::-webkit-outer-spin-button,
+#card-search.compact-toolbar .year-input-inline::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#card-search.compact-toolbar .year-input-inline:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+#card-search.compact-toolbar .search-toolbar-row-2 {
+    justify-content: space-between;
+    align-items: center;
+}
+
+#card-search.compact-toolbar .filter-pills-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1);
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#card-search.compact-toolbar .filter-pill-compact {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 15%, transparent);
+    color: var(--color-accent);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition-fast);
+}
+
+#card-search.compact-toolbar .filter-pill-compact.active {
+    background: var(--color-accent);
+    color: var(--color-accent-text);
+}
+
+#card-search.compact-toolbar .filter-pill-compact:hover {
+    box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 40%, transparent);
+}
+
+#card-search.compact-toolbar .sort-selector-wrapper {
+    flex: 0 0 auto;
+}
+
+#card-search.compact-toolbar .sort-select-compact {
+    padding: var(--space-1) var(--space-2);
+    font-size: var(--font-size-xs);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-body);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-main);
+    min-width: 140px;
+    cursor: pointer;
+}
+
+#card-search.compact-toolbar .sort-select-compact:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+/* Mobile: 2-row layout, Desktop: 1-row layout */
+@media (min-width: 769px) {
+    #card-search.compact-toolbar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+    }
+
+    #card-search.compact-toolbar .search-toolbar-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        flex-wrap: nowrap;
+        margin-bottom: 0;
+    }
+
+    #card-search.compact-toolbar .search-toolbar-row-1 {
+        flex: 1 1 auto;
+        min-width: 300px;
+    }
+
+    #card-search.compact-toolbar .search-toolbar-row-2 {
+        flex: 0 0 auto;
+        justify-content: flex-end;
+        gap: var(--space-2);
+    }
+
+    #card-search.compact-toolbar .year-range-inline {
+        gap: var(--space-1);
+    }
+
+    #card-search.compact-toolbar .filter-pills-compact {
+        flex: 0 0 auto;
+        min-width: auto;
+        order: 1;
+    }
+
+    #card-search.compact-toolbar .sort-selector-wrapper {
+        order: 2;
+    }
+}
+
 /* =========================================================================
    Catalog — Country Groups
    ========================================================================= */
@@ -521,50 +663,6 @@
 .country-group {
     margin-bottom: var(--space-4);
     overflow:      visible;
-}
-
-/* =========================================================================
-   GGMJ-426 - sticky headers need a NON-SCROLLING ancestor
-
-   base.css sets overflow-x: hidden on <body> and .container. That computes
-   to overflow: hidden auto, which makes BOTH of them scroll containers - and
-   position: sticky pins to the nearest SCROLLING ancestor. The headers were
-   therefore pinning to a scrollport that never scrolled, while the document
-   scrolled straight past them.
-
-   base.css is byte-locked to the other tree by the fixguard shared-file
-   check, so the correction lives here: components.v2.css is the file that is
-   allowed to differ between the two trees. overflow-x: clip keeps the
-   horizontal clipping GGMJ-183 needed, but unlike hidden it does NOT create
-   a scroll container - so the document becomes the sticky scrollport again.
-   ========================================================================= */
-body,
-.container {
-    overflow-x:    clip;
-}
-
-:root {
-    /* GGMJ-426: the measured height of a .section-header (42px desktop,
-       36px on a phone). updateStickyOffsets() sets this on each
-       .section-card as --my-section-header-height; this is the fallback
-       used before that runs, and it is what the .type-header offset
-       falls back to. */
-    --section-header-height: 42px;
-}
-
-/* GGMJ-426: base.css's own `@media (max-width: 768px)` block still says
-   the country header is 48px, but it MEASURES 56px on a 375px viewport,
-   so the section header was told to pin at 48px and overlapped the
-   country header by 8px. base.css is byte-locked to the other tree by the
-   fixguard shared-file check, so the corrected values are set here -
-   components.v2.css is loaded after base.css, so these win. */
-@media (max-width: 768px) {
-    :root {
-        --country-bar-height: 56px;
-        --section-bar-top:    56px;
-        --section-header-height: 36px;
-        --type-bar-top:       92px;
-    }
 }
 
 .country-group-header {
@@ -842,14 +940,7 @@ body,
     z-index:         130;
     position:        -webkit-sticky;
     position:        sticky;
-    /* GGMJ-426: the type header sits under the section header, which sits
-       under the country header. updateStickyOffsets() measures both and
-       sets them on the .country-group and the .section-card, and both
-       INHERIT into this element - so read those two, and only fix the
-       fallback: the section header is 42px, not the 56px that was
-       hard-coded here, which had pushed the type header 14px too low
-       (56+56=112 instead of 56+42=98). */
-    top:             calc(var(--my-country-header-height, var(--country-bar-height, 56px)) + var(--my-section-header-height, var(--section-header-height, 42px)));
+    top:             calc(var(--my-country-header-height, 56px) + var(--my-section-header-height, 56px));
     user-select:     none;
     gap:             var(--space-3);
 }
@@ -2327,18 +2418,10 @@ select optgroup {
     max-height: calc(100vh - 120px);
     overflow-y: auto;
     position: sticky;
-    /* GGMJ-426: 80px was a stale guess; the app header is 89px tall. */
-    top: 89px;
+    top: 80px;
 }
 
 .album-country-header {
-    /* GGMJ-426: the album view had NO sticky rule, so the country headings
-       scrolled away with the list. Pin them to the top of the sidebar's own
-       scrollport. */
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--color-bg-card);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -3911,32 +3994,6 @@ select optgroup {
     box-sizing: border-box;
 }
 
-/* GGMJ-431: a hidden dashboard card must actually be hidden.
-
-   The rules above declare `display: ... !important`, and an !important
-   declaration in a stylesheet BEATS an inline style. The visibility code
-   hides a card by setting el.style.display = 'none' (that is the app's
-   convention - portfolio.js and catalog.js both use it), so that inline
-   style was being overridden and the card stayed on screen. Measured
-   before this change: with the visibility map set to
-   {"card-investments": false} the card's inline style was "none" but its
-   computed display was still "grid".
-
-   These rules restore the inline style's authority for the hidden case
-   only, and only for cards that are actually hidden. Both are
-   !important, so specificity decides, and both of these are more
-   specific than the rules they override:
-     .dashboard-card                        (0,1,0)
-     .dashboard-card[style*="display: none"] (0,2,0)
-     #card-investments                      (1,0,0)
-     #card-investments[style*="display: none"] (1,1,0)
-   The [style*=...] idiom is already used in this file (see the
-   .v1-form rule below). */
-.dashboard-card[style*="display: none"],
-#card-investments[style*="display: none"] {
-    display: none !important;
-}
-
 /* Card width classes work with 4-column grid */
 .dashboard-grid .dashboard-card.card-w-25 { grid-column: span 1; }
 .dashboard-grid .dashboard-card.card-w-50 { grid-column: span 2; }
@@ -5270,6 +5327,93 @@ html, body {
     }
 }
 
+/* ============================================================
+ * TYPE & IMAGE MANAGER (GGMJ-227)
+ * ============================================================ */
+.tm-body { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.tm-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tm-search {
+    flex: 1 1 220px; min-width: 160px; padding: 8px 12px; border-radius: 20px;
+    border: 1px solid var(--color-border); background: var(--color-bg-body);
+    color: var(--color-text-main); font-size: 0.9em;
+}
+.tm-columns { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr); gap: 12px; min-height: 0; }
+.tm-list {
+    max-height: 58vh; overflow-y: auto; padding-right: 4px;
+    border-right: 1px solid var(--color-border-light);
+}
+.tm-editor { max-height: 58vh; overflow-y: auto; padding-left: 4px; }
+.tm-group { margin-bottom: 8px; border: 1px solid var(--color-border-light); border-radius: 8px; background: var(--color-bg-card); }
+.tm-group-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 8px 10px; cursor: pointer; font-size: 0.85em; font-weight: 700;
+    color: var(--color-accent); text-transform: uppercase; letter-spacing: 0.05em;
+    list-style: none; outline: none; user-select: none;
+}
+.tm-group-head::-webkit-details-marker { display: none; }
+.tm-group-count { font-size: 0.75em; font-weight: 400; color: var(--color-text-muted); text-transform: none; letter-spacing: 0; }
+.tm-group-list { padding: 0 8px 8px 8px; display: flex; flex-direction: column; gap: 6px; }
+.tm-type-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+    border: 1px solid var(--color-border-light); border-radius: 6px;
+    background: var(--color-bg-body); cursor: pointer;
+}
+.tm-type-row:hover { border-color: var(--color-accent); }
+.tm-selected { border-color: var(--color-accent); background: var(--color-bg-active); }
+.tm-thumb {
+    width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; overflow: hidden;
+    background: var(--color-accord-bg); border: 1px solid var(--color-border);
+    display: flex; align-items: center; justify-content: center;
+}
+.tm-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.tm-thumb-empty { color: var(--color-text-muted); font-size: 0.8em; }
+.tm-thumb-broken { background: var(--color-danger); }
+.tm-type-info { flex: 1; min-width: 0; }
+.tm-type-name { font-weight: 600; font-size: 0.85em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-type-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 3px; }
+.tm-chip {
+    font-size: 0.7em; padding: 1px 7px; border-radius: 10px;
+    background: var(--color-bg-active); color: var(--color-text-muted);
+}
+.tm-type-actions { flex-shrink: 0; }
+.tm-btn { font-size: 0.75em; padding: 4px 10px; }
+.tm-editor-head { margin-bottom: 10px; }
+.tm-editor-title { margin: 0 0 2px 0; font-size: 1em; color: var(--color-accent); word-break: break-word; }
+.tm-editor-meta { font-size: 0.75em; color: var(--color-text-muted); }
+.tm-section { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border-light); }
+.tm-section:last-child { border-bottom: none; }
+.tm-section-head { margin: 0 0 8px 0; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-accent); }
+.tm-year-list { display: flex; flex-direction: column; gap: 2px; max-height: 180px; overflow-y: auto; }
+.tm-year-row { display: flex; align-items: center; gap: 8px; font-size: 0.8em; padding: 2px 0; cursor: pointer; }
+.tm-year { font-weight: 600; min-width: 42px; }
+.tm-mints { color: var(--color-text-muted); font-size: 0.9em; }
+.tm-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.tm-label { font-size: 0.75em; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.tm-input, .tm-select {
+    padding: 7px 10px; border-radius: 6px; border: 1px solid var(--color-border);
+    background: var(--color-bg-body); color: var(--color-text-main); font-size: 0.85em; width: 100%;
+}
+.tm-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.tm-actions-right { justify-content: flex-end; }
+.tm-hint { font-size: 0.75em; color: var(--color-text-muted); margin: 4px 0 0 0; }
+.tm-empty { padding: 20px 10px; text-align: center; color: var(--color-text-muted); font-size: 0.85em; }
+.tm-danger .tm-section-head { color: var(--color-danger); }
+.tm-image-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tm-image-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.tm-image-cell .tm-thumb { width: 64px; height: 64px; }
+.tm-image-actions { display: flex; gap: 6px; }
+.tm-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 8px; max-height: 50vh; overflow-y: auto; margin-top: 10px; }
+.tm-picker-cell img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 50%; border: 1px solid var(--color-border); cursor: pointer; background: var(--color-accord-bg); }
+.tm-picker-cell img:hover { border-color: var(--color-accent); }
+.tm-create { display: flex; flex-direction: column; }
+
+@media (max-width: 700px) {
+    .tm-columns { grid-template-columns: 1fr; }
+    .tm-list { max-height: 32vh; border-right: none; border-bottom: 1px solid var(--color-border-light); padding-bottom: 8px; }
+    .tm-editor { max-height: 46vh; padding-left: 0; }
+    .tm-image-grid { grid-template-columns: 1fr 1fr; }
+}
+
 /* ================================================================
    Info - long reference guides (searchable, collapsible). 2026-10-21
    GGMJ-430: this block was lost with the 477-line deletion in the
@@ -5339,3 +5483,117 @@ html, body {
     border-bottom: 1px solid var(--color-border-light);
 }
 .info-guide-tbl th { color: var(--color-text-muted); font-weight: 600; }
+
+/* =========================================================================
+   Card Help Popup (GGMJ-544, 2026-11-01)
+   ========================================================================= */
+.card-help-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    animation: modalIn 0.14s ease-out;
+}
+.card-help-popup {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    max-width: 90vw;
+    max-height: 80vh;
+    width: 380px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.card-help-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--color-border);
+}
+.card-help-popup-title {
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--color-text-main);
+}
+.card-help-popup-close {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast), color var(--transition-fast);
+}
+.card-help-popup-close:hover {
+    background: var(--color-accord-bg);
+    color: var(--color-text-main);
+}
+.card-help-popup-body {
+    padding: var(--space-3) var(--space-4);
+    overflow-y: auto;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-text-main);
+    max-height: 60vh;
+}
+
+/* Dashboard card help icon positioning is handled inline in JS (top:32px; right:6px) */
+/* The .help-icon class gets its styles applied inline, but we add hover/touch improvements here */
+.dashboard-card .help-icon:hover,
+.dashboard-card .help-icon:focus-visible {
+    transform: scale(1.1) !important;
+    opacity: 1 !important;
+}
+
+/* ================================================================
+   6. Uniform Add + Hide button row across all entry cards
+   GGMJ-503: Remove !important from display so JS-controlled inline
+   style (display:none) and hidden attribute win. Attribute selectors
+   provide belt-and-suspenders: respect inline display:none, [hidden],
+   and aria-expanded="false" on the sibling Add button.
+   ================================================================ */
+.v1-form-actions {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    margin-top: 6px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.v1-form-actions .v1-add-btn {
+    flex: 1 1 auto;
+    margin: 0;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.v1-form-actions .v1-cancel-btn {
+    flex: 0 0 auto;
+    margin: 0;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Respect JS-controlled visibility: inline style, hidden attribute, or aria-expanded on sibling Add button */
+.v1-cancel-btn[style*="display: none"],
+.v1-cancel-btn[hidden],
+.v1-add-btn[aria-expanded="false"] ~ .v1-cancel-btn {
+    display: none !important;
+}

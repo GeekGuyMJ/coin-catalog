@@ -831,9 +831,52 @@ async function _restoreFromGoogleDrive(auth) {
 // Dropbox — Backup / Restore
 // ============================================================
 
+async function _refreshDropboxToken(auth) {
+  const refreshToken = auth.refreshToken;
+  if (!refreshToken) throw new Error('No Dropbox refresh token available');
+
+  const creds = CREDENTIALS.dropbox;
+  const tokenResp = await fetch('https://api.dropboxapi.com/oauth2/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken,
+      client_id: creds.clientId,
+    }),
+  });
+
+  if (!tokenResp.ok) {
+    const errBody = await tokenResp.text();
+    throw new Error('Dropbox token refresh failed (HTTP ' + tokenResp.status + '): ' + errBody);
+  }
+
+  const tokenData = await tokenResp.json();
+  const newAccessToken = tokenData.access_token;
+  const newExpiresAt = tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : null;
+
+  // Update stored auth state with new token
+  setProviderAuthState('dropbox', {
+    accessToken: newAccessToken,
+    expiresAt: newExpiresAt,
+  });
+
+  return newAccessToken;
+}
+
+async function _getDropboxAccessToken(auth) {
+  if (!auth || !auth.accessToken) {
+    throw new Error('Not authenticated with Dropbox. Please sign in again.');
+  }
+  // Refresh if expired or within 5-minute window (300,000ms)
+  if (auth.expiresAt && Date.now() > auth.expiresAt - 300000) {
+    return await _refreshDropboxToken(auth);
+  }
+  return auth.accessToken;
+}
+
 async function _syncToDropbox(jsonStr, auth) {
-  const token = auth.accessToken;
-  if (!token) throw new Error('No Dropbox access token');
+  const token = await _getDropboxAccessToken(auth);
 
   // Upload file via Dropbox API v2
   const uploadResp = await fetch('https://content.dropboxapi.com/2/files/upload', {
@@ -858,8 +901,7 @@ async function _syncToDropbox(jsonStr, auth) {
 }
 
 async function _restoreFromDropbox(auth) {
-  const token = auth.accessToken;
-  if (!token) throw new Error('No Dropbox access token');
+  const token = await _getDropboxAccessToken(auth);
 
   // Download file
   const dlResp = await fetch('https://content.dropboxapi.com/2/files/download', {

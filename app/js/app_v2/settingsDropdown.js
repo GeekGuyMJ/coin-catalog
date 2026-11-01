@@ -6,10 +6,12 @@
  */
 
 import { el, escHtml } from './utils.js';
-import { getSpotPrices } from './state.js';
+import { getSpotPrices, setFilterHideProofs, setFilterHideErrors, setFilterKeyDatesOnly } from './state.js';
 import { showToast } from './notifications.js';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
+import { openTypeManager } from './typeManager.js';
 import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, openResetDataModal, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
+import { getAutoBackupHours } from './sync.js';
 
 let _dropdownEl = null;
 
@@ -82,6 +84,7 @@ function openSettingsDropdown(btn) {
  {key: 'pricingRules', label: 'Pricing Rules', section: 'advanced' },
  {key: 'completion', label: 'Completion Dashboard', section: 'advanced' },
  {key: 'missingImages', label: 'Find Missing Images', section: 'advanced' },
+ {key: 'typeManager', label: 'Type & Image Manager', section: 'advanced' },
  {key: 'imageManager', label: 'Coin Image Bank', section: 'advanced' },
  {key: 'printChecklist', label: 'Print Checklist', section: 'advanced' },
  {key: 'customCard', label: 'Custom Dashboard Card', section: 'advanced' },
@@ -187,6 +190,7 @@ export function openSettingsSection(key) {
  case 'pricingRules': openPricingRulesModal(); break;
  case 'completion': openCompletionDashboard(); break;
  case 'missingImages': filterMissingImages(); break;
+    case 'typeManager': openTypeManager(); break;
  case 'imageManager': openImageManager(); break;
  case 'saveDefaults': saveCurrentImagesAsDefaults(); break;
  case 'printChecklist': openPrintChecklist(); break;
@@ -376,94 +380,92 @@ function showFolderColorModal() {
 
 // Card Visibility
 async function showCardVisibilityModal() {
-// GGMJ-431: derive the list from the cards the dashboard ACTUALLY
-// renders, instead of a hard-coded array. The old array listed 9 cards
-// while the dashboard renders 15, so six cards (investments, trend,
-// gallery, backup, support, search) could not be hidden at all, and a
-// newly added card would never appear here. Each card's own .card-title
-// supplies the label, so there is no second list of titles to keep in
-// sync.
-//
-// card-search lives OUTSIDE #dashboard-grid (it is the search bar), so
-// the grid is scanned first and any remaining card in the document is
-// appended after it.
-//
-// The dashboard renders asynchronously, so on a cold load the grid can
-// still be empty when this panel is opened - which is how the first
-// version of this fix produced a ONE-row list (only card-search) while
-// the dashboard went on to render 15 cards. A bounded wait is not
-// enough: measured on the preview the grid populates at t=3.5s, past
-// any fixed budget. The list is therefore kept in sync with the DOM by
-// a MutationObserver: the panel is built with whatever is rendered at
-// open time and re-derived whenever the grid changes, so a cold open
-// corrects itself and a card added in a future release appears here
-// automatically.
-const grid = document.getElementById('dashboard-grid');
-const seen = new Set();
-const cards = [];
-const addCard = (elCard) => {
- if (!elCard || seen.has(elCard.id)) return;
- seen.add(elCard.id);
- // Prefer the card's own .card-title. card-search is the one card with
- // no title element, so fall back to its accessible name (the sr-only
- // <label>), then to a readable form of the id - never the bare id.
- const titleEl = elCard.querySelector('.card-title');
- const ariaEl = elCard.querySelector('[aria-label]');
- const srEl = elCard.querySelector('.sr-only');
- const label = (titleEl ? titleEl.textContent : '').trim()
-  || (ariaEl ? (ariaEl.getAttribute('aria-label') || '') : '').trim()
-  || (srEl ? srEl.textContent : '').trim()
-  || elCard.id.replace(/^card-/, '').replace(/[-_]+/g, ' ')
-   .replace(/\b\w/g, c => c.toUpperCase());
- cards.push({ key: elCard.id, label });
-};
-const collect = () => {
- seen.clear();
- cards.length = 0;
- if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
- document.querySelectorAll('[id^=card-]').forEach(addCard);
-};
-collect();
+ // GGMJ-431: derive the list from the cards the dashboard ACTUALLY
+ // renders, instead of a hard-coded array. The old array listed 9 cards
+ // while the dashboard renders 15, so six cards (investments, trend,
+ // gallery, backup, support, search) could not be hidden at all, and a
+ // newly added card would never appear here. Each card's own .card-title
+ // supplies the label, so there is no second list of titles to keep in
+ // sync.
+ //
+ // card-search lives OUTSIDE #dashboard-grid (it is the search bar), so
+ // the grid is scanned first and any remaining card in the document is
+ // appended after it.
+ //
+ // The dashboard renders asynchronously, so on a cold load the grid can
+ // still be empty when this panel is opened - which is how the first
+ // version of this fix produced a ONE-row list (only card-search) while
+ // the dashboard went on to render 15 cards. A bounded wait is not
+ // enough: measured on the preview the grid populates at t=3.5s, past
+ // any fixed budget. The list is therefore kept in sync with the DOM by
+ // a MutationObserver: the panel is built with whatever is rendered at
+ // open time and re-derived whenever the grid changes, so a cold open
+ // corrects itself and a card added in a future release appears here
+ // automatically.
+ const grid = document.getElementById('dashboard-grid');
+ const seen = new Set();
+ const cards = [];
+ const addCard = (elCard) => {
+  if (!elCard || seen.has(elCard.id)) return;
+  seen.add(elCard.id);
+  // Prefer the card's own .card-title. card-search is the one card with
+  // no title element, so fall back to its accessible name (the sr-only
+  // <label>), then to a readable form of the id - never the bare id.
+  const titleEl = elCard.querySelector('.card-title');
+  const ariaEl = elCard.querySelector('[aria-label]');
+  const srEl = elCard.querySelector('.sr-only');
+  const label = (titleEl ? titleEl.textContent : '').trim()
+   || (ariaEl ? (ariaEl.getAttribute('aria-label') || '') : '').trim()
+   || (srEl ? srEl.textContent : '').trim()
+   || elCard.id.replace(/^card-/, '').replace(/[-_]+/g, ' ')
+    .replace(/\\b\\w/g, c => c.toUpperCase());
+  cards.push({ key: elCard.id, label });
+ };
+ const collect = () => {
+  seen.clear();
+  cards.length = 0;
+  if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
+  document.querySelectorAll('[id^=card-]').forEach(addCard);
+ };
+ collect();
 
-// The app reads and writes the 'cc-card-visibility' JSON MAP
-// (portfolio.js parses it on every dashboard render). The old code
-// wrote a separate localStorage key per card, which nothing read, so
-// every toggle was a no-op and the card came back on reload.
-const readVis = () => {
- try {
-  const v = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
-  return (v && typeof v === 'object') ? v : {};
- } catch(e) { return {}; }
-};
-let vis = readVis();
+ // The app reads and writes the 'cc-card-visibility' JSON MAP
+ // (portfolio.js parses it on every dashboard render). The old code
+ // wrote a separate localStorage key per card, which nothing read, so
+ // every toggle was a no-op and the card came back on reload.
+ const readVis = () => {
+  try {
+   const v = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
+   return (v && typeof v === 'object') ? v : {};
+  } catch(e) { return {}; }
+ };
+ let vis = readVis();
 
-const applyCardVisibility = (key, visible) => {
-// Hide the live card as well as persisting the choice, so the toggle
-// is visible without a reload.
-document.querySelectorAll('#' + CSS.escape(key)).forEach(elCard => {
- elCard.style.display = visible ? '' : 'none';
+ const applyCardVisibility = (key, visible) => {
+  // Hide the live card as well as persisting the choice, so the toggle
+  // is visible without a reload.
+  document.querySelectorAll('#' + CSS.escape(key)).forEach(elCard => {
+   elCard.style.display = visible ? '' : 'none';
+  });
+ };
+
+ const buildControls = (list) => list.map(c => {
+  const checked = vis[c.key] !== false;
+  return el('div', { className: 'settings-toggle-row' }, [
+   el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
+    const on = e.target.checked;
+    vis[c.key] = on;
+    localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
+    applyCardVisibility(c.key, on);
+    dispatchSettingsChange('cc-card-visibility', vis);
+    // Also fire a generic change event for portfolio.js to listen to
+    window.dispatchEvent(new CustomEvent('cc-card-visibility-changed'));
+   }}),
+   el('label', { for: 'vis-' + c.key }, c.label),
+  ]);
  });
-};
 
-const buildControls = (list) => list.map(c => {
- const checked = vis[c.key] !== false;
- return el('div', { className: 'settings-toggle-row' }, [
-  el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
-   const on = e.target.checked;
-   vis[c.key] = on;
-   localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
-   applyCardVisibility(c.key, on);
-   dispatchSettingsChange('cc-card-visibility', vis);
-   // Apply immediately: re-render the dashboard so the toggle takes effect live
-   import('./portfolio.js').then(function(m) {
-   if (m.renderDashboard) m.renderDashboard();
-   });
-  }}),
-  el('label', { for: 'vis-' + c.key }, c.label),
- ]);
-});
-
-const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
+ const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
  const body = _sectionBody(
   'Dashboard Card Visibility',
   'Show or hide entire dashboard cards.',
@@ -511,7 +513,7 @@ function showDisplayFiltersModal() {
  const hideProofs = localStorage.getItem('cc-hide-proofs') === 'true';
  const hideErrors = localStorage.getItem('cc-hide-errors') === 'true';
  const keyDatesOnly = localStorage.getItem('cc-key-dates-only') === 'true';
- 
+
  const controls = [
  {key: 'cc-hide-proofs', label: 'Hide proof coins', checked: hideProofs },
  {key: 'cc-hide-errors', label: 'Hide error/variety coins', checked: hideErrors },
@@ -519,13 +521,14 @@ function showDisplayFiltersModal() {
  ].map(c => 
  el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: c.key, checked: c.checked, onchange: (e) => {
- localStorage.setItem(c.key, e.target.checked);
- dispatchSettingsChange(c.key, e.target.checked);
+ if (c.key === 'cc-hide-proofs') setFilterHideProofs(e.target.checked);
+ else if (c.key === 'cc-hide-errors') setFilterHideErrors(e.target.checked);
+ else if (c.key === 'cc-key-dates-only') setFilterKeyDatesOnly(e.target.checked);
  }}),
  el('label', { for: c.key }, c.label),
  ])
  );
- 
+
  const body = _sectionBody(
  'Display Filters',
  'Control which coins appear in the catalog. Changes apply on next load.',
@@ -544,18 +547,22 @@ function showBullionVisibilityModal() {
  {key: 'palladium', label: 'Palladium', color: '#a78bfa' },
  {key: 'copper', label: 'Copper', color: '#b45309' },
  ];
- 
+
+ // Read from the single JSON object (matches modals.js and portfolio.js)
+ const bullionVis = JSON.parse(localStorage.getItem('cc-bullion-vis') || '{}');
+
  const controls = metals.map(m => {
- const checked = localStorage.getItem(`cc-bullion-vis-${m.key}`) !== 'false';
+ const checked = bullionVis[m.key] !== false;
  return el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: `cc-bullion-vis-${m.key}`, checked, onchange: (e) => {
- localStorage.setItem(`cc-bullion-vis-${m.key}`, e.target.checked);
- dispatchSettingsChange('cc-bullion-vis', { [m.key]: e.target.checked });
+ bullionVis[m.key] = e.target.checked;
+ localStorage.setItem('cc-bullion-vis', JSON.stringify(bullionVis));
+ dispatchSettingsChange('cc-bullion-vis', bullionVis);
  }}),
  el('label', { for: `cc-bullion-vis-${m.key}`, style: `color: ${m.color}; font-weight: 600;` }, m.label),
  ]);
  });
- 
+
  const body = _sectionBody(
  'Bullion Metals Visibility',
  'Show/hide metal rows in the Bullion Holdings card.',
@@ -568,10 +575,10 @@ function showBullionVisibilityModal() {
 function showExportModal() {
     const control = el('div', { className: 'settings-action-group' }, [
  el('button', { className: 'btn-primary', onclick: () => window.location.href = '/api/backup/zip' }, 'Download Full Backup (ZIP)'),
- el('button', { className: 'btn-secondary', onclick: () => window.location.href = '/api/backup/full' }, 'Export All (CSV)'),
+ el('button', { className: 'btn-secondary', onclick: () => window.location.href = '/api/backup/csv' }, 'Export All (CSV)'),
  el('button', { className: 'btn-secondary', onclick: backupJSON }, 'Backup JSON'),
  ]);
- 
+
  const body = _sectionBody(
  'Export & Backup',
  'Download your collection data for safekeeping or migration.',
@@ -772,12 +779,12 @@ export async function showCloudSyncModal() {
                                     try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
                                 }
                             }, ...[
-                                el('option', { value: '6' }, '6 hours'),
-                                el('option', { value: '12' }, '12 hours'),
-                                el('option', { value: '24' }, 'Daily (24 hours)'),
-                                el('option', { value: '48' }, 'Every 2 days'),
-                                el('option', { value: '72' }, 'Every 3 days'),
-                                el('option', { value: '168' }, 'Weekly'),
+                                el('option', { value: '6', selected: getAutoBackupHours() === 6 }, '6 hours'),
+                                el('option', { value: '12', selected: getAutoBackupHours() === 12 }, '12 hours'),
+                                el('option', { value: '24', selected: getAutoBackupHours() === 24 }, 'Daily (24 hours)'),
+                                el('option', { value: '48', selected: getAutoBackupHours() === 48 }, 'Every 2 days'),
+                                el('option', { value: '72', selected: getAutoBackupHours() === 72 }, 'Every 3 days'),
+                                el('option', { value: '168', selected: getAutoBackupHours() === 168 }, 'Weekly'),
                             ]),
                         ]),
                     ])
@@ -914,8 +921,9 @@ function showCustomCardModal() {
  placeholder: 'Enter custom text or number'
  })
  ]),
-]));
 
+ ]);
+ 
  const modalId = 'modal-custom-card';
  const footer = el('div', { className: 'modal-footer' }, [
  el('button', { className: 'btn-secondary', onclick: () => closeModal(modalId) }, 'Cancel'),
@@ -958,106 +966,12 @@ function showCustomCardModal() {
  
  // Show/hide custom value field based on data source
  document.getElementById('custom-card-source').addEventListener('change', (e) => {
- const group = document.getElementById('custom-card-custom-group');
- group.style.display = e.target.value === 'custom' ? 'block' : 'none';
+     const group = document.getElementById('custom-card-custom-group');
+     group.style.display = e.target.value === 'custom' ? 'block' : 'none';
  });
-}
-
-function renderCustomCardsOnDashboard() {
- let customCards = [];
- try {
- customCards = JSON.parse(localStorage.getItem('cc-custom-cards') || '[]');
- } catch (e) {
- customCards = [];
  }
- 
- if (customCards.length === 0) return;
- 
- const dashboardGrid = document.getElementById('dashboard-grid');
- if (!dashboardGrid) return;
- 
- // Import required functions
- import('./state.js').then(({ getPortfolioData, getSpotPrices }) => {
- const portfolio = getPortfolioData() || {};
- const prices = getSpotPrices() || {};
- 
- customCards.forEach(card => {
- let value = 0;
- 
- // Calculate value based on data source
- switch (card.dataSource) {
- case 'totalValue':
- value = portfolio.total_estimated_value || 0;
- break;
- case 'totalMelt':
- value = portfolio.total_melt || 0;
- break;
- case 'collectibleValue':
- value = portfolio.collectable_value || 0;
- break;
- case 'coinCount':
- value = portfolio.total_physical_coins || 0;
- break;
- case 'itemCount':
- value = portfolio.total_items || 0;
- break;
- case 'completion':
- // Calculate completion percentage
- // This would need section data
- value = 0;
- break;
- case 'goldMelt':
- value = portfolio.gold_coin_melt || 0;
- break;
- case 'silverMelt':
- value = portfolio.silver_coin_melt || 0;
- break;
- case 'bulkValue':
- value = portfolio.bulk_coins_value || 0;
- break;
- case 'paperValue':
- value = portfolio.paper_value || 0;
- break;
- case 'custom':
- value = card.customValue || 0;
- break;
- }
- 
- // Find data source for formatter
- const dataSources = [
- { id: 'totalValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'totalMelt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'collectibleValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'coinCount', formatter: v => v.toLocaleString() },
- { id: 'itemCount', formatter: v => v.toLocaleString() },
- { id: 'completion', formatter: v => v + '%' },
- { id: 'goldMelt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'silverMelt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'bulkValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'paperValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'custom', formatter: v => v },
- ];
- 
- const ds = dataSources.find(d => d.id === card.dataSource);
- const formattedValue = ds ? ds.formatter(value) : value;
- 
- // Create card element
- const cardEl = document.createElement('div');
- cardEl.className = 'card dashboard-card custom-dashboard-card';
- cardEl.style.gridColumn = 'span 1';
- cardEl.innerHTML = `
- <div class="card-title">${card.title}</div>
- <div class="custom-card-value" style="font-size: 2rem; font-weight: 700; text-align: center; padding: 1rem;">
- ${formattedValue}
- </div>
- `;
- 
- dashboardGrid.appendChild(cardEl);
- });
- });
-}
 
-// Expose for HTML onclick handlers
-window.toggleSettingsDropdown = toggleSettingsDropdown;
-window.closeSettingsDropdown = closeSettingsDropdown;
-window.openSettingsSection = openSettingsSection;
+ // Expose for HTML onclick handlers
+ window.toggleSettingsDropdown = toggleSettingsDropdown;
+ window.closeSettingsDropdown = closeSettingsDropdown;
+ window.openSettingsSection = openSettingsSection;

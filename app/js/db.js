@@ -1,0 +1,3343 @@
+/**
+ * db.js — Coin Catalog v2 — Client-side database using Dexie.js
+ * Mirrors the SQLite/PostgreSQL schema and handles offline storage.
+ * @module db
+ */
+
+import Dexie from './dexie.js';
+import { isSelfHosted } from './env.js';
+
+// ---------------------------------------------------------------------------
+// Bullion weight units (GGMJ-410, 2026-10-21)
+// ---------------------------------------------------------------------------
+// A bullion row stores a weight AND the unit that weight is expressed in
+// (grams, troy ounces, pounds, ...).  The unit has to be honoured: a 1 g
+// bar of gold is worth 1/31.1035 of a 1 oz bar, and a row stored in
+// pounds is worth 14.5833 troy ounces (or, for copper, 1 pound -- copper
+// is quoted per lb).
+//
+// The conversion pivots through GRAMS, so one unit token means one thing
+// for every metal, and is then expressed in the unit the metal's spot
+// price is quoted in: TROY OUNCE for the precious metals, AVOIRDUPOIS
+// POUND for copper.
+//
+// This mirrors backend/services/valuation.py exactly, so the Bullion
+// card, the Metal Price Trends card and the Portfolio Overview always
+// value a holding identically.
+var BULLION_GRAM_PER_TROY_OZ = 31.1034768;
+var BULLION_GRAM_PER_LB = 453.59237;
+var BULLION_GRAM_PER_GRAIN = 0.06479891;   // 1 avoirdupois lb = 7000 grains
+
+var BULLION_UNIT_TO_GRAMS = {
+    'g': 1, 'gram': 1, 'grams': 1,
+    'kg': 1000, 'kilogram': 1000, 'kilograms': 1000,
+    'oz': BULLION_GRAM_PER_TROY_OZ, 'ozt': BULLION_GRAM_PER_TROY_OZ,
+    'ounce': BULLION_GRAM_PER_TROY_OZ, 'ounces': BULLION_GRAM_PER_TROY_OZ,
+    'troy oz': BULLION_GRAM_PER_TROY_OZ, 'troy ounce': BULLION_GRAM_PER_TROY_OZ,
+    'lb': BULLION_GRAM_PER_LB, 'lbs': BULLION_GRAM_PER_LB,
+    'pound': BULLION_GRAM_PER_LB, 'pounds': BULLION_GRAM_PER_LB,
+    'gr': BULLION_GRAM_PER_GRAIN, 'grain': BULLION_GRAM_PER_GRAIN, 'grains': BULLION_GRAM_PER_GRAIN
+};
+
+// Weight of a bullion row, in GRAMS.
+function bullionWeightGrams(weight, unit) {
+    var w = Number(weight) || 0;
+    var key = String(unit == null ? 'oz' : unit).trim().toLowerCase();
+    var per = BULLION_UNIT_TO_GRAMS[key];
+    if (per === undefined) per = BULLION_GRAM_PER_TROY_OZ;  // unknown -> troy oz
+    return w * per;
+}
+
+// Weight of a bullion row in the unit its spot price is quoted in:
+// troy ounce for the precious metals, avoirdupois pound for copper.
+function bullionPriceUnits(weight, unit, metal) {
+    var grams = bullionWeightGrams(weight, unit);
+    if (String(metal == null ? '' : metal).trim().toLowerCase() === 'copper') {
+        return grams / BULLION_GRAM_PER_LB;
+    }
+    return grams / BULLION_GRAM_PER_TROY_OZ;
+}
+
+import { buildCoinLabel } from './utils.js';
+
+// ============================================================
+// Database Initialization
+// ============================================================
+
+export const db = new Dexie('CoinCatalogDB');
+
+db.version(1).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key'
+});
+
+db.version(2).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key',
+    pending_defaults: 'coin_type'
+});
+
+// v3: Photos & Documents gallery store (free-form user pictures).
+db.version(3).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key',
+    pending_defaults: 'coin_type',
+    user_photos: '++id, category, title, created_at'
+});
+
+// v4: External investments (GGMJ-378). Static deployments have no
+// /api/investments backend, so these live in the browser's own IndexedDB.
+// Fields mirror backend/models.py UserInvestment exactly, and the `gain`
+// field is derived on read the same way the server's to_dict() derives it.
+db.version(4).stores({
+    coins_reference: 'id, section, denomination, coin_type, year, mint_mark, metal, is_key_date, is_proof, is_error',
+    user_inventory: '++id, coin_ref_id, quantity, grade',
+    coin_type_config: 'coin_type',
+    bulk_inventory: '++id, label, metal_type',
+    raw_bullion: '++id, metal_type, label',
+    scrap_metal: '++id, name, metal_type',
+    paper_currency: '++id, series_year, serial_number',
+    other_collectable: '++id, category_name, name',
+    custom_category: 'name',
+    wishlist_item: '++id, coin_id, category',
+    portfolio_history: '++id, date',
+    user_settings: 'key',
+    pending_defaults: 'coin_type',
+    user_photos: '++id, category, title, created_at',
+    user_investment: '++id, name, category'
+});
+
+// ============================================================
+// Constants & Fallbacks
+// ============================================================
+
+const FACE_VALUE_MAP = {
+    "half cent":    0.005,
+    "1 cent":       0.01,
+    "2 cents":      0.02,
+    "3 cents":      0.03,
+    "half dime":    0.05,
+    "5 cents":      0.05,
+    "10 cents":     0.10,
+    "20 cents":     0.20,
+    "25 cents":     0.25,
+    "50 cents":     0.50,
+    "$1":           1.00,
+    "trade dollar": 1.00,
+    "$2.50":        2.50,
+    "$3 gold":      3.00,
+    "$5":           5.00,
+    "$5 gold":      5.00,
+    "$10":         10.00,
+    "$10 gold":    10.00,
+    "$20":         20.00,
+};
+
+const DEFAULT_COIN_PRICES = {
+    "Flying Eagle":          [35, 180],
+    "Indian Head":           [2.50, 75],
+    "Lincoln Wheat":         [0.05, 50],
+    "Lincoln Memorial":      [0.01, 5],
+    "Lincoln Bicentennial":  [0.01, 2],
+    "Lincoln Shield":        [0.01, 1],
+    "Small Cent":            [0.05, 10],
+    "Buffalo":               [1.25, 120],
+    "Jefferson":             [0.05, 10],
+    "Jefferson (War Nickel)":[1.80, 20],
+    "Liberty Head (V Nickel)":[2, 60],
+    "Shield Nickel":         [30, 150],
+    "Draped Bust Dime":      [400, 1500],
+    "Capped Bust Dime":      [65, 300],
+    "Seated Liberty Dime":   [25, 150],
+    "Barber Dime":           [5, 45],
+    "Mercury":               [3.50, 40],
+    "Roosevelt":             [2.50, 15],
+    "Roosevelt (Clad)":      [0.10, 2],
+    "Washington":            [6.50, 45],
+    "Washington (Clad)":     [0.25, 5],
+    "50 State Quarters":     [0.25, 4],
+    "DC & Territories Quarters": [0.25, 4],
+    "America the Beautiful": [0.25, 4],
+    "American Women":        [0.25, 3],
+    "Standing Liberty":      [15, 80],
+    "Barber Quarter":        [10, 70],
+    "Seated Liberty Quarter":[35, 200],
+    "Kennedy":               [14.50, 50],
+    "Kennedy (40% Silver)":  [6, 25],
+    "Kennedy (Clad)":        [0.50, 5],
+    "Franklin":              [14.50, 45],
+    "Walking Liberty":       [15, 60],
+    "Barber Half":           [25, 120],
+    "Seated Liberty Half":   [60, 350],
+    "Morgan":                [35, 160],
+    "Peace":                 [32, 100],
+    "Eisenhower":            [1.10, 25],
+    "Eisenhower (Silver)":   [12, 40],
+    "Susan B. Anthony":      [1, 5],
+    "Sacagawea":             [1, 5],
+    "Presidential Dollar":   [1, 5],
+    "Native American Dollar":[1, 5],
+    "Innovation Dollar":     [1, 5],
+    "Large Cent":            [30, 250],
+    "Two Cent Piece":        [25, 120],
+    "Three Cent Nickel":     [20, 90],
+    "Half Cent":             [60, 300],
+    "Gold Eagle":            [2500, 2700],
+    "Gold Buffalo":          [2500, 2750],
+    "Gold Maple":            [2500, 2650],
+    "Silver Eagle":          [36, 120],
+    "Maple Leaf":            [34, 90],
+    "Canadian Cent":         [0.02, 10],
+    "Canadian 5 Cents":      [0.10, 15],
+    "Canadian 10 Cents":     [0.15, 20],
+    "Canadian 25 Cents":     [0.35, 30],
+    "Canadian 50 Cents":     [1.00, 50],
+    "Canadian Dollar":       [1.50, 80],
+};
+
+const SECTION_ORDER = [
+    "US Coinage — Half Cent",
+    "US Coinage — Large & Small Cent",
+    "US Coinage — Two Cent",
+    "US Coinage — Three Cent",
+    "US Coinage — Half Dime",
+    "US Coinage — Five Cent Nickel",
+    "US Coinage — Dime",
+    "US Coinage — Twenty Cent",
+    "US Coinage — Quarter Dollar",
+    "US Coinage — Half Dollar",
+    "US Coinage — Dollar",
+    "US Coinage — 2026 Semiquincentennial",
+    "US Gold — Circulation",
+    "US Bullion — Silver",
+    "US Bullion — Gold",
+    "US Bullion — Platinum & Palladium",
+    "US Commemoratives",
+    "Canadian Coinage — Cent",
+    "Canadian Coinage — Five Cent",
+    "Canadian Coinage — Ten Cent",
+    "Canadian Coinage — Twenty-Five Cent",
+    "Canadian Coinage — Fifty Cent",
+    "Canadian Coinage — Dollar",
+    "Canadian Coinage — Two Dollar",
+];
+
+const SECTION_RANK = {};
+SECTION_ORDER.forEach((s, i) => { SECTION_RANK[s] = i; });
+
+function sectionSortKey(section) {
+    return SECTION_RANK[section] !== undefined ? SECTION_RANK[section] : 999;
+}
+
+const FALLBACK_SPOT_PRICES = {
+    gold_oz:      4121.05,
+    silver_oz:       59.87,
+    copper_lb:        6.25,
+    platinum_oz:   1634.00,
+    palladium_oz:  1293.00,
+};
+
+// ============================================================
+// Master Catalog Seeding
+// ============================================================
+
+
+// 2026-08-31 RUNTIME IMAGE HEAL: browsers that wiped + re-seeded from a stale cached coins.json
+// (or pre-image seed) keep empty year-row images forever, because migrations only run once.
+// This runs at every boot (throttled to 6h) and fills EMPTY obv/rev fields from the current
+// served seed. Never overwrites local uploads; respects _deleted_* flags.
+export async function healImagesFromSeed() {
+    try {
+        const last = parseInt(localStorage.getItem('_cc_img_heal_at') || '0', 10);
+        if (Date.now() - last < 6 * 3600 * 1000) return;
+        const res = await fetch(new URL('data/coins.json', document.baseURI).href);
+        if (!res || !res.ok) return;
+        const seed = await res.json();
+        let healed = 0;
+        await db.transaction('rw', db.coins_reference, async () => {
+            for (const s of seed) {
+                if (!s.obv_image && !s.rev_image) continue;
+                const loc = await db.coins_reference.get(s.id);
+                if (!loc) continue;
+                const upd = {};
+                if (s.obv_image && !loc.obv_image && !loc._deleted_obv_image) upd.obv_image = s.obv_image;
+                if (s.rev_image && !loc.rev_image && !loc._deleted_rev_image) upd.rev_image = s.rev_image;
+                if (Object.keys(upd).length) {
+                    await db.coins_reference.update(s.id, upd);
+                    healed++;
+                }
+            }
+        });
+        localStorage.setItem('_cc_img_heal_at', String(Date.now()));
+        if (healed > 0) console.log(`[db] image heal: filled ${healed} empty row(s) from seed.`);
+    } catch (e) {
+        console.warn('[db] image heal skipped:', e && e.message);
+    }
+}
+
+// ============================================================
+// Search index readiness (GGMJ-206)
+// ============================================================
+// The public deployments (GitHub Pages, Cloudflare Pages) have no backend:
+// they seed coins_reference from data/coins.json into IndexedDB during
+// boot. That file is several megabytes, so on a slow link the seed is
+// still running when the user starts typing. A search that reads the
+// store mid-seed sees only part of the catalogue and answers "No
+// results" for coins that are demonstrably in the seed file.
+//
+// Every local search therefore waits on this gate. The gate opens when
+// the coin-reference seed finishes -- successfully OR not, so a failed
+// seed can never leave search stuck -- and as a last resort after a
+// bounded wait, so search can never hang.
+const SEARCH_INDEX_MAX_WAIT_MS = 30000;
+
+let _searchIndexReady = false;
+let _searchIndexWaiters = [];
+
+function openSearchIndexGate() {
+    if (_searchIndexReady) return;
+    _searchIndexReady = true;
+    const waiters = _searchIndexWaiters;
+    _searchIndexWaiters = [];
+    for (const resolve of waiters) resolve();
+}
+
+/**
+ * @returns {boolean} true once the coin reference index is fully seeded.
+ */
+export function isSearchIndexReady() {
+    return _searchIndexReady;
+}
+
+/**
+ * Resolves once the coin reference index is fully seeded, or after
+ * SEARCH_INDEX_MAX_WAIT_MS -- whichever comes first. Never rejects.
+ */
+export function whenSearchIndexReady() {
+    if (_searchIndexReady) return Promise.resolve();
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+        };
+        _searchIndexWaiters.push(finish);
+        setTimeout(finish, SEARCH_INDEX_MAX_WAIT_MS);
+    });
+}
+
+export async function initDb() {
+    // Check if database needs seeding
+    const refCount = await db.coins_reference.count();
+    try {
+        console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
+        const response = await fetch('data/coins.json');
+        if (!response.ok) {
+            throw new Error(`Failed to load coins.json: HTTP ${response.status}`);
+        }
+        const coins = await response.json();
+        console.log(`Seeding ${coins.length} coins into IndexedDB...`);
+        
+        // 2026-08-31 TOP-UP SEEDING: the old gate (refCount === 0) made seeding all-or-nothing.
+        // A page reload during the multi-second seed (service-worker controllerchange reload)
+        // aborted it mid-way and, because refCount was then > 0, the catalog stayed truncated
+        // forever (the 'coin list stops at Dime' bug). Now: fetch the seed every boot and add
+        // only MISSING ids — idempotent, cheap when complete, self-healing when truncated.
+        const existingIds = new Set(await db.coins_reference.toCollection().primaryKeys());
+        const missing = coins.filter(c => !existingIds.has(c.id));
+        if (missing.length > 0) {
+            console.log(`[db] top-up seeding: ${missing.length} of ${coins.length} coins missing.`);
+            const chunkSize = 500;
+            for (let i = 0; i < missing.length; i += chunkSize) {
+                const chunk = missing.slice(i, i + chunkSize);
+                try {
+                    await db.coins_reference.bulkAdd(chunk);
+                } catch (chunkErr) {
+                    console.error(`[db] seed chunk ${i}-${i + chunk.length} failed:`, chunkErr);
+                    for (const coin of chunk) {
+                        try {
+                            await db.coins_reference.add(coin);
+                        } catch (rowErr) {
+                            console.error(`[db] seed row skipped id=${coin && coin.id}:`, rowErr && rowErr.message);
+                        }
+                    }
+                }
+            }
+        }
+        console.log('Seeding completed successfully!');
+    } finally {
+        // GGMJ-206: the coin reference index is usable once the seed has
+        // finished -- even if it failed, so search is never left waiting.
+        openSearchIndexGate();
+    }
+
+    const configCount = await db.coin_type_config.count();
+    let needsSeed = configCount === 0;
+    if (needsSeed) {
+        console.log('Fetching type configs from JSON...');
+        const response = await fetch('data/type_configs.json');
+        if (response.ok) {
+            const configs = await response.json();
+            console.log(`Seeding ${configs.length} type configs into IndexedDB...`);
+            // Use bulkPut to overwrite existing entries (preserves user-added base64 overrides)
+            const chunkSize = 200;
+            for (let i = 0; i < configs.length; i += chunkSize) {
+                const chunk = configs.slice(i, i + chunkSize);
+                // Only overwrite entries that don't already have a user-assigned image
+                for (const cfg of chunk) {
+                        const existing = await db.coin_type_config.get(cfg.coin_type);
+                        if (!existing) {
+                            await db.coin_type_config.add(cfg);
+                        } else {
+                            // Never overwrite user-assigned images (base64 or file URLs), but seed master paths if empty
+                            const updates = {
+                                base_price: cfg.base_price || existing.base_price || 0,
+                                key_price: cfg.key_price || existing.key_price || 0,
+                            };
+                            // Seed master image paths only if field is empty
+                            // AND only if the field was not explicitly deleted by the user
+                            if (cfg.obv_image !== undefined && !existing.obv_image && !existing._deleted_obv_image) {
+                                updates.obv_image = cfg.obv_image;
+                            }
+                            if (cfg.rev_image !== undefined && !existing.rev_image && !existing._deleted_rev_image) {
+                                updates.rev_image = cfg.rev_image;
+                            }
+                            if (cfg.proof_obv_image !== undefined && !existing.proof_obv_image && !existing._deleted_proof_obv_image) {
+                                updates.proof_obv_image = cfg.proof_obv_image;
+                            }
+                            if (cfg.proof_rev_image !== undefined && !existing.proof_rev_image && !existing._deleted_proof_rev_image) {
+                                updates.proof_rev_image = cfg.proof_rev_image;
+                            }
+                            await db.coin_type_config.update(cfg.coin_type, updates);
+                        }
+                    }
+            }
+            console.log('Type configs seeding completed successfully!');
+        } else {
+            console.error('Failed to load type_configs.json:', response.status);
+        }
+    }
+
+    // Run data migrations (update existing IndexedDB data when coins.json has changed)
+    // CRITICAL: Set data version BEFORE runMigrations() so it doesn't re-run
+    // migrations that fetch coins.json again (migrations 7->8, 8->9, 9->10 all fetch coins.json).
+    // Without this, fresh profile triggers 5x coins.json fetch (~34K rows each).
+    localStorage.setItem('_hermes_db_data_version', String(DB_DATA_VERSION));
+    await runMigrations();
+    try { healImagesFromSeed(); } catch (e) { console.warn('[db] heal error:', e); }
+}
+
+// ============================================================
+// Data Migrations — patches existing IndexedDB data when the
+// coin reference data has been updated in coins.json.
+// Runs once per version bump.
+// ============================================================
+
+const DB_DATA_VERSION = 11;  // Increment when coins.json has structural updates
+
+export async function runMigrations() {
+    const versionKey = '_hermes_db_data_version';
+    const storedVersion = parseInt(localStorage.getItem(versionKey) || '0', 10);
+    if (storedVersion >= DB_DATA_VERSION) return;
+
+    // 2026-10-21 (GGMJ-227): re-point stale type image paths.
+    // The type-config seed only fills EMPTY fields, so a browser that
+    // seeded before the Jefferson era fix kept its old (now 404) paths.
+    // The shipped type_configs.json is the authority for a TYPE's image, so
+    // a stored path that differs from the seed's is replaced by the seed's
+    // value when that value is a real file in the shipped image tree.
+    try {
+        const cfgRes = await fetch(new URL('data/type_configs.json', document.baseURI).href);
+        if (cfgRes.ok) {
+            const shipped = await cfgRes.json();
+            const shippedList = Array.isArray(shipped) ? shipped : (shipped.types || []);
+            const byType = new Map();
+            shippedList.forEach((c) => { if (c && c.coin_type) byType.set(c.coin_type, c); });
+            const stored = await db.coin_type_config.toArray();
+            let repointed = 0;
+            for (const cfg of stored) {
+                const want = byType.get(cfg.coin_type);
+                if (!want) continue;
+                for (const field of ['obv_image', 'rev_image', 'proof_obv_image', 'proof_rev_image']) {
+                    const seedVal = want[field];
+                    const curVal = cfg[field];
+                    if (!seedVal || !curVal || seedVal === curVal) continue;
+                    // Never overwrite a user-assigned image (base64 data).
+                    if (typeof curVal === 'string' && curVal.indexOf('data:') === 0) continue;
+                    // Only replace when the stored path is one of ours and the
+                    // seeded one is a real shipped file.
+                    if (curVal.indexOf('/data/images/') !== 0) continue;
+                    if (seedVal.indexOf('/data/images/') !== 0) continue;
+                    await db.coin_type_config.update(cfg.coin_type, { [field]: seedVal });
+                    repointed++;
+                }
+            }
+            if (repointed) {
+                console.log(`[db] re-pointed ${repointed} stale type image path(s)`);
+            }
+        }
+    } catch (e) {
+        console.warn('[db] type image path refresh skipped:', e);
+    }
+
+    console.log(`Running data migration v${storedVersion} → v${DB_DATA_VERSION}...`);
+
+    // Migration 1 → 2: Update 2026 Lincoln Shield cents to dual-date "1776 - 2026"
+    // and add 2025 Omega Penny entries.
+    if (storedVersion < 2) {
+        // Update 2026 Lincoln Shield entries
+        const coins2026 = await db.coins_reference
+            .where('coin_type').equals('Lincoln Shield')
+            .and(c => c.section === 'US Coinage — Large & Small Cent' && c.year === 2026)
+            .toArray();
+        for (const coin of coins2026) {
+            await db.coins_reference.update(coin.id, { year: '1776 - 2026 Semiquincentennial' });
+            console.log(`  Updated coin id=${coin.id} year 2026 → "1776 - 2026 Semiquincentennial"`);
+        }
+    }
+
+    // Migration 2 → 3: Rename 2025 Omega Penny entries
+    if (storedVersion < 3) {
+        const omegaEntries = await db.coins_reference
+            .where('coin_type').equals('Lincoln Shield')
+            .and(c => c.section === 'US Coinage — Large & Small Cent' && 
+                      c.year === '2025 (Omega Privy Mark)' &&
+                      c.ref_notes && c.ref_notes.includes('Omega'))
+            .toArray();
+        // If they exist with old year format, update them
+        for (const coin of omegaEntries) {
+            console.log(`  Skipping id=${coin.id} — already has correct year "${coin.year}"`);
+        }
+        // Also check for entries with year=2025 (numeric) that should be renamed
+        const oldEntries = await db.coins_reference
+            .where('coin_type').equals('Lincoln Shield')
+            .and(c => c.section === 'US Coinage — Large & Small Cent' && 
+                      c.year === 2025 &&
+                      c.ref_notes && c.ref_notes.includes('Omega'))
+            .toArray();
+        for (const coin of oldEntries) {
+            const newYear = coin.mint_mark === '' ? '2025 (24K Gold Omega Privy Mark)' : '2025 (Omega Privy Mark)';
+            await db.coins_reference.update(coin.id, { year: newYear });
+            console.log(`  Renamed id=${coin.id} year 2025 → "${newYear}"`);
+        }
+        // Also check gold one by metal field
+        const goldEntries = await db.coins_reference
+            .where('coin_type').equals('Lincoln Shield')
+            .and(c => c.section === 'US Coinage — Large & Small Cent' && 
+                      c.year === 2025 &&
+                      c.metal && c.metal.includes('Gold'))
+            .toArray();
+        for (const coin of goldEntries) {
+            await db.coins_reference.update(coin.id, { year: '2025 (24K Gold Omega Privy Mark)' });
+            console.log(`  Renamed gold id=${coin.id} → "2025 (24K Gold Omega Privy Mark)"`);
+        }
+        console.log('Omega Penny rename migration complete.');
+    }
+
+    // Migration 3 → 4: Clean up duplicate Omega Privy Mark entries and append Semiquincentennial to 2026
+    if (storedVersion < 4) {
+        // Delete dummy Omega Privy Mark entries
+        const toDelete = await db.coins_reference
+            .filter(c => typeof c.year === 'string' && (c.year === '2025 (Omega Privy Mark)' || c.year === '2025 (24K Gold Omega Privy Mark)'))
+            .primaryKeys();
+        if (toDelete.length > 0) {
+            await db.coins_reference.bulkDelete(toDelete);
+            console.log(`  Deleted ${toDelete.length} dummy Omega Privy Mark entries.`);
+        }
+        
+        // Update 1776 - 2026 to 1776 - 2026 Semiquincentennial
+        const coins2026_str = await db.coins_reference
+            .filter(c => typeof c.year === 'string' && c.year === '1776 - 2026')
+            .toArray();
+        for (const coin of coins2026_str) {
+            await db.coins_reference.update(coin.id, { year: '1776 - 2026 Semiquincentennial' });
+            console.log(`  Updated coin id=${coin.id} year → "1776 - 2026 Semiquincentennial"`);
+        }
+    }
+
+
+
+    // Migration 4 → 5 (Issue 1/2/6): section-scope colliding type configs.
+    // Coin types shared by >1 section now live under '<section> — <coin_type>'
+    // so images never bleed between series (e.g. Half Cent vs Large & Small Cent
+    // "Braided Hair"). Existing plain rows are copied into every qualifying
+    // section row; the plain row is cleared to stop fallback bleed.
+    if (storedVersion < 5) {
+        const collidingTypes = new Set(["Barber", "Braided Hair", "Capped Bust", "Classic Head", "Draped Bust", "Draped Bust - Heraldic Eagle", "Draped Bust - Small Eagle", "Flowing Hair", "Seated Liberty", "Trade Dollar"]);
+        const refs = await db.coins_reference.toArray();
+        const typeSections = {};
+        refs.forEach(r => {
+            if (!r.coin_type || !r.section) return;
+            if (!typeSections[r.coin_type]) typeSections[r.coin_type] = new Set();
+            typeSections[r.coin_type].add(r.section);
+        });
+
+        const allConfigs = await db.coin_type_config.toArray();
+        let created = 0, cleared = 0;
+
+        for (const cfg of allConfigs) {
+            const t = cfg.coin_type || '';
+            // --- Colliding plain rows: split into per-section qualified rows ---
+            if (collidingTypes.has(t) && !t.includes(' — ')) {
+                const secs = [...(typeSections[t] || [])];
+                for (const sec of secs) {
+                    const key = sec + ' — ' + t;
+                    const exists = await db.coin_type_config.get(key);
+                    if (!exists) {
+                        await db.coin_type_config.add({
+                            ...cfg,
+                            coin_type: key,
+                            section: sec,
+                            _section_scoped: true,
+                        });
+                        created++;
+                    }
+                }
+                // Clear the legacy shared row so no fallback bleeds the wrong section's image
+                await db.coin_type_config.update(t, {
+                    obv_image: null, rev_image: null,
+                    proof_obv_image: null, proof_rev_image: null,
+                });
+                cleared++;
+            }
+            // --- Section-slot rows (section-name keys): drop stale master images ---
+            else if (typeSections[t] && typeSections[t].size > 0 && allConfigs.some(c => c.coin_type === t)) {
+                // This is a section-name key that is NOT a real coin type: it is the
+                // section example slot. Remove any inherited master/liberty-cap images.
+                const isSectionSlot = refs.some(r => r.section === t) &&
+                                      !refs.some(r => r.coin_type === t);
+                if (isSectionSlot) {
+                    await db.coin_type_config.update(t, {
+                        obv_image: null, rev_image: null,
+                        proof_obv_image: null, proof_rev_image: null,
+                    });
+                    cleared++;
+                }
+            }
+        }
+        console.log(`  Migration 4→5: created ${created} section-qualified rows, cleared ${cleared} legacy rows.`);
+    }
+
+    // Migration 5 → 6: RETIRED 2026-08-28. It wiped obv/rev images on coin ids [1,27,34] to
+    // clear old corrupted 'black circle' uploads — but those ids now hold REAL curated images
+    // (1793 half cent, 1840/1847 Braided Hair). On the public app (no server) the wipe was
+    // permanent, so those coins rendered placeholders forever. Migration 7→8 below restores them.
+
+    // Migration 6 → 7: purge 'Washington Bicentennial*' rows (merged into Washington types 2026-08-28).
+    if (storedVersion < 7) {
+        const bic = await db.coins_reference
+            .filter(c => (c.coin_type || '').startsWith('Washington Bicentennial'))
+            .toArray();
+        if (bic.length > 0) {
+            await db.transaction('rw', db.coins_reference, async () => {
+                for (const _o of bic) {
+                    await db.coins_reference.delete(_o.id);
+                }
+            });
+            console.log(`  Migration 6->7: purged ${bic.length} Washington Bicentennial row(s).`);
+        }
+    }
+
+    // Migration 7 → 8: restore images on ids 1/27/34 that the retired 5→6 wipe cleared,
+    // re-seeding them from the shipped coins.json (which has the correct curated URLs).
+    if (storedVersion < 8) {
+        try {
+            const _res = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res.ok) {
+                const _seed = await _res.json();
+                const _byId = new Map(_seed.map(_s => [_s.id, _s]));
+                for (const coinId of [1, 27, 34]) {
+                    const _s = _byId.get(coinId);
+                    const _loc = await db.coins_reference.get(coinId);
+                    if (_s && _loc && !_loc._deleted_obv_image && !_loc._deleted_rev_image) {
+                        await db.coins_reference.update(coinId, {
+                            obv_image: _s.obv_image || null,
+                            rev_image: _s.rev_image || null
+                        });
+                        console.log(`  Migration 7→8: restored images on coin id=${coinId}`);
+                    }
+                }
+            }
+        } catch (_e) {
+            console.warn('  Migration 7→8: seed restore skipped:', _e && _e.message);
+        }
+    }
+
+    // Migration 6 -> 7: purge 'Washington Bicentennial*' rows (merged into Washington types 2026-08-28).
+    if (storedVersion < 7) {
+        const bic = await db.coins_reference
+            .filter(c => (c.coin_type || '').startsWith('Washington Bicentennial'))
+            .toArray();
+        if (bic.length > 0) {
+            await db.transaction('rw', db.coins_reference, async () => {
+                for (const _o of bic) {
+                    await db.coins_reference.delete(_o.id);
+                }
+            });
+            console.log(`  Migration 6->7: purged ${bic.length} Washington Bicentennial row(s).`);
+        }
+    }
+
+
+    // Migration 8 → 9 (2026-08-30): heal stale local rows whose obv/rev images exist in the
+    // shipped coins.json but are empty locally (public browsers seeded before images were
+    // uploaded/published never re-read the seed). Fill EMPTY fields only — never overwrite
+    // a local upload or an explicit deletion.
+    if (storedVersion < 9) {
+        try {
+            const _res9 = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res9 && _res9.ok) {
+                const _seed9 = await _res9.json();
+                let _healed = 0;
+                await db.transaction('rw', db.coins_reference, async () => {
+                    for (const _s of _seed9) {
+                        if (!_s.obv_image && !_s.rev_image) continue;
+                        const _loc = await db.coins_reference.get(_s.id);
+                        if (!_loc) continue;
+                        const upd = {};
+                        if (_s.obv_image && !_loc.obv_image && !_loc._deleted_obv_image) upd.obv_image = _s.obv_image;
+                        if (_s.rev_image && !_loc.rev_image && !_loc._deleted_rev_image) upd.rev_image = _s.rev_image;
+                        if (Object.keys(upd).length) {
+                            await db.coins_reference.update(_s.id, upd);
+                            _healed++;
+                        }
+                    }
+                });
+                console.log(`  Migration 8→9: healed images on ${_healed} coin row(s).`);
+            }
+        } catch (_e) {
+            console.warn('  Migration 8→9 skipped:', _e && _e.message);
+        }
+    }
+
+
+    // Migration 9 → 10 (GGMJ-229): re-type the rows whose coin_type changed in
+    // the shipped catalogue. The public app seeds its IndexedDB with a TOP-UP
+    // (add missing ids, never update existing ones), so a browser that seeded
+    // BEFORE the type split keeps the old names forever — the Barber rows
+    // stayed one cross-denomination type, and an "All of this type" image
+    // fan-out still relabelled the other two denominations.
+    //
+    // Only the type-identifying fields are synced. Images, notes and
+    // inventory are the user's and are never touched.
+    if (storedVersion < 10) {
+        try {
+            const _res10 = await fetch(new URL('data/coins.json', document.baseURI).href);
+            if (_res10 && _res10.ok) {
+                const _seed10 = await _res10.json();
+                const _seedById = new Map();
+                for (const _s of _seed10) _seedById.set(String(_s.id), _s);
+                let _retyped = 0;
+                await db.transaction('rw', db.coins_reference, async () => {
+                    const _rows = await db.coins_reference.toArray();
+                    for (const _row of _rows) {
+                        const _s = _seedById.get(String(_row.id));
+                        if (!_s) continue;
+                        const _upd = {};
+                        if (_s.coin_type && _s.coin_type !== _row.coin_type) {
+                            _upd.coin_type = _s.coin_type;
+                        }
+                        if (_s.section && _s.section !== _row.section) {
+                            _upd.section = _s.section;
+                        }
+                        if (_s.denomination && _s.denomination !== _row.denomination) {
+                            _upd.denomination = _s.denomination;
+                        }
+                        if (Object.keys(_upd).length) {
+                            await db.coins_reference.update(_row.id, _upd);
+                            _retyped++;
+                        }
+                    }
+                });
+                console.log(`  Migration 9→10: re-typed ${_retyped} coin row(s) from the shipped catalogue.`);
+            }
+        } catch (_e10) {
+            console.warn('  Migration 9→10 skipped:', _e10 && _e10.message);
+        }
+    }
+
+    localStorage.setItem(versionKey, String(DB_DATA_VERSION));
+    console.log(`Data migration to v${DB_DATA_VERSION} complete.`);
+}
+// ============================================================
+
+export function fetchStatusLocal() {
+    return { status: "ok", version: "2.0.0" };
+}
+
+export async function fetchSectionsLocal() {
+    const references = await db.coins_reference.toArray();
+    const inventory = await db.user_inventory.toArray();
+    const typeConfigs = await db.coin_type_config.toArray();
+
+    // Map of type configuration for image picking
+    const imageTypes = new Set(
+        typeConfigs
+            .filter(cfg => cfg.obv_image || cfg.rev_image)
+            .map(cfg => cfg.coin_type)
+    );
+
+    // Grouping by section
+    const sectionTotals = {};
+    const sectionOwned = {};
+    const sectionSample = {};
+    const sectionTypes = {};
+
+    references.forEach(coin => {
+        const sec = coin.section || "Unknown";
+        sectionTotals[sec] = (sectionTotals[sec] || 0) + 1;
+        
+        // Pick sample types
+        if (!sectionSample[sec]) {
+            sectionSample[sec] = coin.coin_type;
+        }
+        if (imageTypes.has(coin.coin_type)) {
+            // prefer one with images (still alpha/order from seed)
+            sectionSample[sec] = coin.coin_type;
+        }
+
+        // Subtypes list
+        const mainType = coin.coin_type.includes('—') 
+            ? coin.coin_type.split('—')[0].trim() 
+            : (coin.coin_type.includes('-') ? coin.coin_type.split('-')[0].trim() : coin.coin_type);
+        if (!sectionTypes[sec]) sectionTypes[sec] = [];
+        if (!sectionTypes[sec].includes(mainType)) {
+            sectionTypes[sec].push(mainType);
+        }
+    });
+
+    // Populate owned counts.
+    // 2026-10-21 (GGMJ-399): coins_reference.id is a STRING in the static
+    // deployments' data/coins.json but a NUMBER on self-hosted, while
+    // user_inventory.coin_ref_id is always a NUMBER. `new Set([1]).has('1')`
+    // is false, so the section badge stayed 0/N on GitHub Pages and
+    // Cloudflare Pages while self-hosted was correct. Normalise BOTH sides
+    // to String -- the key is only used for identity comparison.
+    const ownedRefs = new Set(inventory.filter(inv => inv.quantity > 0).map(inv => String(inv.coin_ref_id)));
+    references.forEach(coin => {
+        if (ownedRefs.has(String(coin.id))) {
+            const sec = coin.section || "Unknown";
+            sectionOwned[sec] = (sectionOwned[sec] || 0) + 1;
+        }
+    });
+
+    const result = Object.keys(sectionTotals).map(sec => ({
+        section: sec,
+        total: sectionTotals[sec],
+        owned: sectionOwned[sec] || 0,
+        sample_type: sectionSample[sec] || "",
+        types: sectionTypes[sec] || []
+    }));
+
+    result.sort((a, b) => sectionSortKey(a.section) - sectionSortKey(b.section));
+    return result;
+}
+
+export async function fetchCoinsForSectionLocal(sectionName) {
+    const coins = await db.coins_reference.where('section').equals(sectionName).toArray();
+    
+    // Sort coins by coin_type, year, mint_mark
+    coins.sort((a, b) => {
+        if (a.coin_type !== b.coin_type) return (a.coin_type || '').localeCompare(b.coin_type || '');
+        const yA = typeof a.year === 'number' ? a.year : (parseInt(String(a.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+        const yB = typeof b.year === 'number' ? b.year : (parseInt(String(b.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+        if (yA !== yB) return yA - yB;
+        return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+    });
+
+    // Server-authoritative per-coin image sync (self-hosted only). Makes uploaded
+    // images appear on EVERY device (laptop, phone) instead of only the browser that
+    // performed the upload. Public (GitHub Pages) has no backend, so it is skipped and
+    // falls back to the seeded IndexedDB data. Guarded + non-fatal on failure.
+    try {
+        if (isSelfHosted) {
+            const _native = window.__nativeFetch || window.fetch;
+            if (typeof _native === 'function') {
+                const _res = await _native('/api/coins?section=' + encodeURIComponent(sectionName));
+                if (_res && _res.ok) {
+                    const _server = await _res.json();
+                    const _byId = {};
+                    (_server || []).forEach(c => { if (c && c.id != null) _byId[c.id] = c; });
+                    const toUpdate = [];
+                    for (const _c of coins) {
+                        const _s = _byId[_c.id];
+                        if (_s) {
+                            const serverObv = _s.obv_image || null;
+                            const serverRev = _s.rev_image || null;
+                            const localObv = _c.obv_image || null;
+                            const localRev = _c.rev_image || null;
+
+                            const serverDeletedObv = _s._deleted_obv_image || false;
+                            const serverDeletedRev = _s._deleted_rev_image || false;
+                            const localDeletedObv = _c._deleted_obv_image || false;
+                            const localDeletedRev = _c._deleted_rev_image || false;
+
+                            // Only sync from server if server has data OR explicitly deleted
+                            // Don't overwrite local per-coin images with server null (which would erase user uploads)
+                            const shouldUpdateObv = (serverObv !== null && serverObv !== localObv) || (serverDeletedObv && !localDeletedObv);
+                            const shouldUpdateRev = (serverRev !== null && serverRev !== localRev) || (serverDeletedRev && !localDeletedRev);
+                            if (shouldUpdateObv || shouldUpdateRev || localDeletedObv !== serverDeletedObv || localDeletedRev !== serverDeletedRev) {
+                                const _upd = { 
+                                    obv_image: shouldUpdateObv ? serverObv : localObv, 
+                                    rev_image: shouldUpdateRev ? serverRev : localRev, 
+                                    _deleted_obv_image: serverDeletedObv, 
+                                    _deleted_rev_image: serverDeletedRev 
+                                };
+                                toUpdate.push({ id: _c.id, changes: _upd });
+                                Object.assign(_c, _upd);
+                            }
+                            // FIELD RE-SYNC: server is authoritative for descriptive fields.
+                            // Fixes stale local copies keeping old year/type after a data fix
+                            // (e.g. Bicentennial double-date merge) — the row id exists on both
+                            // sides but its year/type drifted.
+                            const _fields = ['coin_type', 'year', 'mint_mark', 'is_proof', 'denomination', 'metal', 'mintage', 'is_key_date', 'is_semi_key', 'is_lowest_mintage', 'is_lowest_mintage_proof', 'ref_notes'];
+                            const _fieldUpd = {};
+                            for (const _f of _fields) {
+                                if (_s[_f] !== undefined && String(_c[_f]) !== String(_s[_f])) {
+                                    _fieldUpd[_f] = _s[_f];
+                                }
+                            }
+                            if (Object.keys(_fieldUpd).length > 0) {
+                                toUpdate.push({ id: _c.id, changes: _fieldUpd });
+                                Object.assign(_c, _fieldUpd);
+                            }
+                        }
+                    }
+                    if (toUpdate.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const item of toUpdate) {
+                                await db.coins_reference.update(item.id, item.changes);
+                            }
+                        });
+                    }
+                    // USER-COIN PULL: insert server rows this device has never seen.
+                    const _known = new Set(coins.map(c => c.id));
+                    const _incoming = (_server || []).filter(_s => _s && _s.id != null && !_known.has(_s.id));
+                    if (_incoming.length > 0) {
+                        await db.transaction('rw', db.coins_reference, async () => {
+                            for (const _n of _incoming) {
+                                await db.coins_reference.put({ ..._n, id: _n.id });
+                            }
+                        });
+                        console.log('[db] pulled ' + _incoming.length + ' new coin(s) from server');
+                        const _fresh = await db.coins_reference.where('section').equals(sectionName).toArray();
+                        coins.length = 0;
+                        coins.push(..._fresh);
+                        coins.sort((a, b) => {
+                            if (a.coin_type !== b.coin_type) return (a.coin_type || '').localeCompare(b.coin_type || '');
+                            const yA = typeof a.year === 'number' ? a.year : (parseInt(String(a.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+                            const yB = typeof b.year === 'number' ? b.year : (parseInt(String(b.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+                            if (yA !== yB) return yA - yB;
+                            return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+                        });
+                        // CLEANUP (2026-08-25): drop LOCAL user_added rows the server
+                        // no longer has (coins deleted on another device, or just deleted).
+                        // Query IndexedDB directly (not the `coins` array, which was just
+                        // overwritten by _fresh) so we catch stale local rows reliably.
+                        const _serverIds = new Set((_server || []).map(_s => _s && _s.id));
+                        const _localUser = await db.coins_reference
+                            .where('section').equals(sectionName)
+                            .filter(_r => _r.user_added && !_serverIds.has(_r.id))
+                            .toArray();
+                        if (_localUser.length > 0) {
+                            await db.transaction('rw', db.coins_reference, async () => {
+                                for (const _o of _localUser) {
+                                    await db.coins_reference.delete(_o.id);
+                                }
+                            });
+                            const _removedIds = _localUser.map(_o => _o.id);
+                            await db.user_inventory.where('coin_ref_id').anyOf(_removedIds).delete();
+                            console.log('[db] removed ' + _localUser.length + ' deleted user coin(s)');
+                            const _fresh2 = await db.coins_reference.where('section').equals(sectionName).toArray();
+                            coins.length = 0;
+                            coins.push(..._fresh2);
+                        }
+                        // STALE-ROW PURGE: delete local rows that no longer exist on the server
+                        // (matched by identity key, not just id) so renamed/merged coins never dup.
+                        const _srvKeys = new Map((_server || []).map(_s =>
+                            [[(_s.coin_type || ''), String(_s.year), (_s.mint_mark || ''), (_s.is_proof ? 1 : 0)].join('|'), _s.id]));
+                        const _staleRows = await db.coins_reference
+                            .where('section').equals(sectionName)
+                            .filter(_r => {
+                                if (_serverIds.has(_r.id)) return false;
+                                const _k = [(_r.coin_type || ''), String(_r.year), (_r.mint_mark || ''), (_r.is_proof ? 1 : 0)].join('|');
+                                const srvId = _srvKeys.get(_k);
+                                // keep only if no server row shares this identity (true orphan);
+                                // if a server row with a DIFFERENT id owns this identity, it's a dup
+                                return srvId === undefined;
+                            })
+                            .toArray();
+                        if (_staleRows.length > 0) {
+                            await db.transaction('rw', db.coins_reference, async () => {
+                                for (const _o of _staleRows) {
+                                    await db.coins_reference.delete(_o.id);
+                                }
+                            });
+                            console.log('[db] purged ' + _staleRows.length + ' stale coin row(s) no longer on server');
+                            const _fresh3 = await db.coins_reference.where('section').equals(sectionName).toArray();
+                            coins.length = 0;
+                            coins.push(..._fresh3);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (_e) {
+        console.warn('[db] per-coin image server sync skipped:', _e && _e.message);
+    }
+
+    // CRITICAL: Re-read from IndexedDB after sync to ensure we return fresh data
+    // This fixes the "first expand shows broken images, second expand works" bug
+    const freshCoins = await db.coins_reference.where('section').equals(sectionName).toArray();
+    freshCoins.sort((a, b) => {
+        if (a.coin_type !== b.coin_type) return (a.coin_type || '').localeCompare(b.coin_type || '');
+        const yA = typeof a.year === 'number' ? a.year : (parseInt(String(a.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+        const yB = typeof b.year === 'number' ? b.year : (parseInt(String(b.year).match(/\d{4}/)?.[0] || '0', 10) || 9999);
+        if (yA !== yB) return yA - yB;
+        return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+    });
+
+    return freshCoins.map(coin => ({
+        ...coin,
+        coin_id: coin.id,
+        inventory: null // Frontend uses its own inventory state via fetchInventory
+    }));
+}
+
+/**
+ * Look a coin up in `coins_reference` regardless of how its id was typed.
+ *
+ * `coins_reference` is seeded from data/coins.json, whose `id` values are JSON
+ * STRINGS, but rows written at runtime can carry NUMBERS -- and
+ * `user_inventory.coin_ref_id` is always a number. So `get(Number(id))` misses
+ * every seeded row and threw "Coin not found" on every wishlist press.
+ *
+ * Tries each plausible key form and returns the first hit, or undefined.
+ * Callers keep their own "not found" handling.
+ */
+async function _getCoinRefAny(coinId) {
+    const id = (typeof coinId === 'string') ? parseInt(coinId, 10) : coinId;
+    const tries = [coinId, id, String(id), String(coinId)];
+    for (const key of tries) {
+        if (key === null || key === undefined) continue;
+        let hit;
+        try {
+            hit = await db.coins_reference.get(key);
+        } catch (e) {
+            hit = undefined;
+        }
+        if (hit) return hit;
+    }
+    return undefined;
+}
+
+export async function fetchCoinLocal(coinId) {
+    const coin = await _getCoinRefAny(coinId);
+    if (!coin) throw new Error("Coin not found");
+
+    const inv = await db.user_inventory.where('coin_ref_id').equals(Number(coinId)).first();
+    return {
+        ...coin,
+        coin_id: coin.id,
+        inventory: inv ? { ...inv, id: inv.id } : null
+    };
+}
+
+// Tokens that should be treated as "no photo"
+const _BAD_PHOTO_TOKENS = new Set(['undefined', 'null', 'none', '[object object]', '']);
+
+/**
+ * Scrub invalid/legacy tokens from a semicolon-delimited photo string.
+ * @param {string|null} str
+ * @returns {string|null} Cleaned string, or null if nothing remains.
+ */
+function scrubBadPhotoTokens(str) {
+    if (!str) return null;
+    const cleaned = str.split(';')
+        .map(s => s.trim())
+        .filter(s => s && !_BAD_PHOTO_TOKENS.has(s.toLowerCase()))
+        .join(';');
+    return cleaned || null;
+}
+
+export async function fetchInventoryLocal() {
+    const rows = await db.user_inventory.toArray();
+    const result = {};
+    rows.forEach(row => {
+        const key = String(row.coin_ref_id);
+        if (!result[key]) result[key] = [];
+        // Scrub bad photo tokens on load so they never reach the renderer
+        if (row.personal_photo) row.personal_photo = scrubBadPhotoTokens(row.personal_photo);
+        result[key].push({ ...row, id: row.id });
+    });
+    return result;
+}
+
+export async function updateInventoryLocal(coinRefId, data) {
+    coinRefId = Number(coinRefId);
+    const quantity = parseInt(data.quantity || 0, 10);
+    const invId = data.id ? Number(data.id) : null;
+
+    if (invId) {
+        const inv = await db.user_inventory.get(invId);
+        if (!inv || inv.coin_ref_id !== coinRefId) {
+            throw new Error("Inventory entry mismatch or not found");
+        }
+        if (quantity <= 0) {
+            await db.user_inventory.delete(invId);
+            return { status: "deleted" };
+        }
+        const updates = {
+            quantity,
+            grade: data.grade !== undefined ? data.grade : inv.grade,
+            purchase_price: data.purchase_price !== undefined ? Number(data.purchase_price) : inv.purchase_price,
+            current_value: data.current_value !== undefined ? Number(data.current_value) : inv.current_value,
+            date_acquired: data.date_acquired !== undefined ? data.date_acquired : inv.date_acquired,
+            notes: data.notes !== undefined ? data.notes : inv.notes,
+        };
+        // Handle personal_photo base64 direct save
+        if (data.personal_photo !== undefined) {
+            updates.personal_photo = scrubBadPhotoTokens(data.personal_photo);
+        }
+        if (data.personal_photos !== undefined) {
+            updates.personal_photo = scrubBadPhotoTokens(data.personal_photos.filter(x => x).join(';'));
+        }
+        await db.user_inventory.update(invId, updates);
+        const updated = await db.user_inventory.get(invId);
+        return { status: "updated", entry: { ...updated, id: updated.id } };
+    } else {
+        if (quantity <= 0) {
+            return { status: "deleted" };
+        }
+        // 2026-10-21 (GGMJ-399): UPSERT by coin_ref_id. The catalog stepper
+        // calls updateInventory(coinId, { quantity }) with no `id` whenever it
+        // cannot find a reusable row, and appending a new row on every click
+        // left two rows of quantity 1 for a single coin. Reuse an existing
+        // unannotated row for the same coin instead of appending.
+        const existingRows = await db.user_inventory
+            .where('coin_ref_id').equals(coinRefId).toArray();
+        const reusable = existingRows.find(row => row.quantity > 0
+            && !row.grade && !row.notes && !row.personal_photo
+            && !row.purchase_price && !row.current_value && !row.date_acquired);
+        if (reusable) {
+            const merged = {
+                quantity,
+                grade: data.grade !== undefined ? data.grade : reusable.grade,
+                purchase_price: data.purchase_price !== undefined ? Number(data.purchase_price) : reusable.purchase_price,
+                current_value: data.current_value !== undefined ? Number(data.current_value) : reusable.current_value,
+                date_acquired: data.date_acquired !== undefined ? data.date_acquired : reusable.date_acquired,
+                notes: data.notes !== undefined ? data.notes : reusable.notes
+            };
+            if (data.personal_photo !== undefined) {
+                merged.personal_photo = scrubBadPhotoTokens(data.personal_photo);
+            }
+            if (data.personal_photos !== undefined) {
+                merged.personal_photo = scrubBadPhotoTokens(data.personal_photos.filter(x => x).join(';'));
+            }
+            await db.user_inventory.update(reusable.id, merged);
+            const updated = await db.user_inventory.get(reusable.id);
+            return { status: "updated", entry: { ...updated, id: updated.id } };
+        }
+        const newEntry = {
+            coin_ref_id: coinRefId,
+            quantity,
+            grade: data.grade || "",
+            purchase_price: Number(data.purchase_price || 0),
+            current_value: Number(data.current_value || 0),
+            // 2026-10-21 (GGMJ-399): leave empty when not supplied, matching
+            // the server model's default. Stamping today's date made every
+            // locally created row look "annotated", so the stepper stopped
+            // reusing it and appended a new row on every click.
+            date_acquired: data.date_acquired || "",
+            notes: data.notes || "",
+            personal_photo: data.personal_photo || null
+        };
+        if (data.personal_photos) {
+            newEntry.personal_photo = data.personal_photos.filter(x => x).join(';');
+        }
+        const id = await db.user_inventory.add(newEntry);
+        const added = await db.user_inventory.get(id);
+        return { status: "updated", entry: { ...added, id: added.id } };
+    }
+}
+
+export async function deleteInventoryEntryLocal(entryId) {
+    // Match DELETE /api/inventory/<inv_id>: never interpret a row ID as a coin ID.
+    await db.user_inventory.delete(Number(entryId));
+    return { status: "deleted" };
+}
+
+// ---------------------------------------------------------------------------
+// TYPE & IMAGE MANAGER (GGMJ-227 Phase 1) — local (IndexedDB) implementations
+// ---------------------------------------------------------------------------
+// The static deployments have no backend, so the Type & Image Manager edits
+// the browser's own IndexedDB copies of coin_type_config and coins_reference.
+
+/** Every type config, with the year span and coin count the manager shows. */
+export async function fetchTypeGroupsLocal(params = {}) {
+    const q = (params && params.coin_type ? params.coin_type : '').toLowerCase();
+    const configs = await db.coin_type_config.toArray();
+    const yearsByType = new Map();
+    const coins = await db.coins_reference.toArray();
+    coins.forEach((c) => {
+        if (!c.coin_type) return;
+        if (!yearsByType.has(c.coin_type)) yearsByType.set(c.coin_type, []);
+        yearsByType.get(c.coin_type).push(c);
+    });
+    return configs
+        .filter((cfg) => !q || (cfg.coin_type || '').toLowerCase().includes(q))
+        .map((cfg) => {
+            const rows = yearsByType.get(cfg.coin_type) || [];
+            const years = rows.map((r) => r.year).filter((y) => y != null);
+            return {
+                id: cfg.id,
+                coin_type: cfg.coin_type,
+                obv_image: cfg.obv_image || null,
+                rev_image: cfg.rev_image || null,
+                proof_obv_image: cfg.proof_obv_image || null,
+                proof_rev_image: cfg.proof_rev_image || null,
+                example_obv_image: cfg.example_obv_image || null,
+                example_rev_image: cfg.example_rev_image || null,
+                _deleted_obv_image: !!cfg._deleted_obv_image,
+                _deleted_rev_image: !!cfg._deleted_rev_image,
+                base_price: cfg.base_price || 0,
+                key_price: cfg.key_price || 0,
+                year_start: years.length ? Math.min.apply(null, years) : null,
+                year_end: years.length ? Math.max.apply(null, years) : null,
+                coin_count: rows.length,
+                distinct_years: new Set(years).size,
+            };
+        })
+        .sort((a, b) => (a.coin_type || '').localeCompare(b.coin_type || ''));
+}
+
+/** The years (and coins) mapped to one type. */
+export async function fetchTypeYearsLocal(coinType) {
+    const rows = await db.coins_reference.where('coin_type').equals(coinType).toArray();
+    const byYear = new Map();
+    rows.forEach((r) => {
+        if (!byYear.has(r.year)) byYear.set(r.year, { year: r.year, coins: [] });
+        byYear.get(r.year).coins.push({
+            id: r.id,
+            mint_mark: r.mint_mark || '',
+            section: r.section || '',
+        });
+    });
+    return {
+        coin_type: coinType,
+        years: Array.from(byYear.keys()).sort((a, b) => a - b)
+            .map((y) => byYear.get(y)),
+        distinct_years: byYear.size,
+        coin_count: rows.length,
+    };
+}
+
+/** Re-assign years to a type: detach them from whatever type held them. */
+export async function setTypeYearsLocal(coinType, years) {
+    const wanted = new Set((years || []).map(Number));
+    // Get the section for this coinType to filter by
+    const configs = await db.coin_type_config.toArray();
+    const cfg = configs.find(c => c.coin_type === coinType);
+    const section = cfg ? cfg.section : null;
+    
+    await db.transaction('rw', db.coins_reference, async () => {
+        const rows = await db.coins_reference.toArray();
+        for (const r of rows) {
+            if (!wanted.has(Number(r.year))) continue;
+            if (r.coin_type === coinType) continue;
+            // Only reassign if the coin is in the same section (prevents cross-denomination bleed)
+            if (section && r.section !== section) continue;
+            await db.coins_reference.update(r.id, { coin_type: coinType });
+        }
+    });
+    return await fetchTypeYearsLocal(coinType);
+}
+
+/** Create or update a type config. */
+export async function upsertTypeConfigLocal(data) {
+    const coinType = (data && data.coin_type || '').trim();
+    if (!coinType) throw new Error('coin_type is required');
+    const updates = {};
+    ['obv_image', 'rev_image', 'proof_obv_image', 'proof_rev_image',
+     'example_obv_image', 'example_rev_image'].forEach((f) => {
+        if (data[f] !== undefined) updates[f] = data[f];
+    });
+    if (data.base_price !== undefined) updates.base_price = Number(data.base_price) || 0;
+    if (data.key_price !== undefined) updates.key_price = Number(data.key_price) || 0;
+    const existing = await db.coin_type_config.get(coinType);
+    if (existing) {
+        await db.coin_type_config.update(coinType, updates);
+    } else {
+        await db.coin_type_config.add(Object.assign({ coin_type: coinType }, updates));
+    }
+    const cfg = await db.coin_type_config.get(coinType);
+    return {
+        id: cfg.id,
+        coin_type: cfg.coin_type,
+        obv_image: cfg.obv_image || null,
+        rev_image: cfg.rev_image || null,
+        proof_obv_image: cfg.proof_obv_image || null,
+        proof_rev_image: cfg.proof_rev_image || null,
+        example_obv_image: cfg.example_obv_image || null,
+        example_rev_image: cfg.example_rev_image || null,
+        _deleted_obv_image: !!cfg._deleted_obv_image,
+        _deleted_rev_image: !!cfg._deleted_rev_image,
+        base_price: cfg.base_price || 0,
+        key_price: cfg.key_price || 0,
+    };
+}
+
+/** Delete a type config. */
+export async function deleteTypeConfigLocal(coinType) {
+    const existing = await db.coin_type_config.get(coinType);
+    if (!existing) throw new Error('Type config not found: ' + coinType);
+    await db.coin_type_config.delete(coinType);
+    return { status: 'deleted', coin_type: coinType };
+}
+
+/** Bind an image to a type side. */
+export async function assignTypeImageLocal(coinType, side, image) {
+    const field = { obv: 'obv_image', rev: 'rev_image',
+                    proof_obv: 'proof_obv_image', proof_rev: 'proof_rev_image' }[side];
+    if (!field) throw new Error("side must be 'obv', 'rev', 'proof_obv' or 'proof_rev'");
+    const existing = await db.coin_type_config.get(coinType);
+    if (!existing) {
+        await db.coin_type_config.add({ coin_type: coinType });
+    }
+    const updates = {};
+    updates[field] = image || null;
+    // The flag column is "_deleted_<field>_image", not "_deleted_<side>".
+    // "_deleted_obv" is a key nothing reads, so a soft-deleted config
+    // stayed deleted after a fresh assignment.
+    updates['_deleted_' + field] = false;
+    await db.coin_type_config.update(coinType, updates);
+    const cfg = await db.coin_type_config.get(coinType);
+    return {
+        id: cfg.id,
+        coin_type: cfg.coin_type,
+        obv_image: cfg.obv_image || null,
+        rev_image: cfg.rev_image || null,
+        proof_obv_image: cfg.proof_obv_image || null,
+        proof_rev_image: cfg.proof_rev_image || null,
+        _deleted_obv_image: !!cfg._deleted_obv_image,
+        _deleted_rev_image: !!cfg._deleted_rev_image,
+        base_price: cfg.base_price || 0,
+        key_price: cfg.key_price || 0,
+    };
+}
+
+/** The type images available to the picker. */
+export async function fetchTypeImagesLocal() {
+    const configs = await db.coin_type_config.toArray();
+    const pairs = new Map();
+    configs.forEach((cfg) => {
+        [['obv', cfg.obv_image], ['rev', cfg.rev_image],
+         ['proof_obv', cfg.proof_obv_image], ['proof_rev', cfg.proof_rev_image]]
+            .forEach(([side, path]) => {
+                if (!path) return;
+                if (typeof path !== 'string' || path.indexOf('data:') === 0) return;
+                const file = path.split('/').pop();
+                // Strip the extension and then the side marker. BOTH
+                // separator styles occur on disk: "<base>.obv.webp" (the
+                // canonical form) and "<base>_obv.webp". Only the underscore
+                // form was recognised, so the canonical images never paired
+                // with their reverse. The proof markers are tested first,
+                // because a stem ending in "_proof_obv" also ends in "_obv".
+                const base = file
+                    .replace(/\.(webp|png|jpe?g|gif)$/i, '')
+                    .replace(/[._]proof_(obv|rev)$/i, '')
+                    .replace(/[._](obv|rev)$/i, '');
+                if (!pairs.has(base)) pairs.set(base, { base: base });
+                pairs.get(base)[side] = file;
+            });
+    });
+    return Array.from(pairs.values()).sort((a, b) => a.base.localeCompare(b.base));
+}
+
+export async function fetchTypeConfigsLocal() {
+    const configs = await db.coin_type_config.toArray();
+    const result = {};
+    configs.forEach(cfg => {
+        // Return null for deleted fields so the catalog/fallback chain respects the deletion
+        result[cfg.coin_type] = {
+            obv_image: cfg._deleted_obv_image ? null : cfg.obv_image,
+            rev_image: cfg._deleted_rev_image ? null : cfg.rev_image,
+            proof_obv_image: cfg._deleted_proof_obv_image ? null : cfg.proof_obv_image,
+            proof_rev_image: cfg._deleted_proof_rev_image ? null : cfg.proof_rev_image,
+            _deleted_obv_image: !!cfg._deleted_obv_image,
+            _deleted_rev_image: !!cfg._deleted_rev_image,
+            _deleted_proof_obv_image: !!cfg._deleted_proof_obv_image,
+            _deleted_proof_rev_image: !!cfg._deleted_proof_rev_image,
+            base_price: cfg.base_price || 0,
+            key_price: cfg.key_price || 0
+        };
+    });
+
+    // Server-authoritative type config sync (self-hosted only).
+    // Fetches latest type configs from server and updates IndexedDB so uploaded
+    // type images appear on EVERY device (laptop, phone) instead of only the
+    // browser that performed the upload. Public (GitHub Pages) has no backend,
+    // so it is skipped and falls back to the seeded IndexedDB data.
+    // Guarded + non-fatal on failure.
+    try {
+        if (isSelfHosted) {
+            const _native = window.__nativeFetch || window.fetch;
+            if (typeof _native === 'function') {
+                const _res2 = await _native('/api/pricing_rules');
+                if (_res2 && _res2.ok) {
+                    const _server = await _res2.json();
+                    if (_server && typeof _server === 'object') {
+                        const toUpdate = [];
+                        for (const [coinType, serverCfg] of Object.entries(_server)) {
+                            const localCfg = await db.coin_type_config.get(coinType);
+                            if (!localCfg) {
+                                // New type config from server - add it
+                                toUpdate.push({
+                                    coin_type: coinType,
+                                    obv_image: serverCfg.obv_image || null,
+                                    rev_image: serverCfg.rev_image || null,
+                                    proof_obv_image: serverCfg.proof_obv_image || null,
+                                    proof_rev_image: serverCfg.proof_rev_image || null,
+                                    _deleted_obv_image: !!serverCfg._deleted_obv_image,
+                                    _deleted_rev_image: !!serverCfg._deleted_rev_image,
+                                    _deleted_proof_obv_image: !!serverCfg._deleted_proof_obv_image,
+                                    _deleted_proof_rev_image: !!serverCfg._deleted_proof_rev_image,
+                                    base_price: serverCfg.base_price || 0,
+                                    key_price: serverCfg.key_price || 0
+                                });
+                            } else {
+                                // Check for differences
+                                const serverObv = serverCfg.obv_image || null;
+                                const serverRev = serverCfg.rev_image || null;
+                                const serverDelObv = !!serverCfg._deleted_obv_image;
+                                const serverDelRev = !!serverCfg._deleted_rev_image;
+
+                                if (localCfg.obv_image !== serverObv ||
+                                    localCfg.rev_image !== serverRev ||
+                                    localCfg._deleted_obv_image !== serverDelObv ||
+                                    localCfg._deleted_rev_image !== serverDelRev) {
+                                    toUpdate.push({
+                                        coin_type: coinType,
+                                        obv_image: serverObv,
+                                        rev_image: serverRev,
+                                        _deleted_obv_image: serverDelObv,
+                                        _deleted_rev_image: serverDelRev
+                                    });
+                                }
+                            }
+                        }
+                        if (toUpdate.length > 0) {
+                            await db.transaction('rw', db.coin_type_config, async () => {
+                                for (const item of toUpdate) {
+                                    const existing = await db.coin_type_config.get(item.coin_type);
+                                    if (existing) {
+                                        await db.coin_type_config.update(item.coin_type, item);
+                                    } else {
+                                        await db.coin_type_config.add(item);
+                                    }
+                                }
+                            });
+                            // Update result with fresh server data
+                            for (const item of toUpdate) {
+                                result[item.coin_type] = {
+                                    obv_image: item._deleted_obv_image ? null : item.obv_image,
+                                    rev_image: item._deleted_rev_image ? null : item.rev_image,
+                                    proof_obv_image: null,
+                                    proof_rev_image: null,
+                                    _deleted_obv_image: item._deleted_obv_image,
+                                    _deleted_rev_image: item._deleted_rev_image,
+                                    _deleted_proof_obv_image: false,
+                                    _deleted_proof_rev_image: false,
+                                    base_price: item.base_price || 0,
+                                    key_price: item.key_price || 0
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (_e) {
+        console.warn('[db] type config server sync skipped:', _e && _e.message);
+    }
+
+    // Public (GitHub Pages) JSON merge: the published type_configs.json is the
+    // source of truth for section/type images. Re-read it so newly published
+    // images appear WITHOUT the user having to clear IndexedDB. Never overrides
+    // a locally deleted field or a user-assigned base64 image.
+    try {
+        if (!isSelfHosted) {
+            const _native2 = window.__nativeFetch || window.fetch;
+            if (typeof _native2 === 'function') {
+                const _jres = await _native2('data/type_configs.json');
+                if (_jres && _jres.ok) {
+                    const _json = await _jres.json();
+                    const _list = Array.isArray(_json) ? _json : Object.values(_json);
+                    for (const jc of _list) {
+                        const ct = jc.coin_type || jc.id;
+                        if (!ct) continue;
+                        const cur = result[ct] || {};
+                        const merged = { ...cur };
+                        for (const fld of ['obv_image','rev_image','proof_obv_image','proof_rev_image']) {
+                            const delFlag = '_deleted_' + fld;
+                            const jsonVal = jc[fld] || null;
+                            const locallyDeleted = cur[delFlag];
+                            // Take JSON value if local is empty AND not deleted
+                            if (jsonVal && !cur[fld] && !locallyDeleted) {
+                                merged[fld] = jsonVal;
+                            }
+                        }
+                        merged.base_price = jc.base_price || cur.base_price || 0;
+                        merged.key_price = jc.key_price || cur.key_price || 0;
+                        result[ct] = merged;
+                    }
+                    console.log('[db] merged published type_configs.json into public view');
+                }
+            }
+        }
+    } catch (_e2) {
+        console.warn('[db] public type_configs.json merge skipped:', _e2 && _e2.message);
+    }
+
+    return result;
+}
+
+// ============================================================
+// Spot Prices (CORS Proxy Yahoo Finance)
+// ============================================================
+
+
+// 2026-08-30: gold-api.com fallback (CORS-open, no key, all 5 metals). On the public app the
+// /yahoo-finance/ nginx proxy does not exist and public CORS proxies are dead (allorigins blocked,
+// corsproxy 401), so this is what keeps live spot prices updating outside self-hosted.
+async function _fetchGoldApiSpot(key) {
+    const symbolMap = { gold_oz: "XAU", silver_oz: "XAG", platinum_oz: "XPT", palladium_oz: "XPD", copper_lb: "HG" };
+    const sym = symbolMap[key];
+    if (!sym) return null;
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 8000);
+    try {
+        const resp = await fetch("https://api.gold-api.com/price/" + sym, { signal: ctl.signal });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        const price = parseFloat(data.price);
+        return isFinite(price) && price > 0 ? parseFloat(price.toFixed(2)) : null;
+    } catch (e) {
+        return null;
+    } finally {
+        clearTimeout(to);
+    }
+}
+
+// 2026-09-10: Cloudflare Worker proxy (unlimited, CORS-safe, 15-min edge cache).
+// Replaces direct gold-api.com calls which were rate-limited to 100 req/day.
+// Worker URL: https://coin-catalog-spot.matt-e-jenkins.workers.dev
+export async function fetchSpotPricesLocal() {
+    const WORKER_URL = "https://coin-catalog-spot.matt-e-jenkins.workers.dev";
+
+    // Check cache first (15 min TTL = 96 req/day per client)
+    let cached = null;
+    try {
+        const c = localStorage.getItem('cc-spot-cache');
+        if (c) {
+            const parsed = JSON.parse(c);
+            const age = Date.now() - parsed.updated_at;
+            if (age < 15 * 60 * 1000) { // 15 min TTL
+                // Cache is stored as { prices: {...}, updated_at }; return the SAME
+                // UNWRAPPED shape as a fresh fetch ({ gold_oz, ..., _meta }) so
+                // setSpotPrices()/getSpotPrices() always see top-level metal keys.
+                // (Previously returned `parsed` directly → wrapped shape → blank card.)
+                const p = parsed.prices || parsed;
+                return { ...FALLBACK_SPOT_PRICES, ...p, _meta: { is_stale: false, updated_at: parsed.updated_at } };
+            }
+            cached = parsed; // Use stale data as fallback
+        }
+    } catch (e) {}
+
+    // Initialize with fallback prices
+    const prices = { ...FALLBACK_SPOT_PRICES, _meta: { is_stale: true, updated_at: cached?.updated_at || 'Never' } };
+    if (cached?.prices) {
+        Object.assign(prices, cached.prices);
+    }
+
+    // Single request to Cloudflare Worker (edge-cached, CORS-safe, unlimited)
+    // Worker returns { gold_oz, silver_oz, copper_lb, platinum_oz, palladium_oz, _meta }
+    try {
+        const resp = await fetch("https://coin-catalog-spot.matt-e-jenkins.workers.dev", {
+            signal: AbortSignal.timeout(8000)
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data && typeof data === 'object') {
+                // Merge worker prices (null values ignored)
+                for (const key of ['gold_oz', 'silver_oz', 'copper_lb', 'platinum_oz', 'palladium_oz']) {
+                    if (data[key] !== null && data[key] !== undefined) {
+                        prices[key] = data[key];
+                    }
+                }
+                // Preserve worker's _meta if present
+                if (data._meta) {
+                    prices._meta = data._meta;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Worker spot fetch failed:', e);
+    }
+
+    // Check if we got fresh data
+    const METAL_KEYS = ['gold_oz', 'silver_oz', 'copper_lb', 'platinum_oz', 'palladium_oz'];
+    const freshCount = METAL_KEYS.filter(k => prices[k] !== FALLBACK_SPOT_PRICES[k]).length;
+    
+    // Update cache if we got fresh data
+    if (freshCount > 0) {
+        prices._meta = { is_stale: false, updated_at: Date.now() };
+        try {
+            localStorage.setItem('cc-spot-cache', JSON.stringify({
+                prices: {
+                    gold_oz: prices.gold_oz,
+                    silver_oz: prices.silver_oz,
+                    copper_lb: prices.copper_lb,
+                    platinum_oz: prices.platinum_oz,
+                    palladium_oz: prices.palladium_oz,
+                },
+                updated_at: Date.now()
+            }));
+        } catch (e) {}
+    } else if (cached?.prices) {
+        // If all fetches failed but we have stale cache, use it
+        prices._meta = { is_stale: true, updated_at: cached.updated_at };
+    } else {
+        prices._meta = { is_stale: true, updated_at: 'Never' };
+    }
+
+    return prices;
+}
+function convertSpotToPerGram(spotPrices) {
+    return {
+        gold: (spotPrices.gold_oz || 0) / 31.1035,
+        silver: (spotPrices.silver_oz || 0) / 31.1035,
+        copper: (spotPrices.copper_lb || 0) / 453.592,
+        platinum: (spotPrices.platinum_oz || 0) / 31.1035,
+        palladium: (spotPrices.palladium_oz || 0) / 31.1035,
+    };
+}
+
+function parseMetalMelt(metalStr, weightG, spot) {
+    if (!metalStr || weightG <= 0) return [0.0, "none"];
+    const m = metalStr.toLowerCase();
+
+    if (m.includes("99.9") || m.includes("99.99")) {
+        if (m.includes("gold")) return [weightG * (spot.gold || 0), "gold"];
+        if (m.includes("silver")) return [weightG * (spot.silver || 0), "silver"];
+        if (m.includes("platinum")) return [weightG * (spot.platinum || 0), "platinum"];
+        if (m.includes("palladium")) return [weightG * (spot.palladium || 0), "palladium"];
+    }
+
+    if (m.includes("gold")) {
+        let pct = 0.90;
+        if (m.includes("91.67")) pct = 0.9167;
+        else if (m.includes("90%") || m.includes("90 ")) pct = 0.90;
+        else if (m.includes("75%")) pct = 0.75;
+        else if (m.includes("bimetallic")) pct = 0.50;
+        return [weightG * pct * (spot.gold || 0), "gold"];
+    }
+
+    if (m.includes("silver")) {
+        let pct = 0.90;
+        if (m.includes("99.93") || m.includes("99%")) pct = 0.999;
+        else if (m.includes("90%") || m.includes("90 ")) pct = 0.90;
+        else if (m.includes("89.24")) pct = 0.8924;
+        else if (m.includes("75%")) pct = 0.75;
+        else if (m.includes("40%")) pct = 0.40;
+        else if (m.includes("35%")) pct = 0.35;
+        else if (m.includes("92.5") || m.includes("sterling")) pct = 0.925;
+        return [weightG * pct * (spot.silver || 0), "silver"];
+    }
+
+    if (m.includes("steel") || (m.includes("zinc") && !m.includes("copper"))) {
+        return [0.0, "none"];
+    }
+
+    if (m.includes("copper") || m.includes("bronze") || m.includes("tombac") || m.includes("brass")) {
+        let pct = 0.95;
+        if (m.includes("100%")) pct = 1.0;
+        else if (m.includes("98%") || m.includes("97.5")) pct = 0.975;
+        else if (m.includes("95.5")) pct = 0.955;
+        else if (m.includes("95%")) pct = 0.95;
+        else if (m.includes("90%")) pct = 0.90;
+        else if (m.includes("88%") || m.includes("88.5")) pct = 0.885;
+        else if (m.includes("75%")) pct = 0.75;
+        else if (m.includes("copper-plated")) pct = 0.025;
+        else if (m.includes("clad")) pct = 0.0833;
+        return [weightG * pct * (spot.copper || 0), "copper"];
+    }
+
+    return [0.0, "none"];
+}
+
+function lookupDefaultPrice(coinType, isKeyDate) {
+    const ctLower = (coinType || "").toLowerCase();
+
+    if (ctLower.includes("commemorative")) {
+        if (ctLower.includes("gold")) {
+            return isKeyDate ? 1000 : 500;
+        } else if (ctLower.includes("half") || ctLower.includes("50c")) {
+            return isKeyDate ? 80 : 20;
+        } else {
+            return isKeyDate ? 100 : 30;
+        }
+    }
+
+    for (const pattern of Object.keys(DEFAULT_COIN_PRICES)) {
+        if (ctLower.includes(pattern.toLowerCase())) {
+            const prices = DEFAULT_COIN_PRICES[pattern];
+            return isKeyDate ? prices[1] : prices[0];
+        }
+    }
+
+    return isKeyDate ? 50.0 : 2.0;
+}
+
+function calculateCoinValue(coin, inv, typeCfg, spotPerGram, faceValue) {
+    const weight = coin.weight_grams || 0;
+    const metalStr = coin.metal || "";
+
+    const [meltPerCoin, metalCat] = parseMetalMelt(metalStr, weight, spotPerGram);
+
+    let activeMetalCat = metalCat;
+    const coinTypeLower = (coin.coin_type || "").toLowerCase();
+    const isCopperPenny = (
+        metalCat === "copper" &&
+        coinTypeLower.includes("lincoln") &&
+        coin.year >= 1959 && coin.year <= 1981
+    );
+    if (metalCat === "copper" && !isCopperPenny) {
+        activeMetalCat = "none";
+    }
+
+    const currV = inv ? Number(inv.current_value || 0) : 0;
+    const paidV = inv ? Number(inv.purchase_price || 0) : 0;
+
+    let defaultRuleVal = 0;
+    if (typeCfg) {
+        defaultRuleVal = coin.is_key_date ? (typeCfg.key || 0) : (typeCfg.base || 0);
+    } else {
+        defaultRuleVal = lookupDefaultPrice(coin.coin_type, coin.is_key_date);
+    }
+
+    let nonMeltVal = 0;
+    if (currV > 0) nonMeltVal = currV;
+    else if (paidV > 0) nonMeltVal = paidV;
+    else nonMeltVal = Math.max(faceValue, defaultRuleVal);
+
+    nonMeltVal = Math.max(nonMeltVal, faceValue);
+
+    const finalPerCoin = Math.max(meltPerCoin, nonMeltVal);
+
+    let bucket = "collectable_value";
+    if (meltPerCoin > 0 && meltPerCoin >= nonMeltVal) {
+        const bucketMap = {
+            "gold":      "gold_coin_melt",
+            "silver":    "silver_coin_melt",
+            "copper":    "copper_coin_melt",
+            "platinum":  "platinum_coin_melt",
+            "palladium": "palladium_coin_melt",
+        };
+        bucket = bucketMap[activeMetalCat] || "collectable_value";
+    }
+
+    return [finalPerCoin, bucket];
+}
+
+export async function fetchPortfolioLocal() {
+    const spotPrices = await fetchSpotPricesLocal();
+    const spot = convertSpotToPerGram(spotPrices);
+
+    const inventory = await db.user_inventory.toArray();
+    const typeConfigs = await db.coin_type_config.toArray();
+    const references = await db.coins_reference.toArray();
+
+    // Map references for quick access
+    const refMap = {};
+    references.forEach(r => { refMap[r.id] = r; });
+
+    // Map type configs
+    const configs = {};
+    typeConfigs.forEach(cfg => {
+        configs[cfg.coin_type] = {
+            base: cfg.base_price || 0,
+            key: cfg.key_price || 0
+        };
+    });
+
+    const stats = {
+        total_items:          0,
+        total_physical_coins: 0,
+        face_value:           0.0,
+        gold_coin_melt:       0.0,
+        silver_coin_melt:     0.0,
+        copper_coin_melt:     0.0,
+        platinum_coin_melt:   0.0,
+        palladium_coin_melt:  0.0,
+        collectable_value:    0.0,
+        raw_bullion:          0.0,
+        bulk_coins_value:     0.0,
+        scrap_value:          0.0,
+        paper_value:          0.0,
+        other_value:          0.0,
+    };
+
+    let pureCoinCount = 0;
+    inventory.forEach(inv => {
+        const coin = refMap[inv.coin_ref_id];
+        if (!coin) return;
+
+        const qty = inv.quantity || 1;
+        pureCoinCount += qty;
+
+        const denomKey = (coin.denomination || "").toLowerCase().trim();
+        const face = FACE_VALUE_MAP[denomKey] || 0.0;
+        stats.face_value += face * qty;
+
+        let cfg = configs[coin.coin_type];
+        if (!cfg) {
+            const mainT = coin.coin_type.includes(" - ") ? coin.coin_type.split(" - ")[0].trim() : "";
+            cfg = configs[mainT];
+        }
+
+        const [finalPerCoin, bucket] = calculateCoinValue(coin, inv, cfg, spot, face);
+        stats[bucket] += finalPerCoin * qty;
+    });
+
+    // ---- Raw Bullion ----
+    const bullionItems = await db.raw_bullion.toArray();
+    bullionItems.forEach(b => {
+        const metal = (b.metal_type || "").toLowerCase();
+        const purity = b.purity || 1.0;
+        const spotMap = {
+            "gold":      spotPrices.gold_oz,
+            "silver":    spotPrices.silver_oz,
+            "copper":    spotPrices.copper_lb,
+            "platinum":  spotPrices.platinum_oz,
+            "palladium": spotPrices.palladium_oz,
+        };
+        const price = spotMap[metal] || 0;
+        // 2026-10-21 (GGMJ-404): `weight` is ONE unit; `amount` is how many
+        // are held. Without the quantity the Portfolio Overview counted a
+        // 10-unit holding as a single unit.
+        const qty = Number(b.amount);
+        const qtySafe = (isFinite(qty) && qty > 0) ? qty : 1;
+        // 2026-10-21 (GGMJ-410): honour `weight_unit`. A row stored in
+        // grams is not a troy ounce, and copper is quoted per POUND.
+        // Canonical conversion, shared with backend/services/valuation.py.
+        const units = bullionPriceUnits(b.weight, b.weight_unit, metal);
+        stats.raw_bullion += units * qtySafe * purity * price;
+    });
+
+    // ---- Bulk Coins ----
+    const bulkItems = await db.bulk_inventory.toArray();
+    bulkItems.forEach(b => {
+        const mt = b.metal_type || "";
+        const wt = b.total_weight_grams || 0;
+        if (mt === "CopperPennies") {
+            stats.bulk_coins_value += wt * 0.95 * (spot.copper || 0);
+        } else if (mt === "ZincPennies") {
+            stats.bulk_coins_value += (wt / 2.5) * 0.01;
+        } else if (mt === "Nickels") {
+            stats.bulk_coins_value += (wt / 5.0) * 0.05;
+        } else if (mt === "SilverCoins90") {
+            stats.bulk_coins_value += wt * 0.90 * (spot.silver || 0);
+        } else if (mt === "EisenhowerClad") {
+            // 2026-10-10 (Matthew), corrected: the Eisenhower series ended 1978
+            // and every circulation strike is copper-nickel clad -- no silver.
+            // 22.68 g/coin, $1.00 face. Must stay in step with calcCoinValue()
+            // in portfolio.js or the card and the portfolio total disagree.
+            stats.bulk_coins_value += Math.round((wt / 22.68)) * 1.00;
+        } else if (mt === "GoldenDollars") {
+            // Sacagawea / Presidential: 88.5% Cu / 6% Zn / 3.5% Mn / 2% Ni,
+            // 8.100 g, NO SILVER. Face value only.
+            stats.bulk_coins_value += Math.round((wt / 8.1)) * 1.00;
+        } else if (mt === "CladDimes") {
+            stats.bulk_coins_value += (wt / 2.268) * 0.10;
+        } else if (mt === "CladQuarters") {
+            stats.bulk_coins_value += (wt / 5.67) * 0.25;
+        } else if (mt === "CladHalves") {
+            stats.bulk_coins_value += (wt / 11.34) * 0.50;
+        // Canada (2026-10-21, GGMJ-403). The Bulk Coins form offers 9
+        // Canadian denominations, and calcCoinValue() in portfolio.js
+        // already values all of them. Without these branches a Canadian
+        // entry was worth $0 in the Portfolio Overview on a static host
+        // (which answers /api/portfolio from this function) while the
+        // Bulk Coins card showed its real value -- the card and the
+        // grand total disagreed.
+        //
+        // These 9 branches are a transcription of the canonical server-side
+        // valuation in backend/services/valuation.py, so both hosts put the
+        // same Canadian metal in the same bucket:
+        //   CanadianCopperPennies   -> copper_coin_melt (95% copper)
+        //   CanadianSilverDimes     -> silver_coin_melt  (80% silver)
+        //   CanadianSilverQuarters  -> silver_coin_melt  (80% silver)
+        //   CanadianHalfDollars     -> silver_coin_melt  (80% silver)
+        //   the rest                -> bulk_coins_value  (face value)
+        // Must stay in step with calcCoinValue() in portfolio.js.
+        } else if (mt === "CanadianCopperPennies") {
+            // Canadian penny, 3.24 g. 1920-1964 are 95% copper;
+            // 1965-1996 are nickel-plated steel.
+            stats.copper_coin_melt += wt * 0.95 * (spot.copper || 0);
+        } else if (mt === "CanadianZincPennies") {
+            // Canadian zinc penny (1997-2012), 2.35 g. Face value.
+            stats.bulk_coins_value += (wt / 2.35) * 0.01;
+        } else if (mt === "CanadianNickels") {
+            // Canadian nickel, 4.54 g. Face value.
+            stats.bulk_coins_value += (wt / 4.54) * 0.05;
+        } else if (mt === "CanadianSilverDimes") {
+            // Canadian dime, pre-1968, 2.33 g, 80% silver (1920-1967).
+            stats.silver_coin_melt += wt * 0.80 * (spot.silver || 0);
+        } else if (mt === "CanadianCladDimes") {
+            // Canadian clad dime (1968+), 1.75 g. Face value.
+            stats.bulk_coins_value += (wt / 1.75) * 0.10;
+        } else if (mt === "CanadianSilverQuarters") {
+            // Canadian quarter, pre-1968, 5.83 g, 80% silver (1920-1967).
+            stats.silver_coin_melt += wt * 0.80 * (spot.silver || 0);
+        } else if (mt === "CanadianCladQuarters") {
+            // Canadian clad quarter (1968+), 4.40 g. Face value.
+            stats.bulk_coins_value += (wt / 4.40) * 0.25;
+        } else if (mt === "CanadianHalfDollars") {
+            // Canadian 50 cents, pre-1968, 11.66 g, 80% silver (1920-1967).
+            stats.silver_coin_melt += wt * 0.80 * (spot.silver || 0);
+        } else if (mt === "CanadianLoonies") {
+            // Canadian loonie (1987+), 7.00 g, gold-plated. Face value.
+            stats.bulk_coins_value += (wt / 7.00) * 1.00;
+        } else if (["Gold", "Silver", "Copper", "Platinum", "Palladium"].includes(mt)) {
+            const metalKey = mt.toLowerCase();
+            if (metalKey === "copper") {
+                stats.raw_bullion += wt * (spot.copper || 0);
+            } else {
+                stats.raw_bullion += wt * (spot[metalKey] || 0);
+            }
+        }
+    });
+
+    // ---- Scrap Metal ----
+    const scrapItems = await db.scrap_metal.toArray();
+    scrapItems.forEach(s => {
+        const metal = (s.metal_type || "").toLowerCase();
+        const wt = s.weight_grams || 0;
+        const purity = s.purity || 1.0;
+        stats.scrap_value += wt * purity * (spot[metal] || 0);
+    });
+
+    // ---- Paper Currency ----
+    const paperItems = await db.paper_currency.toArray();
+    let paperCount = 0;
+    paperItems.forEach(p => {
+        paperCount += 1;
+        const val = Number(p.value || 0);
+        if (val > 0) {
+            stats.paper_value += val;
+        } else {
+            const denom = Number(p.denomination || 0);
+            stats.paper_value += p.is_star_note ? (denom * 2) : denom;
+        }
+    });
+
+    // ---- Other Collectables ----
+    const otherItems = await db.other_collectable.toArray();
+    let otherQty = 0;
+    otherItems.forEach(c => {
+        const qty = c.quantity || 1;
+        stats.other_value += (c.estimated_value || 0) * qty;
+        otherQty += qty;
+    });
+
+    // ---- Totals ----
+    stats.total_physical_coins = pureCoinCount;
+    stats.total_items = pureCoinCount + paperCount + otherQty;
+
+    stats.total_melt = (
+        stats.gold_coin_melt +
+        stats.silver_coin_melt +
+        stats.copper_coin_melt +
+        stats.platinum_coin_melt +
+        stats.palladium_coin_melt
+    );
+
+    stats.total_estimated_value = (
+        stats.collectable_value +
+        stats.total_melt +
+        stats.raw_bullion +
+        stats.bulk_coins_value +
+        stats.scrap_value +
+        stats.paper_value +
+        stats.other_value
+    );
+
+    // Round all floats
+    Object.keys(stats).forEach(key => {
+        if (typeof stats[key] === 'number') {
+            stats[key] = parseFloat(stats[key].toFixed(2));
+        }
+    });
+
+    return stats;
+}
+
+// ============================================================
+// Raw Bullion / Scrap / Custom Categories / Other modules
+// ============================================================
+
+export async function fetchRawBullionLocal() {
+    return db.raw_bullion.toArray();
+}
+
+export async function saveRawBullionLocal(data) {
+    const entry = {
+        metal_type: data.metal_type || "gold",
+        weight_unit: data.weight_unit || "oz",
+        weight: Number(data.weight || 0),
+        amount: Number(data.amount || 1),
+        purity: Number(data.purity || 1.0),
+        label: data.label || "",
+        notes: data.notes || ""
+    };
+    if (data.id) {
+        await db.raw_bullion.update(Number(data.id), entry);
+        return { ...entry, id: Number(data.id) };
+    } else {
+        const id = await db.raw_bullion.add(entry);
+        return { ...entry, id };
+    }
+}
+
+export async function deleteRawBullionLocal(id) {
+    await db.raw_bullion.delete(Number(id));
+    return { status: "deleted" };
+}
+
+export async function fetchScrapLocal() {
+    return db.scrap_metal.toArray();
+}
+
+export async function saveScrapLocal(data) {
+    const entry = {
+        name: data.name || "",
+        metal_type: data.metal_type || "silver",
+        purity: Number(data.purity || 1.0),
+        weight_grams: Number(data.weight_grams || 0),
+        notes: data.notes || ""
+    };
+    if (data.id) {
+        await db.scrap_metal.update(Number(data.id), entry);
+        return { ...entry, id: Number(data.id) };
+    } else {
+        const id = await db.scrap_metal.add(entry);
+        entry.id = id;
+    }
+    // Sync to server (fire-and-forget, don't block on failure)
+    fetch('/api/scrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+    }).catch(e => console.warn('Failed to sync scrap to server:', e));
+    return { ...entry, id: entry.id };
+}
+
+export async function deleteScrapLocal(id) {
+    await db.scrap_metal.delete(Number(id));
+    return { status: "deleted" };
+}
+
+export async function fetchPaperCurrencyLocal() {
+    return db.paper_currency.toArray();
+}
+
+export async function savePaperCurrencyLocal(data) {
+    const entry = {
+        denomination: Number(data.denomination || 1.0),
+        series_year: data.series_year || "",
+        serial_number: data.serial_number || "",
+        is_star_note: !!data.is_star_note,
+        condition: data.condition || "",
+        value: Number(data.value || 0.0),
+        notes: data.notes || "",
+        obv_image: data.obv_image || null,
+        rev_image: data.rev_image || null,
+        signatures: data.signatures || "",
+        friedberg: data.friedberg || ""
+    };
+    if (data.id) {
+        await db.paper_currency.update(Number(data.id), entry);
+        return { ...entry, id: Number(data.id) };
+    } else {
+        const id = await db.paper_currency.add(entry);
+        return { ...entry, id };
+    }
+}
+
+export async function deletePaperCurrencyLocal(id) {
+    await db.paper_currency.delete(Number(id));
+    return { status: "deleted" };
+}
+
+export async function fetchCustomCategoriesLocal() {
+    return db.custom_category.toArray();
+}
+
+export async function saveCustomCategoryLocal(name) {
+    await db.custom_category.put({ name });
+    return { name };
+}
+
+export async function deleteCustomCategoryLocal(name) {
+    await db.custom_category.delete(name);
+    // Delete cascade all collectables
+    await db.other_collectable.where('category_name').equals(name).delete();
+    return { status: "deleted" };
+}
+
+export async function fetchOtherCollectablesLocal() {
+    return db.other_collectable.toArray();
+}
+
+export async function saveOtherCollectablesLocal(data) {
+    const entry = {
+        category_name: data.category_name || "",
+        name: data.name || "",
+        quantity: Number(data.quantity || 1),
+        estimated_value: Number(data.estimated_value || 0.0),
+        notes: data.notes || "",
+        personal_photo: data.personal_photo || null
+    };
+    if (data.id) {
+        await db.other_collectable.update(Number(data.id), entry);
+        return { ...entry, id: Number(data.id) };
+    } else {
+        const id = await db.other_collectable.add(entry);
+        return { ...entry, id };
+    }
+}
+
+export async function deleteOtherCollectableLocal(id) {
+    await db.other_collectable.delete(Number(id));
+    return { status: "deleted" };
+}
+
+export async function fetchWishlistLocal() {
+    const rows = await db.wishlist_item.toArray();
+    // GGMJ-382: rows stored before the fix carry a description with no
+    // denomination ("1796 Draped Bust"). Re-derive the full label from the
+    // LOCAL catalogue on read so the public (offline) app shows the same
+    // coin identity as the self-hosted app, without needing a migration.
+    const enriched = [];
+    for (const row of rows) {
+        const coin = row.coin_id ? await _getCoinRefAny(row.coin_id) : undefined;
+        const label = coin ? buildCoinLabel(coin) : null;
+        enriched.push(label ? { ...row, description: label.label, coin: label } : row);
+    }
+    return enriched;
+}
+
+export async function saveWishlistLocal(data) {
+    const entry = {
+        coin_id: data.coin_id ? Number(data.coin_id) : null,
+        description: data.description || "",
+        coin: data.coin || null,
+        category: data.category || "",
+        target_grade: data.target_grade || "",
+        max_price: Number(data.max_price || 0),
+        notes: data.notes || "",
+        acquired: !!data.acquired,
+        date_added: data.date_added || new Date().toISOString().split('T')[0]
+    };
+    if (data.id) {
+        await db.wishlist_item.update(Number(data.id), entry);
+        return { ...entry, id: Number(data.id) };
+    } else {
+        const id = await db.wishlist_item.add(entry);
+        return { ...entry, id };
+    }
+}
+
+export async function addToWishlistLocal(coinId) {
+    coinId = Number(coinId);
+    // 2026-10-09 (Matthew): was `get(coinId)` with a numeric key, which misses
+    // every row seeded from coins.json (string ids) -> "Coin not found" on
+    // every wishlist press. See _getCoinRefAny.
+    const coin = await _getCoinRefAny(coinId);
+    if (!coin) throw new Error("Coin not found");
+
+    const existing = await db.wishlist_item.where('coin_id').equals(coinId).first();
+    if (existing) return existing;
+
+    // GGMJ-382: the description must name the coin fully — denomination +
+    // year + mint + type. buildCoinLabel() is the offline mirror of
+    // backend/services/coin_label.py, so both platforms label identically.
+    const label = buildCoinLabel(coin);
+    const entry = {
+        coin_id: coinId,
+        description: label ? label.label : `${coin.year} ${coin.mint_mark} ${coin.coin_type}`,
+        coin: label,
+        category: "Coins",
+        target_grade: "",
+        max_price: 0,
+        notes: "",
+        acquired: false,
+        date_added: new Date().toISOString().split('T')[0]
+    };
+    const id = await db.wishlist_item.add(entry);
+    return { ...entry, id };
+}
+
+export async function removeFromWishlistLocal(coinId) {
+    await db.wishlist_item.where('coin_id').equals(Number(coinId)).delete();
+    return { status: "deleted" };
+}
+
+export async function updateWishlistItemLocal(itemId, data) {
+    itemId = Number(itemId);
+    const updates = {};
+    if (data.target_grade !== undefined) updates.target_grade = data.target_grade;
+    if (data.max_price !== undefined) updates.max_price = Number(data.max_price);
+    if (data.notes !== undefined) updates.notes = data.notes;
+    if (data.acquired !== undefined) updates.acquired = !!data.acquired;
+
+    await db.wishlist_item.update(itemId, updates);
+    const updated = await db.wishlist_item.get(itemId);
+    return updated;
+}
+
+// ============================================================
+// Bulk Coins Module
+// ============================================================
+
+export async function fetchBulkCoinsLocal() {
+    return db.bulk_inventory.toArray();
+}
+
+export async function saveBulkCoinsLocal(data) {
+    const entry = {
+        label: data.label || "",
+        metal_type: data.metal_type || "copper",
+        total_weight_grams: Number(data.total_weight_grams || 0.0),
+        weight_unit: data.weight_unit || "",
+        notes: data.notes || ""
+    };
+    if (data.id) {
+        await db.bulk_inventory.update(Number(data.id), entry);
+        entry.id = Number(data.id);
+    } else {
+        const id = await db.bulk_inventory.add(entry);
+        entry.id = id;
+    }
+    // Sync to server (fire-and-forget, don't block on failure)
+    fetch('/api/bulk_coins/entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry)
+    }).catch(e => console.warn('Failed to sync bulk coins to server:', e));
+    return { ...entry, id: entry.id };
+}
+
+export async function deleteBulkCoinsLocal(id) {
+    await db.bulk_inventory.delete(Number(id));
+    return { status: "deleted" };
+}
+
+// ============================================================
+// Image Management (Direct Base64 save in coin_type_config)
+// ============================================================
+
+
+// ============================================================
+// Image Group Lookup — determines which coin types share
+// obverse/reverse designs (e.g., all 50 State Quarters share
+// the George Washington obverse, but each has a unique reverse).
+// Used by assignImageLocal() for the three placement scopes.
+// ============================================================
+
+// Known parent series where ALL sub-types share the same obverse design.
+// Add new series here as needed. The function uses these to
+// dynamically find all member coin types from the type_configs table.
+const _SERIES_WITH_SHARED_OBVERSE = new Set([
+    '50 State Quarters',
+    'America the Beautiful',
+    'Presidential Dollar',
+    'D.C. and U.S. Territories',
+    'American Women',
+    'Innovation Dollar',
+    'Native American Dollar',
+]);
+
+// Collect all separate-pattern variants (underscore vs space, etc.)
+const _SERIES_TAG_PATTERNS = [
+    // State Quarters
+    ['50 State Quarters', '50_State_Quarters_-_'],
+    ['50 State Quarters', '50 State Quarters - '],
+    ['50 State Quarters', '50_State_Quarters___'],
+    // America the Beautiful
+    ['America the Beautiful', 'America_the_Beautiful_-_'],
+    ['America the Beautiful', 'America the Beautiful - '],
+    ['America the Beautiful', 'America_the_Beautiful___'],
+    // Presidential Dollar
+    ['Presidential Dollar', 'Presidential_Dollar_-_'],
+    ['Presidential Dollar', 'Presidential Dollar - '],
+    // D.C. and U.S. Territories
+    ['D.C. and U.S. Territories', 'D.C._and_U.S._Territories_-_'],
+    ['D.C. and U.S. Territories', 'D.C. and U.S. Territories - '],
+    ['D.C. and U.S. Territories', 'D.C._and_U.S._Territories___'],
+    // American Women
+    ['American Women', 'American_Women_-_'],
+    ['American Women', 'American Women - '],
+    // Innovation Dollar
+    ['Innovation Dollar', 'Innovation_Dollar_-_'],
+    ['Innovation Dollar', 'Innovation Dollar - '],
+    // Native American Dollar / Sacagawea
+    ['Native American Dollar', 'Native_American_Dollar_-_'],
+    ['Native American Dollar', 'Sacagawea_-_'],
+];
+
+/**
+ * Extract the "base name" from a series sub-type coin_type.
+ * E.g. from "50_State_Quarters_-_Michigan" or "50_State_Quarters___Michigan_proof"
+ * returns "Michigan". Returns null if no base can be extracted.
+ */
+function _extractBaseName(coinType) {
+    // Try patterns in order
+    // Pattern: "___Base_proof" (triple underscore + proof suffix)
+    let m = coinType.match(/___([A-Za-z0-9_\s\.\,-]+?)_proof$/);
+    if (m) return m[1].trim();
+    // Pattern: "_-_Base" 
+    m = coinType.match(/_-_([A-Za-z0-9_\s\.\,-]+)$/);
+    if (m) return m[1].trim();
+    // Pattern: " - Base" (space-dash-space)
+    m = coinType.match(/\s-\s([A-Za-z0-9_\s\.\,-]+)$/);
+    if (m) return m[1].trim();
+    // Pattern: "(Base)" (parenthetical like "(Omega Privy)")
+    m = coinType.match(/\(([^)]+)\)$/);
+    if (m) return m[0];  // return the whole parenthetical including parens
+    return null;
+}
+
+/**
+ * Find all coin types that share the same image as the given coin_type
+ * for a specific side (obv/rev).
+ * 
+ * For obverse: groups by series (all sub-types of a series share the obverse).
+ * For reverse: groups by BASE NAME (e.g., all Michigan variants share the same
+ * reverse: P mint, D mint, S proof, silver proof — all under "Michigan").
+ * 
+ * @param {string} coinType The coin_type to look up.
+ * @param {string} side 'obv' or 'rev'
+ * @returns {Promise<string[]>} Array of coin_type values to update together.
+ */
+/**
+ * Find all coin types that share the same image as the given coin_type
+ * for a specific side (obv/rev).
+ * 
+ * For obverse: groups by series (all sub-types of a series share the obverse).
+ * For reverse: groups by BASE NAME (e.g., all Michigan variants share the same
+ * reverse: P mint, D mint, S proof, silver proof — all under "Michigan").
+ * 
+ * @param {string} coinType The coin_type to look up.
+ * @param {string} side 'obv' or 'rev'
+ * @param {string} [section] Optional section to qualify colliding types (e.g., "US Coinage — Half Cent")
+ * @returns {Promise<string[]>} Array of coin_type values to update together (section-qualified for colliding types).
+ */
+/**
+ * Find all coin types that share the same image as the given coin_type
+ * for a specific side (obv/rev).
+ * 
+ * For obverse: groups by series (all sub-types of a series share the obverse).
+ * For reverse: groups by BASE NAME (e.g., all Michigan variants share the same
+ * reverse: P mint, D mint, S proof, silver proof — all under "Michigan").
+ * 
+ * @param {string} coinType The coin_type to look up.
+ * @param {string} side 'obv' or 'rev'
+ * @param {string} [section] Optional section to qualify colliding types (e.g., "US Coinage — Half Cent")
+ * @returns {Promise<string[]>} Array of coin_type values to update together (section-qualified for colliding types).
+ */
+// Coin-type names shared by MORE THAN ONE section. These are section-scoped:
+// a config row for one of these must live under '<section> — <coin_type>' so
+// Half Cent images can never bleed into Large & Small Cent (e.g. "Braided Hair").
+export const _COLLIDING_TYPES = new Set(["Barber", "Braided Hair", "Capped Bust", "Classic Head", "Draped Bust", "Draped Bust - Heraldic Eagle", "Draped Bust - Small Eagle", "Flowing Hair", "Seated Liberty", "Trade Dollar"]);
+
+export async function _getCoimageGroupMembers(coinType, side, section) {
+    const allConfigs = await db.coin_type_config.toArray();
+    const isRev = (side === 'rev' || side === 'proof_rev');
+
+    // Helper: qualify a coin_type if it's a colliding type — including
+    // dash-VARIANTS of colliding series (e.g. "Seated Liberty - Arrows" is a
+    // variant of the cross-denomination "Seated Liberty" name; the UI stores
+    // its config under the section-qualified key).
+    const qualify = (t) => {
+        if (!section) return t;
+        const base = t.split(' - ')[0].trim();
+        if (_COLLIDING_TYPES.has(t) || _COLLIDING_TYPES.has(base)) return (section + ' — ' + t);
+        return t;
+    };
+
+    // === REVERSE: group by base name ===
+    if (isRev) {
+        const base = _extractBaseName(coinType);
+        if (base) {
+            // Find all configs that share this base name — no series prefix match needed
+            // since base names (state/entity names) are unique within context
+            const members = [coinType];
+            for (const cfg of allConfigs) {
+                if (cfg.coin_type === coinType) continue;
+                const otherBase = _extractBaseName(cfg.coin_type);
+                if (otherBase && otherBase === base) {
+                    members.push(cfg.coin_type);
+                }
+            }
+            if (members.length > 0) return [...new Set(members)].map(qualify);
+        }
+        // where ALL variants share the same reverse
+        // Look for other configs that share the same "root" name
+        const rootName = coinType.replace(/\(.*\)$/, '').replace(/_[a-z]+_proof$/i, '').replace(/ - .*$/, '').trim();
+        if (rootName && rootName !== coinType) {
+            const members = [coinType];
+            for (const cfg of allConfigs) {
+                if (cfg.coin_type === coinType) continue;
+                const cfgRoot = cfg.coin_type.replace(/\(.*\)$/, '').replace(/_[a-z]+_proof$/i, '').trim();
+                if (cfgRoot === rootName) {
+                    members.push(cfg.coin_type);
+                }
+            }
+            if (members.length > 1) return [...new Set(members)].map(qualify);
+        }
+
+        // Default: just this one entry
+        return [qualify(coinType)];
+    }
+
+    // === OBVERSE: group by series ===
+    // Check if this coin_type IS a known parent series name
+    if (_SERIES_WITH_SHARED_OBVERSE.has(coinType)) {
+        const members = [coinType];
+        for (const cfg of allConfigs) {
+            if (cfg.coin_type === coinType) continue;
+            for (const [, prefix] of _SERIES_TAG_PATTERNS) {
+                if (cfg.coin_type.startsWith(prefix)) {
+                    if (!members.includes(cfg.coin_type)) {
+                        members.push(cfg.coin_type);
+                    }
+                    break;
+                }
+            }
+        }
+        return members.map(qualify);
+    }
+
+    // Check if this coin_type is a sub-type of a known series
+    for (const [seriesName, prefix] of _SERIES_TAG_PATTERNS) {
+        if (coinType.startsWith(prefix)) {
+            const members = [coinType];
+            if (_SERIES_WITH_SHARED_OBVERSE.has(seriesName)) {
+                const parentCfg = allConfigs.find(c => c.coin_type === seriesName);
+                if (parentCfg && parentCfg.coin_type !== coinType) {
+                    members.push(seriesName);
+                }
+            }
+            // Normalize series name for substring matching
+            const seriesNorm = seriesName.replace(/[^a-z0-9]/gi, '').toLowerCase();
+            for (const cfg of allConfigs) {
+                if (members.includes(cfg.coin_type)) continue;
+                
+                // Check 1: starts with a known prefix matching this series
+                let matched = false;
+                for (const [, pfx] of _SERIES_TAG_PATTERNS) {
+                    if (cfg.coin_type.startsWith(pfx)) {
+                        const prefixPart = prefix.replace(/[_-]+$/, '');
+                        const pfxPart = pfx.replace(/[_-]+$/, '');
+                        if (prefixPart === pfxPart || 
+                            seriesName.replace(/[_-]+/g, '').toLowerCase() === 
+                                cfg.coin_type.replace(/[_-]+/g, '').substring(0, seriesName.replace(/[_-]+/g, '').length).toLowerCase()) {
+                            members.push(cfg.coin_type);
+                            matched = true;
+                        }
+                        break;
+                    }
+                }
+                
+                // Check 2: section-qualified entry containing the series name
+                if (!matched) {
+                    const cfgNorm = cfg.coin_type.replace(/[^a-z0-9]/gi, '').toLowerCase();
+                    if (cfgNorm.includes(seriesNorm)) {
+                        members.push(cfg.coin_type);
+                    }
+                }
+            }
+            return [...new Set(members)].map(qualify);
+        }
+    }
+
+    // Dash-separated sub-type pattern — ONLY for series that share ONE obverse
+    // across their subtypes (program families: State Quarters, ATB, etc.).
+    // Design variants like "Seated Liberty - Arrows" vs "Seated Liberty - No
+    // Stars" have DIFFERENT obverses: they must group EXACT so "all of this
+    // type" fills just that variant's years (Matthew, 2026-09-17). Mirrors the
+    // backend's SHARED_OBVERSE_SERIES rule in routes/images.py.
+    const dashIdx = coinType.indexOf(' - ');
+    if (dashIdx > 0) {
+        const prefix = coinType.substring(0, dashIdx);
+        if (_SERIES_WITH_SHARED_OBVERSE.has(prefix)) {
+            const members = [coinType];
+            for (const cfg of allConfigs) {
+                if (cfg.coin_type === coinType) continue;
+                if (cfg.coin_type.startsWith(prefix + ' - ') ||
+                    cfg.coin_type.startsWith(prefix + '_-_') ||
+                    cfg.coin_type.startsWith(prefix.replace(/ /g, '_') + '_-_')) {
+                    members.push(cfg.coin_type);
+                }
+            }
+            if (members.length > 1) return members.map(qualify);
+        }
+    }
+
+    return [qualify(coinType)];
+}
+
+export async function assignImageLocal(data) {
+    const { coin_type, side, image, scope, item_id, section } = data;
+    // For offline-first, images are saved directly as base64 strings in the DB
+    if (scope === "all" || scope === "empty_only") {
+        // Determine which coin types should be updated together
+        const members = await _getCoimageGroupMembers(coin_type, side, section);
+        const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
+        const sideKey = sideMap[side] || "obv_image";
+        const qualify = (t) => {
+        if (!section) return t;
+        const base = t.split(' - ')[0].trim();
+        if (_COLLIDING_TYPES.has(t) || _COLLIDING_TYPES.has(base)) return (section + ' — ' + t);
+        return t;
+    };
+        
+        for (const _m of members) {
+            const memberType = qualify(_m);
+            let cfg = await db.coin_type_config.get(memberType);
+            if (!cfg) {
+                cfg = { coin_type: memberType, obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null };
+                await db.coin_type_config.add(cfg);
+                cfg = await db.coin_type_config.get(memberType);
+            }
+            
+            // scope="all": overwrite everything. scope="empty_only": only if slot is empty/null.
+            if (scope === "all" || !cfg[sideKey]) {
+                const updates = {};
+                // Empty image = user wants this side REMOVED. Mark _deleted so a later
+                // merge/seed can never re-inject the old URL (ghost image bug).
+                if (image) {
+                    updates[sideKey] = image;
+                    updates['_deleted_' + sideKey] = false;
+                } else {
+                    updates[sideKey] = null;
+                    updates['_deleted_' + sideKey] = true;
+                }
+                await db.coin_type_config.update(memberType, updates);
+            }
+        }
+    } else if (scope === "specific_coin") {
+        // If no item_id, this is a main type coin — update only this coin_type (no group propagation)
+        if (!item_id) {
+            const targetKey = (section && _COLLIDING_TYPES.has(coin_type)) ? (section + ' — ' + coin_type) : coin_type;
+            let cfg = await db.coin_type_config.get(targetKey);
+            if (!cfg) {
+                cfg = { coin_type: targetKey, obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null };
+                await db.coin_type_config.add(cfg);
+            }
+            const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
+            const sideKey = sideMap[side] || "obv_image";
+            const updates = {};
+            if (image) {
+                updates[sideKey] = image;
+                updates['_deleted_' + sideKey] = false;
+            } else {
+                updates[sideKey] = null;
+                updates['_deleted_' + sideKey] = true;
+            }
+            await db.coin_type_config.update(targetKey, updates);
+        } else {
+            // Save to the specific coin reference record (item_id = coin_ref_id) so the
+            // album/catalog, which read db.coins_reference.obv_image / rev_image, display it.
+            // GGMJ-407: on the static deployments (GitHub Pages / Cloudflare Pages)
+            // `coins_reference` is seeded from data/coins.json, whose `id` values are
+            // JSON STRINGS, while rows written at runtime carry NUMBERS. Dexie primary
+            // keys are typed, so `get(Number(id))` missed every seeded row and the
+            // per-coin upload silently wrote nothing. Resolve the row with
+            // _getCoinRefAny() and write with the key that actually exists.
+            const coin = await _getCoinRefAny(item_id);
+            if (!coin) {
+                // Never report success when no row matched -- a false success toast is
+                // what made this defect invisible.
+                return { status: 'error', error: 'Coin not found' };
+            }
+            const refId = coin.id;
+            const sideMap = { "obv":"obv_image", "rev":"rev_image", "proof_obv":"proof_obv_image", "proof_rev":"proof_rev_image" };
+            const sideKey = sideMap[side] || "obv_image";
+            const updates = {};
+            if (image) {
+                updates[sideKey] = image;
+                updates['_deleted_' + sideKey] = false;
+            } else {
+                updates[sideKey] = null;
+                updates['_deleted_' + sideKey] = true;
+            }
+            await db.coins_reference.update(refId, updates);
+            // NOTE: previously this wrongly wrote to user_inventory.personal_photo,
+            // creating a fake "owned" row. The per-coin reference image belongs on
+            // db.coins_reference so the album shows it. Personal photos are a separate
+            // specific_item scope.
+        }
+    } else if (scope === "specific_item") {
+        // Save to specific inventory entry by its id — item_id is user_inventory.id
+        const invId = Number(item_id);
+        if (invId) {
+            const inv = await db.user_inventory.get(invId);
+            if (inv) {
+                await db.user_inventory.update(invId, { personal_photo: image });
+            }
+        }
+    }
+    return { status: "success" };
+}
+
+export async function resetImageToMasterLocal(coinType, side) {
+    // In local mode, resetting is simply deleting the type configuration for that side
+    const cfg = await db.coin_type_config.get(coinType);
+    if (cfg) {
+        const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
+        const sideKey = sideMap[side] || "obv_image";
+        await db.coin_type_config.update(coinType, { [sideKey]: null });
+    }
+    return { status: "success" };
+}
+
+export async function checkMasterLocal(coinType, side) {
+    // In PWA, we assume standard master images are bundled at `/images/types/master/${coinType}_${side}.png`
+    // We check type config overrides first
+    const cfg = await db.coin_type_config.get(coinType);
+    const sideKey = side === "obv" ? "obv_image" : "rev_image";
+    
+    if (cfg && cfg[sideKey]) {
+        return { has_master: true, master_url: cfg[sideKey] };
+    }
+    return { has_master: false, master_url: null };
+}
+
+export async function promoteToDefaultLocal(coinType, side) {
+    return { status: "success" };
+}
+
+
+export async function saveToCoinBankLocal(data) {
+    const { coin_type, side, image, is_personal, tags, section } = data;
+    if (!coin_type || !side || !image) {
+        return { status: "error", message: "coin_type, side, and image are required" };
+    }
+    const validSides = ["obv", "rev", "proof_obv", "proof_rev"];
+    const sideKey = validSides.includes(side) ? (side + "_image") : 
+                    (side === "obv" ? "obv_image" : "rev_image");
+    
+    // Use group-aware logic: determine which members share this image
+    const members = await _getCoimageGroupMembers(coin_type, side, section);
+    for (const memberType of members) {
+        let cfg = await db.coin_type_config.get(memberType);
+        if (!cfg) {
+            cfg = { coin_type: memberType, obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null };
+            await db.coin_type_config.add(cfg);
+        }
+        await db.coin_type_config.update(memberType, { [sideKey]: image, ['_deleted_' + sideKey]: false });
+    }
+    return { status: "saved", filename: image };
+}
+
+export async function fetchCoinBankImagesLocal(params = {}) {
+    var coin_type = params.get ? params.get('coin_type') : (params.coin_type || null);
+    var side = params.get ? params.get('side') : (params.side || null);
+    var q = params.get ? params.get('q') : (params.q || null);
+
+    // On self-hosted: try fetching the server-authoritative Coin Bank list (scans filesystem + DB)
+    try {
+        var section = params.get ? params.get('section') : (params.section || null);
+        const _native = window.__nativeFetch || window.fetch;
+        if (typeof _native === 'function') {
+            const search = new URLSearchParams();
+            if (coin_type) search.set('coin_type', coin_type);
+            if (side) search.set('side', side);
+            if (section) search.set('section', section);
+            if (q) search.set('q', q);
+            const queryStr = search.toString() ? ('?' + search.toString()) : '';
+            const res = await _native('/api/coin_bank_images' + queryStr);
+            if (res && res.ok) {
+                const serverImages = await res.json();
+                if (Array.isArray(serverImages) && serverImages.length > 0) {
+                    return serverImages.map(img => ({
+                        coin_type: img.coin_type || '',
+                        side: img.side || '',
+                        filename: img.filename || '',
+                        image: img.filename || '',
+                        source: img.source || 'server'
+                    }));
+                }
+            }
+        }
+    } catch (e) {
+        // Fall back to local DB
+    }
+
+    // Local / Offline fallback
+    const cfgs = coin_type 
+        ? await db.coin_type_config.where('coin_type').equals(coin_type).toArray()
+        : await db.coin_type_config.toArray();
+    const result = [];
+    cfgs.forEach(cfg => {
+        // Skip dummy unverified default paths that don't exist on disk
+        const isDummy = (url) => typeof url === 'string' && url.includes('_default_');
+        if (!side || side === 'obv') {
+            if (cfg.obv_image && !cfg._deleted_obv_image && !isDummy(cfg.obv_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'obv', filename: cfg.obv_image, image: cfg.obv_image });
+            }
+        }
+        if (!side || side === 'rev') {
+            if (cfg.rev_image && !cfg._deleted_rev_image && !isDummy(cfg.rev_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'rev', filename: cfg.rev_image, image: cfg.rev_image });
+            }
+        }
+        if (!side || side === 'proof_obv') {
+            if (cfg.proof_obv_image && !cfg._deleted_proof_obv_image && !isDummy(cfg.proof_obv_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'proof_obv', filename: cfg.proof_obv_image, image: cfg.proof_obv_image });
+            }
+        }
+        if (!side || side === 'proof_rev') {
+            if (cfg.proof_rev_image && !cfg._deleted_proof_rev_image && !isDummy(cfg.proof_rev_image)) {
+                result.push({ coin_type: cfg.coin_type, side: 'proof_rev', filename: cfg.proof_rev_image, image: cfg.proof_rev_image });
+            }
+        }
+    });
+
+    // Include per-coin uploaded images
+    try {
+        let coinRows = [];
+        if (coin_type) {
+            coinRows = await db.coins_reference.where('coin_type').equals(coin_type).toArray();
+        } else {
+            coinRows = await db.coins_reference.toArray();
+        }
+        const sideMap = { obv: 'obv_image', rev: 'rev_image' };
+        for (const row of coinRows) {
+            const want = side === 'obv' ? 'obv' : (side === 'rev' ? 'rev' : null);
+            const checks = want ? [want] : ['obv', 'rev'];
+            for (const sc of checks) {
+                const val = row[sideMap[sc]];
+                if (val && !val.includes('_default_')) {
+                    result.push({
+                        coin_type: row.coin_type,
+                        side: sc,
+                        filename: val,
+                        image: val,
+                        perCoin: true,
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[coinBank] per-coin scan skipped:', e.message);
+    }
+
+    return result;
+}
+
+export async function deleteCoinBankImageLocal(filename) {
+    // Find the record and null it.
+    // Also set a _deleted_<field> flag so re-seed logic preserves the deletion.
+    // The stored value is a FULL path (e.g. /data/images/types/x.webp) while the
+    // caller may pass a basename (deleteCoinBankImage strips to basename before
+    // calling), so compare on basename to guarantee a match either way.
+    const norm = (val) => (val || '').split('/').pop().split(String.fromCharCode(92)).pop();
+    const target = norm(filename);
+    if (!target) return { status: "deleted" };
+    const cfgs = await db.coin_type_config.toArray();
+    const fields = ["obv_image","rev_image","proof_obv_image","proof_rev_image"];
+    for (const cfg of cfgs) {
+        for (const field of fields) {
+            if (cfg[field] && norm(cfg[field]) === target) {
+                const updates = { [field]: null };
+                updates['_deleted_' + field] = true;
+                await db.coin_type_config.update(cfg.coin_type, updates);
+                console.log('[deleteCoinBankImage] Cleared ' + cfg.coin_type + '.' + field);
+            }
+        }
+    }
+    return { status: "deleted" };
+}
+
+export async function factoryResetImagesLocal() {
+    // IMPORTANT: do NOT db.coin_type_config.clear() -- that empties the table and on the
+    // next boot configCount===0 triggers a re-seed from type_configs.json, restoring every
+    // image. Instead null every image field and set _deleted_<field> flags so the deletion
+    // persists and the seed-merge logic (which honors _deleted_*) never re-adds them.
+    const cfgs = await db.coin_type_config.toArray();
+    const fields = ["obv_image", "rev_image", "proof_obv_image", "proof_rev_image"];
+    for (const cfg of cfgs) {
+        const updates = {};
+        for (const f of fields) {
+            if (cfg[f] !== undefined && cfg[f] !== null) {
+                updates[f] = null;
+                updates["_deleted_" + f] = true;
+            }
+        }
+        if (Object.keys(updates).length) {
+            await db.coin_type_config.update(cfg.coin_type, updates);
+        }
+    }
+    console.log('[factoryReset] Nulled all coin_type_config images and set deletion flags.');
+    // Nullify all inventory photos
+    const items = await db.user_inventory.toArray();
+    for (const item of items) {
+        if (item.personal_photo) {
+            await db.user_inventory.update(item.id, { personal_photo: null });
+        }
+    }
+    return { status: "success" };
+}
+
+export async function factoryResetDataLocal(mode) {
+    const full = (mode === 'full_reset');
+    // Clear all user data stores
+    await db.user_inventory.clear();
+    await db.wishlist_item.clear();
+    await db.raw_bullion.clear();
+    await db.paper_currency.clear();
+    await db.other_collectable.clear();
+    await db.bulk_inventory.clear();
+    await db.portfolio_history.clear();
+    // Remove user-added catalog coins (keep seeded master rows)
+    const refs = await db.coins_reference.toArray();
+    for (const r of refs) {
+        if (r.user_added) await db.coins_reference.delete(r.id);
+    }
+    // Option B keeps uploaded images (user_photos); Option A wipes them.
+    if (full) {
+        await db.user_photos.clear();
+        // Null image pointers so shipped defaults show
+        const cfgs = await db.coin_type_config.toArray();
+        for (const c of cfgs) {
+            await db.coin_type_config.update(c.coin_type, {
+                obv_image: null, rev_image: null,
+                proof_obv_image: null, proof_rev_image: null,
+                _deleted_obv_image: true, _deleted_rev_image: true,
+            });
+        }
+        const inv = await db.user_inventory.toArray();
+        for (const it of inv) {
+            if (it.personal_photo) await db.user_inventory.update(it.id, { personal_photo: null });
+        }
+    }
+    return { status: 'success', mode };
+}
+
+// ============================================================
+// External Investments (GGMJ-378)
+//
+// The static deployments (GitHub Pages, Cloudflare Pages) have no
+// /api/investments backend, so the Investments card reads and writes
+// this store instead. The row shape mirrors backend/models.py
+// UserInvestment so both platforms agree, and `gain` is derived on
+// read exactly the way the server's to_dict() derives it.
+// ============================================================
+
+const INVESTMENT_CATEGORIES = ['Stocks', 'ETFs / Funds', 'Retirement', 'Crypto', 'Bonds / CDs', 'Other'];
+
+function _investmentGain(e) {
+    if (e.purchase_price === null || e.purchase_price === undefined) return null;
+    if (!(e.purchase_price > 0)) return null;
+    return Math.round(((e.total_value || 0) - e.purchase_price) * 100) / 100;
+}
+
+function _investmentRow(raw) {
+    const row = {
+        id: raw.id,
+        name: raw.name || '',
+        category: raw.category || 'Stocks',
+        total_value: Number(raw.total_value || 0),
+        purchase_price: (raw.purchase_price === null || raw.purchase_price === undefined)
+            ? null : Number(raw.purchase_price),
+        as_of_date: raw.as_of_date || '',
+        notes: raw.notes || ''
+    };
+    row.gain = _investmentGain(row);
+    return row;
+}
+
+export async function fetchInvestmentsLocal() {
+    const rows = await db.user_investment.toArray();
+    return rows.map(_investmentRow);
+}
+
+export async function saveInvestmentLocal(data) {
+    const category = INVESTMENT_CATEGORIES.indexOf(data.category) >= 0 ? data.category : 'Other';
+    const total = Number(data.total_value || 0);
+    const cost = (data.purchase_price === null || data.purchase_price === undefined || data.purchase_price === '')
+        ? null : Number(data.purchase_price);
+    const entry = {
+        name: (data.name || '').trim() || 'Unnamed',
+        category: category,
+        total_value: total,
+        purchase_price: (cost === null || isNaN(cost)) ? null : cost,
+        as_of_date: (data.as_of_date || '').slice(0, 10),
+        notes: data.notes || ''
+    };
+    if (data.id) {
+        await db.user_investment.update(Number(data.id), entry);
+        const updated = await db.user_investment.get(Number(data.id));
+        return _investmentRow(updated || Object.assign({ id: Number(data.id) }, entry));
+    }
+    const id = await db.user_investment.add(entry);
+    return _investmentRow(Object.assign({ id: id }, entry));
+}
+
+export async function deleteInvestmentLocal(id) {
+    await db.user_investment.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
+}
+
+// ============================================================
+// Portfolio History
+// ============================================================
+
+export async function fetchPortfolioHistoryLocal() {
+    return db.portfolio_history.toArray();
+}
+
+export async function savePortfolioHistoryLocal(data) {
+    const entry = {
+        date: data.date || new Date().toISOString().split('T')[0],
+        total_value: Number(data.total_value || 0.0),
+        gold_spot: Number(data.gold_spot || 0.0),
+        silver_spot: Number(data.silver_spot || 0.0),
+        copper_spot: Number(data.copper_spot || 0.0),
+        platinum_spot: Number(data.platinum_spot || 0.0),
+        palladium_spot: Number(data.palladium_spot || 0.0),
+        coin_count: Number(data.coin_count || 0)
+    };
+    const existing = await db.portfolio_history.where('date').equals(entry.date).first();
+    if (existing) {
+        await db.portfolio_history.update(existing.id, entry);
+        return { ...entry, id: existing.id };
+    } else {
+        const id = await db.portfolio_history.add(entry);
+        return { ...entry, id };
+    }
+}
+
+export async function searchCoinsLocal(searchParams) {
+    // GGMJ-206: never answer a search from a half-seeded index.
+    await whenSearchIndexReady();
+    const q = (searchParams.get('q') || '').trim().toLowerCase();
+    const missing = searchParams.get('missing_only') === '1';
+    const noProofs = searchParams.get('hide_proofs') === '1';
+    const noErrors = searchParams.get('hide_errors') === '1';
+    const keyOnly = searchParams.get('key_dates_only') === '1';
+    const sortMode = searchParams.get('sort') || 'default';
+    const section = searchParams.get('section');
+    const minYear = searchParams.get('min_year');
+    const maxYear = searchParams.get('max_year');
+
+    let coins = await db.coins_reference.toArray();
+    const inventory = await db.user_inventory.toArray();
+    // 2026-10-21 (GGMJ-399): same string/number mismatch as fetchSectionsLocal
+    // -- the "missing only" filter compared a NUMBER set against a STRING id,
+    // so owned coins were never excluded.
+    const ownedMap = new Set(inventory.filter(inv => inv.quantity > 0).map(inv => String(inv.coin_ref_id)));
+
+    // Filter section
+    if (section) {
+        coins = coins.filter(c => c.section === section);
+    }
+
+    // Filter year range
+    if (minYear) {
+        const min = parseInt(minYear, 10);
+        coins = coins.filter(c => c.year >= min);
+    }
+    if (maxYear) {
+        const max = parseInt(maxYear, 10);
+        coins = coins.filter(c => c.year <= max);
+    }
+
+    // Filter missing only
+    if (missing) {
+        coins = coins.filter(c => !ownedMap.has(String(c.id)));
+    }
+
+    // Filter proofs
+    if (noProofs) {
+        coins = coins.filter(c => !c.is_proof);
+    }
+
+    // Filter errors
+    if (noErrors) {
+        coins = coins.filter(c => !c.is_error);
+    }
+
+    // Filter key dates
+    if (keyOnly) {
+        coins = coins.filter(c => c.is_key_date);
+    }
+
+    // Filter text query
+    if (q) {
+        coins = coins.filter(c => {
+            if (c.year.toString() === q) return true;
+            if (c.coin_type.toLowerCase().includes(q)) return true;
+            if (c.denomination.toLowerCase().includes(q)) return true;
+            if (c.mint_mark.toLowerCase().includes(q)) return true;
+            if (c.ref_notes && c.ref_notes.toLowerCase().includes(q)) return true;
+            return false;
+        });
+    }
+
+    // Sorting
+    if (sortMode === 'az') {
+        coins.sort((a, b) => {
+            if (a.coin_type !== b.coin_type) return a.coin_type.localeCompare(b.coin_type);
+            if (a.year !== b.year) return a.year - b.year;
+            return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+        });
+    } else if (sortMode === 'completion') {
+        coins.sort((a, b) => {
+            const secDiff = sectionSortKey(a.section) - sectionSortKey(b.section);
+            if (secDiff !== 0) return secDiff;
+            if (a.coin_type !== b.coin_type) return a.coin_type.localeCompare(b.coin_type);
+            if (a.year !== b.year) return a.year - b.year;
+            return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+        });
+    } else if (sortMode === 'value-desc') {
+        const invMap = {};
+        inventory.forEach(inv => {
+            invMap[inv.coin_ref_id] = (inv.current_value || 0) * (inv.quantity || 0);
+        });
+        coins.sort((a, b) => {
+            const valA = invMap[a.id] || 0;
+            const valB = invMap[b.id] || 0;
+            if (valB !== valA) return valB - valA;
+            const secDiff = sectionSortKey(a.section) - sectionSortKey(b.section);
+            if (secDiff !== 0) return secDiff;
+            if (a.coin_type !== b.coin_type) return a.coin_type.localeCompare(b.coin_type);
+            if (a.year !== b.year) return a.year - b.year;
+            return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+        });
+    } else { // default sort
+        coins.sort((a, b) => {
+            const secDiff = sectionSortKey(a.section) - sectionSortKey(b.section);
+            if (secDiff !== 0) return secDiff;
+            if (a.coin_type !== b.coin_type) return a.coin_type.localeCompare(b.coin_type);
+            if (a.year !== b.year) return a.year - b.year;
+            return (a.mint_mark || '').localeCompare(b.mint_mark || '');
+        });
+    }
+
+    return coins.map(coin => ({
+        ...coin,
+        coin_id: coin.id,
+        inventory: null
+    }));
+}
+
+export async function fetchAllCoinsLocal() {
+    const coins = await db.coins_reference.toArray();
+    return coins.map(coin => ({
+        ...coin,
+        coin_id: coin.id,
+        inventory: null
+    }));
+}
+
+export async function savePricingRulesLocal(data) {
+    const coinType = data.coin_type;
+    let cfg = await db.coin_type_config.get(coinType);
+    if (!cfg) {
+        cfg = { coin_type: coinType, obv_image: null, rev_image: null, proof_obv_image: null, proof_rev_image: null };
+        await db.coin_type_config.add(cfg);
+    }
+    const updates = {};
+    if (data.base_price !== undefined) updates.base_price = Number(data.base_price);
+    if (data.key_price !== undefined) updates.key_price = Number(data.key_price);
+    await db.coin_type_config.update(coinType, updates);
+    const updated = await db.coin_type_config.get(coinType);
+    return { status: "updated", config: updated };
+}
+
+export async function getFullBackupLocal() {
+    const backup = {};
+    const tables = [
+        'user_inventory',
+        'coin_type_config',
+        'bulk_inventory',
+        'raw_bullion',
+        'scrap_metal',
+        'paper_currency',
+        'other_collectable',
+        'custom_category',
+        'wishlist_item',
+        'portfolio_history',
+        'user_settings',
+        'user_investment'
+    ];
+    for (const table of tables) {
+        backup[table] = await db[table].toArray();
+    }
+    return backup;
+}
+
+export async function restoreBackupLocal(backupObj) {
+    const tables = [
+        'user_inventory',
+        'coin_type_config',
+        'bulk_inventory',
+        'raw_bullion',
+        'scrap_metal',
+        'paper_currency',
+        'other_collectable',
+        'custom_category',
+        'wishlist_item',
+        'portfolio_history',
+        'user_settings',
+        'user_investment'
+    ];
+    for (const table of tables) {
+        if (backupObj[table]) {
+            await db[table].clear();
+            await db[table].bulkAdd(backupObj[table]);
+        }
+    }
+    return { status: "success" };
+}
+
+export async function renameCoinBankImageLocal(data) {
+    const { filename, new_side } = data;
+    const cfgs = await db.coin_type_config.toArray();
+    const sideMap = {"obv":"obv_image","rev":"rev_image","proof_obv":"proof_obv_image","proof_rev":"proof_rev_image"};
+    const fieldToSide = {"obv_image":"obv","rev_image":"rev","proof_obv_image":"proof_obv","proof_rev_image":"proof_rev"};
+    for (const cfg of cfgs) {
+        for (const [oldField, oldSide] of Object.entries(fieldToSide)) {
+            if (cfg[oldField] === filename) {
+                const newField = sideMap[new_side];
+                if (newField && newField !== oldField) {
+                    await db.coin_type_config.update(cfg.coin_type, { [oldField]: null, [newField]: filename });
+                }
+                break;
+            }
+        }
+    }
+    return { status: "renamed" };
+}
+
+export async function importCSVLocal(csvText) {
+    const lines = csvText.split('\n');
+    if (lines.length < 2) return { ok: true, imported: 0 };
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, '').toLowerCase());
+    let imported = 0;
+    
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        const values = line.split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+        const row = {};
+        headers.forEach((header, index) => {
+            row[header] = values[index];
+        });
+        
+        const coinRefId = Number(row.coin_ref_id || row.id);
+        if (!coinRefId || isNaN(coinRefId)) continue;
+        
+        const qty = parseInt(row.quantity || 0, 10);
+        
+        const existing = await db.user_inventory.where('coin_ref_id').equals(coinRefId).first();
+        if (existing) {
+            if (qty <= 0) {
+                await db.user_inventory.delete(existing.id);
+            } else {
+                await db.user_inventory.update(existing.id, {
+                    quantity: qty,
+                    grade: row.grade || '',
+                    purchase_price: Number(row.purchase_price || 0),
+                    current_value: Number(row.current_value || 0),
+                    notes: row.notes || ''
+                });
+            }
+        } else if (qty > 0) {
+            await db.user_inventory.add({
+                coin_ref_id: coinRefId,
+                quantity: qty,
+                grade: row.grade || '',
+                purchase_price: Number(row.purchase_price || 0),
+                current_value: Number(row.current_value || 0),
+                notes: row.notes || '',
+                personal_photo: null
+            });
+        }
+        imported++;
+    }
+    return { ok: true, imported };
+}
+
+export async function publishSectionLocal(sectionName) {
+    console.log('[db] publishSectionLocal called for:', sectionName);
+    // Self-hosted detection: Tailscale MagicDNS hostname or LAN IP.
+    if (!isSelfHosted) {
+        // Public/indexedDB version: stub — real publishing only works on self-hosted.
+        return { status: 'ok', message: 'Publish request recorded locally. Use self-hosted backend for actual publishing.', section: sectionName };
+    }
+    // Self-hosted: call the real Flask backend. Use XMLHttpRequest so we bypass
+    // the global fetch interceptor in api.js (which would otherwise swallow this
+    // call and route it back here infinitely).
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/publish_section', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    resolve(JSON.parse(xhr.responseText));
+                } catch (e) {
+                    reject(new Error('Invalid JSON from publish API: ' + xhr.responseText));
+                }
+            } else {
+                let detail = xhr.responseText || ('HTTP ' + xhr.status);
+                try { detail = JSON.parse(xhr.responseText).error || detail; } catch (e) {}
+                reject(new Error(detail));
+            }
+        };
+        xhr.onerror = () => reject(new Error('Network error calling /api/publish_section'));
+        xhr.send(JSON.stringify({ section: sectionName }));
+    });
+}
+
+// ============================================================
+// Photos & Documents Gallery — local (IndexedDB) persistence
+// Used by the public build and as the offline cache on self-hosted.
+// ============================================================
+
+export async function fetchUserPhotosLocal() {
+    const rows = await db.user_photos.orderBy('id').reverse().toArray();
+    return rows;
+}
+
+export async function addUserPhotoLocal(photo) {
+    // photo: { title, caption, category, image_data, created_at? }
+    const row = {
+        title: (photo.title || '').toString().slice(0, 200),
+        caption: (photo.caption || '').toString(),
+        category: (photo.category || 'General').toString().slice(0, 100),
+        image_data: photo.image_data || '',
+        created_at: photo.created_at || new Date().toISOString(),
+    };
+    const id = await db.user_photos.add(row);
+    return { ...row, id };
+}
+
+export async function deleteUserPhotoLocal(id) {
+    await db.user_photos.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
+}
+
+// ============================================================
+// User-added catalog coins — local (IndexedDB) persistence
+// ============================================================
+
+export async function addUserCoinLocal(coin) {
+    // Find a sibling of the same section+type to inherit denomination/metal/weight.
+    // NOTE: coins_reference has no compound [section+coin_type] index, so query by
+    // section and filter in JS (small result set per section).
+    const siblings = await db.coins_reference.where('section').equals(coin.section).toArray();
+    const sibling = siblings.find(s => s.coin_type === coin.coin_type) || null;
+    // coins_reference uses keyPath 'id' (not auto-increment), so we must supply one.
+    // Server rows have positive IDs; use a negative ID for local user coins to avoid
+    // any collision with synced server rows.
+    const localId = -Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 1000);
+    const row = {
+        id: localId,
+        section: coin.section,
+        denomination: coin.denomination || (sibling && sibling.denomination) || '',
+        coin_type: coin.coin_type,
+        year: Number(coin.year) || 0,
+        mint_mark: (coin.mint_mark || '').toString().slice(0, 10),
+        metal: coin.metal || (sibling && sibling.metal) || '',
+        weight_grams: Number(coin.weight_grams || 0) || (sibling && sibling.weight_grams) || 0,
+        is_key_date: !!coin.is_key_date,
+        is_proof: !!coin.is_proof,
+        is_error: !!coin.is_error,
+        mintage: null,
+        ref_notes: (coin.ref_notes || '').toString(),
+        obv_image: null,
+        rev_image: null,
+        _deleted_obv_image: false,
+        _deleted_rev_image: false,
+        user_added: true,
+    };
+    await db.coins_reference.add(row);
+    return { ...row, id: localId };
+}
+
+
+
+// ============================================================
+// Spot Price History (local storage)
+// ============================================================
+
+export async function fetchSpotHistoryLocal() {
+    // Load from localStorage cache
+    try {
+        const cached = localStorage.getItem('cc-spot-history');
+        if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    return {};
+}
+
+
+export async function deleteUserCoinLocal(id) {
+    const coin = await _getCoinRefAny(id);
+    if (!coin) return { status: 'not_found', id: Number(id) };
+    if (!coin.user_added) {
+        throw new Error('This coin is part of the master catalog and cannot be deleted');
+    }
+    await db.user_inventory.where('coin_ref_id').equals(Number(id)).delete();
+    await db.coins_reference.delete(Number(id));
+    return { status: 'deleted', id: Number(id) };
+}

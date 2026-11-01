@@ -201,6 +201,10 @@
     --color-header-text:  #eadcf0;
     --color-accord-bg:    #271a30;
     --color-finance-bg:   #180f1d;
+    --color-neon-pink:    #ff00ff;
+    --color-neon-cyan:    #00ffff;
+    --color-neon-green:   #39ff14;
+    --color-neon-yellow:  #ffea00;
 }
 
 [data-theme="cyberpunk"] .card {

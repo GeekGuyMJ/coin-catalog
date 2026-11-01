@@ -748,6 +748,133 @@ function buildSpotTrendCard(prices) {
     return card;
 }
 
+// ---------------------------------------------------------------------------
+// Dashboard Card Help Icons (GGMJ-544, 2026-11-01)
+// ---------------------------------------------------------------------------
+// Each dashboard card gets a ? help icon positioned at top: 32px; right: 6px
+// directly below the ☰ drag handle. Clicking opens a popup with card-specific help.
+var _cardHelpTexts = {
+    'card-portfolio': 'Portfolio Overview — Total collection value with sparkline history. Tap period buttons (1D/1W/1M/1Y/10Y) to change the time range. The breakdown grid shows melt values by metal, bullion, bulk coins, scrap, paper, other collectibles, and Other Investments.',
+    'card-investments': 'Other Investments — Track stocks, ETFs, retirement accounts, crypto, bonds, and other non-coin assets. Enter purchase price to see automatic gain/loss. Total feeds into Portfolio Overview.',
+    'card-spot': 'Live Spot Prices — Current precious metal prices from the backend API. Green/red shows session change vs. open. Sparklines show history when available (loads in background). Tap period buttons to change range.',
+    'card-trend': 'Metal Price Trends — Overlapping log-scale lines for Gold, Silver, Platinum, Palladium, Copper. Drag the vertical cursor to see estimated collection value at any point in history. Period buttons change the visible range.',
+    'card-bullion': 'Bullion Holdings — Individual bullion entries (bars, rounds, coins) with weight, unit, quantity, and metal type. Weight unit is honoured (g, oz, troy oz, lbs, kg, grains) and converted to grams for valuation. Entries grouped by metal with per-metal totals.',
+    'card-scrap': 'Scrap Precious Metal — Scrap items (jewelry, wire, dental, etc.) with weight, purity, and metal type. Purity presets for common alloys (sterling, 14k, etc.) with custom option. Live melt estimate updates as you type.',
+    'card-coinweight': 'Bulk Coins (Coins by Weight) — Unsorted coin batches by weight (wheat cents, zinc pennies, nickels, clad dimes/quarters/halves, Eisenhower dollars, golden dollars, 90% silver, Canadian series). Weight unit selectable (lbs/g/oz/kg). Shows estimated coin count and melt/face value.',
+    'card-paper': 'Paper Currency — Banknotes with denomination, series, serial number, star note flag, Friedberg number, signatures, condition, and value. Optional front/back photo uploads. Face value only — no melt.',
+    'card-custom': 'Other Collectables — User-defined categories (tokens, medals, exonumia, etc.) with name, quantity, estimated value, notes, and optional photo. Categories can be selected from existing or created new.',
+    'card-user-custom': 'My Cards — Custom dashboard cards you created in Settings → Custom Dashboard Card. Each card shows a chosen data source (total value, melt, completion %, etc.) in your selected style (big number, label/value, progress bar, trend arrow).',
+    'card-gallery': 'Photos & Documents — Personal photos attached to coins, bullion, scrap, paper, and collectables. Tap a thumbnail to view full-screen. Photos are stored as compressed WebP data URIs in local storage.',
+    'card-completion': 'Collection Completion — Percentage of coin types owned vs. total in the catalog, by section. Progress bar visualizes completion. Data updates when you acquire new types in the catalog.',
+    'card-wishlist': 'Wishlist — Target coins with denomination, year, mint, type, target grade, category, and max price. Tap the checkbox to mark acquired (strikes through, reduces opacity). Manage button opens full wishlist panel.',
+    'card-backup': 'Your Backup — Plain-language backup status. Shows whether data is device-only or backed up to cloud (OneDrive/Google Drive). Buttons: Set Up Backup / Sign In Again / Back Up Now / Turn On/Off Automatic Backups / Recover From Backup (double-tap to confirm).',
+    'card-support': 'Support This App — Coin Catalog is free. If it helps you, consider a donation via PayPal. Donate URL can be customized in localStorage (cc-donate-url).'
+};
+
+function openCardHelpPopup(cardId) {
+    var text = _cardHelpTexts[cardId] || 'No help available for this card.';
+    var existing = document.getElementById('card-help-popup');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'card-help-popup';
+    overlay.className = 'card-help-popup-overlay';
+    overlay.innerHTML = '<div class="card-help-popup"><div class="card-help-popup-header"><span class="card-help-popup-title">Card Help</span><button class="card-help-popup-close" aria-label="Close">&times;</button></div><div class="card-help-popup-body">' + text + '</div></div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('.card-help-popup-close').onclick = function() { overlay.remove(); };
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    // Trap focus
+    var focusable = overlay.querySelector('button');
+    if (focusable) focusable.focus();
+}
+
+function attachCardHelpIcons() {
+    var cards = document.querySelectorAll('.dashboard-card');
+    cards.forEach(function(card) {
+        var cardId = card.id;
+        if (!cardId || !_cardHelpTexts[cardId]) return;
+        // Remove any existing help icon (shouldn't happen, but defensive)
+        var existing = card.querySelector(':scope > .help-icon');
+        if (existing) existing.remove();
+        // Create help icon
+        var helpIcon = document.createElement('div');
+        helpIcon.className = 'help-icon';
+        helpIcon.setAttribute('role', 'button');
+        helpIcon.setAttribute('tabindex', '0');
+        helpIcon.setAttribute('aria-label', 'Help for ' + card.querySelector('.card-title')?.textContent?.trim() || cardId);
+        helpIcon.innerHTML = '?';
+        helpIcon.style.cssText = 'position:absolute;top:32px;right:6px;width:24px;height:24px;border-radius:50%;background:var(--color-accent);color:var(--color-accent-text);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;opacity:0.7;transition:opacity var(--transition-fast),transform var(--transition-fast);z-index:10;';
+        helpIcon.onmouseover = function() { this.style.opacity = '1'; this.style.transform = 'scale(1.1)'; };
+        helpIcon.onmouseout = function() { this.style.opacity = '0.7'; this.style.transform = 'scale(1)'; };
+        helpIcon.onclick = function(e) { e.stopPropagation(); openCardHelpPopup(cardId); };
+        helpIcon.onkeydown = function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCardHelpPopup(cardId); } };
+        card.appendChild(helpIcon);
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard Card Help Icons (GGMJ-544, 2026-11-01)
+// ---------------------------------------------------------------------------
+// Each dashboard card gets a ? help icon positioned at top: 32px; right: 6px
+// directly below the ☰ drag handle. Clicking opens a popup with card-specific help.
+var _cardHelpTexts = {
+    'card-portfolio': 'Portfolio Overview — Total collection value with sparkline history. Tap period buttons (1D/1W/1M/1Y/10Y) to change the time range. The breakdown grid shows melt values by metal, bullion, bulk coins, scrap, paper, other collectibles, and Other Investments.',
+    'card-investments': 'Other Investments — Track stocks, ETFs, retirement accounts, crypto, bonds, and other non-coin assets. Enter purchase price to see automatic gain/loss. Total feeds into Portfolio Overview.',
+    'card-spot': 'Live Spot Prices — Current precious metal prices from the backend API. Green/red shows session change vs. open. Sparklines show history when available (loads in background). Tap period buttons to change range.',
+    'card-trend': 'Metal Price Trends — Overlapping log-scale lines for Gold, Silver, Platinum, Palladium, Copper. Drag the vertical cursor to see estimated collection value at any point in history. Period buttons change the visible range.',
+    'card-bullion': 'Bullion Holdings — Individual bullion entries (bars, rounds, coins) with weight, unit, quantity, and metal type. Weight unit is honoured (g, oz, troy oz, lbs, kg, grains) and converted to grams for valuation. Entries grouped by metal with per-metal totals.',
+    'card-scrap': 'Scrap Precious Metal — Scrap items (jewelry, wire, dental, etc.) with weight, purity, and metal type. Purity presets for common alloys (sterling, 14k, etc.) with custom option. Live melt estimate updates as you type.',
+    'card-coinweight': 'Bulk Coins (Coins by Weight) — Unsorted coin batches by weight (wheat cents, zinc pennies, nickels, clad dimes/quarters/halves, Eisenhower dollars, golden dollars, 90% silver, Canadian series). Weight unit selectable (lbs/g/oz/kg). Shows estimated coin count and melt/face value.',
+    'card-paper': 'Paper Currency — Banknotes with denomination, series, serial number, star note flag, Friedberg number, signatures, condition, and value. Optional front/back photo uploads. Face value only — no melt.',
+    'card-custom': 'Other Collectables — User-defined categories (tokens, medals, exonumia, etc.) with name, quantity, estimated value, notes, and optional photo. Categories can be selected from existing or created new.',
+    'card-user-custom': 'My Cards — Custom dashboard cards you created in Settings → Custom Dashboard Card. Each card shows a chosen data source (total value, melt, completion %, etc.) in your selected style (big number, label/value, progress bar, trend arrow).',
+    'card-gallery': 'Photos & Documents — Personal photos attached to coins, bullion, scrap, paper, and collectables. Tap a thumbnail to view full-screen. Photos are stored as compressed WebP data URIs in local storage.',
+    'card-completion': 'Collection Completion — Percentage of coin types owned vs. total in the catalog, by section. Progress bar visualizes completion. Data updates when you acquire new types in the catalog.',
+    'card-wishlist': 'Wishlist — Target coins with denomination, year, mint, type, target grade, category, and max price. Tap the checkbox to mark acquired (strikes through, reduces opacity). Manage button opens full wishlist panel.',
+    'card-backup': 'Your Backup — Plain-language backup status. Shows whether data is device-only or backed up to cloud (OneDrive/Google Drive). Buttons: Set Up Backup / Sign In Again / Back Up Now / Turn On/Off Automatic Backups / Recover From Backup (double-tap to confirm).',
+    'card-support': 'Support This App — Coin Catalog is free. If it helps you, consider a donation via PayPal. Donate URL can be customized in localStorage (cc-donate-url).'
+};
+
+function openCardHelpPopup(cardId) {
+    var text = _cardHelpTexts[cardId] || 'No help available for this card.';
+    var existing = document.getElementById('card-help-popup');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'card-help-popup';
+    overlay.className = 'card-help-popup-overlay';
+    overlay.innerHTML = '<div class="card-help-popup"><div class="card-help-popup-header"><span class="card-help-popup-title">Card Help</span><button class="card-help-popup-close" aria-label="Close">&times;</button></div><div class="card-help-popup-body">' + text + '</div></div>';
+    document.body.appendChild(overlay);
+    overlay.querySelector('.card-help-popup-close').onclick = function() { overlay.remove(); };
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    // Trap focus
+    var focusable = overlay.querySelector('button');
+    if (focusable) focusable.focus();
+}
+
+function attachCardHelpIcons() {
+    var cards = document.querySelectorAll('.dashboard-card');
+    cards.forEach(function(card) {
+        var cardId = card.id;
+        if (!cardId || !_cardHelpTexts[cardId]) return;
+        // Remove any existing help icon (shouldn't happen, but defensive)
+        var existing = card.querySelector(':scope > .help-icon');
+        if (existing) existing.remove();
+        // Create help icon
+        var helpIcon = document.createElement('div');
+        helpIcon.className = 'help-icon';
+        helpIcon.setAttribute('role', 'button');
+        helpIcon.setAttribute('tabindex', '0');
+        helpIcon.setAttribute('aria-label', 'Help for ' + card.querySelector('.card-title')?.textContent?.trim() || cardId);
+        helpIcon.innerHTML = '?';
+        helpIcon.style.cssText = 'position:absolute;top:32px;right:6px;width:24px;height:24px;border-radius:50%;background:var(--color-accent);color:var(--color-accent-text);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer;opacity:0.7;transition:opacity var(--transition-fast),transform var(--transition-fast);z-index:10;';
+        helpIcon.onmouseover = function() { this.style.opacity = '1'; this.style.transform = 'scale(1.1)'; };
+        helpIcon.onmouseout = function() { this.style.opacity = '0.7'; this.style.transform = 'scale(1)'; };
+        helpIcon.onclick = function(e) { e.stopPropagation(); openCardHelpPopup(cardId); };
+        helpIcon.onkeydown = function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCardHelpPopup(cardId); } };
+        card.appendChild(helpIcon);
+    });
+}
+
+// ---------------------------------------------------------------------------
 let _dashboardRenderGeneration = 0;
 
 export function renderDashboard() {
@@ -894,7 +1021,10 @@ export function renderDashboard() {
     // have their real heights back.
     if (typeof _coi20Pin === 'function') _coi20Pin();
 
-}
+    // Attach ? help icons to all dashboard cards
+    attachCardHelpIcons();
+
+
 
 function buildWishlistCard(wishlist) {
     var card = el('div', { className: 'card dashboard-card wishlist-card', id: 'card-wishlist', style: 'display:flex;flex-direction:column;' });
