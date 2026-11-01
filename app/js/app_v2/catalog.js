@@ -84,6 +84,15 @@ if (_storedExpanded === null) {
 }
 const _expandedSections = new Set(_storedExpanded || []);
 
+// GGMJ-524: Auto-expand the first section on fresh install so the catalog is usable on arrival.
+// If no sections are explicitly expanded (either never stored or empty array), open the first section.
+function _ensureFirstSectionOpen(sections) {
+    if (_expandedSections.size === 0 && sections && sections.length > 0) {
+        _expandedSections.add(sections[0].section);
+        _saveExpandedSections();
+    }
+}
+
 /**
  * The set of sections to render open, decided ONCE per render.
  *
@@ -188,6 +197,10 @@ export function renderSections() {
 
        Sequential, awaited, in catalogue order. */
     _beginOpenSet();   // decide the open list once, before any save happens
+    
+    // GGMJ-524: Ensure first section is open on fresh install
+    _ensureFirstSectionOpen(sections);
+
     (async () => {
         window.__secTrace = window.__secTrace || [];
         window.__secTrace.push({ev:'loop-start', n: sections.length,

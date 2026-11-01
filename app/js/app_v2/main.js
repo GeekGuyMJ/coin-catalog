@@ -26,6 +26,7 @@ import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrenc
 import { openStoriesModal } from './stories.js';
 import { toggleInfoDropdown, closeInfoDropdown, openInfoSection } from './infoDropdown.js';
 import { toggleSettingsDropdown, closeSettingsDropdown, openSettingsSection, showCloudSyncModal } from './settingsDropdown.js';
+import { openTypeManager, closeTypeManager } from './typeManager.js';
 import { handleOAuthCallback } from './sync.js';
 import { initWishlist, openWishlistPanel } from './wishlist.js';
 
@@ -204,6 +205,7 @@ async function boot() {
         // Render the catalog
         renderSections();
         initLayoutToggle();
+        initViewToggle();
 
         // Initialize logo zoom and theme sync
         setupLogoZoomEngine();
@@ -456,6 +458,43 @@ document.addEventListener('DOMContentLoaded', scheduleFitHeader);
 const _hdrLogoEl = document.getElementById('header-coin-img');
 if (_hdrLogoEl) { _hdrLogoEl.addEventListener('load', scheduleFitHeader); if (_hdrLogoEl.complete) scheduleFitHeader(); }
 scheduleFitHeader();
+
+// ============================================================
+// View Toggle — List vs Album
+// ============================================================
+
+function initViewToggle() {
+    const toggle = document.getElementById('view-toggle');
+    if (!toggle) return;
+    toggle.style.display = 'inline-flex';
+
+    const listBtn = document.getElementById('view-list-btn');
+    const albumBtn = document.getElementById('view-album-btn');
+
+    // Null guard: these buttons may not exist on all deployments (e.g., Cloudflare Pages)
+    if (!listBtn || !albumBtn) {
+        console.debug('[initViewToggle] view list/album buttons not found; skipping');
+        return;
+    }
+
+    listBtn.addEventListener('click', () => {
+        if (listBtn.classList.contains('active')) return;
+        listBtn.classList.add('active');
+        albumBtn.classList.remove('active');
+        const container = document.getElementById('catalog-container');
+        if (container) container.classList.remove('album-mode');
+        import('./catalog.js').then(m => m.renderSections());
+    });
+
+    albumBtn.addEventListener('click', () => {
+        if (albumBtn.classList.contains('active')) return;
+        albumBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        const container = document.getElementById('catalog-container');
+        if (container) container.classList.add('album-mode');
+        import('./album.js').then(m => m.renderAlbumView(null));
+    });
+}
 
 // ============================================================
 // Layout Toggle — Dashboard Grid

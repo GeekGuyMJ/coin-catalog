@@ -362,7 +362,10 @@ export async function initDb() {
     const refCount = await db.coins_reference.count();
     try {
         console.log('IndexedDB empty. Fetching master coins catalog from JSON...');
-        const response = await fetch('data/coins.json');
+        // Use resolveImageUrl's APP_BASE logic to correctly fetch from both deployments
+        const { resolveImageUrl } = await import('./utils.js');
+        const coinsUrl = resolveImageUrl('/data/coins.json');
+        const response = await fetch(coinsUrl);
         if (!response.ok) {
             throw new Error(`Failed to load coins.json: HTTP ${response.status}`);
         }
@@ -406,7 +409,9 @@ export async function initDb() {
     let needsSeed = configCount === 0;
     if (needsSeed) {
         console.log('Fetching type configs from JSON...');
-        const response = await fetch('data/type_configs.json');
+        const { resolveImageUrl } = await import('./utils.js');
+        const typeConfigsUrl = resolveImageUrl('/data/type_configs.json');
+        const response = await fetch(typeConfigsUrl);
         if (response.ok) {
             const configs = await response.json();
             console.log(`Seeding ${configs.length} type configs into IndexedDB...`);
