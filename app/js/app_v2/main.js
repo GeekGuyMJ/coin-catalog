@@ -193,7 +193,6 @@ async function boot() {
         setInventory(inventory || {});
             setTypeConfigs(typeConfigs || {});
             setWishlist(wishlist || []);
-            showToast('App loaded successfully! Showing available data.', 'success', 3000);
         } else {
             // If no data received, show user-friendly message
             showToast('No data received - showing empty state', 'warning', 3000);
@@ -204,8 +203,8 @@ async function boot() {
 
         // Render the catalog
         renderSections();
-        initLayoutToggle();
         initViewToggle();
+        initLayoutToggle();
 
         // Initialize logo zoom and theme sync
         setupLogoZoomEngine();
