@@ -477,12 +477,58 @@ export function initPortfolio() {
         initDashboardCardDrag();
     });
 
+    // Initialize spot history in background (non-blocking)
+    // This populates window._spotHistoryStore and triggers a re-render when ready
+    initSpotHistoryBackground();
+
     // Listen for settings changes that affect dashboard (bullion visibility, etc.)
     window.addEventListener('cc-settings-changed', function(e) {
         if (e.detail && e.detail.key && e.detail.key.indexOf('bullion-vis') === 0) {
             renderDashboard();
             initDashboardCardDrag();
         }
+    });
+}
+
+/** Initialize spot price history in the background without blocking dashboard render. */
+function initSpotHistoryBackground() {
+    // Only initialize once
+    if (window._spotHistoryInitializing || window._spotHistoryStore) return;
+    window._spotHistoryInitializing = true;
+
+    import('./spotHistory.js').then(function(m) {
+        return m.initSpotHistory({
+            getSeed: async function() {
+                try { 
+                    const r = await fetch('/api/spot_history?cb=' + Date.now()); 
+                    const j = await r.json(); 
+                    if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; 
+                } catch(e){}
+                try { 
+                    const r2 = await fetch('data/spot_history_seed.json?cb=' + Date.now()); 
+                    return await r2.json(); 
+                } catch(e){ return null; }
+            },
+            getBaseline: async function() { 
+                try { 
+                    const r = await fetch('data/spot_history_baseline.json?cb=' + Date.now()); 
+                    return await r.json(); 
+                } catch(e){ return null; } 
+            },
+            getPrices: async function() { 
+                try { 
+                    return await fetchSpotPricesLocal(); 
+                } catch(e){ return null; } 
+            }
+        });
+    }).then(function(store) {
+        window._spotHistoryStore = store;
+        window._spotHistoryInitializing = false;
+        // Trigger a dashboard re-render so the spot card updates with real history
+        renderDashboard();
+    }).catch(function(e) {
+        window._spotHistoryInitializing = false;
+        console.debug('[spot] background init failed:', e && e.message);
     });
 }
 
@@ -705,12 +751,15 @@ function buildSpotTrendCard(prices) {
 
 let _dashboardRenderGeneration = 0;
 
-export async function renderDashboard() {
+export function renderDashboard() {
     const generation = ++_dashboardRenderGeneration;
     var prices = getSpotPrices();
     const c = document.getElementById('dashboard-grid');
     if (!c) return;
-    var sc = await buildSpotPricesCard(prices);
+    // Build spot prices card synchronously (non-blocking).
+    // Background initSpotHistory will populate window._spotHistoryStore and
+    // trigger a re-render when real history is available.
+    var sc = buildSpotPricesCard(prices);
     if (generation !== _dashboardRenderGeneration) return;
     // 2026-10-07 (COI-20): the DOM commit below IS synchronous, but emptying the
     // grid is still destructive to the scroll position. `innerHTML = ''` collapses
@@ -2403,8 +2452,65 @@ function _sparkline(canvas, data, color, width, height) {
 
 // Track which canvas elements need updating
 var _spotCanvases = [];
+// Store sparkline metadata for in-place updates when history loads
+var _spotSparklineMeta = [];
 
-async function buildSpotPricesCard(prices) {
+// Background spot history initialization (runs once, non-blocking)
+var _spotHistoryInitPromise = null;
+function _initSpotHistoryBackground() {
+    if (_spotHistoryInitPromise) return _spotHistoryInitPromise;
+    if (window._spotHistoryStore) return Promise.resolve(window._spotHistoryStore);
+
+    _spotHistoryInitPromise = (async function() {
+        try {
+            const { initSpotHistory } = await import('./spotHistory.js');
+            window._spotHistoryStore = await initSpotHistory({
+                getSeed: async () => {
+                    try { const r = await fetch('/api/spot_history?cb=' + Date.now()); const j = await r.json(); if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; } catch(e){}
+                    try { const r2 = await fetch('data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
+                },
+                getBaseline: async () => { try { const r = await fetch('data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
+                getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
+            });
+            // History ready - update sparklines on existing card
+            _updateSpotCardSparklines();
+        } catch(e) {
+            window._spotHistoryStore = null;
+        }
+        return window._spotHistoryStore;
+    })();
+    return _spotHistoryInitPromise;
+}
+
+// Update sparklines on the existing spot card when history becomes available
+function _updateSpotCardSparklines() {
+    var spotCard = document.getElementById('card-spot');
+    if (!spotCard || !_spotSparklineMeta.length) return;
+    
+    var activePeriod = localStorage.getItem('cc-spot-period') || '1M';
+    var store = window._spotHistoryStore;
+    if (!store) return;
+
+    _spotSparklineMeta.forEach(function(meta) {
+        var canvas = meta.canvas;
+        var metalKey = meta.metalKey;
+        var color = meta.color;
+        if (!canvas || !canvas.isConnected) return;
+        
+        var data = getSeriesForPeriod(store, metalKey, activePeriod) || [];
+        var minVal = data.length > 1 ? Math.min.apply(null, data.map(function(x){return x.v;})) : null;
+        var maxVal = data.length > 1 ? Math.max.apply(null, data.map(function(x){return x.v;})) : null;
+        
+        canvas.title = data.length > 1 ? 'Range: $'+minVal.toFixed(2)+' - $'+maxVal.toFixed(2)+' ('+data.length+' data points)' : 'Collecting data...';
+        
+        requestAnimationFrame(function() {
+            var cw = canvas.clientWidth || 160;
+            _sparkline(canvas, data, color, cw, 32);
+        });
+    });
+}
+
+function buildSpotPricesCard(prices) {
     var card = el('div',{className:'card dashboard-card spot-card',id:'card-spot'});
     
     var titleRow = el('div', {style:'display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px;padding-right:28px;'});
@@ -2420,22 +2526,8 @@ async function buildSpotPricesCard(prices) {
     ];
     var activePeriod = localStorage.getItem('cc-spot-period') || '1M';
     
-    // Initialize REAL spot history engine (seed from backend + accumulate live prices, no fabrication)
-    if (!window._spotHistoryStore) {
-        try {
-            window._spotHistoryStore = await initSpotHistory({
-                getSeed: async () => {
-                    // Prefer the live backend; fall back to the static seed so the
-                    // cards always render real 2000-2026 history even if /api is
-                    // slow, blocked, or served from a stale Service Worker cache.
-                    try { const r = await fetch('/api/spot_history?cb=' + Date.now()); const j = await r.json(); if (j && j.gold_oz && j.gold_oz.yearly && j.gold_oz.yearly.length) return j; } catch(e){}
-                    try { const r2 = await fetch('data/spot_history_seed.json?cb=' + Date.now()); return await r2.json(); } catch(e){ return null; }
-                },
-getBaseline: async () => { try { const r = await fetch('data/spot_history_baseline.json?cb=' + Date.now()); return await r.json(); } catch(e){ return null; } },
-                getPrices: async () => { try { return await fetchSpotPricesLocal(); } catch(e){ return null; } }
-            });
-        } catch(e) { window._spotHistoryStore = null; }
-    }
+    // Start background spot history initialization (non-blocking)
+    _initSpotHistoryBackground();
     
     periods.forEach(p => {
         var b = el('div', {
@@ -2494,62 +2586,65 @@ getBaseline: async () => { try { const r = await fetch('data/spot_history_baseli
     }
 
     var g = el('div',{className:'spot-grid'});
-    _spotCanvases = []; // Reset for this render
+        _spotCanvases = []; // Reset for this render
+        _spotSparklineMeta = []; // Reset sparkline metadata for this render
 
-    filteredMetals.forEach(function(m) {
-        if (!prices[m.key]) return;
-        // Change relative to session open price
-        var openPrice = sessionOpen[m.key] || prices[m.key];
-        var change = prices[m.key] - openPrice;
-        var changePct = openPrice > 0 ? (change / openPrice * 100) : 0;
-        var changeColor = change >= 0 ? '#22c55e' : '#ef4444';
-        var changeSign = change >= 0 ? '+' : '';
+        filteredMetals.forEach(function(m) {
+            if (!prices[m.key]) return;
+            // Change relative to session open price
+            var openPrice = sessionOpen[m.key] || prices[m.key];
+            var change = prices[m.key] - openPrice;
+            var changePct = openPrice > 0 ? (change / openPrice * 100) : 0;
+            var changeColor = change >= 0 ? '#22c55e' : '#ef4444';
+            var changeSign = change >= 0 ? '+' : '';
         
-        var data = [];
-        if (window._spotHistoryStore) {
-            data = getSeriesForPeriod(window._spotHistoryStore, m.key, activePeriod) || [];
-        } else {
-            data = history[m.key] || [];
-        }
+            var data = [];
+            if (window._spotHistoryStore) {
+                data = getSeriesForPeriod(window._spotHistoryStore, m.key, activePeriod) || [];
+            } else {
+                data = history[m.key] || [];
+            }
         
-        var minVal = data.length > 1 ? Math.min.apply(null,data.map(function(x){return x.v;})) : null;
-        var maxVal = data.length > 1 ? Math.max.apply(null,data.map(function(x){return x.v;})) : null;
+            var minVal = data.length > 1 ? Math.min.apply(null,data.map(function(x){return x.v;})) : null;
+            var maxVal = data.length > 1 ? Math.max.apply(null,data.map(function(x){return x.v;})) : null;
 
-        // Each metal gets a full row
-        var row = el('div',{className:'spot-item', style:'display:flex; justify-content:space-between; align-items:center; gap:8px;'});
+            // Each metal gets a full row
+            var row = el('div',{className:'spot-item', style:'display:flex; justify-content:space-between; align-items:center; gap:8px;'});
         
-        // Left: metal name + current price + change indicator
-        var left = el('div',{className:'spot-left', style:'display:flex; flex-direction:column; flex: 1 1 0; min-width:0;'});
-        left.appendChild(el('div',{className:'spot-label', style:'font-weight:bold; margin-bottom:2px;'},m.l));
+            // Left: metal name + current price + change indicator
+            var left = el('div',{className:'spot-left', style:'display:flex; flex-direction:column; flex: 1 1 0; min-width:0;'});
+            left.appendChild(el('div',{className:'spot-label', style:'font-weight:bold; margin-bottom:2px;'},m.l));
         
-        var priceLine = el('div', {style:'display:flex; flex-direction:column; gap:2px; line-height:1.2;'});
-        priceLine.appendChild(el('span',{className:'spot-value',style:'color:'+m.c},'$'+prices[m.key].toFixed(2)));
-        if (data.length > 1) {
-            var mid = el('span',{className:'spot-change',style:'color:'+changeColor+';font-size:0.75em;font-weight:600; white-space:nowrap;'});
-            mid.textContent = changeSign + change.toFixed(2) + ' (' + changeSign + changePct.toFixed(1) + '%)';
-            mid.title = 'Session range: $' + minVal.toFixed(2) + ' - $' + maxVal.toFixed(2);
-            priceLine.appendChild(mid);
-        }
-        left.appendChild(priceLine);
-        row.appendChild(left);
-
-        // Right: sparkline
-        var right = el('div',{className:'spot-right', style:'flex: 0 1 96px; min-width: 40px; max-width: 96px; height: 32px; display: flex; justify-content: flex-end; overflow: hidden;'});
-        var canvas = el('canvas',{
-            className:'spot-sparkline',
-            style:'width:100%; height:32px;',
-            title: data.length > 1 ? 'Range: $'+minVal.toFixed(2)+' - $'+maxVal.toFixed(2)+' ('+data.length+' data points)' : 'Collecting data...'
-        });
-        _spotCanvases.push(function() {
-            requestAnimationFrame(() => {
-                var cw = canvas.clientWidth || 160;
-                _sparkline(canvas, data, m.c, cw, 32);
+            var priceLine = el('div', {style:'display:flex; flex-direction:column; gap:2px; line-height:1.2;'});
+            priceLine.appendChild(el('span',{className:'spot-value',style:'color:'+m.c},'$'+prices[m.key].toFixed(2)));
+            if (data.length > 1) {
+                var mid = el('span',{className:'spot-change',style:'color:'+changeColor+';font-size:0.75em;font-weight:600; white-space:nowrap;'});
+                mid.textContent = changeSign + change.toFixed(2) + ' (' + changeSign + changePct.toFixed(1) + '%)';
+                mid.title = 'Session range: $' + minVal.toFixed(2) + ' - $' + maxVal.toFixed(2);
+                priceLine.appendChild(mid);
+            }
+            left.appendChild(priceLine);
+            row.appendChild(left);
+        
+            // Right: sparkline
+            var right = el('div',{className:'spot-right', style:'flex: 0 1 96px; min-width: 40px; max-width: 96px; height: 32px; display: flex; justify-content: flex-end; overflow: hidden;'});
+            var canvas = el('canvas',{
+                className:'spot-sparkline',
+                style:'width:100%; height:32px;',
+                title: data.length > 1 ? 'Range: $'+minVal.toFixed(2)+' - $'+maxVal.toFixed(2)+' ('+data.length+' data points)' : 'Collecting data...'
             });
+            // Store metadata for in-place updates when history loads
+            _spotSparklineMeta.push({ canvas: canvas, metalKey: m.key, color: m.c });
+            _spotCanvases.push(function() {
+                requestAnimationFrame(() => {
+                    var cw = canvas.clientWidth || 160;
+                    _sparkline(canvas, data, m.c, cw, 32);
+                });
+            });
+            right.appendChild(canvas);
+            row.appendChild(right);
+            g.appendChild(row);
         });
-        right.appendChild(canvas);
-        row.appendChild(right);
-        g.appendChild(row);
-    });
     card.appendChild(g);
 
     // Draw all sparklines after DOM update
