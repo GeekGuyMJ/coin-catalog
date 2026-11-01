@@ -213,7 +213,7 @@ export function formatMintMark(coin) {
 export function buildCoinLabel(coin) {
     if (!coin) return null;
     const denomination = (coin.denomination || '').trim();
-    const coinType = (coin.coin_type || '').trim();
+    const coinType = formatSectionTitle((coin.coin_type || '').trim());
     const yearStr = (coin.year === null || coin.year === undefined || coin.year === '')
         ? '' : String(coin.year);
     const mint = formatMintMark({
@@ -244,6 +244,46 @@ export function buildCoinLabel(coin) {
  * @param {number|string} mintage - Numeric mintage count.
  * @returns {string} Compact formatted string.
  */
+/**
+ * Format a section name for user-facing display by removing redundant
+ * "US Coinage — " and "Canadian Coinage — " prefixes from every row/header,
+ * while preserving the underlying section key for database queries.
+ *
+ * Examples:
+ *   "US Coinage — Half Cent"           -> "Half Cent"
+ *   "US Coinage — Large & Small Cent"  -> "Large & Small Cent"
+ *   "Canadian Coinage — Twenty-Five Cent" -> "Twenty-Five Cent"
+ *
+ * @param {string} sectionName - Raw section name.
+ * @returns {string} Cleaned display title.
+ */
+export function formatSectionTitle(sectionName) {
+    if (!sectionName || typeof sectionName !== 'string') return '';
+    return sectionName
+        .replace(/^(?:US|U\.S\.|United States)\s+Coinage\s*[-–—:]\s*/i, '')
+        .replace(/^Canadian\s+Coinage\s*[-–—:]\s*/i, '')
+        .replace(/^Coinage\s*[-–—:]\s*/i, '')
+        .trim();
+}
+
+/**
+ * Format a section name with its country prefix ("US — ..." or "Canada — ...")
+ * for modals like Print Checklist and Completion Dashboard where US and
+ * Canadian sections appear in a single combined list and need to be told apart.
+ */
+export function formatSectionWithCountry(sectionName) {
+    if (!sectionName || typeof sectionName !== 'string') return '';
+    const s = sectionName.trim();
+    const clean = formatSectionTitle(s);
+    if (/^(?:US|U\.S\.|United States)\b/i.test(s)) {
+        return /^US\b/i.test(clean) ? clean.replace(/^US\s+[-–—:]?\s*/i, 'US — ') : `US — ${clean}`;
+    }
+    if (/^(?:Canadian|Canada)\b/i.test(s)) {
+        return /^(?:Canadian|Canada)\b/i.test(clean) ? clean.replace(/^(?:Canadian|Canada)\s+[-–—:]?\s*/i, 'Canada — ') : `Canada — ${clean}`;
+    }
+    return clean;
+}
+
 export function formatMintage(mintage) {
     const v = parseInt(mintage, 10);
     if (isNaN(v) || v <= 0) return '';
@@ -290,13 +330,53 @@ export function findSplitDash(str) {
  * @param {string} fullType - Full coin_type value.
  * @returns {string} Main type for accordion grouping.
  */
+// 2026-10-21 (GGMJ-227): qualifiers that name a DISTINCT COIN and must
+// therefore keep their own accordion (and their own images).  Everything
+// else in parentheses is a sub-variant of one family and is folded into it,
+// so "Shield (Rays)" and "Shield (No Rays)" stay one "Shield" accordion.
+const ERA_QUALIFIERS = new Set([
+    'Wartime Silver',
+    'Return to Monticello',
+    '2006-present',
+    '1938-2003',
+]);
+
+/**
+ * True when a parenthesised type qualifier names a distinct coin (an era or
+ * a separate issue) rather than a sub-variant of the same family.
+ *
+ * A qualifier qualifies when it names a year or a year range ("1938-2003",
+ * "2006"), or when it is one of the known era names.  Composition
+ * sub-labels ("Zinc", "Clad", "Silver") are never eras.
+ */
+function isEraQualifier(qualifier) {
+    if (!qualifier) return false;
+    if (isCompositionSub(qualifier)) return false;
+    if (ERA_QUALIFIERS.has(qualifier)) return true;
+    // A year or a year range.
+    return /^\d{4}(\s*[-–]\s*\d{4})?$/.test(qualifier);
+}
+
 export function getMainType(fullType) {
     if (!fullType) return 'Unknown';
     if (fullType.startsWith('Westward Journey')) return 'Jefferson';
     const dashIdx = findSplitDash(fullType);
     if (dashIdx >= 0) return fullType.substring(0, dashIdx).trim();
     const parenStart = fullType.indexOf(' (');
-    if (parenStart > 0) return fullType.substring(0, parenStart).trim();
+    if (parenStart > 0) {
+        const base = fullType.substring(0, parenStart).trim();
+        const close = fullType.lastIndexOf(')');
+        const qualifier = close > parenStart
+            ? fullType.substring(parenStart + 2, close).trim()
+            : '';
+        // 2026-10-21 (GGMJ-227): a qualifier that names a DISTINCT COIN
+        // ("Jefferson (1938-2003)", "Jefferson (Wartime Silver)", "Jefferson
+        // (Return to Monticello)") must be kept, or every era collapses into
+        // one accordion that shows the wrong era's images.  A qualifier that
+        // is a sub-variant ("Shield (Rays)") is folded into its family.
+        if (isEraQualifier(qualifier)) return fullType.trim();
+        return base;
+    }
     return fullType.trim();
 }
 
@@ -336,6 +416,170 @@ export function isCompositionSub(sub) {
     const base = sub.replace(/\s*\(.*\)$/, '');
     return COMPOSITION_SUBS.has(sub) || COMPOSITION_SUBS.has(base);
 }
+
+// ============================================================
+// Year-span helpers (GGMJ-441)
+// ============================================================
+
+/**
+ * True when a label is ONLY a year or a year range ("1938", "1938-2003").
+ *
+ * Such a label states the TYPE's year span, never a variety name: the
+ * coin's own year already appears in the row title, so repeating the span
+ * on every row of the type is noise (GGMJ-441).
+ *
+ * @param {string} label - Candidate label.
+ * @returns {boolean}
+ */
+export function isYearRangeLabel(label) {
+    if (label === null || label === undefined) return false;
+    const s = String(label).trim();
+    return /^\d{4}$/.test(s) || /^\d{4}\s*[-–—]\s*\d{4}$/.test(s);
+}
+
+/**
+ * True when a TYPE NAME already states its own years, e.g.
+ * "Jefferson (1938-2003)" or "Pilgrim Tercentenary (1921) Half Dollar".
+ *
+ * @param {string} typeName - Type name.
+ * @returns {boolean}
+ */
+export function typeNameHasYears(typeName) {
+    if (!typeName) return false;
+    return /\(\s*\d{4}\s*(?:[-–—]\s*\d{4})?\s*\)/.test(String(typeName));
+}
+
+/**
+ * The year span to show NEXT TO a type name.
+ *
+ * ONE source of truth: when the type name already states the years, the
+ * name IS the span and nothing is appended — otherwise the header reads
+ * "Jefferson (1938-2003) (1938–2003)", the same range twice (GGMJ-441).
+ *
+ * @param {string} typeName - Type name.
+ * @param {Array<{year: number}>} coins - The coins of the type.
+ * @returns {string} e.g. " (1938–2003)", or '' when the name carries the years.
+ */
+export function typeSpanLabel(typeName, coins) {
+    if (typeNameHasYears(typeName)) return '';
+    return typeYearSpan(coins);
+}
+
+/**
+ * A type name for use in a coin ROW title.
+ *
+ * A trailing bare year range ("Jefferson (1938-2003)") states the TYPE's
+ * years, which every row of the type would then repeat, so it is dropped.
+ * Variety and era names ("Copper", "VDB", "Octagon", "Wartime Silver")
+ * are kept.
+ *
+ * @param {string} typeName - Type name.
+ * @returns {string}
+ */
+export function typeRowLabel(typeName) {
+    const s = String(typeName || '').trim();
+    const stripped = s.replace(/\s*\(\s*\d{4}\s*[-–—]\s*\d{4}\s*\)\s*$/, '').trim();
+    return stripped || s;
+}
+
+/**
+ * The first and last year a group of coins actually covers.
+ *
+ * Anomalous years (0) and the 1776 Bicentennial placeholder are ignored,
+ * the same way typeYearSpan() ignores them.
+ *
+ * @param {Array<{year: number}>} coins - Coins of the group.
+ * @returns {{min: number, max: number}|null} Null when no usable year.
+ */
+export function groupYearRange(coins) {
+    let min = null;
+    let max = null;
+    for (const c of coins || []) {
+        const y = Number(c && c.year);
+        if (!Number.isFinite(y) || y <= 1700 || y === 1776) continue;
+        if (min === null || y < min) min = y;
+        if (max === null || y > max) max = y;
+    }
+    return min === null ? null : { min, max };
+}
+
+/**
+ * Merge type groups whose year ranges overlap (GGMJ-441).
+ *
+ * getMainType() derives an accordion group from the coin_type STRING, so a
+ * sub-type whose years sit inside its parent's years ("Jefferson (Wartime
+ * Silver)" inside "Jefferson (1938-2003)") becomes a SIBLING accordion. That
+ * renders the parent's later years first and the child's earlier years
+ * afterwards: the section reads out of year order and states the same years
+ * twice.
+ *
+ * A sub-type whose year range is CONTAINED in a same-family group's range is
+ * therefore merged into that group, so the family renders as ONE accordion
+ * whose rows run in ascending year order, with its year span stated once.
+ *
+ * The child's own type config (and therefore its own images) is untouched:
+ * every row still resolves its own coin_type.
+ *
+ * @param {Array<{name: string, coins: Array}>} groups - Groups to fold.
+ * @returns {Array<{name: string, coins: Array}>} The folded groups.
+ */
+export function foldTypeGroups(groups) {
+    const list = (groups || []).map(g => ({
+        name: g.name,
+        coins: g.coins || [],
+        range: groupYearRange(g.coins),
+    }));
+    // The family of a group is its name without a trailing qualifier, so
+    // "Jefferson (1938-2003)" and "Jefferson (Wartime Silver)" are one family.
+    const familyOf = n => String(n).replace(/\s*\([^()]*\)\s*$/, '').trim() || String(n);
+    // Widest range first, so a container is always placed before its children.
+    list.sort((a, b) => {
+        const am = a.range ? a.range.min : Infinity;
+        const bm = b.range ? b.range.min : Infinity;
+        if (am !== bm) return am - bm;
+        const ax = a.range ? a.range.max : -Infinity;
+        const bx = b.range ? b.range.max : -Infinity;
+        return bx - ax;
+    });
+    const out = [];
+    for (const g of list) {
+        let host = null;
+        for (const h of out) {
+            if (familyOf(h.name) !== familyOf(g.name)) continue;
+            if (!h.range || !g.range) continue;
+            const contains = h.range.min <= g.range.min && g.range.max <= h.range.max;
+            const strict = h.range.min < g.range.min || h.range.max > g.range.max;
+            if (contains && strict) { host = h; break; }
+        }
+        if (host) {
+            host.coins = host.coins.concat(g.coins);
+        } else {
+            out.push(g);
+        }
+    }
+    return out;
+}
+
+/**
+ * Group coins into type groups for a section (GGMJ-441).
+ *
+ * Groups by main type, then folds a sub-type whose years overlap its
+ * parent's into the parent, so each family renders as ONE accordion in
+ * ascending year order with no year stated twice.
+ *
+ * @param {Array} coins - The coins of one section.
+ * @returns {Array<{name: string, coins: Array}>} The folded groups.
+ */
+export function groupCoinsByType(coins) {
+    const map = new Map();
+    for (const coin of coins || []) {
+        const name = getMainType(coin.coin_type);
+        if (!map.has(name)) map.set(name, []);
+        map.get(name).push(coin);
+    }
+    return foldTypeGroups([...map.entries()].map(([name, cs]) => ({ name, coins: cs })));
+}
+
 
 /**
  * Error/variety keywords used to classify coins as errors.
