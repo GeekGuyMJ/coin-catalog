@@ -339,14 +339,6 @@ export function isSearchIndexReady() {
     return _searchIndexReady;
 }
 
-/** Delete a type config. */
-export async function deleteTypeConfigLocal(coinType) {
-    const existing = await db.coin_type_config.get(coinType);
-    if (!existing) throw new Error('Type config not found: ' + coinType);
-    await db.coin_type_config.delete(coinType);
-    return { status: 'deleted', coin_type: coinType };
-}
-
 /**
  * Resolves once the coin reference index is fully seeded, or after
  * SEARCH_INDEX_MAX_WAIT_MS -- whichever comes first. Never rejects.
@@ -1388,6 +1380,92 @@ export async function upsertTypeConfigLocal(data) {
     };
 }
 
+/** Every type config, with the year span and coin count the manager shows. */
+export async function fetchTypeGroupsLocal(params = {}) {
+    const q = (params && params.coin_type ? params.coin_type : '').toLowerCase();
+    const configs = await db.coin_type_config.toArray();
+    const yearsByType = new Map();
+    const coins = await db.coins_reference.toArray();
+    coins.forEach((c) => {
+        if (!c.coin_type) return;
+        if (!yearsByType.has(c.coin_type)) yearsByType.set(c.coin_type, []);
+        yearsByType.get(c.coin_type).push(c);
+    });
+    return configs
+        .filter((cfg) => !q || (cfg.coin_type || '').toLowerCase().includes(q))
+        .map((cfg) => {
+            const rows = yearsByType.get(cfg.coin_type) || [];
+            const years = rows.map((r) => r.year).filter((y) => y != null);
+            return {
+                id: cfg.id,
+                coin_type: cfg.coin_type,
+                obv_image: cfg.obv_image || null,
+                rev_image: cfg.rev_image || null,
+                proof_obv_image: cfg.proof_obv_image || null,
+                proof_rev_image: cfg.proof_rev_image || null,
+                example_obv_image: cfg.example_obv_image || null,
+                example_rev_image: cfg.example_rev_image || null,
+                _deleted_obv_image: !!cfg._deleted_obv_image,
+                _deleted_rev_image: !!cfg._deleted_rev_image,
+                base_price: cfg.base_price || 0,
+                key_price: cfg.key_price || 0,
+                year_start: years.length ? Math.min.apply(null, years) : null,
+                year_end: years.length ? Math.max.apply(null, years) : null,
+                coin_count: rows.length,
+                distinct_years: new Set(years).size,
+            };
+        })
+        .sort((a, b) => (a.coin_type || '').localeCompare(b.coin_type || ''));
+}
+
+/** The years (and coins) mapped to one type. */
+export async function fetchTypeYearsLocal(coinType) {
+    const rows = await db.coins_reference.where('coin_type').equals(coinType).toArray();
+    const byYear = new Map();
+    rows.forEach((r) => {
+        if (!byYear.has(r.year)) byYear.set(r.year, { year: r.year, coins: [] });
+        byYear.get(r.year).coins.push({
+            id: r.id,
+            mint_mark: r.mint_mark || '',
+            section: r.section || '',
+        });
+    });
+    return {
+        coin_type: coinType,
+        years: Array.from(byYear.keys()).sort((a, b) => a - b)
+            .map((y) => byYear.get(y)),
+        distinct_years: byYear.size,
+        coin_count: rows.length,
+    };
+}
+
+/** Re-assign years to a type: detach them from whatever type held them. */
+export async function setTypeYearsLocal(coinType, years) {
+    const wanted = new Set((years || []).map(Number));
+    const configs = await db.coin_type_config.toArray();
+    const cfg = configs.find(c => c.coin_type === coinType);
+    const section = cfg ? cfg.section : null;
+
+    await db.transaction('rw', db.coins_reference, async () => {
+        const rows = await db.coins_reference.toArray();
+        for (const r of rows) {
+            if (!wanted.has(Number(r.year))) continue;
+            if (r.coin_type === coinType) continue;
+            if (section && r.section !== section) continue;
+            await db.coins_reference.update(r.id, { coin_type: coinType });
+        }
+    });
+    return await fetchTypeYearsLocal(coinType);
+}
+
+/** Delete a type config. */
+export async function deleteTypeConfigLocal(coinType) {
+    const existing = await db.coin_type_config.get(coinType);
+    if (!existing) throw new Error('Type config not found: ' + coinType);
+    await db.coin_type_config.delete(coinType);
+    return { status: 'deleted', coin_type: coinType };
+}
+
 /** Bind an image to a type side. */
 export async function assignTypeImageLocal(coinType, side, image) {
     const field = { obv: 'obv_image', rev: 'rev_image',
@@ -1417,6 +1495,33 @@ export async function assignTypeImageLocal(coinType, side, image) {
         base_price: cfg.base_price || 0,
         key_price: cfg.key_price || 0,
     };
+}
+
+/** The type images available to the picker. */
+export async function fetchTypeImagesLocal() {
+    const configs = await db.coin_type_config.toArray();
+    const pairs = new Map();
+    configs.forEach((cfg) => {
+        [['obv', cfg.obv_image], ['rev', cfg.rev_image],
+         ['proof_obv', cfg.proof_obv_image], ['proof_rev', cfg.proof_rev_image]]
+            .forEach(([side, path]) => {
+                if (!path) return;
+                if (typeof path !== 'string' || path.indexOf('data:') === 0) return;
+                const file = path.split('/').pop();
+                const base = file
+                    .replace(/\.(webp|png|jpe?g|gif)$/i, '')
+                    .replace(/[._]proof_(obv|rev)$/i, '')
+                    .replace(/[._](obv|rev)$/i, '');
+                const existing = pairs.get(base) || {};
+                existing[side] = path;
+                pairs.set(base, existing);
+            });
+    });
+    const out = [];
+    pairs.forEach((sideMap, base) => {
+        out.push({ id: base, images: sideMap });
+    });
+    return out;
 }
 
 export async function fetchSpotPricesLocal() {
