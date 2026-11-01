@@ -1,5 +1,5 @@
 name = "coin-catalog"
 compatibility_date = "2026-01-01"
 [pages]
-branch = "main"
+branch = "published"
 directory = "app"
