@@ -565,6 +565,3 @@ export function closeTypeManager() {
     _listEl = null;
     _editorEl = null;
 }
-
-// Exposed for the inline header button in index.html.
-window.openTypeManager = openTypeManager;

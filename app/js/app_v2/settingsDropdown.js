@@ -7,8 +7,11 @@
 
 import { el, escHtml } from './utils.js';
 import { getSpotPrices } from './state.js';
+import { setTheme, getCustomThemeName } from './themes.js';
+import { isSelfHosted } from './env.js';
 import { showToast } from './notifications.js';
 import { createModal, closeModal, applyFolderColor, backupJSON, restoreZIP, restoreJSON, importCSV, dispatchSettingsChange } from './modals.js';
+import { openTypeManager } from './typeManager.js';
 import { openPricingRulesModal, openCompletionDashboard, filterMissingImages, openImageManager, openPrintChecklist, openCustomThemeDesigner, openResetDataModal, purgeInventory, saveCurrentImagesAsDefaults } from './modals.js';
 
 let _dropdownEl = null;
@@ -56,7 +59,6 @@ function openSettingsDropdown(btn) {
  const items = [
  // General
  {key: 'sort', label: 'Default Sort Order', section: 'general' },
- {key: 'cardLayout', label: 'Card Layout', section: 'general' },
   
  // Appearance
  {key: 'theme', label: 'Theme', section: 'appearance' },
@@ -70,6 +72,9 @@ function openSettingsDropdown(btn) {
  // Catalog
  {key: 'displayFilters', label: 'Display Filters', section: 'catalog' },
  {key: 'bullionVis', label: 'Bullion Metals Visibility', section: 'catalog' },
+ {key: 'typeManager', label: 'Type & Image Manager', section: 'catalog' },
+
+ // Data & Backup
  
  // Data & Backup
  {key: 'export', label: 'Export & Backup', section: 'data' },
@@ -81,7 +86,6 @@ function openSettingsDropdown(btn) {
  // Advanced
  {key: 'pricingRules', label: 'Pricing Rules', section: 'advanced' },
  {key: 'completion', label: 'Completion Dashboard', section: 'advanced' },
- {key: 'missingImages', label: 'Find Missing Images', section: 'advanced' },
  {key: 'imageManager', label: 'Coin Image Bank', section: 'advanced' },
  {key: 'printChecklist', label: 'Print Checklist', section: 'advanced' },
  {key: 'customCard', label: 'Custom Dashboard Card', section: 'advanced' },
@@ -162,7 +166,6 @@ export function openSettingsSection(key) {
  // General
  case 'sort': showSortModal(); break;
  case 'theme': showThemeModal(); break;
- case 'cardLayout': showCardLayoutModal(); break;
  
  // Appearance
  case 'folderColor': showFolderColorModal(); break;
@@ -187,6 +190,7 @@ export function openSettingsSection(key) {
  case 'pricingRules': openPricingRulesModal(); break;
  case 'completion': openCompletionDashboard(); break;
  case 'missingImages': filterMissingImages(); break;
+    case 'typeManager': openTypeManager(); break;
  case 'imageManager': openImageManager(); break;
  case 'saveDefaults': saveCurrentImagesAsDefaults(); break;
  case 'printChecklist': openPrintChecklist(); break;
@@ -270,6 +274,7 @@ function showThemeModal() {
  }, [
  { value: 'dark', label: 'Dark' },
  { value: 'midnight', label: 'Midnight' },
+ { value: 'gold', label: 'Royal Gold' },
  { value: 'copper', label: 'Copper' },
  { value: 'ocean', label: 'Ocean' },
  { value: 'forest', label: 'Deep Forest' },
@@ -279,11 +284,11 @@ function showThemeModal() {
  { value: 'violet', label: 'Violet' },
  { value: 'noir', label: 'Film Noir' },
  { value: 'light', label: 'Light' },
- { value: 'silver', label: 'Silver' },
+ { value: 'silver', label: 'Mint Treasury' },
  { value: 'paper', label: 'Aged Paper' },
- { value: 'custom1', label: 'Custom 1' },
- { value: 'custom2', label: 'Custom 2' },
- { value: 'custom3', label: 'Custom 3' },
+ { value: 'custom1', label: getCustomThemeName(1) },
+ { value: 'custom2', label: getCustomThemeName(2) },
+ { value: 'custom3', label: getCustomThemeName(3) },
  ].map(o => el('option', { value: o.value, selected: o.value === currentTheme }, o.label)));
  
  const body = _sectionBody(
@@ -324,31 +329,6 @@ function applyColorblindAssist(on) {
 }
 window.applyColorblindAssist = applyColorblindAssist;
 
-// Card Layout
-function showCardLayoutModal() {
- const isExpand = localStorage.getItem('cc-expand-cards') === 'true';
- const control = el('select', { 
- id: 'settings-card-layout',
- className: 'settings-select',
- onchange: (e) => { 
- const isExpand = e.target.value === 'expand';
- localStorage.setItem('cc-expand-cards', isExpand); 
- dispatchSettingsChange('cc-expand-cards', isExpand);
- closeModal('modal-settings-card-layout');
- }
- }, [
- { value: 'normal', label: 'Normal (Fit Content)', selected: !isExpand },
- { value: 'expand', label: 'Auto-Expand (Fill Empty Space)', selected: isExpand },
- ].map(o => el('option', { value: o.value, selected: o.selected }, o.label)));
- 
- const body = _sectionBody(
- 'Card Layout',
- 'Normal cards size to their content. Auto-expand stretches cards to fill available space.',
- [{ control }]
- );
- createModal('modal-settings-card-layout', 'Card Layout', body, null);
-}
-
 // Folder Color
 function showFolderColorModal() {
  const currentFolderColor = localStorage.getItem('cc-folder-color') || 'green';
@@ -374,136 +354,67 @@ function showFolderColorModal() {
  createModal('modal-settings-folder-color', 'Album Folder Color', body, null);
 }
 
-// Card Visibility
-async function showCardVisibilityModal() {
-// GGMJ-431: derive the list from the cards the dashboard ACTUALLY
-// renders, instead of a hard-coded array. The old array listed 9 cards
-// while the dashboard renders 15, so six cards (investments, trend,
-// gallery, backup, support, search) could not be hidden at all, and a
-// newly added card would never appear here. Each card's own .card-title
-// supplies the label, so there is no second list of titles to keep in
-// sync.
-//
-// card-search lives OUTSIDE #dashboard-grid (it is the search bar), so
-// the grid is scanned first and any remaining card in the document is
-// appended after it.
-//
-// The dashboard renders asynchronously, so on a cold load the grid can
-// still be empty when this panel is opened - which is how the first
-// version of this fix produced a ONE-row list (only card-search) while
-// the dashboard went on to render 15 cards. A bounded wait is not
-// enough: measured on the preview the grid populates at t=3.5s, past
-// any fixed budget. The list is therefore kept in sync with the DOM by
-// a MutationObserver: the panel is built with whatever is rendered at
-// open time and re-derived whenever the grid changes, so a cold open
-// corrects itself and a card added in a future release appears here
-// automatically.
-const grid = document.getElementById('dashboard-grid');
-const seen = new Set();
-const cards = [];
-const addCard = (elCard) => {
- if (!elCard || seen.has(elCard.id)) return;
- seen.add(elCard.id);
- // Prefer the card's own .card-title. card-search is the one card with
- // no title element, so fall back to its accessible name (the sr-only
- // <label>), then to a readable form of the id - never the bare id.
- const titleEl = elCard.querySelector('.card-title');
- const ariaEl = elCard.querySelector('[aria-label]');
- const srEl = elCard.querySelector('.sr-only');
- const label = (titleEl ? titleEl.textContent : '').trim()
-  || (ariaEl ? (ariaEl.getAttribute('aria-label') || '') : '').trim()
-  || (srEl ? srEl.textContent : '').trim()
-  || elCard.id.replace(/^card-/, '').replace(/[-_]+/g, ' ')
-   .replace(/\b\w/g, c => c.toUpperCase());
- cards.push({ key: elCard.id, label });
-};
-const collect = () => {
- seen.clear();
- cards.length = 0;
- if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
- document.querySelectorAll('[id^=card-]').forEach(addCard);
-};
-collect();
+// Card Visibility (GGMJ-431: dynamic 15-card list persisted in cc-card-visibility)
+function showCardVisibilityModal() {
+ const grid = document.getElementById('dashboard-grid');
+ const seen = new Set();
+ const cards = [];
+ const addCard = (elCard) => {
+  if (!elCard || !elCard.id || seen.has(elCard.id)) return;
+  seen.add(elCard.id);
+  const titleEl = elCard.querySelector('.card-title');
+  const ariaEl = elCard.querySelector('[aria-label]');
+  const srEl = elCard.querySelector('.sr-only');
+  const rawTitle = (titleEl ? titleEl.textContent : '').replace(/\?$/, '').trim();
+  const label = rawTitle
+   || (ariaEl ? (ariaEl.getAttribute('aria-label') || '') : '').trim()
+   || (srEl ? srEl.textContent : '').trim()
+   || elCard.id.replace(/^card-/, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  cards.push({ key: elCard.id, label });
+ };
+ const collect = () => {
+  seen.clear();
+  cards.length = 0;
+  if (grid) grid.querySelectorAll('[id^=card-]').forEach(addCard);
+  document.querySelectorAll('[id^=card-]').forEach(addCard);
+ };
+ collect();
 
-// The app reads and writes the 'cc-card-visibility' JSON MAP
-// (portfolio.js parses it on every dashboard render). The old code
-// wrote a separate localStorage key per card, which nothing read, so
-// every toggle was a no-op and the card came back on reload.
-const readVis = () => {
- try {
-  const v = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
-  return (v && typeof v === 'object') ? v : {};
- } catch(e) { return {}; }
-};
-let vis = readVis();
+ const readVis = () => {
+  try {
+   const v = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
+   return (v && typeof v === 'object') ? v : {};
+  } catch (e) { return {}; }
+ };
+ let vis = readVis();
 
-const applyCardVisibility = (key, visible) => {
-// Hide the live card as well as persisting the choice, so the toggle
-// is visible without a reload.
-document.querySelectorAll('#' + CSS.escape(key)).forEach(elCard => {
- elCard.style.display = visible ? '' : 'none';
+ const applyCardVisibility = (key, visible) => {
+  document.querySelectorAll('#' + CSS.escape(key)).forEach(elCard => {
+   elCard.style.display = visible ? '' : 'none';
+  });
+ };
+
+ const buildControls = (list) => list.map(c => {
+  const checked = vis[c.key] !== false;
+  return el('div', { className: 'settings-toggle-row' }, [
+   el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
+    const on = e.target.checked;
+    if (on) delete vis[c.key]; else vis[c.key] = false;
+    localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
+    applyCardVisibility(c.key, on);
+    dispatchSettingsChange('cc-card-visibility', vis);
+   }}),
+   el('label', { for: 'vis-' + c.key }, c.label),
+  ]);
  });
-};
 
-const buildControls = (list) => list.map(c => {
- const checked = vis[c.key] !== false;
- return el('div', { className: 'settings-toggle-row' }, [
-  el('input', { type: 'checkbox', id: 'vis-' + c.key, checked, onchange: (e) => {
-   const on = e.target.checked;
-   vis[c.key] = on;
-   localStorage.setItem('cc-card-visibility', JSON.stringify(vis));
-   applyCardVisibility(c.key, on);
-   dispatchSettingsChange('cc-card-visibility', vis);
-   // Apply immediately: re-render the dashboard so the toggle takes effect live
-   import('./portfolio.js').then(function(m) {
-   if (m.renderDashboard) m.renderDashboard();
-   });
-  }}),
-  el('label', { for: 'vis-' + c.key }, c.label),
- ]);
-});
-
-const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
+ const group = el('div', { className: 'settings-toggle-group' }, buildControls(cards));
  const body = _sectionBody(
   'Dashboard Card Visibility',
   'Show or hide entire dashboard cards.',
   [{ control: group }]
  );
- const overlay = createModal('modal-settings-card-visibility', 'Card Visibility', body, null);
-
- // Keep the list in sync with the rendered cards. The observer fires
- // the instant the dashboard renders, so a cold open that found an empty
- // grid is corrected a moment later without the user reopening the
- // panel.
- let observer = null;
- const stop = () => {
-  if (observer) { observer.disconnect(); observer = null; }
- };
- const refresh = () => {
-  // The panel was closed: stop observing and do not rebuild a detached
-  // modal.
-  if (!document.getElementById('modal-settings-card-visibility')) { stop(); return; }
-  vis = readVis();
-  collect();
-  group.replaceChildren(...buildControls(cards));
- };
- if (grid && typeof MutationObserver !== 'undefined') {
-  observer = new MutationObserver(() => refresh());
-  observer.observe(grid, { childList: true });
- }
- // Also stop when the panel is closed without the grid changing.
- if (typeof MutationObserver !== 'undefined') {
-  const layer = document.getElementById('modal-layer');
-  if (layer) {
-   const closeWatcher = new MutationObserver(() => {
-    if (!document.getElementById('modal-settings-card-visibility')) {
-     stop();
-     closeWatcher.disconnect();
-    }
-   });
-   closeWatcher.observe(layer, { childList: true });
-  }
- }
+ createModal('modal-settings-card-visibility', 'Card Visibility', body, null);
 }
 
 // Display Filters
@@ -545,12 +456,20 @@ function showBullionVisibilityModal() {
  {key: 'copper', label: 'Copper', color: '#b45309' },
  ];
  
+ let visMap = { gold: true, silver: true, platinum: true, palladium: true, copper: true };
+ try {
+ const raw = localStorage.getItem('cc-bullion-vis');
+ if (raw) Object.assign(visMap, JSON.parse(raw));
+ } catch (_) {}
  const controls = metals.map(m => {
- const checked = localStorage.getItem(`cc-bullion-vis-${m.key}`) !== 'false';
+ const per = localStorage.getItem(`cc-bullion-vis-${m.key}`);
+ const checked = per !== null ? (per === 'true' || per === '1') : (visMap[m.key] !== false);
  return el('div', { className: 'settings-toggle-row' }, [
  el('input', { type: 'checkbox', id: `cc-bullion-vis-${m.key}`, checked, onchange: (e) => {
+ visMap[m.key] = e.target.checked;
  localStorage.setItem(`cc-bullion-vis-${m.key}`, e.target.checked);
- dispatchSettingsChange('cc-bullion-vis', { [m.key]: e.target.checked });
+ localStorage.setItem('cc-bullion-vis', JSON.stringify(visMap));
+ dispatchSettingsChange('cc-bullion-vis', visMap);
  }}),
  el('label', { for: `cc-bullion-vis-${m.key}`, style: `color: ${m.color}; font-weight: 600;` }, m.label),
  ]);
@@ -565,12 +484,56 @@ function showBullionVisibilityModal() {
 }
 
 // Export
+async function _exportCSVLocal() {
+    try {
+        const { db } = await import('./db.js');
+        const inv = await db.user_inventory.toArray();
+        const refs = await db.coins_reference.toArray();
+        const refMap = {};
+        refs.forEach(r => { refMap[r.id] = r; refMap[String(r.id)] = r; });
+        const rows = [['Coin ID', 'Section', 'Denomination', 'Coin Type', 'Year', 'Mint Mark', 'Quantity', 'Grade', 'Purchase Price', 'Current Value', 'Notes']];
+        inv.forEach(item => {
+            const c = refMap[item.coin_ref_id] || {};
+            rows.push([
+                item.coin_ref_id || '',
+                c.section || '',
+                c.denomination || '',
+                c.coin_type || '',
+                c.year || '',
+                c.mint_mark || '',
+                item.quantity || 1,
+                item.grade || '',
+                item.purchase_price || '',
+                item.current_value || '',
+                (item.personal_notes || item.notes || '').replace(/\r?\n/g, ' ')
+            ]);
+        });
+        const csvContent = rows.map(r => r.map(v => '"' + String(v ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'coin_catalog_export_' + new Date().toISOString().slice(0, 10) + '.csv';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
+        showToast('CSV exported successfully!', 'success');
+    } catch (e) {
+        showToast('CSV export failed: ' + e.message, 'error');
+    }
+}
+
 function showExportModal() {
-    const control = el('div', { className: 'settings-action-group' }, [
- el('button', { className: 'btn-primary', onclick: () => window.location.href = '/api/backup/zip' }, 'Download Full Backup (ZIP)'),
- el('button', { className: 'btn-secondary', onclick: () => window.location.href = '/api/backup/full' }, 'Export All (CSV)'),
- el('button', { className: 'btn-secondary', onclick: backupJSON }, 'Backup JSON'),
- ]);
+    const buttons = [];
+    if (isSelfHosted) {
+        buttons.push(el('button', { className: 'btn-primary', onclick: () => window.location.href = '/api/backup/zip' }, 'Download Full Backup (ZIP)'));
+        buttons.push(el('button', { className: 'btn-secondary', onclick: () => window.location.href = '/api/backup/full' }, 'Export All (CSV)'));
+        buttons.push(el('button', { className: 'btn-secondary', onclick: backupJSON }, 'Backup JSON'));
+    } else {
+        buttons.push(el('button', { className: 'btn-primary', onclick: backupJSON }, 'Download Full Backup (JSON)'));
+        buttons.push(el('button', { className: 'btn-secondary', onclick: _exportCSVLocal }, 'Export All (CSV)'));
+    }
+    const control = el('div', { className: 'settings-action-group' }, buttons);
  
  const body = _sectionBody(
  'Export & Backup',
@@ -597,11 +560,15 @@ function showImportModal() {
  const restoreInput = createFileInput('.json', restoreJSON);
  const importInput = createFileInput('.csv', importCSV);
  
- const control = el('div', { className: 'settings-action-group' }, [
- el('button', { className: 'btn-primary', onclick: () => restoreZipInput.click() }, 'Restore Full Backup (ZIP)'),
- el('button', { className: 'btn-secondary', onclick: () => restoreInput.click() }, 'Restore JSON'),
- el('button', { className: 'btn-secondary', onclick: () => importInput.click() }, 'Import CSV'),
- ]);
+ const importButtons = [];
+ if (isSelfHosted) {
+   importButtons.push(el('button', { className: 'btn-primary', onclick: () => restoreZipInput.click() }, 'Restore Full Backup (ZIP)'));
+   importButtons.push(el('button', { className: 'btn-secondary', onclick: () => restoreInput.click() }, 'Restore Backup (JSON)'));
+ } else {
+   importButtons.push(el('button', { className: 'btn-primary', onclick: () => restoreInput.click() }, 'Restore Full Backup (JSON)'));
+ }
+ importButtons.push(el('button', { className: 'btn-secondary', onclick: () => importInput.click() }, 'Import Inventory (CSV)'));
+ const control = el('div', { className: 'settings-action-group' }, importButtons);
  
  const body = _sectionBody(
  'Import & Restore',
@@ -618,19 +585,21 @@ export async function showCloudSyncModal() {
         getProviderAuthState, setProviderAuthState,
         syncToCloud, syncFromCloud,
         isAutoBackupEnabled, setAutoBackupEnabled, getAutoBackupHours, setAutoBackupHours,
-        authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox
+        authenticateGoogleDrive, authenticateOneDrive, authenticateDropbox,
+        pickLocalBackupFileLocation
     } = await import('./sync.js');
 
     const providers = getAllProviders();
+    // Default to localFile if no provider was ever selected so backup works out-of-the-box
+    if (!getCurrentProvider() && providers.length > 0) {
+        setCurrentProvider('localFile');
+    }
 
     const render = () => {
         const panel = el('div');
         const currentProvider = getCurrentProvider();
-        const currentProviderId = currentProvider ? currentProvider.id : null;
+        const currentProviderId = currentProvider ? currentProvider.id : 'localFile';
 
-        // Re-render the whole Cloud Sync panel after OAuth completes so the
-        // Backup/Restore buttons appear without the user re-clicking.
-        // Defined in this scope so it can see `render`.
         const refreshCloudSyncPanel = () => {
             const modal = document.getElementById('modal-settings-cloud');
             if (!modal) return;
@@ -641,56 +610,118 @@ export async function showCloudSyncModal() {
 
         // Provider Selection
         panel.appendChild(el('div', { className: 'settings-section' }, [
-            el('h4', { className: 'settings-subhead' }, 'Cloud Provider'),
-            el('p', { className: 'settings-text' }, 'Choose a cloud provider to automatically backup and sync your collection data.'),
+            el('h4', { className: 'settings-subhead' }, 'Backup Destination'),
+            el('p', { className: 'settings-text' }, 'Choose how you want to back up, transfer, or sync your collection between Self-Hosted and Cloudflare.'),
             el('div', { style: 'display:flex; flex-direction:column; gap:8px;' },
                 providers.map(p => {
                     const isSelected = p.id === currentProviderId;
                     return el('button', {
-                        style: `display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; border:2px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border-light)'}; background:${isSelected ? 'var(--color-bg-active)' : 'var(--color-bg-card)'}; color:var(--color-text-main); cursor:pointer; text-align:left; width:100%; font-size:0.85em;`,
+                        type: 'button',
+                        style: `display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:10px; border:2px solid ${isSelected ? 'var(--color-accent)' : 'var(--color-border-light)'}; background:${isSelected ? 'color-mix(in srgb, var(--color-accent) 12%, var(--color-bg-card))' : 'var(--color-bg-card)'}; color:var(--color-text-main); cursor:pointer; text-align:left; width:100%; font-size:0.86em;`,
                         onclick: () => {
                             setCurrentProvider(p.id);
-                            const body = document.getElementById('modal-settings-cloud');
-                            if (body) {
-                                const bc = body.querySelector('.modal-body');
-                                if (bc) { bc.innerHTML = ''; bc.appendChild(render()); }
-                            }
+                            refreshCloudSyncPanel();
+                            try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (_) {}
                         }
                     }, [
-                        el('span', { style: 'flex:1; font-weight:' + (isSelected ? '700' : '400') + ';' }, p.name),
-                        isSelected ? el('span', { style: 'color:var(--color-accent); font-size:0.9em;' }, '✓ Selected') : null,
+                        el('span', { style: 'font-size:1.15em;' }, p.icon || '💾'),
+                        el('span', { style: 'flex:1; font-weight:' + (isSelected ? '700' : '500') + ';' }, p.name),
+                        isSelected ? el('span', { style: 'color:var(--color-accent); font-size:0.88em; font-weight:700;' }, '✓ Active') : null,
                     ]);
                 })
             )
         ]));
 
         if (currentProviderId) {
-            const provider = providers.find(p => p.id === currentProviderId);
+            const provider = providers.find(p => p.id === currentProviderId) || providers[0];
             const authState = getProviderAuthState(currentProviderId);
+            const currentOrigin = window.location.origin;
+            const currentRedirectUri = window.location.href.split('?')[0].split('#')[0];
 
-            panel.appendChild(el('div', { className: 'settings-section' }, [
-                el('h4', { className: 'settings-subhead' }, `${provider.name} Configuration`),
+            const configChildren = [
+                el('h4', { className: 'settings-subhead' }, `${provider.icon || ''} ${provider.name}`),
+                el('p', { className: 'settings-text' }, _safeText(provider.description)),
+            ];
 
-                // GGMJ-190 Bug 1: put the primary Sign In / Re-authenticate button
-                // RIGHT HERE — at the very top of the provider config section,
-                // immediately after the heading, so it is never below the fold.
-                // Only shown for OAuth providers (WebDAV has no sign-in step).
-                currentProviderId !== 'webdav' ? el('div', { style: 'margin-bottom:12px;' }, [
+            // Local Device File Provider UI (with remembered FileSystemFileHandle in IndexedDB)
+            if (currentProviderId === 'localFile') {
+                const rememberedName = (typeof getRememberedBackupFilename === 'function') ? getRememberedBackupFilename() : (authState.filename || '');
+                configChildren.push(el('div', {
+                    style: 'display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:10px; background:var(--color-accord-bg); border:1px solid var(--color-border-light); margin-top:8px;'
+                }, [
+                    el('div', { style: 'font-size:0.83em; color:var(--color-text-main); line-height:1.45;' },
+                        'Choose where your backup .json file is saved on your drive. Each app remembers its chosen file location for 1-click Back Up and Reload, or click Browse below to pick any .json backup file.'),
+                    el('div', {
+                        style: 'display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:8px 10px; border-radius:8px; background:var(--color-bg-body); border:1px solid var(--color-border); font-size:0.82em;'
+                    }, [
+                        el('span', { style: 'color:var(--color-text-main); font-weight:600;' },
+                            rememberedName
+                                ? ('📍 Remembered File on This App: ' + rememberedName)
+                                : '📍 No backup file chosen yet on this app — click Save or Browse below'),
+                        el('button', {
+                            type: 'button',
+                            className: 'btn-secondary',
+                            style: 'padding:4px 10px; font-size:0.78em;',
+                            onclick: async () => {
+                                await pickLocalBackupFileLocation(true);
+                                refreshCloudSyncPanel();
+                                try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (_) {}
+                            }
+                        }, rememberedName ? '📂 Change Save Location…' : '📂 Choose Save Location…'),
+                    ]),
+                    el('div', { style: 'display:flex; gap:8px; flex-wrap:wrap;' }, [
+                        el('button', {
+                            type: 'button',
+                            className: 'btn-primary',
+                            style: 'flex:1; min-width:170px;',
+                            onclick: async () => {
+                                await pickLocalBackupFileLocation(false);
+                                refreshCloudSyncPanel();
+                                try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (_) {}
+                            }
+                        }, rememberedName ? ('💾 Back Up Now (' + rememberedName + ')') : '💾 Choose Location & Save Backup (.json)'),
+                        rememberedName ? el('button', {
+                            type: 'button',
+                            className: 'btn-secondary',
+                            style: 'flex:1; min-width:170px;',
+                            onclick: async () => {
+                                setCurrentProvider('localFile');
+                                await syncFromCloud();
+                            }
+                        }, '🔄 Reload From ' + rememberedName) : null,
+                    ]),
                     el('button', {
+                        type: 'button',
+                        className: 'btn-secondary',
+                        style: 'width:100%; justify-content:center;',
+                        onclick: async () => {
+                            if (typeof pickAndRestoreLocalBackupFile === 'function') {
+                                await pickAndRestoreLocalBackupFile();
+                            }
+                        }
+                    }, '📂 Browse / Select a Backup .json File to Restore…'),
+                ]));
+            }
+
+            // OAuth Sign-In for Google Drive & Dropbox (clean, no origin_mismatch helper box)
+            if (currentProviderId === 'googleDrive' || currentProviderId === 'dropbox') {
+                configChildren.push(el('div', { style: 'margin-bottom:12px; margin-top:8px;' }, [
+                    el('button', {
+                        type: 'button',
                         className: 'btn-primary',
                         style: 'width:100%;',
                         onclick: async () => {
-                            const fn = provider.id === 'googleDrive' ? authenticateGoogleDrive
-                                : (provider.id === 'dropbox' ? authenticateDropbox : authenticateOneDrive);
+                            const fn = provider.id === 'googleDrive' ? authenticateGoogleDrive : authenticateDropbox;
                             await fn();
                             refreshCloudSyncPanel();
+                            try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (_) {}
                         }
                     }, authState.authenticated ? 'Re-authenticate with ' + provider.name : 'Sign in with ' + provider.name),
-                ]) : null,
+                ]));
+            }
 
-                el('p', { className: 'settings-text' }, _safeText(provider.description)),
-
-                currentProviderId === 'webdav' ? el('div', { style: 'display: flex; flex-direction: column; gap: 12px;' }, [
+            if (currentProviderId === 'webdav') {
+                configChildren.push(el('div', { style: 'display: flex; flex-direction: column; gap: 12px; margin-top:8px;' }, [
                     el('div', { className: 'form-group' }, [
                         el('label', {}, 'WebDAV Server URL'),
                         el('input', {
@@ -716,23 +747,21 @@ export async function showCloudSyncModal() {
                             onchange: (e) => setProviderAuthState('webdav', { ...authState, password: e.target.value }),
                         })
                     ]),
-                ]) : null,
-            ]));
+                ]));
+            }
 
-            // Sync Actions — WebDAV always; OAuth only after authentication
-            const canSync = currentProviderId === 'webdav' || authState.authenticated;
+            panel.appendChild(el('div', { className: 'settings-section' }, configChildren));
+
+            // Sync Actions — LocalFile & WebDAV always ready; OAuth after authentication
+            const canSync = currentProviderId === 'localFile' || currentProviderId === 'webdav' || authState.authenticated;
             if (canSync) {
                 panel.appendChild(el('div', { className: 'settings-section' }, [
-                    el('h4', { className: 'settings-subhead' }, 'Sync Actions'),
-                    el('p', { className: 'settings-text' }, currentProviderId === 'webdav'
-                        ? 'Enter your server details above, then click Backup. This sends your full collection backup as a JSON file to the WebDAV server.'
-                        : 'Click Backup to save your collection to ' + provider.name + ', or Restore to load a previous backup.'),
-                    el('div', { className: 'settings-action-group' }, [
+                    el('h4', { className: 'settings-subhead' }, 'Automatic & Manual Sync'),
+                    currentProviderId !== 'localFile' ? el('div', { className: 'settings-action-group', style: 'margin-bottom:12px;' }, [
                         el('button', { className: 'btn-primary', onclick: syncToCloud }, 'Backup to ' + provider.name),
                         el('button', { className: 'btn-secondary', onclick: syncFromCloud }, 'Restore from ' + provider.name),
-                    ]),
-                    // Auto backup toggle + interval
-                    el('div', { className: 'form-group', style: 'margin-top:16px; border-top:1px solid var(--color-border-light); padding-top:14px;' }, ...[
+                    ]) : null,
+                    el('div', { className: 'form-group', style: 'margin-top:8px; border-top:1px solid var(--color-border-light); padding-top:12px;' }, ...[
                         el('div', { style: 'display:flex; align-items:center; gap:10px;' }, ...[
                             el('input', {
                                 type: 'checkbox',
@@ -741,44 +770,29 @@ export async function showCloudSyncModal() {
                                 onchange: (e) => {
                                     setAutoBackupEnabled(e.target.checked);
                                     refreshCloudSyncPanel();
-                                    // Notify any open views (Your Backup card + Cloud Sync modal) so both repaint
-                                    // from the same source of truth. GGMJ-190 Bug 3.
-                                    try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
+                                    try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) {}
                                 }
                             }),
-                            el('label', { style: 'flex:1;' }, 'Automatic cloud backup'),
+                            el('label', { for: 'autobackup-toggle', style: 'flex:1; font-weight:600; cursor:pointer;' }, 'Automatic periodic backup'),
                         ]),
-                        el('p', { className: 'settings-text', style: 'font-size:0.9em; margin-top:8px;' },
-                            // 2026-10-10 (Matthew): "it says right above that it will do it
-                            // every time the app loads and every 10 minutes. That's confusing."
-                            // Both numbers were true but described two different things and
-                            // read as a contradiction next to the "Back up every N hours" picker:
-                            //   * every 10 minutes = how often the app CHECKS whether a backup
-                            //     is due (setInterval in sync.js startAutoBackupScheduler)
-                            //   * every N hours   = how often a backup is actually WRITTEN
-                            // A backup only fires if >= N hours have elapsed since the last one.
-                            // So say the two things separately, and say what happens on open.
-                            'Back up your collection to ' + provider.name + ' while the app is open. '
-                            + 'On open, a backup runs if one is due. After that the app checks every '
-                            + '10 minutes and writes a backup only once the interval below has passed.'),
-                        el('div', { className: 'form-group', style: 'display:flex; align-items:center; gap:10px; margin-top:10px;' }, ...[
+                        el('p', { className: 'settings-text', style: 'font-size:0.84em; margin-top:6px;' },
+                            'Back up your collection to ' + provider.name + ' while the app is open once the interval below has elapsed.'),
+                        el('div', { className: 'form-group', style: 'display:flex; align-items:center; gap:10px; margin-top:8px;' }, ...[
                             el('label', {}, 'Back up every'),
                             el('select', {
-                                style: 'max-width:150px;',
+                                style: 'max-width:160px;',
                                 onchange: (e) => {
                                     setAutoBackupHours(parseInt(e.target.value, 10));
-                                    // Notify any open views (Your Backup card + Cloud Sync modal) so both repaint
-                                    // from the same source of truth. GGMJ-190 Bug 3.
-                                    try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) { /* non-DOM ctx */ }
+                                    try { window.dispatchEvent(new Event('backupSettingsChanged')); } catch (e) {}
                                 }
                             }, ...[
-                                el('option', { value: '6' }, '6 hours'),
-                                el('option', { value: '12' }, '12 hours'),
-                                el('option', { value: '24' }, 'Daily (24 hours)'),
-                                el('option', { value: '48' }, 'Every 2 days'),
-                                el('option', { value: '72' }, 'Every 3 days'),
-                                el('option', { value: '168' }, 'Weekly'),
-                            ]),
+                                { v: 6, l: '6 hours' },
+                                { v: 12, l: '12 hours' },
+                                { v: 24, l: 'Daily (24 hours)' },
+                                { v: 48, l: 'Every 2 days' },
+                                { v: 72, l: 'Every 3 days' },
+                                { v: 168, l: 'Weekly' },
+                            ].map(o => el('option', { value: String(o.v), selected: getAutoBackupHours() === o.v }, o.l))),
                         ]),
                     ])
                 ]));
@@ -788,276 +802,338 @@ export async function showCloudSyncModal() {
     };
 
     const body = _sectionBody(
-        'Cloud Sync',
-        'Configure cloud backup and sync settings.',
+        'Backup & Cloud Sync',
+        'Back up your collection to a local file or cloud storage.',
         [{ control: render() }]
     );
-    createModal('modal-settings-cloud', 'Cloud Sync', body, null);
+    createModal('modal-settings-cloud', 'Backup & Cloud Sync', body, null);
 }
-
-// Pricing Rules - already handled by openPricingRulesModal()
-
-// Completion Dashboard - already handled by openCompletionDashboard()
-
-// Purge Inventory - already handled by purgeInventory()
 
 // ============================================================================
-// Custom Dashboard Card Creator
+// Custom Dashboard Card Studio (Oct 29 v519 Overhaul)
 // ============================================================================
 
-function showCustomCardModal() {
-    // Get existing custom cards
- let customCards = [];
- try {
- customCards = JSON.parse(localStorage.getItem('cc-custom-cards') || '[]');
- } catch (e) {
- customCards = [];
- }
- 
- // Available data sources
- const dataSources = [
- { id: 'totalValue', label: 'Total Portfolio Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'totalMelt', label: 'Total Melt Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'collectibleValue', label: 'Collectible Premium', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'coinCount', label: 'Total Coins', formatter: v => v.toLocaleString() },
- { id: 'itemCount', label: 'Total Items', formatter: v => v.toLocaleString() },
- { id: 'completion', label: 'Completion %', formatter: v => v + '%' },
- { id: 'goldMelt', label: 'Gold Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'silverMelt', label: 'Silver Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'platinumMelt', label: 'Platinum Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'palladiumMelt', label: 'Palladium Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'copperMelt', label: 'Copper Melt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'bulkValue', label: 'Bulk Coins Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'paperValue', label: 'Paper Currency Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'scrapValue', label: 'Scrap Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'rawBullion', label: 'Raw Bullion Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'otherValue', label: 'Other Collectables Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'faceValue', label: 'Face Value', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'custom', label: 'Custom Text/Number', formatter: v => v },
- ];
- 
- // Available display styles
- const displayStyles = [
- { id: 'bigNumber', label: 'Big Number (centered)' },
- { id: 'labelValue', label: 'Label + Value' },
- { id: 'progress', label: 'Progress Bar' },
- { id: 'trend', label: 'Trend Arrow + Value' },
- ];
- 
- const body = el('div', { className: 'custom-card-form' }, [
- // List existing custom cards
- customCards.length > 0 ? el('div', { className: 'custom-cards-list' }, [
- el('h4', { className: 'settings-subhead' }, 'Your Custom Cards'),
- ...customCards.map((card, idx) => el('div', { className: 'custom-card-item' }, [
- el('div', { className: 'custom-card-info' }, [
- el('strong', {}, card.title),
- el('span', { className: 'custom-card-meta' }, `${card.dataSource} • ${card.displayStyle}`),
- ]),
- el('button', { 
- className: 'btn-danger btn-sm',
- onclick: () => {
- customCards.splice(idx, 1);
- localStorage.setItem('cc-custom-cards', JSON.stringify(customCards));
- showToast('Custom card deleted', 'success');
- closeModal('modal-custom-card');
- showCustomCardModal();
- // 2026-10-09 (Matthew): the CREATE handler repaints the dashboard but DELETE
- // did not, so a deleted card stayed on screen until a manual reload. Measured:
- // store went 5 -> 4 while the dashboard still rendered 5 rows. Repaint here
- // too, matching the create path.
- import('./portfolio.js').then(function(m) {
- if (m.renderDashboard) m.renderDashboard();
- });
- }
- }, 'Delete'),
- ]))
- ]) : null,
- 
- el('hr', { style: 'margin: 16px 0;' }),
- el('h4', { className: 'settings-subhead' }, 'Create New Custom Card'),
- 
- // Title
- el('div', { className: 'form-group' }, [
- el('label', {}, 'Card Title'),
- el('input', { 
- type: 'text', 
- id: 'custom-card-title', 
- className: 'v1-input',
- placeholder: 'e.g., "My Silver Stack"',
- required: true
- })
- ]),
- 
- // Data Source
- el('div', { className: 'form-group' }, [
- el('label', {}, 'Data Source'),
- el('select', { id: 'custom-card-source', className: 'v1-select' }, [
- ...dataSources.map(ds => el('option', { value: ds.id }, ds.label))
- ])
- ]),
- 
- // Display Style
- el('div', { className: 'form-group' }, [
- el('label', {}, 'Display Style'),
- el('select', { id: 'custom-card-style', className: 'v1-select' }, [
- ...displayStyles.map(ds => el('option', { value: ds.id }, ds.label))
- ])
- ]),
- 
- // Optional: Custom value (for custom text/number)
- el('div', { className: 'form-group', id: 'custom-card-custom-group', style: 'display: none;' }, [
- el('label', {}, 'Custom Value'),
- el('input', { 
- type: 'text', 
- id: 'custom-card-custom-value', 
- className: 'v1-input',
- placeholder: 'Enter custom text or number'
- })
- ]),
-]);
+export function showCustomCardModal(editCardId = null) {
+    let customCards = [];
+    try {
+        customCards = JSON.parse(localStorage.getItem('cc-custom-cards') || '[]');
+        if (!Array.isArray(customCards)) customCards = [];
+    } catch (e) {
+        customCards = [];
+    }
 
- const modalId = 'modal-custom-card';
- const footer = el('div', { className: 'modal-footer' }, [
- el('button', { className: 'btn-secondary', onclick: () => closeModal(modalId) }, 'Cancel'),
- el('button', { 
- className: 'btn-primary', 
- onclick: () => {
- const title = document.getElementById('custom-card-title').value.trim();
- const dataSource = document.getElementById('custom-card-source').value;
- const displayStyle = document.getElementById('custom-card-style').value;
- const customValue = document.getElementById('custom-card-custom-value').value;
+    const editingCard = editCardId ? customCards.find(c => String(c.id) === String(editCardId)) : null;
+    const sections = getSections() || [];
 
- if (!title) {
- showToast('Please enter a card title', 'error');
- return;
- }
+    const cardTypes = [
+        { id: 'collection', label: '📦 Custom Collection / Vault Tracker (Interactive items + values)' },
+        { id: 'goal',       label: '🎯 Set Completion / Stacking Goal (Live progress bar + target)' },
+        { id: 'checklist',  label: '📝 Coin Show / Hunt Checklist & Budget (Interactive buy list)' },
+        { id: 'metric',     label: '📊 Live Portfolio Metric / Ratio Spotlight' },
+    ];
 
- const newCard = {
- id: Date.now().toString(),
- title,
- dataSource,
- displayStyle,
- customValue: dataSource === 'custom' ? customValue : null,
- createdAt: new Date().toISOString()
- };
+    const dataSources = [
+        { id: 'goldSilverRatio', label: 'Live Gold-to-Silver Ratio (Au / Ag)' },
+        { id: 'totalValue',      label: 'Total Portfolio Value ($)' },
+        { id: 'totalMelt',       label: 'Total Melt Value ($)' },
+        { id: 'collectibleValue',label: 'Collectible Premium ($)' },
+        { id: 'goldMelt',        label: 'Gold Coins Melt ($)' },
+        { id: 'silverMelt',      label: 'Silver Coins Melt ($)' },
+        { id: 'rawBullion',      label: 'Raw Bullion Value ($)' },
+        { id: 'bulkValue',       label: 'Bulk Coins Value ($)' },
+        { id: 'paperValue',      label: 'Paper Currency Value ($)' },
+        { id: 'coinCount',       label: 'Total Physical Coins Owned' },
+        { id: 'completion',      label: 'Overall Catalog Completion (%)' },
+        { id: 'custom',          label: 'Custom Text / Note' },
+    ];
 
- customCards.push(newCard);
- localStorage.setItem('cc-custom-cards', JSON.stringify(customCards));
- showToast('Custom card created!', 'success');
- closeModal(modalId);
- 
- // Refresh dashboard
- import('./portfolio.js').then(m => {
- if (m.renderDashboard) m.renderDashboard();
- });
- }
- }, 'Create Card'),
- ]);
- 
- createModal(modalId, 'Custom Dashboard Card', body, footer);
- 
- // Show/hide custom value field based on data source
- document.getElementById('custom-card-source').addEventListener('change', (e) => {
- const group = document.getElementById('custom-card-custom-group');
- group.style.display = e.target.value === 'custom' ? 'block' : 'none';
- });
+    const goalTargets = [
+        { id: 'portfolioValue', label: 'Total Portfolio Dollar Target ($)' },
+        { id: 'totalMelt',      label: 'Total Precious Metal Melt Target ($)' },
+        { id: 'coinCount',      label: 'Total Owned Coins Target (Count)' },
+        { id: 'completionPct',  label: 'Overall Catalog Completion Target (%)' },
+        ...sections.map(s => ({
+            id: 'section:' + s.section,
+            label: 'Section Completion: ' + formatSectionWithCountry(s.section) + ` (${s.owned || 0}/${s.total || 0})`
+        }))
+    ];
+
+    const displayStyles = [
+        { id: 'bigNumber',  label: 'Big Hero Number + Subtitle' },
+        { id: 'labelValue', label: 'Compact Stat Row' },
+        { id: 'progress',   label: 'Progress Bar (0–100%)' },
+        { id: 'trend',      label: 'Indicator Badge + Value' },
+    ];
+
+    const initialType = editingCard ? (editingCard.cardType || 'metric') : 'collection';
+
+    // Existing cards list
+    const existingListWrap = el('div', { className: 'custom-cards-list', style: 'display:flex; flex-direction:column; gap:6px; margin-bottom:14px;' });
+    if (customCards.length > 0) {
+        existingListWrap.appendChild(el('h4', { className: 'settings-subhead', style: 'margin:0 0 4px 0;' }, `Your Custom Dashboard Cards (${customCards.length})`));
+        customCards.forEach((card, idx) => {
+            const typeBadge = card.cardType === 'collection' ? '📦 Collection'
+                : (card.cardType === 'goal' ? '🎯 Goal'
+                : (card.cardType === 'checklist' ? '📝 Checklist' : '📊 Metric'));
+            const itemRow = el('div', {
+                className: 'custom-card-item',
+                style: 'display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 12px; border-radius:8px; background:var(--color-accord-bg); border:1px solid var(--color-border-light);'
+            }, [
+                el('div', { className: 'custom-card-info', style: 'display:flex; flex-direction:column; gap:2px;' }, [
+                    el('strong', { style: 'font-size:0.9rem; color:var(--color-text-main);' }, card.title),
+                    el('span', { className: 'custom-card-meta', style: 'font-size:0.75rem; color:var(--color-text-muted);' },
+                        `${typeBadge}${card.subtitle ? ' · ' + card.subtitle : ''}`),
+                ]),
+                el('div', { style: 'display:flex; gap:6px;' }, [
+                    el('button', {
+                        type: 'button',
+                        className: 'btn-secondary btn-sm',
+                        style: 'padding:4px 10px; font-size:0.76rem;',
+                        onclick: () => {
+                            closeModal('modal-custom-card');
+                            showCustomCardModal(card.id);
+                        }
+                    }, 'Edit'),
+                    el('button', {
+                        type: 'button',
+                        className: 'btn-danger btn-sm',
+                        style: 'padding:4px 10px; font-size:0.76rem;',
+                        onclick: () => {
+                            customCards.splice(idx, 1);
+                            localStorage.setItem('cc-custom-cards', JSON.stringify(customCards));
+                            showToast('Custom card deleted', 'success');
+                            closeModal('modal-custom-card');
+                            showCustomCardModal();
+                            import('./portfolio.js').then(function(m) {
+                                if (m.renderDashboard) m.renderDashboard();
+                            });
+                        }
+                    }, 'Delete'),
+                ])
+            ]);
+            existingListWrap.appendChild(itemRow);
+        });
+    }
+
+    const formWrap = el('div', { className: 'custom-card-form', style: 'display:flex; flex-direction:column; gap:10px;' });
+    if (customCards.length > 0) {
+        formWrap.appendChild(existingListWrap);
+        formWrap.appendChild(el('hr', { style: 'border:none; border-top:1px solid var(--color-border-light); margin:4px 0;' }));
+    }
+
+    formWrap.appendChild(el('h4', { className: 'settings-subhead', style: 'margin:0;' },
+        editingCard ? `Edit Card: ${editingCard.title}` : 'Create New Custom Dashboard Card'));
+
+    // Card Type Selector
+    const typeSelect = el('select', { id: 'custom-card-type', className: 'v1-select' },
+        cardTypes.map(ct => el('option', { value: ct.id, selected: ct.id === initialType }, ct.label))
+    );
+    formWrap.appendChild(el('div', { className: 'form-group' }, [
+        el('label', {}, 'Card Template'),
+        typeSelect,
+    ]));
+
+    // Title & Subtitle
+    const titleInput = el('input', {
+        type: 'text',
+        id: 'custom-card-title',
+        className: 'v1-input',
+        value: editingCard ? (editingCard.title || '') : '',
+        placeholder: 'e.g., "PCGS Graded Slabs", "Morgan Dollar Goal", "Coin Show Buy List"',
+        required: true,
+    });
+    formWrap.appendChild(el('div', { className: 'form-group' }, [
+        el('label', {}, 'Card Title'),
+        titleInput,
+    ]));
+
+    const subtitleInput = el('input', {
+        type: 'text',
+        id: 'custom-card-subtitle',
+        className: 'v1-input',
+        value: editingCard ? (editingCard.subtitle || '') : '',
+        placeholder: 'Optional note or location (e.g., "Safe Deposit Box #2", "Fall Coin Expo")',
+    });
+    formWrap.appendChild(el('div', { className: 'form-group' }, [
+        el('label', {}, 'Subtitle / Note (Optional)'),
+        subtitleInput,
+    ]));
+
+    // Dynamic Type-Specific Fields Container
+    const dynamicFields = el('div', { style: 'display:flex; flex-direction:column; gap:10px; padding:10px; border-radius:8px; background:var(--color-bg-body); border:1px solid var(--color-border-light);' });
+    formWrap.appendChild(dynamicFields);
+
+    function renderDynamicFields() {
+        dynamicFields.innerHTML = '';
+        const t = typeSelect.value;
+
+        if (t === 'collection') {
+            dynamicFields.appendChild(el('p', { style: 'margin:0; font-size:0.8rem; color:var(--color-text-muted); line-height:1.45;' },
+                'Creates an interactive card on your dashboard where you can add, edit, and value individual items (slabs, world coins, tokens, stamps, watches, etc.) with an automatic total.'));
+            const unitIn = el('input', {
+                type: 'text',
+                id: 'custom-card-unit-label',
+                className: 'v1-input',
+                value: (editingCard && editingCard.unitLabel) || 'Grade / Note',
+                placeholder: 'e.g., Grade (MS-65), Location, or Purity',
+            });
+            dynamicFields.appendChild(el('div', { className: 'form-group', style: 'margin:0;' }, [
+                el('label', {}, 'Secondary Field Label'),
+                unitIn,
+            ]));
+        } else if (t === 'goal') {
+            const goalSel = el('select', { id: 'custom-card-goal-metric', className: 'v1-select' },
+                goalTargets.map(gt => el('option', {
+                    value: gt.id,
+                    selected: editingCard && editingCard.goalMetric === gt.id
+                }, gt.label))
+            );
+            const targetIn = el('input', {
+                type: 'number',
+                step: 'any',
+                id: 'custom-card-goal-target',
+                className: 'v1-input',
+                value: editingCard && editingCard.goalTarget != null ? editingCard.goalTarget : '100',
+                placeholder: 'Target number (leave 0 for section full completion)',
+            });
+            dynamicFields.appendChild(el('div', { className: 'form-group', style: 'margin:0;' }, [
+                el('label', {}, 'What to Track'),
+                goalSel,
+            ]));
+            dynamicFields.appendChild(el('div', { className: 'form-group', style: 'margin:0;' }, [
+                el('label', {}, 'Target Goal Amount (or 0 to use 100% of selected section)'),
+                targetIn,
+            ]));
+        } else if (t === 'checklist') {
+            const budgetIn = el('input', {
+                type: 'number',
+                step: '1',
+                id: 'custom-card-budget',
+                className: 'v1-input',
+                value: editingCard && editingCard.budget != null ? editingCard.budget : '500',
+                placeholder: 'e.g., 500.00 (0 for no budget limit)',
+            });
+            dynamicFields.appendChild(el('p', { style: 'margin:0; font-size:0.8rem; color:var(--color-text-muted); line-height:1.45;' },
+                'Creates an interactive checklist on your dashboard for coin shows, dealer visits, or roll hunting, tracking your target prices and remaining budget live.'));
+            dynamicFields.appendChild(el('div', { className: 'form-group', style: 'margin:0;' }, [
+                el('label', {}, 'Show / Hunting Budget ($)'),
+                budgetIn,
+            ]));
+        } else {
+            // metric
+            const srcSel = el('select', { id: 'custom-card-source', className: 'v1-select' },
+                dataSources.map(ds => el('option', {
+                    value: ds.id,
+                    selected: editingCard && editingCard.dataSource === ds.id
+                }, ds.label))
+            );
+            const styleSel = el('select', { id: 'custom-card-style', className: 'v1-select' },
+                displayStyles.map(ds => el('option', {
+                    value: ds.id,
+                    selected: editingCard && editingCard.displayStyle === ds.id
+                }, ds.label))
+            );
+            const customValGroup = el('div', {
+                className: 'form-group',
+                id: 'custom-card-custom-group',
+                style: (editingCard && editingCard.dataSource === 'custom') ? 'margin:0; display:block;' : 'margin:0; display:none;'
+            }, [
+                el('label', {}, 'Custom Value / Text'),
+                el('input', {
+                    type: 'text',
+                    id: 'custom-card-custom-value',
+                    className: 'v1-input',
+                    value: (editingCard && editingCard.customValue) || '',
+                    placeholder: 'Enter custom text or number'
+                })
+            ]);
+            srcSel.addEventListener('change', (e) => {
+                customValGroup.style.display = e.target.value === 'custom' ? 'block' : 'none';
+            });
+            dynamicFields.appendChild(el('div', { className: 'form-group', style: 'margin:0;' }, [
+                el('label', {}, 'Live Data Source'),
+                srcSel,
+            ]));
+            dynamicFields.appendChild(el('div', { className: 'form-group', style: 'margin:0;' }, [
+                el('label', {}, 'Display Style'),
+                styleSel,
+            ]));
+            dynamicFields.appendChild(customValGroup);
+        }
+    }
+
+    typeSelect.addEventListener('change', renderDynamicFields);
+    renderDynamicFields();
+
+    const modalId = 'modal-custom-card';
+    const footer = el('div', { className: 'modal-footer' }, [
+        el('button', { className: 'btn-secondary', onclick: () => closeModal(modalId) }, 'Cancel'),
+        el('button', {
+            className: 'btn-primary',
+            onclick: () => {
+                const title = titleInput.value.trim();
+                if (!title) {
+                    showToast('Please enter a card title', 'error');
+                    return;
+                }
+                const cType = typeSelect.value;
+                const subtitle = subtitleInput.value.trim();
+
+                const cardObj = editingCard ? Object.assign({}, editingCard) : {
+                    id: String(Date.now()),
+                    items: [],
+                    createdAt: new Date().toISOString(),
+                };
+                cardObj.title = title;
+                cardObj.subtitle = subtitle;
+                cardObj.cardType = cType;
+
+                if (cType === 'collection') {
+                    const uEl = document.getElementById('custom-card-unit-label');
+                    cardObj.unitLabel = uEl ? uEl.value.trim() || 'Grade / Note' : 'Grade / Note';
+                    if (!Array.isArray(cardObj.items)) cardObj.items = [];
+                } else if (cType === 'goal') {
+                    const gmEl = document.getElementById('custom-card-goal-metric');
+                    const gtEl = document.getElementById('custom-card-goal-target');
+                    cardObj.goalMetric = gmEl ? gmEl.value : 'portfolioValue';
+                    cardObj.goalTarget = gtEl ? (parseFloat(gtEl.value) || 0) : 100;
+                } else if (cType === 'checklist') {
+                    const bEl = document.getElementById('custom-card-budget');
+                    cardObj.budget = bEl ? (parseFloat(bEl.value) || 0) : 0;
+                    if (!Array.isArray(cardObj.items)) cardObj.items = [];
+                } else {
+                    const srcEl = document.getElementById('custom-card-source');
+                    const stEl = document.getElementById('custom-card-style');
+                    const cvEl = document.getElementById('custom-card-custom-value');
+                    cardObj.dataSource = srcEl ? srcEl.value : 'totalValue';
+                    cardObj.displayStyle = stEl ? stEl.value : 'bigNumber';
+                    cardObj.customValue = (cardObj.dataSource === 'custom' && cvEl) ? cvEl.value : null;
+                }
+
+                if (editingCard) {
+                    const idx = customCards.findIndex(c => String(c.id) === String(editingCard.id));
+                    if (idx !== -1) customCards[idx] = cardObj;
+                } else {
+                    customCards.push(cardObj);
+                }
+
+                localStorage.setItem('cc-custom-cards', JSON.stringify(customCards));
+                showToast(editingCard ? 'Custom card updated!' : 'Custom card created!', 'success');
+                closeModal(modalId);
+
+                import('./portfolio.js').then(m => {
+                    if (m.renderDashboard) m.renderDashboard();
+                });
+            }
+        }, editingCard ? 'Save Changes' : 'Create Card'),
+    ]);
+
+    createModal(modalId, 'Custom Dashboard Card Studio', formWrap, footer);
 }
-
-function renderCustomCardsOnDashboard() {
- let customCards = [];
- try {
- customCards = JSON.parse(localStorage.getItem('cc-custom-cards') || '[]');
- } catch (e) {
- customCards = [];
- }
- 
- if (customCards.length === 0) return;
- 
- const dashboardGrid = document.getElementById('dashboard-grid');
- if (!dashboardGrid) return;
- 
- // Import required functions
- import('./state.js').then(({ getPortfolioData, getSpotPrices }) => {
- const portfolio = getPortfolioData() || {};
- const prices = getSpotPrices() || {};
- 
- customCards.forEach(card => {
- let value = 0;
- 
- // Calculate value based on data source
- switch (card.dataSource) {
- case 'totalValue':
- value = portfolio.total_estimated_value || 0;
- break;
- case 'totalMelt':
- value = portfolio.total_melt || 0;
- break;
- case 'collectibleValue':
- value = portfolio.collectable_value || 0;
- break;
- case 'coinCount':
- value = portfolio.total_physical_coins || 0;
- break;
- case 'itemCount':
- value = portfolio.total_items || 0;
- break;
- case 'completion':
- // Calculate completion percentage
- // This would need section data
- value = 0;
- break;
- case 'goldMelt':
- value = portfolio.gold_coin_melt || 0;
- break;
- case 'silverMelt':
- value = portfolio.silver_coin_melt || 0;
- break;
- case 'bulkValue':
- value = portfolio.bulk_coins_value || 0;
- break;
- case 'paperValue':
- value = portfolio.paper_value || 0;
- break;
- case 'custom':
- value = card.customValue || 0;
- break;
- }
- 
- // Find data source for formatter
- const dataSources = [
- { id: 'totalValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'totalMelt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'collectibleValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'coinCount', formatter: v => v.toLocaleString() },
- { id: 'itemCount', formatter: v => v.toLocaleString() },
- { id: 'completion', formatter: v => v + '%' },
- { id: 'goldMelt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'silverMelt', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'bulkValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'paperValue', formatter: v => '$' + v.toLocaleString(undefined, {minimumFractionDigits: 2}) },
- { id: 'custom', formatter: v => v },
- ];
- 
- const ds = dataSources.find(d => d.id === card.dataSource);
- const formattedValue = ds ? ds.formatter(value) : value;
- 
- // Create card element
- const cardEl = document.createElement('div');
- cardEl.className = 'card dashboard-card custom-dashboard-card';
- cardEl.style.gridColumn = 'span 1';
- cardEl.innerHTML = `
- <div class="card-title">${card.title}</div>
- <div class="custom-card-value" style="font-size: 2rem; font-weight: 700; text-align: center; padding: 1rem;">
- ${formattedValue}
- </div>
- `;
- 
- dashboardGrid.appendChild(cardEl);
- });
- });
-}
-
+window.showCustomCardModal = showCustomCardModal;
 // Expose for HTML onclick handlers
 window.toggleSettingsDropdown = toggleSettingsDropdown;
 window.closeSettingsDropdown = closeSettingsDropdown;
 window.openSettingsSection = openSettingsSection;
+
+
