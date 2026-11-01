@@ -2679,10 +2679,23 @@ select optgroup {
     grid-column: 1 / -1;
 }
 
-/* ── Expandable cards: stretch to fill grid cell and grow content area ── */
-.dashboard-grid .dashboard-card {
-    align-self: stretch;
+/* ── Multi-column (>=561px): stretch grid and cards so rows are flush ── */
+@media (min-width: 561px) {
+    .dashboard-grid {
+        align-items: stretch !important;
+    }
+    .dashboard-grid .dashboard-card {
+        align-self: stretch !important;
+    }
 }
+
+/* ── Single-column mobile (<=560px): keep cards top-aligned ── */
+@media (max-width: 560px) {
+    .dashboard-grid .dashboard-card {
+        align-self: start !important;
+    }
+}
+
 .dashboard-grid .coinweight-card .v1-item-list,
 .dashboard-grid .bullion-card .v1-item-list,
 .dashboard-grid .wishlist-card .v1-item-list,
@@ -2692,6 +2705,14 @@ select optgroup {
     overflow-y: auto;
     min-height: 60px;
     max-height: none;
+}
+
+/* ── Empty entry cards: collapse the 60px blank band ── */
+.v1-item-list.is-empty,
+.v1-item-list:empty {
+    min-height: 0 !important;
+    margin-bottom: 2px !important;
+    flex: 0 0 auto !important;
 }
 
 /* ── Responsive: narrow (≤960px) — let the layout button keep working ── */
