@@ -339,6 +339,14 @@ export function isSearchIndexReady() {
     return _searchIndexReady;
 }
 
+/** Delete a type config. */
+export async function deleteTypeConfigLocal(coinType) {
+    const existing = await db.coin_type_config.get(coinType);
+    if (!existing) throw new Error('Type config not found: ' + coinType);
+    await db.coin_type_config.delete(coinType);
+    return { status: 'deleted', coin_type: coinType };
+}
+
 /**
  * Resolves once the coin reference index is fully seeded, or after
  * SEARCH_INDEX_MAX_WAIT_MS -- whichever comes first. Never rejects.
