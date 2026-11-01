@@ -358,13 +358,11 @@ function buildSectionCard(sec) {
         // Example resolution for the COLLAPSED section header: show an image eagerly
         // so scrolling shows coins, not placeholders. Priority:
         //   override (example_*) > type-config image (obv/rev, loaded at boot) > placeholder.
-        // Rebase resolution (GGMJ-181): keep remote c14fa48 primary lookup, add the
-        // section-qualified fallback from a9292ce, and wrap in resolveImageUrl so the
-        // root-absolute /data/ paths work on the /coin-catalog/app/ sub-path.
         const cfg = getTypeConfig(sec.sample_type, sec.section)
+            || getTypeConfig(sec.sample_type)
             || getTypeConfig(sec.section, sec.section)
+            || getTypeConfig(sec.section)
             || {};
-        // 2026-10-19 FIX: no inner resolve — img src below already wraps in resolveImageUrl.
         // GGMJ-333: honour the _deleted flags. A deleted type image (or a
         // deleted example override) must not come back in the section header.
         const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)

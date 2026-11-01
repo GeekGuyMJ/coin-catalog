@@ -192,7 +192,6 @@ async function boot() {
         setInventory(inventory || {});
             setTypeConfigs(typeConfigs || {});
             setWishlist(wishlist || []);
-            showToast('App loaded successfully! Showing available data.', 'success', 3000);
         } else {
             // If no data received, show user-friendly message
             showToast('No data received - showing empty state', 'warning', 3000);
@@ -456,6 +455,39 @@ document.addEventListener('DOMContentLoaded', scheduleFitHeader);
 const _hdrLogoEl = document.getElementById('header-coin-img');
 if (_hdrLogoEl) { _hdrLogoEl.addEventListener('load', scheduleFitHeader); if (_hdrLogoEl.complete) scheduleFitHeader(); }
 scheduleFitHeader();
+
+// ============================================================
+// View Toggle — List vs Album
+// ============================================================
+
+function initViewToggle() {
+    const toggle = document.getElementById('view-toggle');
+    if (!toggle) return;
+    toggle.style.display = 'inline-flex';
+
+    const listBtn = document.getElementById('view-list-btn');
+    const albumBtn = document.getElementById('view-album-btn');
+
+    if (!listBtn || !albumBtn) return;
+
+    listBtn.addEventListener('click', () => {
+        if (listBtn.classList.contains('active')) return;
+        listBtn.classList.add('active');
+        albumBtn.classList.remove('active');
+        const container = document.getElementById('catalog-container');
+        if (container) container.classList.remove('album-mode');
+        import('./catalog.js').then(m => m.renderSections());
+    });
+
+    albumBtn.addEventListener('click', () => {
+        if (albumBtn.classList.contains('active')) return;
+        albumBtn.classList.add('active');
+        listBtn.classList.remove('active');
+        const container = document.getElementById('catalog-container');
+        if (container) container.classList.add('album-mode');
+        import('./album.js').then(m => m.renderAlbumView(null));
+    });
+}
 
 // ============================================================
 // Layout Toggle — Dashboard Grid

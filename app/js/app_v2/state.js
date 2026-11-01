@@ -274,23 +274,35 @@ export function toggleFilterMissingOnly() {
 
 /** @returns {boolean} */
 export function getFilterHideProofs()        { return _state.filterHideProofs; }
-export function toggleFilterHideProofs() {
-    _state.filterHideProofs = !_state.filterHideProofs;
+export function setFilterHideProofs(val) {
+    _state.filterHideProofs = !!val;
+    localStorage.setItem('cc-hide-proofs', val ? 'true' : 'false');
     _notify('filter', null);
+}
+export function toggleFilterHideProofs() {
+    setFilterHideProofs(!_state.filterHideProofs);
 }
 
 /** @returns {boolean} */
 export function getFilterHideErrors()        { return _state.filterHideErrors; }
-export function toggleFilterHideErrors() {
-    _state.filterHideErrors = !_state.filterHideErrors;
+export function setFilterHideErrors(val) {
+    _state.filterHideErrors = !!val;
+    localStorage.setItem('cc-hide-errors', val ? 'true' : 'false');
     _notify('filter', null);
+}
+export function toggleFilterHideErrors() {
+    setFilterHideErrors(!_state.filterHideErrors);
 }
 
 /** @returns {boolean} */
 export function getFilterKeyDatesOnly()      { return _state.filterKeyDatesOnly; }
-export function toggleFilterKeyDatesOnly() {
-    _state.filterKeyDatesOnly = !_state.filterKeyDatesOnly;
+export function setFilterKeyDatesOnly(val) {
+    _state.filterKeyDatesOnly = !!val;
+    localStorage.setItem('cc-key-dates-only', val ? 'true' : 'false');
     _notify('filter', null);
+}
+export function toggleFilterKeyDatesOnly() {
+    setFilterKeyDatesOnly(!_state.filterKeyDatesOnly);
 }
 
 /** @returns {string} */

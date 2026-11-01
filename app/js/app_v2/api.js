@@ -16,15 +16,11 @@
 // search MUST filter client-side. Previously this was module-private, and
 // importing it produced a LOAD-TIME SyntaxError that killed the whole
 // search module on every host.
-// GGMJ-423: isSelfHosted must be a BOOLEAN here.
-// The self-hosted tree and the Cloudflare branch both export exactly these
-// three lines. Commit e8e749d replaced them with an import of the FUNCTION
-// exported by ./env.js, so every `isSelfHosted ? <server> : <local>` test in
-// this file was true on a static host and every public-build fetch 404'd.
 // 2026-10-21 (GGMJ-388): the detection RULE now lives in ONE place
 // (./env.js) and is imported by api.js, catalog.js and db.js, so the three
 // files can no longer disagree about which host the app is running on.
 import { isSelfHosted } from './env.js';
+export const isSearchIndexReady = () => Promise.resolve(true);
 export { isSelfHosted };
 
 // ============================================================
@@ -39,7 +35,6 @@ import {
     updateInventoryLocal,
     deleteInventoryEntryLocal,
     fetchTypeConfigsLocal,
-    upsertTypeConfigLocal,
     fetchSpotPricesLocal,
     fetchRawBullionLocal,
     saveRawBullionLocal,
@@ -93,7 +88,14 @@ import {
     deleteUserCoinLocal,
     fetchInvestmentsLocal,
     saveInvestmentLocal,
-    deleteInvestmentLocal
+    deleteInvestmentLocal,
+    fetchTypeGroupsLocal,
+    fetchTypeYearsLocal,
+    setTypeYearsLocal,
+    upsertTypeConfigLocal,
+    deleteTypeConfigLocal,
+    assignTypeImageLocal,
+    fetchTypeImagesLocal,
 } from './db.js';
 
 // ============================================================
@@ -116,6 +118,39 @@ async function serverFetch(path, init) {
     const res = await originalFetch(path, init);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
+}
+
+/* GGMJ-397: correct the CLIENT wishlist snapshot for one coin after the server
+   told us the snapshot was wrong. The heart glyph is rendered from this
+   snapshot, so leaving it stale is what strands the heart on the wrong glyph
+   and keeps the entry on the Wishlist card.
+
+   Only ever called from the two "already in the desired state" paths, where
+   the server has just stated the truth about this one coin. Every other coin
+   in the snapshot is left alone, and a failure to write the snapshot is
+   swallowed: the next successful refresh from the server fixes it. */
+async function reconcileWishlistSnapshot(coinId, present, item) {
+    try {
+        const state = await import('./state.js');
+        const current = state.getWishlist() || [];
+        const idx = current.findIndex(w => w.coin_id === coinId);
+        let next;
+        if (present) {
+            if (idx === -1) {
+                next = current.concat([item || { coin_id: coinId }]);
+            } else {
+                next = current.slice();
+                next[idx] = Object.assign({}, next[idx], item || {});
+            }
+        } else {
+            if (idx === -1) return;  // already consistent
+            next = current.slice();
+            next.splice(idx, 1);
+        }
+        state.setWishlist(next);
+    } catch (e) {
+        console.warn('[wishlist] could not reconcile the local wishlist snapshot:', e);
+    }
 }
 
 // ============================================================
@@ -148,6 +183,7 @@ export const fetchInventory = isSelfHosted
     ? async () => serverFetch('/api/inventory')
     : wrap(fetchInventoryLocal);
 
+
 // 2026-10-20 (Matthew-approved Gemini-4 spec): external investments CRUD.
 // 2026-10-21 (GGMJ-378): these were SERVER-ONLY, so the Investments card was
 // gated off entirely on the static deployments (GitHub Pages, Cloudflare
@@ -156,6 +192,7 @@ export const fetchInventory = isSelfHosted
 // wrap(fetchInventoryLocal), addToWishlist -> wrap(addToWishlistLocal)); this
 // one had none, which is why #card-investments was absent from both public
 // apps while the CSS for it was deployed. It now follows the same pattern.
+// The self-hosted path is unchanged: these still go to /api/investments.
 export const fetchInvestments = isSelfHosted
     ? async () => serverFetch('/api/investments')
     : wrap(fetchInvestmentsLocal);
@@ -171,6 +208,7 @@ export const saveInvestment = isSelfHosted
 export const deleteInvestment = isSelfHosted
     ? async (id) => serverFetch('/api/investments/' + id, { method: 'DELETE' })
     : wrap(deleteInvestmentLocal);
+
 export const updateInventory = isSelfHosted
     ? async (coinId, data) => {
         // 2026-08-31: server requires coin_ref_id as an INTEGER; album passes dataset
@@ -203,14 +241,6 @@ export const fetchTypeConfigs = isSelfHosted
         return data;
     }
     : wrap(fetchTypeConfigsLocal);
-
-export const upsertTypeConfig = isSelfHosted
-    ? async (data) => serverFetch('/api/type-configs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data || {})
-    })
-    : wrap(upsertTypeConfigLocal);
 
 export const fetchBullion = isSelfHosted
     ? async () => serverFetch('/api/bullion')
@@ -489,11 +519,96 @@ export const saveOtherCollectables = isSelfHosted
 export const deleteOtherCollectable= isSelfHosted
     ? async (id) => serverFetch('/api/other_collectables/' + id, { method: 'DELETE' })
     : wrap(deleteOtherCollectableLocal);
-export const fetchWishlist         = wrap(fetchWishlistLocal);
-export const saveWishlist          = wrap(saveWishlistLocal);
-export const addToWishlist         = wrap(addToWishlistLocal);
-export const removeFromWishlist    = wrap(removeFromWishlistLocal);
-export const updateWishlistItem    = wrap(updateWishlistItemLocal);
+/* 2026-10-20 (Matthew bug report: heart click added "1915 Barber" for the 1916-D
+   dime): on self-hosted the catalog rows come from the SERVER database, but wishlist
+   add/remove still used the LOCAL Dexie path. The two stores number coins
+   independently (documented 2026-10-01 in fetchCoinsForSection: 66% of shared ids
+   name a DIFFERENT coin), so the local store's coin at the server id became the
+   wishlist description. Route wishlist mutations + reads through the same server the
+   catalog uses. */
+export const fetchWishlist         = isSelfHosted
+    ? async () => serverFetch('/api/wishlist')
+    : wrap(fetchWishlistLocal);
+export const saveWishlist          = isSelfHosted
+    ? async (data) => serverFetch('/api/wishlist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(saveWishlistLocal);
+/* GGMJ-397: the mirror case. Server already holds the row while the client
+   snapshot does not -> POST /api/wishlist answers 409 {"error":"Already in
+   wishlist"} -> serverFetch() throws -> toast "Wishlist error: HTTP 409" and
+   the heart never fills. Adding something that is already there HAS reached
+   the desired end state, so the 409 is success. The backend returns 409 from
+   exactly one place (the duplicate coin_id check in POST /api/wishlist) and it
+   carries the existing row in `item`, so the status is unambiguous here. */
+async function addToWishlistServer(coinId, extra) {
+    const id = parseInt(coinId, 10);
+    const res = await originalFetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.assign({ coin_id: id }, extra || {}))
+    });
+    if (res.ok) return res.json();
+    if (res.status === 409) {
+        // Already present -> the desired end state. Not an error.
+        console.warn('[wishlist] coin ' + id + ' was already on the server wishlist; treating the add as done.');
+        const body = await res.json().catch(() => ({}));
+        reconcileWishlistSnapshot(id, true, body.item || null);
+        return body.item || { ok: true, coin_id: id, already_present: true };
+    }
+    throw new Error('HTTP ' + res.status);
+}
+export const addToWishlist         = isSelfHosted
+    ? addToWishlistServer
+    : wrap(addToWishlistLocal);
+/* 2026-10-20 (Matthew B9): the filled heart in the catalog list returned 404.
+   Every caller passes the COIN id (catalog.js toggleWishlist(coinId),
+   wishlist.js item.coin_id), and removeFromWishlistLocal() also keys on
+   coin_id -- but this branch sent it to DELETE /api/wishlist/<item_id>,
+   which the backend resolves as a WISHLIST ROW id. Row ids and coin ids are
+   independent number spaces, so the lookup missed and the entry stayed. Use
+   the by-coin route so both platforms accept the same coin id. */
+/* GGMJ-397 (Matthew B9, 2026-10-21): a FILLED heart raised an error instead of
+   removing the wishlist entry, and the entry STAYED on the wishlist.
+
+   The heart glyph is drawn from the CLIENT snapshot (state.js getWishlist()),
+   but the write goes to the SERVER. When the two disagree the click fails:
+
+     server has no row, client snapshot still lists it
+       -> DELETE /api/wishlist/coin/<id> -> 404 {"error":"Not in wishlist"}
+       -> serverFetch() throws Error("HTTP 404")
+       -> toast "Wishlist error: HTTP 404", heart STAYS FILLED, entry STAYS.
+
+   Reproduced live with a real mouse click on the self-hosted site: the click
+   was repeated and failed identically the second time, so the heart is stuck
+   PERMANENTLY, not transiently. The server access log shows
+   "DELETE /api/wishlist/coin/86 HTTP/1.0" 404.
+
+   Removing something that is already gone HAS reached the desired end state,
+   so the 404 on THIS route means "already removed", not "failed". serverFetch()
+   discards the body and turns every non-2xx into a throw, so the status is
+   what we key on. A 404 here can only mean "no row for this coin": the route
+   is matched by an INTEGER coin id, so there is no other way to miss it.
+   Every other status (401/403, 500, network failure) is still raised.
+
+   The snapshot is reconciled in place as well, so the heart is corrected even
+   when the follow-up refresh cannot reach the server. */
+async function removeFromWishlistServer(coinId) {
+    const id = parseInt(coinId, 10);
+    const res = await originalFetch('/api/wishlist/coin/' + id, { method: 'DELETE' });
+    if (res.ok) return res.json();
+    if (res.status === 404) {
+        // Already absent -> the desired end state. Not an error.
+        console.warn('[wishlist] coin ' + id + ' was already absent from the server wishlist; treating the remove as done.');
+        reconcileWishlistSnapshot(id, false);
+        return { ok: true, coin_id: id, already_absent: true };
+    }
+    throw new Error('HTTP ' + res.status);
+}
+export const removeFromWishlist    = isSelfHosted
+    ? removeFromWishlistServer
+    : wrap(removeFromWishlistLocal);
+export const updateWishlistItem    = isSelfHosted
+    ? async (id, data) => serverFetch('/api/wishlist/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+    : wrap(updateWishlistItemLocal);
 export const fetchBulkCoins        = isSelfHosted
     ? async () => serverFetch('/api/bulk_coins')
     : wrap(fetchBulkCoinsLocal);
@@ -513,6 +628,63 @@ export const fetchCoinWeight       = async () => [];
 export const saveCoinWeight        = async () => ({});
 export const deleteCoinWeight      = async () => ({});
 
+
+// ---------------------------------------------------------------------------
+// TYPE & IMAGE MANAGER (GGMJ-227 Phase 1)
+// ---------------------------------------------------------------------------
+// Self-hosted calls the Flask blueprint in backend/routes/type_manager.py.
+// The static deployments (GitHub Pages, Cloudflare Pages) have no backend, so
+// the same calls go to IndexedDB via the local helpers in db.js.
+//
+// Both sides are always exported together: an export with no isSelfHosted
+// sibling is the tell that a feature silently does nothing on the public apps.
+export const fetchTypeGroups = isSelfHosted
+    ? async (params = {}) => {
+        const search = params instanceof URLSearchParams
+            ? params.toString()
+            : new URLSearchParams(params).toString();
+        return serverFetch('/api/type-configs/groups' + (search ? '?' + search : ''));
+    }
+    : wrap(fetchTypeGroupsLocal);
+
+export const fetchTypeYears = isSelfHosted
+    ? async (coinType) => serverFetch(
+        '/api/type-configs/' + encodeURIComponent(coinType) + '/years')
+    : wrap(fetchTypeYearsLocal);
+
+export const setTypeYears = isSelfHosted
+    ? async (coinType, years) => serverFetch(
+        '/api/type-configs/' + encodeURIComponent(coinType) + '/years', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ years: years })
+        })
+    : wrap(setTypeYearsLocal);
+
+export const upsertTypeConfig = isSelfHosted
+    ? async (data) => serverFetch('/api/type-configs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+    })
+    : wrap(upsertTypeConfigLocal);
+
+export const deleteTypeConfig = isSelfHosted
+    ? async (coinType) => serverFetch(
+        '/api/type-configs/' + encodeURIComponent(coinType), { method: 'DELETE' })
+    : wrap(deleteTypeConfigLocal);
+
+export const assignTypeImage = isSelfHosted
+    ? async (coinType, side, image) => serverFetch('/api/type-configs/assign-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coin_type: coinType, side: side, image: image })
+    })
+    : wrap(assignTypeImageLocal);
+
+export const fetchTypeImages = isSelfHosted
+    ? async () => serverFetch('/api/type-configs/images')
+    : wrap(fetchTypeImagesLocal);
 export const fetchSpotHistory      = wrap(fetchSpotHistoryLocal);
 export const fetchAllCoins         = wrap(fetchAllCoinsLocal);
 /* GGMJ-368: the cloud backup must be built from the store that actually
@@ -612,7 +784,14 @@ if (!isSelfHosted) {
         factoryResetImagesLocal, savePricingRulesLocal, searchCoinsLocal, fetchAllCoinsLocal,
         getFullBackupLocal, publishSectionLocal, restoreBackupLocal, renameCoinBankImageLocal,
         saveToCoinBankLocal, importCSVLocal,
-    factoryResetDataLocal, deleteBulkCoinsLocal, fetchSpotHistoryLocal
+    factoryResetDataLocal, deleteBulkCoinsLocal, fetchSpotHistoryLocal,
+    fetchTypeGroupsLocal,
+    fetchTypeYearsLocal,
+    setTypeYearsLocal,
+    upsertTypeConfigLocal,
+    deleteTypeConfigLocal,
+    assignTypeImageLocal,
+    fetchTypeImagesLocal,
     } = await import('./db.js');
 
     async function handleInterceptedRequest(apiPart, init) {
@@ -649,6 +828,25 @@ if (!isSelfHosted) {
                 const id = path.substring('/api/inventory/'.length);
                 if (method === 'DELETE') { data = await deleteInventoryEntryLocal(id); }
                 else { data = await updateInventoryLocal(id, body); }
+            }
+            else if (path === '/api/type-configs/groups') { data = await fetchTypeGroupsLocal(url.searchParams); }
+            else if (path === '/api/type-configs/images') { data = await fetchTypeImagesLocal(); }
+            else if (path === '/api/type-configs/assign-image') { data = await assignTypeImageLocal(body.coin_type, body.side, body.image); }
+            else if (path === '/api/type-configs') {
+                if (method === 'POST') { data = await upsertTypeConfigLocal(body); }
+                else { data = await fetchTypeConfigsLocal(); }
+            }
+            else if (path.indexOf('/api/type-configs/') === 0) {
+                const rest = path.substring('/api/type-configs/'.length);
+                if (rest.endsWith('/years')) {
+                    const ct = decodeURIComponent(rest.substring(0, rest.length - '/years'.length));
+                    if (method === 'PUT') { data = await setTypeYearsLocal(ct, body.years); }
+                    else { data = await fetchTypeYearsLocal(ct); }
+                } else if (method === 'DELETE') {
+                    data = await deleteTypeConfigLocal(decodeURIComponent(rest));
+                } else {
+                    data = await fetchTypeConfigsLocal();
+                }
             }
             else if (path === '/api/type_configs') { data = await fetchTypeConfigsLocal(); }
             else if (path === '/api/spot_prices') { data = await fetchSpotPricesLocal(); }

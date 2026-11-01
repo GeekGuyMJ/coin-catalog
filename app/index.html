@@ -354,7 +354,7 @@ if ('serviceWorker' in navigator) {
         <div id="modal-image-interaction" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="ii-title">
             <div class="modal-box">
                 <div class="modal-header">
-                    <h2 class="modal-title" id="ii-title">Coin Image</h>
+                    <h2 class="modal-title" id="ii-title">Coin Image</h2>
                     <button class="modal-close" data-action="close-modal" aria-label="Close modal">✕</button>
                 </div>
                 <div class="modal-body" style="text-align:center;">
@@ -387,7 +387,7 @@ if ('serviceWorker' in navigator) {
                     <div id="crop-container" style="max-width:280px; max-height:280px; width:100%; aspect-ratio:1; margin:0 auto; background:#000; position:relative; overflow:hidden; border-radius:50%; cursor:grab; touch-action:none;">
                         <canvas id="crop-canvas" style="position:absolute; top:0; left:0; width:100%; height:100%; border-radius:50%; clip-path:circle(50%);"></canvas>
                         <!-- Circle crop guide: dashed ring for visual boundary -->
-                        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:80%; aspect-ratio:1; border:2px dashed var(--color-accent); pointer-events:none; z-index:2;"></div>
+                        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:80%; aspect-ratio:1; border:2px dashed var(--color-accent); border-radius:50%; pointer-events:none; z-index:2;"></div>
                     </div>
                     <div style="margin:var(--space-4) 0; display:flex; flex-direction:column; gap:var(--space-2);">
                         <div style="display:flex; align-items:center; justify-content:space-between; font-size:var(--font-size-xs); color:var(--color-text-muted);">
