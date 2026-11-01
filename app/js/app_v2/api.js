@@ -20,7 +20,6 @@
 // (./env.js) and is imported by api.js, catalog.js and db.js, so the three
 // files can no longer disagree about which host the app is running on.
 import { isSelfHosted } from './env.js';
-export const isSearchIndexReady = () => Promise.resolve(true);
 export { isSelfHosted };
 
 // ============================================================
