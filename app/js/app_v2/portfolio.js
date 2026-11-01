@@ -278,37 +278,45 @@ function applyDashboardOrder() {
 function _pinGridHeight(grid) {
     if (!grid || !grid.style) return function () {};
 
-    var prevGridTemplateRows = grid.style.gridTemplateRows;
+    // Re-entrancy guard: if a pin is already active, do not nest another.
+    // This prevents stale pixel tracks from being captured on a second
+    // renderDashboard() call before the first pin's double-rAF release fires.
+    if (grid._pinningHeight) return function () {};
+    grid._pinningHeight = true;
+
     var prevMinHeight = grid.style.minHeight;
     var rect = grid.getBoundingClientRect();
     var currentHeight = rect.height || 0;
 
     // Hold the grid at exactly the height it already occupies by pinning
-    // grid-template-rows to the CURRENT computed row heights. This prevents
-    // the "screen jumps and glitches" where Portfolio sparkline reflow would
-    // grow the top 4 cards 608->663px, push grid 1350->1405, then snap back.
+    // min-height (NOT grid-template-rows). Pinning grid-template-rows to
+    // resolved pixel tracks causes stale tracks to persist across async
+    // renderDashboard() calls when the release hasn't fired yet, locking
+    // the grid to the OLD row heights (GGMJ-543).
     //
-    // Using grid-template-rows (not min-height/height) works because the
-    // dashboard grid uses CSS Grid with grid-auto-rows: auto. Pinning the
-    // explicit row sizes makes the grid rigid - tracks cannot grow even if
-    // content overflows during rebuild.
-    //
-    // Measured on self-hosted at 1280x577:
-    //   Old min-height pin: scrollY 1640 -> grid 1405px (+55) CLS 0.190
-    //   New gridTemplateRows pin: scrollY 1640 -> grid 1350px (+0)  CLS 0.000
-    if (currentHeight <= 1) return function () {};
+    // CSS grid-auto-rows: auto ensures new cards size to content naturally.
+    // The min-height pin only prevents document collapse during the synchronous
+    // DOM replacement (c.innerHTML = '' ... appendChild ...).
+    if (currentHeight <= 1) {
+        grid._pinningHeight = false;
+        return function () {};
+    }
 
-    var computedRows = window.getComputedStyle(grid).gridTemplateRows;
-    grid.style.gridTemplateRows = computedRows;
+    // Explicitly clear any inline grid-template-rows that might have leaked
+    // from a previous buggy pin. This is safe because the grid uses
+    // grid-auto-rows: auto in CSS.
+    grid.style.gridTemplateRows = "";
+    grid.style.minHeight = currentHeight + "px";
 
     var released = false;
     return function _releaseGridHeightPin() {
         if (released) return;
         released = true;
+        // Release after two rAF ticks so layout has settled with real content heights
         requestAnimationFrame(function () {
             requestAnimationFrame(function () {
-                grid.style.gridTemplateRows = prevGridTemplateRows || "";
                 grid.style.minHeight = prevMinHeight || "";
+                grid._pinningHeight = false;
             });
         });
     };
@@ -1260,19 +1268,34 @@ function buildSupportCard() {
 }
 
 function buildCompletionCard(sections) {
-    if (!sections || !sections.length) return null;
-    var total = sections.reduce(function(s,e){return s+e.total;}, 0);
-    var owned = sections.reduce(function(s,e){return s+e.owned;}, 0);
+    // Always mount the card in its exact slot from frame 1 so the grid row
+    // position is stable across async renderDashboard() calls (GGMJ-543).
+    // When sections are not yet loaded, render an empty placeholder that
+    // occupies the same visual slot and height as the populated card.
+    var total = sections && sections.length ? sections.reduce(function(s,e){return s+e.total;}, 0) : 0;
+    var owned = sections && sections.length ? sections.reduce(function(s,e){return s+e.owned;}, 0) : 0;
     var pct = total > 0 ? Math.round(owned/total*100) : 0;
     var card = el('div',{className:'card dashboard-card completion-card',id:'card-completion'});
-    card.append(
-        el('div',{className:'card-title'},'Collection Completion'),
-        el('div',{className:'dashboard-big-number'}, pct+'%'),
-        el('div',{className:'dashboard-detail'}, owned.toLocaleString()+' of '+total.toLocaleString()+' coin types owned')
-    );
-    var pw = el('div',{className:'dashboard-progress'});
-    var pb = el('div',{className:'dashboard-progress-bar'}); pb.style.width=pct+'%'; pw.appendChild(pb);
-    card.appendChild(pw);
+    if (sections && sections.length) {
+        card.append(
+            el('div',{className:'card-title'},'Collection Completion'),
+            el('div',{className:'dashboard-big-number'}, pct+'%'),
+            el('div',{className:'dashboard-detail'}, owned.toLocaleString()+' of '+total.toLocaleString()+' coin types owned')
+        );
+        var pw = el('div',{className:'dashboard-progress'});
+        var pb = el('div',{className:'dashboard-progress-bar'}); pb.style.width=pct+'%'; pw.appendChild(pb);
+        card.appendChild(pw);
+    } else {
+        // Placeholder state while sections load (Call #1 before fetchSections resolves)
+        card.append(
+            el('div',{className:'card-title'},'Collection Completion'),
+            el('div',{className:'dashboard-big-number', style:'opacity:0.5;'}, '—'),
+            el('div',{className:'dashboard-detail', style:'color:var(--color-text-muted);'}, 'Loading…')
+        );
+        var pw = el('div',{className:'dashboard-progress'});
+        var pb = el('div',{className:'dashboard-progress-bar'}); pb.style.width='0%'; pw.appendChild(pb);
+        card.appendChild(pw);
+    }
     return card;
 }
 
