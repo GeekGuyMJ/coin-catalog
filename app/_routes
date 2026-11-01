@@ -1,4 +1,0 @@
-# Cloudflare Pages _routes file
-# Exclude /api/* from SPA fallback so the offline-first interceptor can handle them
-# Format: source destination status
-/api/*  /api/:splat  200
