@@ -3584,6 +3584,15 @@ function showAbout() {
  `Version ${version}`,
  [
  { text: 'A coin and collectable collection tracker with live metal prices, album view, and comprehensive inventory management.' },
+ { heading: 'Privacy & Data Ownership — 100% Yours, Zero Data Collected', list: [
+ 'All collection data is stored locally on your server — no cloud sync unless you explicitly configure it',
+ 'No accounts, no sign-in, no telemetry, no third-party analytics, no tracking pixels',
+ 'Live spot prices are fetched from a public metals API (Yahoo Finance) — no personal data sent',
+ 'Images you upload stay on your server; they never leave your infrastructure',
+ 'Export your full data anytime from Settings → Data & Backup (JSON, CSV, ZIP)',
+ 'Factory Reset options: wipe everything, or keep your uploaded images',
+ 'You own your data. Period.',
+ ]},
  { heading: 'What it does', list: [
  'Tracks 6,400+ US coin types across albums and sections (Half Cent through modern issues, US Gold, Bullion Eagles, Commemoratives, State/Park Quarters, Presidential Dollars, First Spouse coins, plus Canadian coins cent through $2 Toonie)',
  '4-level hierarchy: Section → Series → Sub-type → Individual coin — every variety has its own entry',
@@ -3639,7 +3648,7 @@ function showAbout() {
  { heading: 'Themes & Customization', list: [
   '13 built-in themes: Dark, Midnight, Copper, Ocean, Deep Forest, Silver, Aged Paper, Matrix, Cyberpunk, Neon, Violet, Film Noir',
   '3 custom theme slots — design your own theme with a live color preview in Settings → Custom Theme Designer',
-  'Drag to reorder dashboard cards with the ☰ handle; hide/show any card individually',
+  'Drag to reorder dashboard cards with the ≡ handle; hide/show any card individually',
   'Resize the width of dashboard cards by grabbing either edge of a card',
   'All themes defined via CSS custom properties — never hard-coded colors',
   ]},
@@ -3700,10 +3709,9 @@ function showValues() {
  ]},
  { heading: 'Bulk Coins card', list: [
  'Bulk lots are priced by weight, not by individual coin.',
- 'Copper Pennies (1959–1981) → melt value (95% copper × live copper $/lb). Added to the Copper Coins Melt row.',
- '90% Silver Coins → melt value (90% silver × live silver $/oz). Added to the Silver Coins Melt row.',
- 'All other bulk lots (Zinc pennies, Nickels, Clad dimes/quarters/halves) → estimated FACE value (coin count × denomination). Added to the Bulk Coins row.',
- '💡 In the Portfolio Overview breakdown, Copper Coins Melt and Silver Coins Melt already include their respective bulk lots. The Bulk Coins row shows only the non-precious-metal bulk lots (face-value items).'
+ 'Copper Pennies (1959–1981) → melt value (95% copper × live copper $/lb). Shown in the card labeled "melt" and added to the Copper Coins Melt row.',
+ '90% Silver Coins → melt value (90% silver × live silver $/oz). Shown labeled "melt" and added to the Silver Coins Melt row.',
+ 'All other bulk lots (Zinc pennies, Nickels, Clad dimes/quarters/halves) → estimated FACE value (coin count × denomination). Shown labeled "face" and added to the Bulk Coins row.',
  ]},
  { heading: 'Other categories', list: [
  'Raw Bullion — weight × purity × live spot for each metal.',
@@ -3714,8 +3722,7 @@ function showValues() {
  { heading: 'How the Overview totals up', list: [
  'Gold / Silver / Copper / Platinum / Palladium Coins Melt — sum of every coin (individual + bulk) whose melt beat its collectable value, for that metal.',
  'Collectible Premium — sum of all coins counted on their collectable value.',
- 'Raw Bullion, Scrap Metal, Paper Currency, Other Collectibles — each summed separately.',
- 'Bulk Coins — non-precious-metal bulk lots only (Zinc pennies, Nickels, Clad coins at face value). Precious-metal bulk lots (copper pennies, 90% silver) are already in their respective Melt rows.',
+ 'Raw Bullion, Bulk Coins, Scrap Metal, Paper Currency, Other Collectibles — each summed separately.',
  'Total Melt Value = Gold + Silver + Copper + Platinum + Palladium melt rows combined.',
  'Total Portfolio = Collectible Premium + Total Melt Value + Raw Bullion + Bulk Coins + Scrap Metal + Paper Currency + Other Collectibles.',
  ]},
@@ -6850,14 +6857,17 @@ function showImageSources() {
 function showPrivacy() {
  const version = window.APP_VERSION || 'dev';
  const body = _sectionBody(
- 'Privacy & Reporting Bugs',
+ 'Privacy & Data Ownership — 100% Yours, Zero Data Collected',
  `Coin Catalog v2 — ${version}`,
  [
  { heading: 'Your data stays yours', list: [
- 'All collection data is stored locally on your your server',
- 'No accounts, no telemetry, no third-party analytics',
- 'Live spot prices are fetched from a public metals API only',
- 'Export anytime from Settings → Data & Backup',
+ 'All collection data is stored locally on your server — no cloud sync unless you explicitly configure it',
+ 'No accounts, no sign-in, no telemetry, no third-party analytics, no tracking pixels',
+ 'Live spot prices are fetched from a public metals API (Yahoo Finance) — no personal data sent',
+ 'Images you upload stay on your server; they never leave your infrastructure',
+ 'Export your full data anytime from Settings → Data & Backup (JSON, CSV, ZIP)',
+ 'Factory Reset options: wipe everything, or keep your uploaded images',
+ 'You own your data. Period.',
  ]},
  { heading: 'Reporting a bug', list: [
  'Through Telegram: message the catalog bot with a description and screenshot',
