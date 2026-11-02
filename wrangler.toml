@@ -3,3 +3,4 @@ compatibility_date = "2026-01-01"
 [pages]
 branch = "published"
 directory = "app"
+pages_build_output_dir = "app"
