@@ -771,6 +771,7 @@ var _cardHelpTexts = {
     'card-support': 'Support This App — Coin Catalog is free. If it helps you, consider a donation via PayPal. Donate URL can be customized in localStorage (cc-donate-url).'
 };
 
+
 function openCardHelpPopup(cardId) {
     var text = _cardHelpTexts[cardId] || 'No help available for this card.';
     var existing = document.getElementById('card-help-popup');
@@ -3784,42 +3785,4 @@ function openLocalLightbox(base64Src) {
     lightbox.classList.add('is-active');
 }
 
-
-// ===== Help icons for all dashboard cards — GGMJ-451 =====
-const _cardHelpTexts = {
-    'card-portfolio': 'Total estimated value of your coin portfolio, broken down by metal type (melt value) plus collectibles, bullion, and other categories. Face Value is shown separately and is NOT in melt total (avoids double-count). Bulk Coins = estimated melt for mixed/unsorted coins.',
-    'card-spot': 'Live precious metal spot prices with sparklines showing the session trend for gold, silver, copper, platinum, and palladium. Data is cached server-side and refreshed every 15 minutes; card auto-polls every 60 seconds to pick up updates.',
-    'card-trend': 'Multi-metal spot trend chart showing estimated collection value over time periods from 1 day to 10 years.',
-    'card-bullion': 'Tracks your physical precious metals by weight — gold, silver, platinum, palladium, copper. Enter troy ounces or pounds and the card values them at live spot prices.',
-    'card-scrap': 'Scrap precious metal items (jewelry, silverware, etc.) with weight, purity, and estimated melt value.',
-    'card-paper': 'Paper currency notes with denomination, series year, condition, and estimated value.',
-    'card-coinweight': 'Coins tracked by weight (e.g. bags of wheat cents). Enter weight and unit — the card values them at live spot prices.',
-    'card-custom': 'Items in your custom collection categories — anything you collect that isn\'t a coin (stamps, cards, memorabilia, etc.). Manage via Settings \u2192 Other Collectables modal.',
-    'card-user-custom': 'Your custom dashboard cards — create personalized cards for any tracking need.',
-    'card-gallery': 'Photos and documents related to your collection — upload and organize images of your coins.',
-    'card-completion': 'Shows your collection completion percentage — how many of the catalogued coin types you own vs. still need.',
-    'card-wishlist': 'Coins you are actively hunting. Add coins to your wishlist from the catalog detail panel.',
-    'card-backup': 'Export your collection as CSV, back up as JSON, or restore from a backup file.',
-    'card-support': 'Support the Coin Catalog app development. Contributions help keep this project running.',
-    // 2026-10-23 (Matthew): REMOVED — investments.js renders its own single
-    // muted \'?\' under the grab handle. This entry made attachCardHelpIcons()
-    // append a SECOND help circle to the card title.
-};
-
-
-function makeCardHelpIcon(cardKey, helpText) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'help-icon';
-    btn.setAttribute('aria-label', 'Help');
-    btn.title = helpText;
-    btn.style.cssText = 'width:20px;height:20px;border-radius:50%;border:1px solid var(--color-border);background:var(--color-bg-card);color:var(--color-text-main);font-size:0.68rem;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;margin-left:8px;';
-    btn.textContent = '?';
-    btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        openCardHelpPopup(cardKey, helpText);
-    });
-    return btn;
-}
 

@@ -48,8 +48,8 @@
       "const obv = coin._deleted_obv_image",
       "const rev = coin._deleted_rev_image",
       "GGMJ-333: same gate chain as buildCoinRow",
-      "const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)",
-      "|| (cfg._deleted_obv_image ? null : cfg.obv_image) || null;",
+      "const exObv = (secCfg._deleted_example_obv_image ? null : secCfg.example_obv_image)",
+      "const exRev = (secCfg._deleted_example_rev_image ? null : secCfg.example_rev_image)",
       "GGMJ-423: isSelfHosted must not be awaited inside a non-async function",
       "publishPreviewWarning",
       "GGMJ-442: publish preview warns BEFORE anything is overwritten."
@@ -264,7 +264,7 @@
     "js/app_v2/sync.js": {},
     "js/app_v2/wishlist.js": {},
     "css/components.v2.css": {},
-    "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional — do not force-sync.",
+    "_note": "2026-10-19: self-hosted restored to June-29 stable baseline (63ea577) per Matthew directive; public app continued evolving. Divergence intentional \u2014 do not force-sync.",
     "js/app_v2/guide.js": {}
   },
   "landings": {
@@ -341,6 +341,12 @@
       "note": "GGMJ-463: _longGuide builds one <table> with all rows instead of one <table> per row; the comment marks the fix block in _longGuide()",
       "path": "app/js/app_v2/infoDropdown.js",
       "scope": "_longGuide"
+    },
+    "GGMJ-477": {
+      "expect": "present",
+      "marker": "their metal at live spot price or their collector/face value",
+      "note": "GGMJ-477: coinweight help text describes both metal-at-spot and face-value estimation paths, matching calcCoinValue behavior",
+      "path": "js/app_v2/portfolio.js"
     }
   }
 }

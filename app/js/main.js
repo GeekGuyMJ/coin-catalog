@@ -62,6 +62,7 @@ async function boot() {
 
         // Render the catalogue
         renderSections();
+        initViewToggle();
 
         // Update completion badge
         updateCompletionBadge(sections);
@@ -182,8 +183,6 @@ window.openPaperCurrencyModal = openPaperCurrencyModal;
 window.openCollectablesModal  = openCollectablesModal;
 
 // ============================================================
-<<<<<<< HEAD
-=======
 // View Toggle — List vs Album
 // ============================================================
 
@@ -194,8 +193,6 @@ function initViewToggle() {
 
     const listBtn = document.getElementById('view-list-btn');
     const albumBtn = document.getElementById('view-album-btn');
-
-    if (!listBtn || !albumBtn) return;
 
     listBtn.addEventListener('click', () => {
         if (listBtn.classList.contains('active')) return;
@@ -217,7 +214,6 @@ function initViewToggle() {
 }
 
 // ============================================================
->>>>>>> 544878f (Critical security fix + Coin Catalog v2 feature changes)
 // Splash control — defined here so it's always available
 // ============================================================
 

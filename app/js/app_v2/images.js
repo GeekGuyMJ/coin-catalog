@@ -317,8 +317,8 @@ async function handleNewUpload(e) {
     try {
         const resized = await resizeToWebP(file);
         activeContext.b64 = resized;
-        // GGMJ-334: keep 'specific_coin' for a row thumbnail; do not
-        // fall back to 'all' when a coin id is active.
+        // GGMJ-334: keep 'specific_coin' for a row thumbnail; do not fall
+        // back to 'all' when a coin id is active.
         activeContext.scope = activeContext.isItem
             ? 'specific_item'
             : (activeContext.coinId ? 'specific_coin' : 'all');
@@ -558,14 +558,12 @@ export function removeCurrentImage() {
     
     // Determine scope from activeContext (default to 'all' for type-level removal)
     const scope = activeContext.scope || 'all';
-    
 
-    // GGMJ-334: say in plain words what is about to be removed, so the
-    // user can see whether this hits one coin or the whole type before
-    // it happens. executeImageAssignment() takes no arguments -- it
-    // reads activeContext itself and maps scope='specific_coin' to
-    // activeContext.coinId -- so the scope shown here is the scope that
-    // will actually be sent.
+    // GGMJ-334: say in plain words what is about to be removed, so the user
+    // can see whether this hits one coin or the whole type before it happens.
+    // executeImageAssignment() takes no arguments -- it reads activeContext
+    // itself and maps scope='specific_coin' to activeContext.coinId -- so the
+    // scope shown here is the scope that will actually be sent.
     const scopeWords = (scope === 'specific_coin' && (activeContext.coinId ?? activeContext.itemId))
         ? 'this coin only'
         : (scope === 'specific_item'
@@ -574,8 +572,8 @@ export function removeCurrentImage() {
     showToast('Removing the image for ' + scopeWords + '.', 'warning', 5000);
 
     // Call assignImage with empty image to delete.
-    // activeContext.b64 was cleared above, which is how
-    // executeImageAssignment detects a removal.
+    // activeContext.b64 was cleared above, which is how executeImageAssignment
+    // detects a removal.
     executeImageAssignment();
 }
 
@@ -744,8 +742,6 @@ export async function promoteToDefaultHandler() {
         showToast('No coin type selected', 'warning');
         return;
     }
-    
-    const scope = activeContext.scope || 'all';
     
     // First press confirmation
     const promoteBtn = document.getElementById('ii-btn-promote-default');

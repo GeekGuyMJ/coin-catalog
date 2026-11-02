@@ -1,11 +1,8 @@
 // Coin Catalog — Public GitHub Pages Service Worker
 // v271: NETWORK-FIRST for JS/JSON/images; cache-first for CSS/icons.
 // Bumping CACHE purges all previously-cached (possibly stale) assets.
-const CACHE = "coin-catalog-v514";
-// GGMJ-460: Dynamic base path — GitHub Pages serves from /coin-catalog/app/,
-// Cloudflare Pages and self-hosted serve from root /. Derive from the SW's
-// own location so it works on all deployments.
-const BASE = new URL("./", self.location).pathname;
+const CACHE = "coin-catalog-v500";
+const BASE = "/coin-catalog/app/";
 const ASSETS = [
   BASE,
   BASE + "index.html",
@@ -53,50 +50,50 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
-    const keys = await cache.keys();
-    const allowed = new Set(ASSETS.map(a => new URL(a, self.location).href));
-    await Promise.all(keys.map(k => { if (!allowed.has(k.url)) cache.delete(k); }));
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
     await self.clients.claim();
   })());
 });
 
+async function networkFirst(request, cacheable) {
+  const cache = await caches.open(CACHE);
+  try {
+    const network = await fetch(request);
+    if (cacheable && network.ok && (new URL(request.url)).origin === self.location.origin) {
+      cache.put(request, network.clone());
+    }
+    return network;
+  } catch (err) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    const url = new URL(request.url);
+    if (request.destination === 'image' || url.pathname.includes('/data/images/') || url.pathname.match(/\.(webp|png|jpg|jpeg|gif|svg)$/i)) {
+      return new Response('', { status: 404, statusText: 'Not Found' });
+    }
+    throw err;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  // Only handle same-origin requests to our app path
-  if (url.origin !== self.location.origin) return;
-  if (!url.pathname.startsWith(BASE)) return;
-
-  const isJS = url.pathname.endsWith('.js');
-  const isJSON = url.pathname.endsWith('.json');
-  const isCSS = url.pathname.endsWith('.css');
-  const isIcon = url.pathname.match(/\.(ico|png|svg|webp)$/);
-
-  // CSS and icons: cache-first (they're versioned in CACHE name)
-  if (isCSS || isIcon) {
-    event.respondWith(caches.match(event.request).then(r => r || fetch(event.request)));
+  const u = new URL(event.request.url);
+  if (event.request.method !== 'GET' || u.pathname.startsWith('/api/') || u.pathname.startsWith('/dav/')) {
     return;
   }
-
-  // JS/JSON: network-first (always fresh code/data), fallback to cache
-  if (isJS || isJSON) {
-    event.respondWith((async () => {
-      try {
-        const resp = await fetch(event.request, { cache: 'no-cache' });
-        if (resp.ok) {
-          const cache = await caches.open(CACHE);
-          cache.put(event.request, resp.clone());
-        }
-        return resp;
-      } catch (e) {
-        const cached = await caches.match(event.request);
-        if (cached) return cached;
-        return new Response('Offline', { status: 503 });
-      }
-    })());
+  if (event.request.mode === 'navigate') {
+    event.respondWith(networkFirst(event.request, false));
     return;
   }
-
-  // Other: network-first
-  event.respondWith(fetch(event.request).catch(() => caches.match(event.request)));
+  if (u.pathname.endsWith('.js')) {
+    event.respondWith(networkFirst(event.request, true));
+    return;
+  }
+  if (u.pathname.includes('/data/images/') || u.pathname.startsWith(BASE + 'data/images/')) {
+    event.respondWith(networkFirst(event.request, false));
+    return;
+  }
+  if (u.pathname.endsWith('.json')) {
+    event.respondWith(networkFirst(event.request, true));
+    return;
+  }
 });

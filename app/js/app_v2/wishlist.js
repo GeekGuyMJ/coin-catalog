@@ -264,7 +264,7 @@ function buildWishlistRow(item) {
 
     const title = el('div', { className: 'wishlist-row-title' });
     // GGMJ-382 (Matthew, report B8): the listing must say WHAT the coin is.
-    // The structured coin block carries denomination / year / mint / type
+    // The structured `coin` block carries denomination / year / mint / type
     // separately; render them so the entry is unambiguous. Fall back to the
     // flat description for a listing with no catalogue row behind it.
     const coin = item.coin || null;
