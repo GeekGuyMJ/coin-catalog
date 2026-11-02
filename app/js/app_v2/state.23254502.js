@@ -16,6 +16,8 @@
 // Internal state store (private to this module)
 // ============================================================
 
+import { deleteInventoryEntry } from "./api.js";
+
 const _state = {
     /** @type {Array<{section:string, total:number, owned:number}>} */
     sections: [],
@@ -402,6 +404,26 @@ export const getCustomDashboardCards = () => {
     }
 };
 export const setCustomCategories = (v) => { _customCategories = v; };
+
+// ---- Purge All Inventory ----
+/**
+ * Purge ALL inventory entries from the database and reset local state.
+ * Walks every coin key in the inventory map and deletes each entry.
+ */
+export async function purgeUserInventoryTables() {
+    const inv = getInventory();
+    const ids = [];
+    for (const key of Object.keys(inv)) {
+        const entries = inv[key];
+        if (entries && Array.isArray(entries)) {
+            for (const entry of entries) {
+                if (entry && entry.id) ids.push(entry.id);
+            }
+        }
+    }
+    await Promise.all(ids.map(id => deleteInventoryEntry(id)));
+    setInventory({});
+}
 
 // ---- Other Collectables State ----
 let _otherCollectables = [];

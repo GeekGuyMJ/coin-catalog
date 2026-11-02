@@ -1,6 +1,7 @@
-# Serve sections.json as JSON for the /api/coins/sections endpoint so
-# direct API consumers (curl, external scripts) get valid JSON instead of
-# the HTML 404 page Cloudflare serves for _routes 404s.
-/api/coins/sections /sections.json 200
-/api/coins/* /api/coins/:splat 404
-# Exclude /api/* from SPA fallback - do NOT add catch-all 200 rule for /api/*
+# Exclude /api/* from SPA fallback — return 404 so the client-side
+# offline-first interceptor handles API routes (IndexedDB) instead of
+# the app parsing HTML as JSON.
+/api/*  404
+
+# SPA fallback — serve index.html for all other routes
+/*    /index.html  200

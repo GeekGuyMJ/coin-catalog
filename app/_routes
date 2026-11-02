@@ -1,7 +1,7 @@
 # Cloudflare Pages _routes file
 # Exclude /api/* from SPA fallback - return 404 for API routes instead of serving index.html
-# This allows the app to handle API failures gracefully (show empty state) rather than parsing HTML
-# Format: source destination status
-/api/*  404
+# Note: /api/coins/sections is handled by _redirects rewrite to /sections.json
+# Keep /api/* catch-all AFTER any specific routes; _redirects is processed first.
+/api/* 404
  
  

@@ -155,8 +155,11 @@ async function boot() {
     try {
         // Initialize the local database (seeds from coins.json if empty) - with timeout!
         console.log('[boot] Seeding database...');
-        await timeout(initDb(), 45000, 'initDb');
-        console.log('[boot] Database ready.');
+        // IndexedDB seeding must complete before static hosts read sections from it.
+        // On self-hosted, sections come from the Flask API, but awaiting initDb()
+        // guarantees the local DB is seeded for all deployment paths.
+        await initDb().catch(e => console.warn('[boot] background initDb failed:', e.message));
+        console.log('[boot] Database seeding complete.');
 
         // Load sections, inventory, type configs, and wishlist in parallel with timeout protection
         console.log('[boot] Fetching data...');
