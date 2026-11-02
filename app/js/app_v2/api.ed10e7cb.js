@@ -234,6 +234,27 @@ export const deleteInventoryEntry = isSelfHosted
     ? async (entryId) => serverFetch('/api/inventory/' + entryId, { method: 'DELETE' })
     : wrap(deleteInventoryEntryLocal);
 
+/**
+ * Purge ALL inventory entries from the database and reset local state.
+ * Walks every coin key in the inventory map and deletes each entry.
+ * This is an API operation, not state management.
+ */
+export async function purgeUserInventoryTables() {
+    const { getInventory, setInventory } = await import('./state.js');
+    const inv = getInventory();
+    const ids = [];
+    for (const key of Object.keys(inv)) {
+        const entries = inv[key];
+        if (entries && Array.isArray(entries)) {
+            for (const entry of entries) {
+                if (entry && entry.id) ids.push(entry.id);
+            }
+        }
+    }
+    await Promise.all(ids.map(id => deleteInventoryEntry(id)));
+    setInventory({});
+}
+
 export const fetchTypeConfigs = isSelfHosted
     ? async () => {
         const data = await serverFetch('/api/pricing_rules');
@@ -491,8 +512,6 @@ export const deleteScrap           = isSelfHosted
     : wrap(deleteScrapLocal);
 export const fetchPortfolioHistory = wrap(fetchPortfolioHistoryLocal);
 export const fetchPortfolio        = wrap(fetchPortfolioLocal);
-import { getValueHistoryLog as getValueHistoryLogLocal } from './state.js';
-export const getValueHistoryLog    = wrap(getValueHistoryLogLocal);
 export const fetchPaperCurrency    = isSelfHosted
     ? async () => serverFetch('/api/paper_currency')
     : wrap(fetchPaperCurrencyLocal);
