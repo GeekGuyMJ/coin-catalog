@@ -1,1 +1,3 @@
-/api/* /api/:splat 200
+/api/coins/* /api/coins/:splat 404
+/api/coins/sections /api/coins/sections 404
+# Exclude /api/* from SPA fallback - do NOT add catch-all 200 rule for /api/*
