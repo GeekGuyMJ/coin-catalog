@@ -64,6 +64,12 @@ const _state = {
     /** @type {string} Catalogue sort mode: 'default'|'az'|'value-desc'|'completion' */
     sortMode: localStorage.getItem('cc-sort') || 'default',
 
+    /** @type {number|null} Minimum year filter (inclusive). */
+    minYear: null,
+
+    /** @type {number|null} Maximum year filter (inclusive). */
+    maxYear: null,
+
     /** @type {boolean} True while the initial data load is in progress. */
     loading: true,
 };
@@ -282,6 +288,24 @@ export function setSortMode(mode) {
     _notify('sortMode', mode);
 }
 
+/** @returns {number|null} */
+export function getMinYear() { return _state.minYear; }
+
+/** @param {number|null} year */
+export function setMinYear(year) {
+    _state.minYear = year;
+    _notify('filter', null);
+}
+
+/** @returns {number|null} */
+export function getMaxYear() { return _state.maxYear; }
+
+/** @param {number|null} year */
+export function setMaxYear(year) {
+    _state.maxYear = year;
+    _notify('filter', null);
+}
+
 // ============================================================
 // Loading state
 // ============================================================
@@ -294,3 +318,33 @@ export function setLoading(val) {
     _state.loading = val;
     _notify('loading', val);
 }
+
+// ---- Wishlist State ----
+let _wishlist = [];
+export const getWishlist = () => _wishlist;
+export const setWishlist = (v) => { _wishlist = v; };
+
+// ---- Bullion State ----
+let _bullion = {};
+export const getBullion = () => _bullion;
+export const setBullion = (v) => { _bullion = v; };
+
+// ---- Scrap Metal State ----
+let _scrapMetal = {};
+export const getScrapMetal = () => _scrapMetal;
+export const setScrapMetal = (v) => { _scrapMetal = v; };
+
+// ---- Paper Currency State ----
+let _paperCurrency = [];
+export const getPaperCurrency = () => _paperCurrency;
+export const setPaperCurrency = (v) => { _paperCurrency = v; };
+
+// ---- Custom Categories State ----
+let _customCategories = [];
+export const getCustomCategories = () => _customCategories;
+export const setCustomCategories = (v) => { _customCategories = v; };
+
+// ---- Other Collectables State ----
+let _otherCollectables = [];
+export const getOtherCollectables = () => _otherCollectables;
+export const setOtherCollectables = (v) => { _otherCollectables = v; };

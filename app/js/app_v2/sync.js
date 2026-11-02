@@ -68,6 +68,13 @@ const CREDENTIALS = {
 
 const PROVIDERS = [
   {
+    id: 'localFile',
+    name: 'Local Device / Sync Folder (.json)',
+    icon: '💾',
+    description: 'Save your backup as a JSON file to your device or a synced folder. Zero-auth — works immediately on every deployment.',
+    requiresAuth: false,
+  },
+  {
     id: 'webdav',
     name: 'WebDAV',
     icon: '\u{1F5C2}',
@@ -523,7 +530,23 @@ export async function syncToCloud() {
     const dbBackup = await getFullBackup();
     const jsonStr = JSON.stringify(dbBackup);
 
-    if (provider.id === 'webdav') {
+    if (provider.id === 'localFile') {
+      // Zero-auth local backup: write to browser's downloads as .json
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const today = new Date();
+      const yyyymmdd = today.getFullYear().toString()
+        + String(today.getMonth() + 1).padStart(2, '0')
+        + String(today.getDate()).padStart(2, '0');
+      a.href = url;
+      a.download = `coin_catalog_backup_${yyyymmdd}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Backup saved locally (' + provider.name + ')', 'success');
+    } else if (provider.id === 'webdav') {
       await _syncToWebDAV(jsonStr, auth);
     } else if (provider.id === 'googleDrive') {
       await _syncToGoogleDrive(jsonStr, auth);
@@ -531,11 +554,17 @@ export async function syncToCloud() {
       await _syncToDropbox(jsonStr, auth);
     } else if (provider.id === 'oneDrive') {
       await _syncToOneDrive(jsonStr, auth);
+    } else {
+      // unknown provider — nothing to do
     }
 
-    // Update last sync timestamp
-    setProviderAuthState(provider.id, { lastSync: new Date().toISOString() });
-    showToast('Backup to ' + provider.name + ' complete!', 'success');
+    // Update last sync timestamp (skip for localFile — no cloud state)
+    if (provider.id !== 'localFile') {
+      setProviderAuthState(provider.id, { lastSync: new Date().toISOString() });
+    }
+    if (provider.id !== 'localFile') {
+      showToast('Backup to ' + provider.name + ' complete!', 'success');
+    }
   } catch (err) {
     console.error('Cloud sync failed:', err);
     showToast('Sync failed: ' + err.message, 'error');
@@ -566,7 +595,31 @@ export async function syncFromCloud() {
   try {
     let jsonStr = null;
 
-    if (provider.id === 'webdav') {
+    if (provider.id === 'localFile') {
+      // Zero-auth local restore: prompt user to select a JSON file
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          await restoreBackup(data);
+          showToast('Restore from ' + provider.name + ' complete! Reloading page...', 'success');
+          setTimeout(() => location.reload(), 2000);
+        } catch (err) {
+          console.error('Local restore failed:', err);
+          showToast('Restore failed: ' + err.message, 'error');
+        }
+        document.body.removeChild(input);
+      };
+      input.click();
+      return;
+    } else if (provider.id === 'webdav') {
       jsonStr = await _restoreFromWebDAV(auth);
     } else if (provider.id === 'googleDrive') {
       jsonStr = await _restoreFromGoogleDrive(auth);
@@ -593,6 +646,60 @@ export async function syncFromCloud() {
       window.dispatchEvent(new CustomEvent('backupSyncFailed', { detail: { op: 'restore', message: err && err.message ? String(err.message) : 'unknown' } }));
     } catch (e) { /* non-DOM ctx */ }
   }
+}
+
+// ============================================================
+// localFile provider — Save File (.json) / Restore File
+// ============================================================
+
+/** Download a full backup JSON file to the local device (zero-auth). */
+export async function saveBackupLocal() {
+  try {
+    const data = await getFullBackup();
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date();
+    const yyyymmdd = today.getFullYear().toString()
+      + String(today.getMonth() + 1).padStart(2, '0')
+      + String(today.getDate()).padStart(2, '0');
+    a.href = url;
+    a.download = `coin_catalog_backup_${yyyymmdd}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Local backup downloaded', 'success');
+  } catch (err) {
+    console.error('Local backup save failed:', err);
+    showToast('Local backup failed: ' + (err && err.message ? err.message : 'unknown'), 'error');
+  }
+}
+
+/** Restore from a locally-selected JSON backup file (zero-auth). */
+export async function restoreBackupLocal() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await restoreBackup(data);
+      showToast('Local backup restored — reload to apply', 'success');
+      setTimeout(() => location.reload(), 1500);
+    } catch (err) {
+      console.error('Local backup restore failed:', err);
+      showToast('Local restore failed: ' + (err && err.message ? err.message : 'unknown'), 'error');
+    }
+    document.body.removeChild(input);
+  };
+  input.click();
 }
 
 // ============================================================

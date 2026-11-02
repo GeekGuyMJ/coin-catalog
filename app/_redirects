@@ -1,1 +1,3 @@
-/api/* /api/:splat 200
+/api/coins/*  /api/coins/:splat  200
+/api/coins/sections  /api/coins/sections  200
+/api/*  /api/:splat  200

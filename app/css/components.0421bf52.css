@@ -802,6 +802,11 @@
     grid-template-columns: minmax(0, 1fr);
     gap:                   var(--space-4);
     margin-bottom:         var(--space-6);
+    overflow-anchor:       none;
+}
+
+#catalog-container {
+    overflow-anchor:       none;
 }
 
 @media (max-width: 640px) {

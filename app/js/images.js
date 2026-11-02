@@ -1,6 +1,5 @@
 /**
  * images.js — Coin Catalog v2
- *
  * Handles all image-related interactions:
  * - Viewing coin images in a dedicated modal
  * - Circular cropping tool using HTML5 Canvas
@@ -11,7 +10,7 @@
  */
 
 import { openModal, closeModal, closeAllModals } from './modals.js';
-import { assignImage, fetchCoinBankImages, saveToCoinBank } from './api.js';
+import { assignImage, fetchCoinBankImages, saveToCoinBank, deleteCoinBankImage, updateCoinBankImageInfo } from './api.js';
 import { showToast } from './notifications.js';
 import { el, placeholderCoinSvg } from './utils.js';
 import { setTypeConfigs } from './state.js';
@@ -28,6 +27,7 @@ let activeContext = {
     isItem: false,  // If clicked from a specific inventory item
     itemId: null,   // inventory item ID
     b64: '',        // Current working image data (base64)
+    scope: 'all',   // Current scope for assignment
 };
 
 // Crop tool state
@@ -45,11 +45,20 @@ let cropOffX = 0, cropOffY = 0, cropScale = 1;
  * Open the main image interaction modal.
  */
 export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, itemId = null) {
-    activeContext = { el: imgEl, typeStr, side, isItem, itemId, b64: '' };
+    activeContext = { 
+        el: imgEl, 
+        typeStr, 
+        side, 
+        isItem, 
+        itemId, 
+        b64: '', 
+        scope: activeContext.isItem ? 'specific_item' : 'all' 
+    };
 
     const preview = document.getElementById('ii-main-image');
     const title   = document.getElementById('ii-title');
     const removeBtn = document.getElementById('ii-btn-remove');
+    const saveBtn = document.getElementById('ii-btn-save');
 
     title.textContent = `${side === 'obv' ? 'Obverse' : 'Reverse'}: ${typeStr}`;
     
@@ -61,6 +70,7 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
         // openReplaceWorkflow() can close it cleanly (prevents scroll-lock).
         preview.src = placeholderCoinSvg();
         removeBtn.style.display = 'none';
+        saveBtn.style.display = 'none';
         openModal('modal-image-interaction');
         openReplaceWorkflow();
         return;
@@ -68,6 +78,7 @@ export function openImageInteractionModal(imgEl, typeStr, side, isItem = false, 
 
     preview.src = src;
     removeBtn.style.display = 'block';
+    saveBtn.style.display = 'none'; // Hide save button initially
     
     openModal('modal-image-interaction');
 }
@@ -86,10 +97,10 @@ export function openReplaceWorkflow() {
     // Reset scope selection to default
     const radios = document.querySelectorAll('input[name="img_scope"]');
     if (radios.length) radios[1].checked = true; // Default to "all"
-
+    
     document.getElementById('scope-selection-box').style.display = 'none';
     document.getElementById('btn-execute-assign').style.display = 'none';
-
+    
     openModal('modal-replace-scope');
 }
 
@@ -117,18 +128,18 @@ export async function resizeToWebP(file) {
             img.onload = () => {
                 const SIZE = 300;
                 const canvas = document.createElement('canvas');
-                canvas.width  = SIZE;
+                canvas.width = SIZE;
                 canvas.height = SIZE;
                 const ctx = canvas.getContext('2d');
 
                 // Scale to fit within 300x300, centered, with black background
                 const scale = Math.max(SIZE / img.width, SIZE / img.height);
-                const drawW = img.width  * scale;
+                const drawW = img.width * scale;
                 const drawH = img.height * scale;
                 const offsetX = (SIZE - drawW) / 2;
                 const offsetY = (SIZE - drawH) / 2;
 
-                ctx.fillStyle = '#000000';
+                ctx.fillStyle = '#1a1a1a';
                 ctx.fillRect(0, 0, SIZE, SIZE);
                 ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
 
@@ -144,9 +155,13 @@ export async function handleNewUpload(e) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Reset the input so the same file can be re-selected
+    e.target.value = '';
+
     try {
         const resized = await resizeToWebP(file);
         activeContext.b64 = resized;
+        activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
         openCropTool(resized);
 
         // Background: Save to Coin Bank (already 300x300 WebP — small)
@@ -158,7 +173,7 @@ export async function handleNewUpload(e) {
             tags:        '',
         }).catch(err => console.warn('[images] Failed to save to bank:', err));
     } catch (err) {
-        import('./utils.js').then(utils => utils.showToast(`Failed to process image: ${err.message}`, 'error'));
+        import('./notifications.js').then(m => m.showToast(`Failed to process image: ${err.message}`, 'error'));
     }
 }
 
@@ -171,7 +186,7 @@ export function openCropTool(imgSrc) {
 
     const canvas = document.getElementById('crop-canvas');
     ctx_crop = canvas.getContext('2d');
-    
+
     const container = document.getElementById('crop-container');
     const size = container.clientWidth;
     canvas.width = size;
@@ -182,16 +197,15 @@ export function openCropTool(imgSrc) {
         const scaleX = canvas.width / cropImg.width;
         const scaleY = canvas.height / cropImg.height;
         cropScale = Math.min(scaleX, scaleY);
-        
+
         const zoomInput = document.getElementById('crop-zoom');
         zoomInput.min = cropScale * 0.5;
-        zoomInput.max = cropScale * 3;  // Tightened range for precise centering
+        zoomInput.max = cropScale * 8;
         zoomInput.value = cropScale;
-        zoomInput.step = 0.0005;  // Ultra-fine granularity
 
         cropOffX = (canvas.width - cropImg.width * cropScale) / 2;
         cropOffY = (canvas.height - cropImg.height * cropScale) / 2;
-        
+
         drawCropCanvas();
     };
     cropImg.src = imgSrc || activeContext.el.src;
@@ -231,6 +245,12 @@ export function saveCrop() {
 
     activeContext.b64 = tempCanvas.toDataURL('image/webp', 0.85);
     
+    // Update preview in main modal
+    const preview = document.getElementById('ii-main-image');
+    if (preview) {
+        preview.src = activeContext.b64;
+    }
+
     closeModal('modal-crop');
     openModal('modal-replace-scope');
     showScopeSelection();
@@ -268,6 +288,19 @@ export function removeCurrentImage() {
 }
 
 /**
+ * Save current image (apply changes).
+ */
+export function saveCurrentImage() {
+    if (!activeContext.b64 && !activeContext.el.src.includes('data:image/svg')) {
+        showToast('No image to save', 'warning');
+        return;
+    }
+    
+    activeContext.scope = activeContext.isItem ? 'specific_item' : 'all';
+    executeImageAssignment();
+}
+
+/**
  * Call the API to save the image assignment.
  * On success: closes all modals, refetches type configs, and re-renders the
  * catalog in-place — no page reload, no lost accordion/scroll state.
@@ -300,6 +333,14 @@ export async function executeImageAssignment() {
 
             // Fire the standard catalog update event so catalog.js re-renders.
             window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: null } }));
+            
+            // Also update the original image element if it exists
+            if (activeContext.el && activeContext.b64) {
+                activeContext.el.src = activeContext.b64;
+            } else if (activeContext.el && !activeContext.b64) {
+                // If removing image, reset to placeholder
+                activeContext.el.src = placeholderCoinSvg();
+            }
         } else {
             showToast(result.error || 'Failed to update image', 'error');
         }
@@ -315,13 +356,18 @@ export async function executeImageAssignment() {
 export async function openCoinBankModal() {
     closeModal('modal-replace-scope');
     openModal('modal-coin-bank');
-    
-    /* GGMJ-440: the context label is written by loadCoinBankImages(), the
-       one place the SCOPE is decided. It used to be written here (at modal
-       open) and never cleared, so "Showing images for <type>" survived a
-       Browse All click and kept claiming a one-type scope over the whole
-       bank. */
-    
+
+    const label = document.getElementById('cb-context-label');
+    if (label) label.textContent = `Showing images for ${activeContext.typeStr}`;
+
+    // Update button text to show the actual coin type
+    const ctxBtn = document.getElementById('cb-filter-ctx');
+    if (ctxBtn && activeContext.typeStr) {
+        ctxBtn.textContent = `${activeContext.typeStr}`;
+    } else if (ctxBtn) {
+        ctxBtn.textContent = 'Current Type';
+    }
+
     loadCoinBankImages('context');
 }
 
@@ -340,18 +386,6 @@ async function loadCoinBankImages(mode) {
         btnAll.className = 'btn-primary';
     }
 
-    /* GGMJ-440: the label states the SCOPE, so it is set here — in the one
-       place the scope is switched — and cleared whenever the scope is not
-       the clicked coin's type. It used to be written only when the modal
-       opened, so it survived every scope change and kept claiming a
-       single type while the grid showed the whole bank. */
-    const label = document.getElementById('cb-context-label');
-    if (label) {
-        label.textContent = (mode === 'context' && activeContext && activeContext.typeStr)
-            ? `Showing images for ${activeContext.typeStr}`
-            : '';
-    }
-
     try {
         const params = mode === 'context' ? { coin_type: activeContext.typeStr, side: activeContext.side } : {};
         const images = await fetchCoinBankImages(params);
@@ -364,11 +398,22 @@ async function loadCoinBankImages(mode) {
         grid.innerHTML = '';
         images.forEach(img => {
             const card = el('div', {
-                style: 'border:1px solid var(--color-border-light); border-radius:var(--radius-md); overflow:hidden; background:var(--color-bg-card); cursor:pointer; transition:transform 0.1s;',
-                onclick: () => selectBankImage(img.filename)
+                style: 'border:1px solid var(--color-border-light); border-radius:var(--radius-md); overflow:hidden; background:var(--color-bg-card); cursor:pointer; transition:transform 0.1s; position:relative;',
+                onclick: () => selectBankImage(img)
             },
                 el('img', { src: img.filename, style: 'width:100%; height:100px; object-fit:contain;' }),
-                el('div', { style: 'padding:var(--space-1) var(--space-2); font-size:var(--font-size-xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;', title: img.coin_type }, img.coin_type)
+                el('div', { 
+                    style: 'position:absolute; top:0; left:0; background:rgba(0,0,0,0.7); color:white; padding:2px 4px; font-size:0.7rem;',
+                    onclick: (e) => { e.stopPropagation(); editCoinBankImage(img); }
+                }, '✏️'),
+                el('div', { 
+                    style: 'position:absolute; top:0; right:0; background:rgba(255,0,0,0.8); color:white; padding:2px 4px; font-size:0.7rem;',
+                    onclick: (e) => { e.stopPropagation(); deleteCoinBankImageConfirm(img); }
+                }, '🗑️'),
+                el('div', { 
+                    style: 'padding:var(--space-1) var(--space-2); font-size:var(--font-size-xs); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;', 
+                    title: img.coin_type 
+                }, img.coin_type)
             );
             card.onmouseenter = () => card.style.transform = 'scale(1.03)';
             card.onmouseleave = () => card.style.transform = 'scale(1)';
@@ -379,43 +424,61 @@ async function loadCoinBankImages(mode) {
     }
 }
 
-function selectBankImage(b64) {
-    activeContext.b64 = b64;
+function selectBankImage(img) {
+    activeContext.b64 = img.filename;
+    // Update preview in main modal
+    const preview = document.getElementById('ii-main-image');
+    if (preview) {
+        preview.src = activeContext.b64;
+    }
     closeModal('modal-coin-bank');
     openModal('modal-replace-scope');
     showScopeSelection();
 }
 
-function showScopeSelection() {
-    document.getElementById('scope-selection-box').style.display = 'block';
-    document.getElementById('btn-execute-assign').style.display = 'block';
+async function deleteCoinBankImageConfirm(img) {
+    if (confirm(`Delete this image for ${img.coin_type} ${img.side}? This cannot be undone.`)) {
+        try {
+            await deleteCoinBankImage(img.filename);
+            showToast('Image deleted from coin bank', 'success');
+            // Refresh the bank view
+            const ctxBtn = document.getElementById('cb-filter-ctx');
+            loadCoinBankImages(ctxBtn && ctxCtxBtn.className.includes('btn-primary') ? 'context' : 'all');
+        } catch (err) {
+            showToast(`Failed to delete image: ${err.message}`, 'error');
+        }
+    }
+}
+
+async function editCoinBankImage(img) {
+    // Store current context
+    const originalTypeStr = activeContext.typeStr;
+    const originalSide = activeContext.side;
+    
+    // Set context to this image
+    activeContext.typeStr = img.coin_type;
+    activeContext.side = img.side;
+    activeContext.b64 = img.filename;
+    
+    // Open replace workflow to allow changing type/side or uploading new image
+    closeModal('modal-coin-bank');
+    openReplaceWorkflow();
+    
+    // Update scope label to show we're editing a bank image
+    const scopeLabel = document.getElementById('scope-lbl-item');
+    if (scopeLabel) {
+        scopeLabel.textContent = 'Editing bank image';
+        scopeLabel.style.display = 'flex';
+    }
 }
 
 // ============================================================
 // Internal Helpers
 // ============================================================
 
-function drawCropCanvas() {
-    if (!ctx_crop) return;
-    const cw = ctx_crop.canvas.width;
-    const ch = ctx_crop.canvas.height;
-    
-    ctx_crop.clearRect(0, 0, cw, ch);
-    ctx_crop.drawImage(cropImg, cropOffX, cropOffY, cropImg.width * cropScale, cropImg.height * cropScale);
-}
-
-function handleZoom(val) {
-    const oldW = cropImg.width * cropScale;
-    const oldH = cropImg.height * cropScale;
-    cropScale = parseFloat(val);
-    const newW = cropImg.width * cropScale;
-    const newH = cropImg.height * cropScale;
-    
-    const cx = ctx_crop.canvas.width / 2;
-    const cy = ctx_crop.canvas.height / 2;
-    cropOffX = cx - (cx - cropOffX) * (newW / oldW);
-    cropOffY = cy - (cy - cropOffY) * (newH / oldH);
-    drawCropCanvas();
+function showScopeSelection() {
+    document.getElementById('scope-selection-box').style.display = 'block';
+    document.getElementById('btn-execute-assign').style.display = 'block';
 }
 
 // ============================================================
@@ -459,9 +522,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (target.id === 'btn-open-bank') openCoinBankModal();
         if (target.id === 'btn-execute-assign') executeImageAssignment();
         if (target.id === 'ii-btn-remove') removeCurrentImage();
+        if (target.id === 'ii-btn-save') saveCurrentImage();
         
         // Navigation back buttons
-        if (target.dataset.action === 'close-crop') { closeModal('modal-crop'); openModal('modal-image-interaction'); }
+        if (target.dataset.action === 'close-crop') { closeModal('modal-crop'); openModal('modal-replace-scope'); }
         if (target.dataset.action === 'close-replace') { closeModal('modal-replace-scope'); openModal('modal-image-interaction'); }
         if (target.dataset.action === 'close-bank') { closeModal('modal-coin-bank'); openModal('modal-replace-scope'); }
 
@@ -492,3 +556,30 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+// ============================================================
+// Helper Functions
+// ============================================================
+
+function drawCropCanvas() {
+    if (!ctx_crop) return;
+    const cw = ctx_crop.canvas.width;
+    const ch = ctx_crop.canvas.height;
+
+    ctx_crop.clearRect(0, 0, cw, ch);
+    ctx_crop.drawImage(cropImg, cropOffX, cropOffY, cropImg.width * cropScale, cropImg.height * cropScale);
+}
+
+function handleZoom(val) {
+    const oldW = cropImg.width * cropScale;
+    const oldH = cropImg.height * cropScale;
+    cropScale = parseFloat(val);
+    const newW = cropImg.width * cropScale;
+    const newH = cropImg.height * cropScale;
+
+    const cx = ctx_crop.canvas.width / 2;
+    const cy = ctx_crop.canvas.height / 2;
+    cropOffX = cx - (cx - cropOffX) * (newW / oldW);
+    cropOffY = cy - (cy - cropOffY) * (newH / oldH);
+    drawCropCanvas();
+}

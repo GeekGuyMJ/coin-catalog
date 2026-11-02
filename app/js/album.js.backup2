@@ -1,0 +1,348 @@
+/**
+ * album.js — Coin Catalog v2 — Whitman Album Grid View
+ *
+ * Renders coins as a grid of "coin holes" — a visual representation of
+ * physical album pages. Each cell shows:
+ *   - A circular coin slot with the type image (if owned) or empty slot
+ *   - Year + mint mark label
+ *   - Subtle background tint for owned vs missing
+ *
+ * The album view is toggled via a button in the header and replaces the
+ * standard list view inside #catalog-container.
+ *
+ * @module album
+ */
+
+import {
+    getMainType, getSubType, isCompositionSub, isErrorVariety,
+    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el,
+} from './utils.js';
+
+import {
+    getSections, getCoinsForSection, setCoinsForSection,
+    getTypeConfig, getInventoryTotalQty, getInventoryEntries,
+} from './state.js';
+
+import { fetchCoinsForSection, updateInventory, fetchInventory } from './api.js';
+import { showToast } from './notifications.js';
+import { openImageInteractionModal } from './images.js';
+import { openInventoryDetails } from './inventory.js';
+
+// --- View state ---
+let _albumSections = new Set();       // sections expanded in album view
+let _albumLoaded = {};                // section → coins cache (mirrors state)
+let _activeSection = null;            // currently displayed section
+
+// ============================================================
+// Public entry point
+// ============================================================
+
+/**
+ * Render the album view for a given section.
+ * Called when the user clicks a section header in album mode.
+ *
+ * @param {string} sectionName
+ */
+export async function renderAlbumView(sectionName) {
+    const container = document.getElementById('catalog-container');
+    if (!container) return;
+
+    // If clicking the same section, toggle collapse
+    if (_activeSection === sectionName && _albumSections.has(sectionName)) {
+        _albumSections.delete(sectionName);
+        _activeSection = null;
+        renderAlbumSectionList(container);
+        return;
+    }
+
+    _activeSection = sectionName;
+    _albumSections.add(sectionName);
+
+    // Build the section selector bar + grid area
+    renderAlbumSectionList(container);
+
+    // Load coins if needed
+    let coins = _albumLoaded[sectionName] || getCoinsForSection(sectionName);
+    if (!coins) {
+        try {
+            container.innerHTML = '<div class="section-loading">Loading coins…</div>';
+            coins = await fetchCoinsForSection(sectionName);
+            setCoinsForSection(sectionName, coins);
+            _albumLoaded[sectionName] = coins;
+        } catch (err) {
+            container.innerHTML = `<p class="text-muted" style="padding:1rem">
+                Failed to load coins: ${escHtml(err.message)}
+            </p>`;
+            return;
+        }
+    }
+
+    renderAlbumGrid(container, sectionName, coins);
+}
+
+/**
+ * Render the album section selector — a horizontal strip of section pills
+ * that the user can click to jump between sections.
+ */
+function renderAlbumSectionList(container) {
+    const sections = getSections();
+    if (!sections.length) {
+        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found.</p>';
+        return;
+    }
+
+    // Group by country
+    const countryMap = new Map();
+    sections.forEach(sec => {
+        const country = _getCountry(sec.section);
+        if (!countryMap.has(country)) countryMap.set(country, []);
+        countryMap.get(country).push(sec);
+    });
+
+    const wrapper = el('div', { className: 'album-wrapper' });
+
+    // Section pills bar
+    const pillsBar = el('div', { className: 'album-section-pills' });
+
+    for (const [country, countrySections] of countryMap) {
+        // Country label
+        pillsBar.appendChild(
+            el('span', { className: 'album-country-label' }, country)
+        );
+
+        for (const sec of countrySections) {
+            const isActive = _activeSection === sec.section;
+            const pill = el('button', {
+                className: 'album-section-pill' + (isActive ? ' active' : ''),
+                dataset: { section: sec.section },
+                title: sec.section,
+            }, sec.section.replace(/^(US |Canadian |UK )/, ''));
+
+            pill.onclick = () => renderAlbumView(sec.section);
+            pillsBar.appendChild(pill);
+        }
+    }
+
+    wrapper.appendChild(pillsBar);
+
+    // Grid area
+    const gridArea = el('div', { className: 'album-grid-area', id: 'album-grid-area' });
+    wrapper.appendChild(gridArea);
+
+    container.innerHTML = '';
+    container.appendChild(wrapper);
+
+    // If a section is active, render its grid
+    if (_activeSection) {
+        const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
+        if (coins) {
+            renderAlbumGrid(container, _activeSection, coins);
+        }
+    } else {
+        gridArea.innerHTML = '<div class="album-placeholder">← Select a section above to view the album</div>';
+    }
+}
+
+/**
+ * Render the coin grid for a section.
+ */
+function renderAlbumGrid(container, sectionName, coins) {
+    const gridArea = container.querySelector('#album-grid-area');
+    if (!gridArea) return;
+
+    // Group coins by main type
+    const typeMap = new Map();
+    for (const coin of coins) {
+        const main = getMainType(coin.coin_type);
+        if (!typeMap.has(main)) typeMap.set(main, []);
+        typeMap.get(main).push(coin);
+    }
+
+    // Sort types by earliest year
+    const sortedTypes = [...typeMap.entries()].sort((a, b) => {
+        const minA = Math.min(...a[1].map(c => c.year === 1776 ? 1976 : c.year || 9999));
+        const minB = Math.min(...b[1].map(c => c.year === 1776 ? 1976 : c.year || 9999));
+        return minA - minB;
+    });
+
+    const grid = el('div', { className: 'album-grid' });
+
+    for (const [mainType, typeCoins] of sortedTypes) {
+        // Type header row (full width)
+        const cfg = getTypeConfig(mainType) || {};
+        const sorted = [...typeCoins].sort(coinSortComparator);
+        const ownedCount = sorted.filter(c => getInventoryTotalQty(c.id) > 0).length;
+
+        const typeHeader = el('div', { className: 'album-type-header' });
+
+        // Type thumbnail
+        const thumbWrap = el('div', { className: 'album-type-thumb' });
+        if (cfg.obv_image) {
+            const img = el('img', {
+                src: cfg.obv_image,
+                alt: mainType,
+                loading: 'lazy',
+                dataset: { action: 'view-img', type: mainType, side: 'obv' },
+            });
+            img.onerror = () => { img.src = placeholderCoinSvg(); };
+            img.onclick = (e) => {
+                e.stopPropagation();
+                openImageInteractionModal(img, mainType, 'obv', false);
+            };
+            thumbWrap.appendChild(img);
+        } else {
+            thumbWrap.appendChild(el('div', { className: 'album-type-thumb-placeholder' }, '?'));
+        }
+        typeHeader.appendChild(thumbWrap);
+
+        // Type title + year span
+        const titleWrap = el('div', { className: 'album-type-title-wrap' });
+        titleWrap.appendChild(el('span', { className: 'album-type-title' }, mainType));
+        titleWrap.appendChild(el('span', { className: 'album-type-year' }, typeYearSpan(sorted)));
+        typeHeader.appendChild(titleWrap);
+
+        // Owned badge
+        const badge = el('span', {
+            className: 'album-type-badge' + (ownedCount === sorted.length ? ' complete' : ownedCount > 0 ? ' owned' : ''),
+        }, `${ownedCount}/${sorted.length}`);
+        typeHeader.appendChild(badge);
+
+        grid.appendChild(typeHeader);
+
+        // Coin hole grid
+        const holesGrid = el('div', { className: 'album-holes-grid' });
+
+        for (const coin of sorted) {
+            const hole = buildCoinHole(coin, cfg);
+            holesGrid.appendChild(hole);
+        }
+
+        grid.appendChild(holesGrid);
+    }
+
+    gridArea.innerHTML = '';
+    gridArea.appendChild(grid);
+
+    // Single event delegation on the grid
+    grid.addEventListener('click', handleAlbumClick);
+}
+
+/**
+ * Build a single coin hole element.
+ */
+function buildCoinHole(coin, typeCfg) {
+    const qty = getInventoryTotalQty(coin.id);
+    const isOwned = qty > 0;
+
+    const hole = el('div', {
+        className: 'album-hole' + (isOwned ? ' owned' : ' missing'),
+        dataset: { coinId: coin.id, coinType: coin.coin_type, section: coin.section },
+        title: _coinTooltip(coin, qty),
+    });
+
+    // The circular slot
+    const slot = el('div', { className: 'album-hole-slot' });
+
+    if (isOwned && typeCfg?.obv_image) {
+        const img = el('img', {
+            className: 'album-hole-img',
+            src: typeCfg.obv_image,
+            alt: `${coin.year} ${coin.coin_type}`,
+            loading: 'lazy',
+        });
+        img.onerror = () => { img.src = placeholderCoinSvg(); };
+        slot.appendChild(img);
+    } else if (isOwned) {
+        // Owned but no image — show a filled circle
+        slot.appendChild(el('div', { className: 'album-hole-filled' }, '●'));
+    } else {
+        // Missing — empty slot with year hint
+        slot.appendChild(el('div', { className: 'album-hole-empty' },
+            el('span', { className: 'album-hole-year-abbr' }, _yearAbbr(coin.year))
+        ));
+    }
+
+    hole.appendChild(slot);
+
+    // Label below the hole
+    const label = el('div', { className: 'album-hole-label' });
+    const yearText = coin.year === 1776 ? '76-76' : _yearAbbr(coin.year);
+    const mintText = coin.mint_mark ? coin.mint_mark : '';
+    label.textContent = `${yearText}${mintText}`;
+    hole.appendChild(label);
+
+    // Badges
+    if (coin.is_key_date) {
+        hole.appendChild(el('span', { className: 'album-hole-badge key' }, '⭐'));
+    }
+    if (coin.is_proof) {
+        hole.appendChild(el('span', { className: 'album-hole-badge proof' }, '💎'));
+    }
+    if (coin.is_error || isErrorVariety(coin.coin_type, coin.ref_notes)) {
+        hole.appendChild(el('span', { className: 'album-hole-badge error' }, '⚠'));
+    }
+
+    // Quantity badge
+    if (qty > 1) {
+        hole.appendChild(el('span', { className: 'album-hole-qty' }, `×${qty}`));
+    }
+
+    return hole;
+}
+
+// ============================================================
+// Event delegation
+// ============================================================
+
+async function handleAlbumClick(e) {
+    const target = e.target;
+
+    // Coin hole click → open inventory details
+    const hole = target.closest('.album-hole');
+    if (hole && !target.closest('[data-action="view-img"]')) {
+        e.stopPropagation();
+        const coinId = hole.dataset.coinId;
+        if (coinId) {
+            openInventoryDetails(coinId);
+        }
+        return;
+    }
+
+    // Image click → lightbox
+    const imgBtn = target.closest('[data-action="view-img"]');
+    if (imgBtn) {
+        e.stopPropagation();
+        const { type, side } = imgBtn.dataset;
+        openImageInteractionModal(imgBtn, type, side, false);
+        return;
+    }
+}
+
+// ============================================================
+// Helpers
+// ============================================================
+
+function _getCountry(sectionName) {
+    if (sectionName.startsWith('US ')) return 'United States';
+    if (sectionName.startsWith('Canadian ')) return 'Canada';
+    if (sectionName.startsWith('UK ')) return 'United Kingdom';
+    return 'Other';
+}
+
+function _yearAbbr(year) {
+    if (!year) return '—';
+    if (year === 1776) return '76';
+    return String(year).slice(-2);
+}
+
+function _coinTooltip(coin, qty) {
+    const parts = [`${coin.year || '—'} ${coin.coin_type || ''}`];
+    if (coin.mint_mark) parts.push(`Mint: ${coin.mint_mark}`);
+    if (coin.mintage) parts.push(`Mintage: ${coin.mintage.toLocaleString()}`);
+    if (qty > 0) parts.push(`Owned: ${qty}`);
+    else parts.push('Not in collection');
+    if (coin.is_key_date) parts.push('⭐ Key Date');
+    if (coin.is_proof) parts.push('💎 Proof');
+    if (coin.is_error) parts.push('⚠ Error/Variety');
+    return parts.join(' · ');
+}

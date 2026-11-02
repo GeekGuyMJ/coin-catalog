@@ -202,11 +202,13 @@ function buildCountryGroup(country, sections) {
     });
 
     const listBtn = el('button', {
+        id: 'view-list-btn',
         title: 'List view',
         style: 'border:none;border-radius:0;font-size:0.72em;padding:4px 10px;background:' + (currentMode === 'list' ? 'rgba(255,255,255,0.25)' : 'transparent') + ';color:inherit;cursor:pointer;'
     }, 'List');
 
     const albumBtn = el('button', {
+        id: 'view-album-btn',
         title: 'Album view',
         style: 'border:none;border-radius:0;font-size:0.72em;padding:4px 10px;border-left:1px solid rgba(255,255,255,0.3);background:' + (currentMode === 'folder' ? 'rgba(255,255,255,0.25)' : 'transparent') + ';color:inherit;cursor:pointer;'
     }, 'Album');
@@ -1304,6 +1306,11 @@ async function handleCatalogClick(e) {
  * @param {number} delta  - +1 or -1.
  */
 async function handleStepperChange(coinId, delta) {
+    // Lock scroll position
+    const scrollY = window.scrollY;
+    const catalogContainer = document.getElementById('catalog-container');
+    const catalogTop = catalogContainer ? catalogContainer.getBoundingClientRect().top : 0;
+
     const entries = getInventoryEntries(coinId) || [];
     const totalQty = getInventoryTotalQty(coinId);
     
@@ -1349,15 +1356,28 @@ async function handleStepperChange(coinId, delta) {
         
         const result = await updateInventory(coinId, payload);
         
-        // Let's refetch sections since array updates are complex to do optimistically
-        // (especially dealing with newly created IDs)
-        // Wait, if we just use the cc-inventory-updated event:
+        // Update album holes in place if in album mode (avoids full re-render)
+        const { _ccUpdateHoleInPlace } = await import('./album.js');
+        _ccUpdateHoleInPlace(coinId, newTotalQty);
+        
+        // Dispatch event for other listeners
         window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId } }));
         
     } catch (err) {
         showToast(`Failed to save — ${err.message}`, 'error');
         // Rollback: restore the previous quantity display
         updateStepperDisplay(coinId, totalQty);
+    }
+
+    // Restore scroll position if shifted
+    if (catalogContainer) {
+        const newTop = catalogContainer.getBoundingClientRect().top;
+        const delta = newTop - catalogTop;
+        if (Math.abs(delta) > 0.5) {
+            window.scrollBy(0, -delta);
+        }
+    } else if (Math.abs(window.scrollY - scrollY) > 0.5) {
+        window.scrollTo(0, scrollY);
     }
 }
 /**
@@ -1367,6 +1387,11 @@ async function handleStepperChange(coinId, delta) {
  * @param {number} coinId - The coin reference ID.
  */
 async function toggleWishlist(coinId) {
+    // Lock scroll position
+    const scrollY = window.scrollY;
+    const catalogContainer = document.getElementById('catalog-container');
+    const catalogTop = catalogContainer ? catalogContainer.getBoundingClientRect().top : 0;
+
     try {
         const wishlist = getWishlist();
         const item = wishlist.find(w => w.coin_id === coinId);
@@ -1383,13 +1408,24 @@ async function toggleWishlist(coinId) {
             setWishlist(freshWl);
         } catch (e) { /* ignore refresh error */ }
 
-        const sel = '[data-action=\"add-wishlist\"][data-coin-id=\"' + coinId + '\"]';
+        const sel = '[data-action="add-wishlist"][data-coin-id="' + coinId + '"]';
         document.querySelectorAll(sel).forEach(btn => {
             btn.classList.toggle("is-wishlist", !item);
             btn.title = item ? "Add to wishlist" : "Remove from wishlist";
         });
     } catch (err) {
         showToast("Wishlist error: " + err.message, "error");
+    }
+
+    // Restore scroll position if shifted
+    if (catalogContainer) {
+        const newTop = catalogContainer.getBoundingClientRect().top;
+        const delta = newTop - catalogTop;
+        if (Math.abs(delta) > 0.5) {
+            window.scrollBy(0, -delta);
+        }
+    } else if (Math.abs(window.scrollY - scrollY) > 0.5) {
+        window.scrollTo(0, scrollY);
     }
 }
 

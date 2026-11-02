@@ -22,6 +22,7 @@ import { showToast } from './notifications.js';
 import {
     fetchInvestments, saveInvestment, deleteInvestment,
 } from './api.js';
+import { refreshPortfolioData } from './portfolio.js';
 
 // ---------------------------------------------------------------------------
 // Sparkline helper — shared between per-entry and card-total sparklines
@@ -211,14 +212,18 @@ export function buildInvestmentsCard() {
         'Add entries with name, category, current value, optional purchase price, and as-of date. ' +
         'Click the pencil icon on any entry to edit its date or value. ' +
         'Each entry and the card total show a sparkline trend when values change.');
-    // Place help icon inside card-title for proper header layout
-    titleLabel.appendChild(helpIcon);
+    // Position help icon absolutely on card root (like drag handle) for consistent 32px gap
+    helpIcon.style.position = 'absolute';
+    helpIcon.style.top = 'var(--space-4)';
+    helpIcon.style.right = 'calc(var(--space-4) + 28px)';
+    helpIcon.style.zIndex = '3';
+    titleBar.appendChild(titleLabel);
+    // Help icon appended to card root below, not titleBar
 
     // Top-right total
     const totalDisplay = el('div', {
         style: 'font-size:0.85em;font-weight:700;color:var(--color-accent);white-space:nowrap;',
     }, fmtMoney(0));
-    titleBar.appendChild(titleLabel);
     titleBar.appendChild(totalDisplay);
 
     card.appendChild(titleBar);
@@ -292,6 +297,7 @@ export function buildInvestmentsCard() {
             render();
             nameIn.value = ''; valIn.value = ''; costIn.value = ''; dateIn.value = '';
             showToast('Other Investments added', 'success');
+            refreshPortfolioData();
         }).catch((err) => {
             showToast('Failed to save: ' + err.message, 'error');
         });
@@ -323,6 +329,8 @@ export function buildInvestmentsCard() {
     card.appendChild(edgeRight);
     card.appendChild(edgeLeft);
     card.appendChild(dragHandle);
+    // Help icon inside card-title for consistent placement with other cards
+    titleBar.querySelector('.card-title')?.appendChild(helpIcon);
 
     // --- Render function ---
     function render() {
@@ -334,18 +342,11 @@ export function buildInvestmentsCard() {
             }, 'No Other Investments yet'));
         } else {
             _invEntries.forEach((e) => {
-                // Two-row layout for mobile: Row 1 = info + value, Row 2 = sparkline + buttons
                 const row = el('div', {
                     className: 'finance-item',
-                    style: 'display:flex;flex-direction:column;gap:4px;',
                 });
 
                 // Row 1: info (left) + value (right)
-                const row1 = el('div', {
-                    style: 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;',
-                });
-
-                // Left: info (name + category/date)
                 const info = el('div', { style: 'flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;' });
                 const label = el('span', {
                     className: 'finance-label',
@@ -357,7 +358,6 @@ export function buildInvestmentsCard() {
                 info.appendChild(label);
                 info.appendChild(nameDiv);
 
-                // Right: value + change
                 const valBox = el('div', { style: 'text-align:right;flex-shrink:0;' });
                 valBox.appendChild(el('span', { className: 'finance-value' }, fmtMoney(e.total_value)));
                 const gain = (e.total_value || 0) - (e.purchase_price || 0);
@@ -368,15 +368,7 @@ export function buildInvestmentsCard() {
                     }, ((gain > 0 ? '+' : gain < 0 ? '−' : '')) + fmtMoney(Math.abs(gain))));
                 }
 
-                row1.appendChild(info);
-                row1.appendChild(valBox);
-
-                // Row 2: sparkline + buttons (edit, delete)
-                const row2 = el('div', {
-                    style: 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;',
-                });
-
-                // Per-entry sparkline (canvas)
+                // Row 2: sparkline + edit + delete
                 const sparkWrap = el('div', {
                     style: 'display:flex;align-items:center;gap:6px;flex-shrink:0;',
                 });
@@ -388,11 +380,6 @@ export function buildInvestmentsCard() {
                     title: 'Entry value trend',
                 });
                 sparkWrap.appendChild(sparkCanvas);
-
-                // Buttons group
-                const btnGroup = el('div', {
-                    style: 'display:flex;align-items:center;gap:6px;flex-shrink:0;',
-                });
 
                 const editBtn = el('button', {
                     className: 'btn-icon',
@@ -415,19 +402,17 @@ export function buildInvestmentsCard() {
                         _invEntries = _invEntries.filter((x) => x.id !== e.id);
                         render();
                         refreshTotal();
+                        refreshPortfolioData();
                     }).catch((err) => {
                         showToast('Failed to delete: ' + err.message, 'error');
                     });
                 });
 
-                btnGroup.appendChild(editBtn);
-                btnGroup.appendChild(del);
-
-                row2.appendChild(sparkWrap);
-                row2.appendChild(btnGroup);
-
-                row.appendChild(row1);
-                row.appendChild(row2);
+                row.appendChild(info);
+                row.appendChild(valBox);
+                row.appendChild(sparkWrap);
+                row.appendChild(editBtn);
+                row.appendChild(del);
                 listWrap.appendChild(row);
 
                 // Draw per-entry sparkline after DOM insertion
@@ -557,6 +542,7 @@ export function buildInvestmentsCard() {
                 render();
                 showToast('Investment updated', 'success');
                 closeModal();
+                refreshPortfolioData();
             }).catch((err) => {
                 showToast('Failed to save: ' + err.message, 'error');
             });
@@ -646,22 +632,28 @@ export function buildInvestmentsCard() {
         });
     }
 
-    // Load entries from server
+    // --- Initial synchronous render from cache ---
+    render();
+
+    // --- Load entries from server (background) ---
     fetchInvestments().then((entries) => {
-        _invEntries = entries || [];
-        // Initialize history for each entry
-        _invEntries.forEach((e) => {
-            _entryHistory[e.id] = _entryHistory[e.id] || [];
-            if (_entryHistory[e.id].length === 0) {
-                _addHistoryPoint(_entryHistory[e.id], e.total_value, MAX_HISTORY);
-            }
-        });
-        _saveHistory();
-        render();
+        const newEntries = entries || [];
+        // Only re-render if server data differs from cache
+        if (JSON.stringify(newEntries) !== JSON.stringify(_invEntries)) {
+            _invEntries = newEntries;
+            // Initialize history for each entry
+            _invEntries.forEach((e) => {
+                _entryHistory[e.id] = _entryHistory[e.id] || [];
+                if (_entryHistory[e.id].length === 0) {
+                    _addHistoryPoint(_entryHistory[e.id], e.total_value, MAX_HISTORY);
+                }
+            });
+            _saveHistory();
+            render();
+        }
         initResizeHandles();
     }).catch(() => {
-        _invEntries = [];
-        render();
+        // On error, keep cache render; just init handles
         initResizeHandles();
     });
 

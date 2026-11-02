@@ -7,4 +7,4 @@ app/_backup_dead_v2_files/
 *.bak_*
 *.bak-*
 *.bak.*
-*.cache
+*.cacheapp/js/node_modules/

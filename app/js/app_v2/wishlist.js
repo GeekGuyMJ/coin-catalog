@@ -2,7 +2,7 @@
  * wishlist.js — Coin Catalog v2
  *
  * Wishlist management: add, remove, mark acquired, and panel display.
- * Wires the existing  / "Wish List" buttons in coin rows (catalog.js + search.js).
+ * Wires the existing 🎯 / "Wish List" buttons in coin rows (catalog.js + search.js).
  *
  * @module wishlist
  */
@@ -25,7 +25,7 @@ export function initWishlist() {
     // Refresh wishlist state from server (non-blocking)
     refreshWishlistState();
 
-    // Global click delegation — handles  buttons in both catalog rows
+    // Global click delegation — handles 🎯 buttons in both catalog rows
     // and search result rows without attaching per-row listeners.
     document.addEventListener('click', handleWishlistClick);
 }
@@ -57,6 +57,11 @@ async function handleWishlistClick(e) {
  * @param {number} coinId
  */
 export async function toggleWishlist(coinId) {
+    // Lock scroll position
+    const scrollY = window.scrollY;
+    const catalogContainer = document.getElementById('catalog-container');
+    const catalogTop = catalogContainer ? catalogContainer.getBoundingClientRect().top : 0;
+
     try {
         const wishlist = getWishlist() || [];
         const item = wishlist.find(w => w.coin_id === coinId);
@@ -77,6 +82,17 @@ export async function toggleWishlist(coinId) {
     } catch (err) {
         showToast('Wishlist error: ' + err.message, 'error');
     }
+
+    // Restore scroll position if shifted
+    if (catalogContainer) {
+        const newTop = catalogContainer.getBoundingClientRect().top;
+        const delta = newTop - catalogTop;
+        if (Math.abs(delta) > 0.5) {
+            window.scrollBy(0, -delta);
+        }
+    } else if (Math.abs(window.scrollY - scrollY) > 0.5) {
+        window.scrollTo(0, scrollY);
+    }
 }
 
 // ============================================================
@@ -96,7 +112,7 @@ function updateWishlistButtons(coinId, isNowInWishlist) {
         btn.title = isNowInWishlist ? 'Remove from wishlist' : 'Add to wishlist';
         // Update text for pill-style buttons (catalog.js uses "Wish List" / heart)
         if (btn.classList.contains('pill')) {
-            btn.textContent = isNowInWishlist ? '\u2665' : 'Wish List';
+            btn.textContent = isNowInWishlist ? '\u2764' : 'Wish List';
         }
     });
 }
@@ -128,20 +144,13 @@ export async function refreshWishlistState() {
 export function openWishlistPanel() {
     const wishlist = getWishlist() || [];
 
-    // Remove any existing panel and clean up body state
+    // Remove any existing panel
     const existing = document.getElementById('wishlist-panel');
-    if (existing) {
-        existing.remove();
-        document.body.classList.remove('modal-open');
-        if (window._openModalsStack) {
-            var idx = window._openModalsStack.indexOf('wishlist-panel');
-            if (idx > -1) window._openModalsStack.splice(idx, 1);
-        }
-    }
+    if (existing) existing.remove();
 
     const overlay = el('div', {
         id: 'wishlist-panel',
-        className: 'modal-overlay open',
+        className: 'modal-overlay',
         role: 'dialog',
         'aria-modal': 'true',
         'aria-label': 'Wishlist',
@@ -151,14 +160,12 @@ export function openWishlistPanel() {
 
     // --- Header ---
     const header = el('div', { className: 'modal-header' });
-    header.appendChild(el('h2', { className: 'modal-title' }, '♥ Wishlist'));
-    
-    const closeBtn = el('button', { 
-        className: 'modal-close', 
-        title: 'Close',
-        'aria-label': 'Close Wishlist'
-    }, '✕');
-    closeBtn.addEventListener('click', closePanel);
+    header.appendChild(el('h2', { className: 'modal-title' }, '\uD83C\uDFAF Wishlist'));
+    const closeBtn = el('button', {
+        className: 'modal-close',
+        'aria-label': 'Close',
+        dataset: { action: 'close-modal' },
+    }, '\u2715');
     header.appendChild(closeBtn);
     box.appendChild(header);
 
@@ -169,7 +176,7 @@ export function openWishlistPanel() {
         body.appendChild(el('div', {
             style: 'text-align:center;padding:3rem 1rem;color:var(--color-text-muted);',
         }, el('p', { style: 'font-size:1.2rem;margin-bottom:0.5rem;' }, 'Your wishlist is empty'),
-            el('p', { style: 'font-size:0.9rem;' }, 'Tap the ♥ button on any coin to add it here.')
+            el('p', { style: 'font-size:0.9rem;' }, 'Tap the \uD83C\uDFAF button on any coin to add it here.')
         ));
     } else {
         const list = el('div', { className: 'wishlist-list' });
@@ -214,28 +221,9 @@ export function openWishlistPanel() {
     overlay.appendChild(box);
 
     // Close handlers
-    function closePanel() {
-        overlay.remove();
-        document.body.classList.remove('modal-open');
-        if (window._openModalsStack) {
-            var idx = window._openModalsStack.indexOf('wishlist-panel');
-            if (idx > -1) window._openModalsStack.splice(idx, 1);
-        }
-    }
-    closeBtn.addEventListener('click', (e) => {
-        // Stop propagation so modals.v2.js delegated close-modal handler
-        // doesn't intercept this and call updateBodyScrollLock().
-        e.stopPropagation();
-        closePanel();
-    });
+    closeBtn.addEventListener('click', () => overlay.remove());
     overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-            // Stop propagation so modals.v2.js delegated modal-overlay click handler
-            // doesn't also call closeModalLegacy() → updateBodyScrollLock(), which
-            // would re-add modal-open after closePanel() already removed it.
-            e.stopPropagation();
-            closePanel();
-        }
+        if (e.target === overlay) overlay.remove();
     });
 
     document.getElementById('modal-layer')?.appendChild(overlay);
@@ -263,27 +251,9 @@ function buildWishlistRow(item) {
     const left = el('div', { className: 'wishlist-row-left' });
 
     const title = el('div', { className: 'wishlist-row-title' });
-    // GGMJ-382 (Matthew, report B8): the listing must say WHAT the coin is.
-    // The structured coin block carries denomination / year / mint / type
-    // separately; render them so the entry is unambiguous. Fall back to the
-    // flat description for a listing with no catalogue row behind it.
-    const coin = item.coin || null;
-    if (coin && (coin.denomination || coin.coin_type || coin.year)) {
-        if (coin.denomination) {
-            title.appendChild(el('span', { style: 'color:var(--color-accent);' }, escHtml(coin.denomination)));
-            title.appendChild(document.createTextNode(' '));
-        }
-        const yearMint = [];
-        if (coin.year) yearMint.push(String(coin.year));
-        if (coin.mint_mark) yearMint.push(String(coin.mint_mark));
-        if (yearMint.length) {
-            title.appendChild(document.createTextNode(yearMint.join(' ')));
-            title.appendChild(document.createTextNode(' '));
-        }
-        if (coin.coin_type) title.appendChild(document.createTextNode(escHtml(coin.coin_type)));
-    } else {
-        title.appendChild(document.createTextNode(item.description || ('Coin #' + item.coin_id)));
-    }
+    // Build a readable title from available fields
+    const titleText = item.description || ('Coin #' + item.coin_id);
+    title.appendChild(document.createTextNode(titleText));
 
     if (item.target_grade) {
         title.appendChild(document.createTextNode(' '));

@@ -58,10 +58,11 @@ async function boot() {
         setTypeConfigs(typeConfigs);
 
         // Init dashboard
-        import('./app_v2/portfolio.js').then(m => m.initPortfolio());
+        import('./portfolio.js').then(m => m.initPortfolio());
 
         // Render the catalogue
         renderSections();
+        initViewToggle();
 
         // Update completion badge
         updateCompletionBadge(sections);
@@ -149,11 +150,38 @@ async function fetchSpotPricesBackground() {
 
 let _installPrompt = null;
 
+// Detect whether this is a self-hosted deployment (Tailscale/local/lan)
+// vs a public static deployment (Cloudflare Pages / GitHub Pages).
+function _isSelfHostedDeployment() {
+    const h = (window.location && window.location.hostname ? window.location.hostname : '').trim().toLowerCase();
+    return Boolean(
+        h &&
+        (h.endsWith('.ts.net') ||
+        h.includes('tailscale') ||
+        h === 'localhost' ||
+        h === '127.0.0.1' ||
+        h.startsWith('192.168.') ||
+        h.startsWith('10.') ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(h) ||
+        h.indexOf('.') === -1)
+    );
+}
+
+const _isSelfHosted = _isSelfHostedDeployment();
+
 window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    _installPrompt = e;
+    // PC-only CF install: on Cloudflare/public deployments, block PWA install
+    // on phones/mobiles entirely; desktop PC keeps the install button.
+    if (!_isSelfHosted) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        window._installPrompt = null;
+    } else {
+        e.preventDefault();
+        _installPrompt = e;
+    }
     const btn = document.getElementById('btn-install');
-    if (btn) btn.style.display = 'inline-flex';
+    if (btn) btn.style.display = _isSelfHosted ? 'inline-flex' : 'none';
 });
 
 window.addEventListener('appinstalled', () => {
@@ -182,8 +210,6 @@ window.openPaperCurrencyModal = openPaperCurrencyModal;
 window.openCollectablesModal  = openCollectablesModal;
 
 // ============================================================
-<<<<<<< HEAD
-=======
 // View Toggle — List vs Album
 // ============================================================
 
@@ -217,7 +243,6 @@ function initViewToggle() {
 }
 
 // ============================================================
->>>>>>> 544878f (Critical security fix + Coin Catalog v2 feature changes)
 // Splash control — defined here so it's always available
 // ============================================================
 

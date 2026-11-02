@@ -18,7 +18,7 @@ async function fetchStoriesData() {
         return _storiesCache;
     }
     try {
-        const response = await fetch('data/stories.json');
+        const response = await fetch('/data/stories.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -42,7 +42,7 @@ function renderStoriesContent(container) {
     // Create the modal structure
     const modalBox = el('div', { className: 'modal-box' });
     const modalHeader = el('div', { className: 'modal-header' });
-    const modalTitle = el('h2', { className: 'modal-title' }, 'Stories and Tips');
+    const modalTitle = el('h2', { className: 'modal-title' }, 'Stories');
     const closeButton = el('button', {
         className: 'modal-close',
         'data-action': 'close-modal',
@@ -178,8 +178,7 @@ function populateStoriesBody(bodyElement, storiesData) {
                 
                 const content = el('div', {
                     style: 'line-height: 1.5; color: var(--color-text-main); font-size: 0.9rem;'
-                });
-                content.innerHTML = story.content || '';
+                }, story.content);
                 
                 storyCard.appendChild(categoryBadge);
                 storyCard.appendChild(title);
@@ -255,12 +254,6 @@ export function openStoriesModal() {
         const { modalBody } = renderStoriesContent(container);
         // Populate the body with the actual stories
         populateStoriesBody(modalBody, data);
-        // Move to top of modal layer to appear above info modal
-        const layer = document.getElementById('modal-layer');
-        if (layer && container.parentElement === layer) {
-            layer.appendChild(container);
-        }
-        
         // Finally, open the modal
         openModal('stories-modal-container');
     }).catch(error => {

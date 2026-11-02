@@ -18,6 +18,8 @@ import {
     getSections,
     getTypeConfig,
     getInventoryTotalQty,
+    getMinYear, setMinYear,
+    getMaxYear, setMaxYear,
 } from './state.js';
 
 import { fetchCoinsForSection } from './api.js';
@@ -36,6 +38,8 @@ const FILTERS = [
     { id: 'hide_proofs',  label: 'Hide Proofs',  getState: () => getFilterHideProofs(),  toggle: () => toggleFilterHideProofs() },
     { id: 'hide_errors',  label: 'Hide Errors',  getState: () => getFilterHideErrors(),  toggle: () => toggleFilterHideErrors() },
     { id: 'key_dates',    label: 'Key Dates',    getState: () => getFilterKeyDatesOnly(), toggle: () => toggleFilterKeyDatesOnly() },
+    { id: 'min_year',     label: 'Min Year',     getState: () => getMinYear(),           setState: (v) => setMinYear(v) },
+    { id: 'max_year',     label: 'Max Year',     getState: () => getMaxYear(),           setState: (v) => setMaxYear(v) },
 ];
 
 const SORT_MODES = [
@@ -140,7 +144,8 @@ export async function triggerSearch() {
     const q = getSearchQuery();
     const sortMode = getSortMode();
     const hasFilter = getFilterMissingOnly() || getFilterHideProofs()
-        || getFilterHideErrors() || getFilterKeyDatesOnly();
+        || getFilterHideErrors() || getFilterKeyDatesOnly()
+        || getMinYear() !== null || getMaxYear() !== null;
     const isActive = !!q || hasFilter;
 
     const container = document.getElementById('catalog-container');
@@ -166,6 +171,10 @@ export async function triggerSearch() {
             if (getFilterHideErrors())   params.set('hide_errors', '1');
             if (getFilterKeyDatesOnly()) params.set('key_dates_only', '1');
             if (sortMode !== 'default')  params.set('sort', sortMode);
+            const minYear = getMinYear();
+            if (minYear !== null) params.set('min_year', minYear);
+            const maxYear = getMaxYear();
+            if (maxYear !== null) params.set('max_year', maxYear);
 
             const resp = await fetch('/api/coins?' + params.toString());
             results = await resp.json();

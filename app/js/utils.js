@@ -150,8 +150,6 @@ export function findSplitDash(str) {
 export function getMainType(fullType) {
     if (!fullType) return 'Unknown';
     if (fullType.startsWith('Westward Journey')) return 'Jefferson';
-    if (fullType.startsWith('Indian Head') && !fullType.includes('Eagle') && !fullType.includes('Dollar')) return 'Indian Head Cent';
-    if (fullType.startsWith('Washington') && !fullType.includes('Carver') && !fullType.includes('250th')) return 'Washington';
     const dashIdx = findSplitDash(fullType);
     if (dashIdx >= 0) return fullType.substring(0, dashIdx).trim();
     const parenStart = fullType.indexOf(' (');
@@ -289,20 +287,43 @@ export function el(tag, props = {}, ...children) {
 }
 
 /**
- * Debounce a function: delay execution until *wait* ms have passed
- * without another call.
- *
- * @param {Function} fn   - Function to debounce.
- * @param {number}   wait - Delay in milliseconds.
- * @returns {Function} Debounced function.
- */
-export function debounce(fn, wait) {
-    let timer;
-    return (...args) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => fn(...args), wait);
-    };
-}
+ /** Debounce a function: delay execution until *wait* ms have passed
+  * without another call.
+  *
+  * @param {Function} fn   - Function to debounce.
+  * @param {number}   wait - Delay in milliseconds.
+  * @returns {Function} Debounced function.
+  */
+ export function debounce(fn, wait) {
+     let timer;
+     return (...args) => {
+         clearTimeout(timer);
+         timer = setTimeout(() => fn(...args), wait);
+     };
+ }
+
+ /** Build a human-readable section label prefixed with its country.
+  * e.g. "US Coinage — Half Cent" → "US — Half Cent".
+  * @param {string} sectionName - Raw section name from the catalogue.
+  * @returns {string} Country-prefixed display label.
+  */
+ export function formatSectionWithCountry(sectionName) {
+     const country = getCountryForSection(sectionName);
+     const clean = sectionName
+         .replace(/^(US Coinage|US)\s*[—-]\s*/i, '')
+         .replace(/^(Canadian Coinage|Canadian)\s*[—-]\s*/i, '')
+         .replace(/^(UK Coinage|UK)\s*[—-]\s*/i, '');
+     return country ? country + ' — ' + clean : clean;
+ }
+
+ /** Determine country from a section name. */
+ function getCountryForSection(sectionName) {
+     if (!sectionName) return '';
+     if (/^US/i.test(sectionName)) return 'US';
+     if (/^Canadian/i.test(sectionName)) return 'Canada';
+     if (/^UK/i.test(sectionName)) return 'UK';
+     return '';
+ }
 
 /**
  * Generate a short placeholder SVG for missing coin images.

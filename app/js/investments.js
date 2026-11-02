@@ -22,6 +22,7 @@ import { showToast } from './notifications.js';
 import {
     fetchInvestments, saveInvestment, deleteInvestment,
 } from './api.js';
+import { refreshPortfolioData } from './portfolio.js';
 
 // ---------------------------------------------------------------------------
 // Sparkline helper — shared between per-entry and card-total sparklines
@@ -296,6 +297,7 @@ export function buildInvestmentsCard() {
             render();
             nameIn.value = ''; valIn.value = ''; costIn.value = ''; dateIn.value = '';
             showToast('Other Investments added', 'success');
+            refreshPortfolioData();
         }).catch((err) => {
             showToast('Failed to save: ' + err.message, 'error');
         });
@@ -400,6 +402,7 @@ export function buildInvestmentsCard() {
                         _invEntries = _invEntries.filter((x) => x.id !== e.id);
                         render();
                         refreshTotal();
+                        refreshPortfolioData();
                     }).catch((err) => {
                         showToast('Failed to delete: ' + err.message, 'error');
                     });
@@ -539,6 +542,7 @@ export function buildInvestmentsCard() {
                 render();
                 showToast('Investment updated', 'success');
                 closeModal();
+                refreshPortfolioData();
             }).catch((err) => {
                 showToast('Failed to save: ' + err.message, 'error');
             });
@@ -628,22 +632,28 @@ export function buildInvestmentsCard() {
         });
     }
 
-    // Load entries from server
+    // --- Initial synchronous render from cache ---
+    render();
+
+    // --- Load entries from server (background) ---
     fetchInvestments().then((entries) => {
-        _invEntries = entries || [];
-        // Initialize history for each entry
-        _invEntries.forEach((e) => {
-            _entryHistory[e.id] = _entryHistory[e.id] || [];
-            if (_entryHistory[e.id].length === 0) {
-                _addHistoryPoint(_entryHistory[e.id], e.total_value, MAX_HISTORY);
-            }
-        });
-        _saveHistory();
-        render();
+        const newEntries = entries || [];
+        // Only re-render if server data differs from cache
+        if (JSON.stringify(newEntries) !== JSON.stringify(_invEntries)) {
+            _invEntries = newEntries;
+            // Initialize history for each entry
+            _invEntries.forEach((e) => {
+                _entryHistory[e.id] = _entryHistory[e.id] || [];
+                if (_entryHistory[e.id].length === 0) {
+                    _addHistoryPoint(_entryHistory[e.id], e.total_value, MAX_HISTORY);
+                }
+            });
+            _saveHistory();
+            render();
+        }
         initResizeHandles();
     }).catch(() => {
-        _invEntries = [];
-        render();
+        // On error, keep cache render; just init handles
         initResizeHandles();
     });
 

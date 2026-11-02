@@ -13,6 +13,74 @@ import { buildInvestmentsCard } from './investments.js';
 
 var _portfolioData = null;
 
+// ================================================================
+// Grid Height Pinning — prevents layout shift during re-renders
+// ================================================================
+
+let _gridHeightPinned = false;
+let _gridOrigTemplateRows = null;
+let _scrollYLocked = 0;
+let _catalogTopLocked = 0;
+
+/**
+ * Pin the dashboard grid height to its current rendered size.
+ * Preserves the original grid-template-rows, sets min-height, and locks scroll position.
+ * Call BEFORE clearing/rebuilding the grid.
+ */
+function _pinGridHeight(grid) {
+    if (!grid || _gridHeightPinned) return;
+
+    // Store the original (unpinned) grid-template-rows
+    const style = window.getComputedStyle(grid);
+    _gridOrigTemplateRows = style.getPropertyValue('grid-template-rows') || 'none';
+
+    // Pin: set explicit min-height to current rendered height
+    const rect = grid.getBoundingClientRect();
+    grid.style.minHeight = rect.height + 'px';
+    // Also pin grid-template-rows to prevent row collapse
+    grid.style.gridTemplateRows = _gridOrigTemplateRows;
+
+    // Lock scroll position
+    _scrollYLocked = window.scrollY;
+    const catalogContainer = document.getElementById('catalog-container');
+    if (catalogContainer) {
+        _catalogTopLocked = catalogContainer.getBoundingClientRect().top;
+    }
+
+    _gridHeightPinned = true;
+}
+
+/**
+ * Release the grid height pin.
+ * Restores original grid-template-rows, removes min-height, restores scroll if needed.
+ * Call AFTER the new grid content has been painted and measured.
+ */
+function _releaseGridHeight(grid) {
+    if (!grid || !_gridHeightPinned) return;
+
+    // Restore original grid-template-rows
+    grid.style.gridTemplateRows = _gridOrigTemplateRows || 'none';
+    // Remove min-height (let it breathe naturally now)
+    grid.style.minHeight = '';
+
+    // Restore scroll position if it shifted
+    const catalogContainer = document.getElementById('catalog-container');
+    if (catalogContainer) {
+        const newTop = catalogContainer.getBoundingClientRect().top;
+        const delta = newTop - _catalogTopLocked;
+        if (Math.abs(delta) > 0.5) {
+            window.scrollBy(0, -delta);
+        }
+    } else if (Math.abs(window.scrollY - _scrollYLocked) > 0.5) {
+        window.scrollTo(0, _scrollYLocked);
+    }
+
+    _gridHeightPinned = false;
+    _gridOrigTemplateRows = null;
+    _scrollYLocked = 0;
+    _catalogTopLocked = 0;
+}
+
 function fetchPortfolioAsync() {
     return fetch('/api/portfolio').then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
 }
@@ -349,12 +417,33 @@ export function initPortfolio() {
     applyDashboardOrder();
 }
 
+/**
+ * Refresh portfolio data from the server and re-render the dashboard.
+ * Call this after inventory, bullion, investments, or bulk changes.
+ */
+export async function refreshPortfolioData() {
+    try {
+        const data = await fetchPortfolioAsync();
+        if (data) {
+            _portfolioData = data;
+            renderDashboard();
+        }
+    } catch (err) {
+        console.warn('Failed to refresh portfolio data:', err);
+    }
+}
+
 function fmt(v) { return '$'+v.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 export function renderDashboard() {
     var c = document.getElementById('dashboard-grid');
     if (!c) return;
+
+    // Pin grid height BEFORE clearing to prevent layout shift
+    _pinGridHeight(c);
+
     c.innerHTML = '';
+
     var p = _portfolioData || {};
     var prices = getSpotPrices();
 
@@ -401,7 +490,14 @@ export function renderDashboard() {
     if (pap.length > 0) { var p2 = buildPaperCurrencyCard(pap); if (p2) { if (vis['card-paper'] === false) p2.style.display='none'; addDragHandle(p2); p2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-paper', 'Paper currency notes with denomination, series year, condition, and estimated value.')); c.appendChild(p2); } }
 
     var cats = getCustomCategories(); var cols = getOtherCollectables();
-    if (cats.length > 0) { var c2 = buildCustomCategoriesCard(cats, cols); if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-custom', 'Items in your custom collection categories - anything you collect that is not a coin (stamps, cards, memorabilia, etc.).')); c.appendChild(c2); } }
+     if (cats.length > 0) { var c2 = buildCustomCategoriesCard(cats, cols); if (c2) { if (vis['card-custom'] === false) c2.style.display='none'; addDragHandle(c2); c2.querySelector('.card-title')?.appendChild(makeCardHelpIcon('card-custom', 'Items in your custom collection categories — anything you collect that isn't a coin (stamps, cards, memorabilia, etc.).')); c.appendChild(c2); } }
+
+    // Release grid height pin AFTER new content is in DOM (next frame)
+    requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+            _releaseGridHeight(c);
+        });
+    });
 }
 
 function buildCompletionCard(sections) {
@@ -456,6 +552,15 @@ function buildPortfolioBreakdownCard(p) {
     var histBtn = el('button',{className:'btn-secondary btn-sm',style:'margin-top:8px;'},'View History Chart');
     histBtn.addEventListener('click',function(e){e.stopPropagation();openPortfolioHistoryModal();});
     card.appendChild(histBtn);
+
+    // PDF Export button
+    var pdfBtn = el('button',{className:'btn-primary btn-sm',style:'margin-top:8px;'},'Export PDF Report');
+    pdfBtn.addEventListener('click',function(e){
+        e.stopPropagation();
+        window.open('/api/portfolio/pdf', '_blank');
+    });
+    card.appendChild(pdfBtn);
+
     return card;
 }
 
@@ -749,7 +854,16 @@ function buildScrapMetalCard(items, prices) {
 }
 
 function buildPaperCurrencyCard(items) {
-    var v=0; items.forEach(function(i){v+=i.value||0;});
+    var v = 0;
+    items.forEach(function(i) {
+        // Use explicit value if set, otherwise calculate from denomination
+        // Star notes are worth 2x denomination
+        var val = i.value;
+        if (val == null || val === 0) {
+            val = (i.denomination || 0) * (i.is_star_note ? 2 : 1);
+        }
+        v += val;
+    });
     var card = el('div',{className:'card dashboard-card paper-card',id:'card-paper'});
     card.append(el('div',{className:'card-title'},'\uD83D\uDCB5 Paper Currency'),
         el('div',{className:'dashboard-big-number'},items.length+' notes'),
@@ -758,7 +872,12 @@ function buildPaperCurrencyCard(items) {
 }
 
 function buildCustomCategoriesCard(categories, collectables) {
-    var v=0; collectables.forEach(function(i){v+=i.estimated_value||0;});
+    var v = 0;
+    collectables.forEach(function(i) {
+        // Multiply estimated_value by quantity
+        var qty = parseInt(i.quantity, 10) || 1;
+        v += (i.estimated_value || 0) * qty;
+    });
     var card = el('div',{className:'card dashboard-card custom-card',id:'card-custom'});
     card.append(el('div',{className:'card-title'},'\uD83D\uDCE6 Other Collectables'),
         el('div',{className:'dashboard-big-number'},categories.length+' categories'),
