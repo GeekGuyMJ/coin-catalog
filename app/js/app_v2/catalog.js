@@ -1,7 +1,7 @@
 /**
  * catalog.js — Coin Catalog v2
  *
- * Renders the coin catalogue: section cards with lazy-loaded type accordions.
+ * Renders the coin catalog: section cards with lazy-loaded type accordions.
  * Uses event delegation — one listener per container, never per-row.
  *
  * Flow:
@@ -14,24 +14,136 @@
  */
 
 import {
-    getMainType, getSubType, isCompositionSub, isErrorVariety,
-    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el,
+    getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
+    typeYearSpan, coinSortComparator, sortYear, escHtml, placeholderCoinSvg, el, formatMintMark, isSpecialReverse,
+    resolveImageUrl,
 } from './utils.js';
 
 import {
     getSections, getCoinsForSection, setCoinsForSection,
-    getTypeConfig,
+    getTypeConfig, setTypeConfigs, setSections,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchCoinNotes, saveCoinNotes } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchWishlist, addToWishlist, removeFromWishlist, fetchTypeConfigs, fetchSections,
+} from './api.js';
+import { isSelfHosted } from './env.js';
 import { showToast } from './notifications.js';
 import { openImageInteractionModal } from './images.js';
 import { renderAlbumType, clearAlbumCache } from './album.js';
-import { getInventoryEntries, getInventoryTotalQty, setInventoryEntries, getWishlist } from './state.js';
+import { getInventoryEntries, getInventoryTotalQty, setInventoryEntries, setInventory, getWishlist, setWishlist } from './state.js';
 
 // --- Expanded State Preservation ---
-const _expandedSections = new Set();
+/* ================================================================
+   Section open/collapsed state, persisted.                2026-10-01
+   Was a module-level Set, which does not survive a reload, so every
+   section rendered closed on every page load and the catalogue showed
+   23 headers with no coins. Reported as "search doesn't work" because
+   there was nothing visible to search.
+
+   Now stored in localStorage alongside the app's other UI keys
+   (cc-card-visibility, cc-folder-color, cc-section-order), and it
+   DEFAULTS TO OPEN so the catalogue is usable on arrival.
+   ================================================================ */
+const _EXPANDED_KEY = 'cc-expanded-sections';
+
+function _loadExpandedSections() {
+    try {
+        const raw = localStorage.getItem(_EXPANDED_KEY);
+        if (raw === null) return null;          // never stored yet
+        const arr = JSON.parse(raw);
+        return Array.isArray(arr) ? arr : null;
+    } catch (e) { return null; }
+}
+
+function _saveExpandedSections() {
+    try {
+        localStorage.setItem(_EXPANDED_KEY,
+            JSON.stringify([..._expandedSections]));
+        window.__saveTrace = window.__saveTrace || [];
+        window.__saveTrace.push({
+            size: _expandedSections.size,
+            value: JSON.stringify([..._expandedSections]).slice(0, 70),
+            ms: Math.round(performance.now()),
+            stack: (new Error()).stack.split('\n').slice(1, 6).join(' <- '),
+        });
+    } catch (e) { /* private mode: expansion still works for this session */ }
+}
+
+// 2026-10-09 (Matthew): a NEW install starts with every section CLOSED.
+//
+// It used to be "no stored preference -> open everything", but expandSection()
+// PERSISTS the open set as it runs, so on a fresh install the render loop opened
+// the first section, that write created the key, and every later iteration read
+// the growing list back. Measured on a cleared profile: 23 sections, exactly ONE
+// open ('US Coinage — Half Cent'), which reads as a stray open section rather
+// than a default. Seeding the key to [] on first run makes the default explicit
+// and stable; an explicit click still opens and persists as before.
+const _storedExpanded = _loadExpandedSections();
+if (_storedExpanded === null) {
+    try { localStorage.setItem(_EXPANDED_KEY, '[]'); } catch (e) { /* private mode */ }
+}
+const _expandedSections = new Set(_storedExpanded || []);
+
+// GGMJ-524: Auto-expand the first section on fresh install so the catalog is usable on arrival.
+// If no sections are explicitly expanded (either never stored or empty array), open the first section.
+function _ensureFirstSectionOpen(sections) {
+    if (_expandedSections.size === 0 && sections && sections.length > 0) {
+        _expandedSections.add(sections[0].section);
+        _saveExpandedSections();
+    }
+}
+
+/**
+ * The set of sections to render open, decided ONCE per render.
+ *
+ * 2026-10-01: this used to be a per-call function that re-read
+ * localStorage every time:
+ *
+ *     function _sectionShouldBeOpen(n) {
+ *         const stored = _loadExpandedSections();
+ *         if (stored === null) return true;
+ *         return stored.includes(n);
+ *     }
+ *
+ * but expandSection() SAVES on open, so the first iteration wrote
+ * ["Half Cent"] and every later iteration then read that back and
+ * concluded the section was not in the list. Measured: 1 of 23 sections
+ * open, 45 rows, 4 types -- and the saved list never grew past one entry.
+ *
+ * So the intent is now captured once, before any expansion runs, and the
+ * loop consults that frozen list. A click still saves immediately.
+ */
+let _openThisRender = null;
+
+function _openSetForThisRender() {
+    if (_openThisRender === null) {
+        const stored = _loadExpandedSections();
+        // 2026-10-09 (Matthew): an absent/absent-on-first-run preference now
+        // means CLOSED, not open. The set is always a Set, so the
+        // "set === null -> open everything" branch below is gone: a new install
+        // opens nothing, and a returning user sees exactly what they left open.
+        _openThisRender = new Set(stored || []);
+    }
+    return _openThisRender;
+}
+
+function _beginOpenSet() { _openThisRender = null; }
+
+function _sectionShouldBeOpen(sectionName) {
+    // Default is CLOSED on a new install (Matthew, 2026-10-09).
+    return _openSetForThisRender().has(sectionName);
+}
 const _expandedTypes = new Set();
+// GGMJ-244: types the user has EXPLICITLY collapsed. A type is rendered open
+// unless it appears here, so a fresh page load shows the coins instead of
+// 6,500+ invisible rows sitting inside a display:none .type-content.
+const _collapsedTypes = new Set();
+
+// GGMJ-427: types the user has EXPLICITLY expanded in album/folder view.
+// In album view a type group starts closed, so this set is the only thing
+// that can open one - and it is what keeps an expanded type expanded
+// across a re-render (country switch, section toggle, search, filter).
+const _albumExpandedTypes = new Set();
 const _expandedCountries = new Set(['United States', 'Canada']); // Default US/Canada open
 
 // --- View Mode ---
@@ -54,7 +166,7 @@ export function renderSections() {
 
     const sections = getSections();
     if (!sections.length) {
-        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalogue.</p>';
+        container.innerHTML = '<p class="text-muted text-center" style="padding:2rem">No coins found in the catalog.</p>';
         return;
     }
 
@@ -76,26 +188,52 @@ export function renderSections() {
     initStickyHeaders();
     initSectionDragAndDrop();
     applySectionOrder();
-    sections.forEach(sec => {
-        if (_expandedSections.has(sec.section)) {
-            expandSection(sec.section);
-        }
-    });
+    /* 2026-10-01: this was forEach + a bare expandSection() call.
+       expandSection is async -- it awaits the section's coin fetch --
+       so all 23 sections started at once and raced each other into the
+       DOM. Measured: only 1 of 23 ended up open, with 22 stuck at
+       height 0. That is what made the catalogue look like it had no
+       coins at all, and therefore "search does not work".
 
-    // Auto-expand the first section of the first country group (usually US)
-    // so the user sees coin content immediately on app load
-    const firstCountryGroup = container.querySelector('.country-group');
-    if (firstCountryGroup) {
-        const firstSectionHeader = firstCountryGroup.querySelector('.section-header');
-        if (firstSectionHeader) {
-            const sectionName = firstSectionHeader.dataset.section;
-            if (sectionName && !_expandedSections.has(sectionName) && !sectionName.includes('Half Cent')) {
-                expandSection(sectionName);
+       Sequential, awaited, in catalogue order. */
+    _beginOpenSet();   // decide the open list once, before any save happens
+    
+    // GGMJ-524: Ensure first section is open on fresh install
+    _ensureFirstSectionOpen(sections);
+
+    (async () => {
+        window.__secTrace = window.__secTrace || [];
+        window.__secTrace.push({ev:'loop-start', n: sections.length,
+            ms: Math.round(performance.now())});
+        for (let i = 0; i < sections.length; i++) {
+            const sec = sections[i];
+            const want = _sectionShouldBeOpen(sec.section);
+            window.__secTrace.push({ev:'iter', i, name: sec.section, want,
+                stored: (function(){ try {
+                    return JSON.parse(localStorage.getItem('cc-expanded-sections')||'null');
+                } catch(e){ return 'ERR'; } })(),
+                ms: Math.round(performance.now())});
+            if (want) {
+                try { await expandSection(sec.section); }
+                catch (e) { window.__secTrace.push({ev:'throw', i,
+                    msg: String(e).slice(0,120), ms: Math.round(performance.now())}); }
             }
         }
-    }
+        window.__secTrace.push({ev:'loop-end',
+            open: document.querySelectorAll('.section-card [aria-expanded="true"]').length,
+            ms: Math.round(performance.now())});
+    })();
 
-    // Single event listener for ALL stepper clicks across the entire catalogue
+    // Set variables for album mode
+    const fc = localStorage.getItem('cc-folder-color') || 'green';
+    const fcMap = {green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'};
+    const ftMap = {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
+    const fcVal = fcMap[fc] || fcMap.green;
+    const ftVal = ftMap[fc] || ftMap.green;
+    container.style.setProperty('--folder-color', fcVal);
+    container.style.setProperty('--folder-header-text', ftVal);
+
+    // Single event listener for ALL stepper clicks across the entire catalog
     // Guard against duplicate attachment (renderSections can be called on search/filter)
     if (!container.dataset.clickHandler) {
         container.addEventListener('click', handleCatalogClick);
@@ -149,23 +287,21 @@ function buildCountryGroup(country, sections) {
     });
 
     const listBtn = el('button', {
-        id: 'view-list-btn',
-        title: 'List view',
-        style: 'border:none;border-radius:0;font-size:0.72em;padding:4px 10px;background:' + (currentMode === 'list' ? 'rgba(255,255,255,0.25)' : 'transparent') + ';color:inherit;cursor:pointer;'
-    }, 'List');
+        className: 'view-toggle-btn' + (currentMode === 'list' ? ' active' : ''),
+        title: 'List view'
+    }, '☰ List');
 
     const albumBtn = el('button', {
-        id: 'view-album-btn',
-        title: 'Album view',
-        style: 'border:none;border-radius:0;font-size:0.72em;padding:4px 10px;border-left:1px solid rgba(255,255,255,0.3);background:' + (currentMode === 'folder' ? 'rgba(255,255,255,0.25)' : 'transparent') + ';color:inherit;cursor:pointer;'
-    }, 'Album');
+        className: 'view-toggle-btn' + (currentMode === 'folder' ? ' active' : ''),
+        title: 'Album view'
+    }, ' Album');
 
     listBtn.addEventListener('click', (e) => { e.stopPropagation(); setCatalogViewMode('list'); });
     albumBtn.addEventListener('click', (e) => { e.stopPropagation(); setCatalogViewMode('folder'); });
     viewToggle.append(listBtn, albumBtn);
 
     const chevron = el('span', { className: 'section-chevron' }, '▾');
-    const dragHandle = el('span', { className: 'drag-handle' }, '☰');
+    const dragHandle = el('span', { className: 'drag-handle', onclick: e => e.stopPropagation() }, '☰');
     header.append(left, viewToggle, dragHandle, chevron);
 
     const content = el('div', { className: 'country-group-content', id: groupId + '-content' });
@@ -176,19 +312,19 @@ function buildCountryGroup(country, sections) {
     });
 
     // Restore expansion state
-    if (_expandedCountries.has(country) || sections.some(sec => _expandedSections.has(sec.section))) {
+    if (_expandedCountries.has(country)) {
         content.classList.add('open');
         header.setAttribute('aria-expanded', 'true');
         chevron.style.transform = 'rotate(180deg)';
     }
 
-    // Keyboard: Enter/Space toggles country group
-    header.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            header.click();
-        }
-    });
+    header.onclick = () => {
+        const isOpen = content.classList.toggle('open');
+        header.setAttribute('aria-expanded', String(isOpen));
+        chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
+        if (isOpen) _expandedCountries.add(country);
+        else _expandedCountries.delete(country);
+    };
 
     wrapper.append(header, content);
     return wrapper;
@@ -205,12 +341,18 @@ function buildCountryGroup(country, sections) {
  * @returns {HTMLElement}
  */
 function buildSectionCard(sec) {
-    const sectionId = 'section-' + CSS.escape(sec.section);
+    const sectionId = 'section-' + sec.section.replace(/[^a-zA-Z0-9]/g, '');
     const card = el('div', {
         className: 'section-card',
         id: sectionId,
         dataset: { section: sec.section },
     });
+
+    // Check initial visibility
+    try {
+        const vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
+        if (vis[sectionId] === false) card.style.display = 'none';
+    } catch(e) {}
 
     // Header (clickable, sticky)
     const header = el('div', {
@@ -225,25 +367,39 @@ function buildSectionCard(sec) {
     const left = el('div', { className: 'section-header-left' });
     
     // Add example images (always show, even if just placeholders)
-    if (sec.sample_type) {
-        const cfg = getTypeConfig(getMainType(sec.sample_type));
-        const pair = el('div', { className: 'coin-img-pair' });
-        const hasObv = cfg?.obv_image;
-        const hasRev = cfg?.rev_image;
-        if (hasObv) {
-            const img = el('img', { className: 'coin-thumb obv', src: cfg.obv_image, alt: '', dataset: { action: 'view-img', type: sec.sample_type, side: 'obv' } });
+    if (sec.section) {
+        // Example resolution for the COLLAPSED section header: show an image eagerly
+        // so scrolling shows coins, not placeholders. Priority:
+        //   override (example_*) > type-config image (obv/rev, loaded at boot) > placeholder.
+        const cfg = getTypeConfig(sec.sample_type, sec.section)
+            || getTypeConfig(sec.sample_type)
+            || getTypeConfig(sec.section, sec.section)
+            || getTypeConfig(sec.section)
+            || {};
+        // GGMJ-333: honour the _deleted flags. A deleted type image (or a
+        // deleted example override) must not come back in the section header.
+        const exObv = (cfg._deleted_example_obv_image ? null : cfg.example_obv_image)
+            || (cfg._deleted_obv_image ? null : cfg.obv_image) || null;
+        const exRev = (cfg._deleted_example_rev_image ? null : cfg.example_rev_image)
+            || (cfg._deleted_rev_image ? null : cfg.rev_image) || null;
+        // If no override yet, leave a marker so expandSection can fill the first-coin image.
+        const pair = el('div', { className: 'coin-img-pair', dataset: { sampleType: sec.sample_type || '' } });
+        if (exObv) {
+            const img = el('img', { className: 'coin-thumb obv', src: resolveImageUrl(exObv), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
-            const ph = el('img', { className: 'coin-thumb obv placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.sample_type, side: 'obv' } });
+            const ph = el('img', { className: 'coin-thumb obv placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'obv' } });
+            ph.onerror = () => { ph.src = placeholderCoinSvg(); ph.classList.add('placeholder'); };
             pair.appendChild(ph);
         }
-        if (hasRev) {
-            const img = el('img', { className: 'coin-thumb rev', src: cfg.rev_image, alt: '', dataset: { action: 'view-img', type: sec.sample_type, side: 'rev' } });
+        if (exRev) {
+            const img = el('img', { className: 'coin-thumb rev', src: resolveImageUrl(exRev), alt: '', dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
             img.onerror = () => { img.src = placeholderCoinSvg(); img.classList.add('placeholder'); };
             pair.appendChild(img);
         } else {
-            const ph = el('img', { className: 'coin-thumb rev placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.sample_type, side: 'rev' } });
+            const ph = el('img', { className: 'coin-thumb rev placeholder', src: placeholderCoinSvg(), alt: '', role: 'button', tabIndex: 0, dataset: { action: 'view-img', type: sec.section, side: 'rev' } });
+            ph.onerror = () => { ph.src = placeholderCoinSvg(); ph.classList.add('placeholder'); };
             pair.appendChild(ph);
         }
         left.appendChild(pair);
@@ -260,9 +416,31 @@ function buildSectionCard(sec) {
 
     left.append(title, ownedBadge);
 
+    const dragHandle = el('span', {
+        className: 'drag-handle',
+        title: 'Drag to reorder',
+        style: 'font-size:1.2rem; color:var(--color-text-muted); cursor:grab; user-select:none; margin-left:auto; padding:0 var(--space-2); display:flex; align-items:center; flex-shrink:0;',
+        onclick: e => e.stopPropagation(),
+    }, '☰');
+
     const chevron = el('span', { className: 'section-chevron', 'aria-hidden': 'true' }, '▾');
 
-    header.append(left, chevron);
+    // Self-hosted only: "Publish to public" button in the section header
+    // GGMJ-423: isSelfHosted must not be awaited inside a non-async function.
+    // GGMJ-388: isSelfHosted is imported from ./env.js - the single source of
+    // truth shared by api.js, catalog.js and db.js. It is a BOOLEAN, so it is
+    // never awaited (an `await import(...)` inside this NON-async function was
+    // a module-load SyntaxError that took the whole app down on GitHub Pages).
+    if (isSelfHosted) {
+        const publishBtn = el('button', {
+            className: 'btn-section-publish',
+            title: "Publish this section's images to public app",
+            onclick: (e) => { e.stopPropagation(); openPublishSectionModal(sec.section); },
+        }, '📤 Publish');
+        header.append(left, dragHandle, publishBtn, chevron);
+    } else {
+        header.append(left, dragHandle, chevron);
+    }
 
     // Content area (initially hidden)
     const content = el('div', {
@@ -295,7 +473,7 @@ function buildSectionCard(sec) {
  * @param {string} sectionName
  */
 async function expandSection(sectionName) {
-    const sectionId = 'section-' + CSS.escape(sectionName);
+    const sectionId = 'section-' + sectionName.replace(/[^a-zA-Z0-9]/g, '');
     const card = document.getElementById(sectionId);
     if (!card) return;
 
@@ -307,6 +485,7 @@ async function expandSection(sectionName) {
         content.classList.remove('open');
         header.setAttribute('aria-expanded', 'false');
         _expandedSections.delete(sectionName);
+        _saveExpandedSections();
         return;
     }
 
@@ -314,10 +493,11 @@ async function expandSection(sectionName) {
     content.classList.add('open');
     header.setAttribute('aria-expanded', 'true');
     _expandedSections.add(sectionName);
+    _saveExpandedSections();
 
     // Already loaded?
     const cached = getCoinsForSection(sectionName);
-    if (Array.isArray(cached) && cached.length > 0) {
+    if (cached) {
         renderTypeAccordions(content, cached);
         return;
     }
@@ -329,6 +509,7 @@ async function expandSection(sectionName) {
         const coins = await fetchCoinsForSection(sectionName);
         setCoinsForSection(sectionName, coins);
         renderTypeAccordions(content, coins);
+        refreshSectionHeaderExample(sectionName, coins);
     } catch (err) {
         content.innerHTML = `<p class="text-muted" style="padding:1rem">
             Failed to load coins: ${escHtml(err.message)}
@@ -367,10 +548,10 @@ function renderTypeAccordions(container, coins) {
         typeMap.get(main).push(coin);
     }
 
-    // Sort type groups by their earliest coin year
+    // Sort type groups by their earliest coin year (sortYear maps 1776 → 1976, handles string '1776-1976')
     const sortedTypes = [...typeMap.entries()].sort((a, b) => {
-        const minA = Math.min(...a[1].map(c => c.year === 1776 ? 1976 : c.year || 9999));
-        const minB = Math.min(...b[1].map(c => c.year === 1776 ? 1976 : c.year || 9999));
+        const minA = Math.min(...a[1].map(c => sortYear(c)));
+        const minB = Math.min(...b[1].map(c => sortYear(c)));
         return minA - minB;
     });
 
@@ -385,6 +566,76 @@ function renderTypeAccordions(container, coins) {
 // ============================================================
 
 /**
+ * Resolve the EXAMPLE (header/accordion thumbnail) image for a type.
+ *
+ * Priority:
+ *   1. Manual override (config.example_obv_image / example_rev_image) — wins until cleared.
+ *   2. The first coin (lowest year) of this type that actually HAS an image for this side.
+ *   3. Placeholder — NO fallback to .recovered / master / seed / shared config defaults.
+ *
+ * @param {string} mainType  - Type name.
+ * @param {Array}  typeCoins - Coins belonging to this type.
+ * @param {string} side      - "obv" | "rev".
+ * @param {string} [section] - Optional section for qualified config lookup.
+ * @returns {string|null}    - Resolved image URL, or null → placeholder.
+ */
+function resolveExampleImage(mainType, typeCoins, side, section) {
+    const cfg = getTypeConfig(mainType, section) || {};
+    const override = side === 'obv' ? cfg.example_obv_image : cfg.example_rev_image;
+    if (override) return override;
+
+    const field = side === 'obv' ? 'obv_image' : 'rev_image';
+    const deletedField = '_deleted_' + field;
+    // First coin (lowest year) with an image for this side (respecting deletions).
+    const sorted = [...(typeCoins || [])].sort((a, b) => (a.year || 0) - (b.year || 0));
+    for (const c of sorted) {
+        if (c[deletedField]) continue;
+        if (c[field]) return c[field];
+    }
+    return null; // no fallback → placeholder
+}
+
+/**
+ * Fill a section header's example thumbnails from the first coin (lowest year)
+ * of the section's sample_type that has an image — but ONLY if no manual override
+ * (example_obv_image / example_rev_image) is set. Called after a section's coins load.
+ *
+ * @param {string} sectionName - Section name (used to locate the header pair).
+ * @param {Array}  coins        - Coins just loaded for the section.
+ */
+function refreshSectionHeaderExample(sectionName, coins) {
+    const header = document.querySelector(`.section-header[data-section="${CSS.escape(sectionName)}"]`);
+    if (!header) return;
+    const pair = header.querySelector('.coin-img-pair');
+    if (!pair) return;
+
+    const sampleType = pair.dataset.sampleType || '';
+    // Coins whose coin_type matches sample_type, or whose main type matches it.
+    const matches = (coins || []).filter(c =>
+        c.coin_type === sampleType ||
+        getMainType(c.coin_type) === sampleType ||
+        getMainType(c.coin_type) === getMainType(sampleType)
+    );
+    if (!matches.length) return;
+
+    const cfg = getTypeConfig(sampleType, sectionName) || {};
+    ['obv', 'rev'].forEach(side => {
+        const override = side === 'obv' ? cfg.example_obv_image : cfg.example_rev_image;
+        if (override) return; // override already shows; don't overwrite
+        const field = side === 'obv' ? 'obv_image' : 'rev_image';
+        const deleted = '_deleted_' + field;
+        const sorted = [...matches].sort((a, b) => (a.year || 0) - (b.year || 0));
+        let src = null;
+        for (const c of sorted) { if (!c[deleted] && c[field]) { src = c[field]; break; } }
+        if (!src) return;
+        let img = pair.querySelector(`img[data-side="${side}"]`) || pair.querySelector(`img.coin-thumb.${side}`);
+        if (!img) return;
+        img.src = resolveImageUrl(src);
+        img.classList.remove('placeholder');
+    });
+}
+
+/**
  * Build a type accordion (header + coin rows).
  *
  * @param {string} mainType  - Display name for the type.
@@ -393,9 +644,14 @@ function renderTypeAccordions(container, coins) {
  */
 function buildTypeAccordion(mainType, typeCoins) {
     const typeId = 'type-' + mainType.replace(/[^a-zA-Z0-9]/g, '');
-    const cfg = getTypeConfig(mainType) || {};
 
     const wrapper = el('div', { className: 'type-wrapper', id: typeId });
+    
+    // Check initial visibility
+    try {
+        const vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
+        if (vis[typeId] === false) wrapper.style.display = 'none';
+    } catch(e) {}
 
     // --- Header ---
     const header = el('div', {
@@ -403,22 +659,26 @@ function buildTypeAccordion(mainType, typeCoins) {
         role: 'button',
         tabIndex: 0,
         'aria-expanded': 'false',
-        dataset: { action: 'toggle-type' },
+        dataset: { action: 'toggle-type', type: mainType },
     });
 
     const left = el('div', { className: 'type-header-left' });
 
-    // Coin thumbnails
+    // Coin thumbnails — example resolution: override > first coin with image > placeholder.
+    // No fallback to recovered/master/seed defaults.
+    const _tcSection = (typeCoins && typeCoins[0] && typeCoins[0].section) || '';
+    const exObv = resolveExampleImage(mainType, typeCoins, 'obv', _tcSection);
+    const exRev = resolveExampleImage(mainType, typeCoins, 'rev', _tcSection);
     const pair = el("div", { className: "coin-img-pair" });
-    if (cfg.obv_image) {
+    if (exObv) {
         const imgObv = el("img", {
             className: "coin-thumb obv",
-            src: cfg.obv_image,
+            src: resolveImageUrl(exObv),
             alt: mainType + " obverse",
             loading: "lazy",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "obv" },
+            dataset: { action: "view-img", type: mainType, side: "obv", section: _tcSection },
         });
         imgObv.onerror = function() { imgObv.src = placeholderCoinSvg(); };
         pair.appendChild(imgObv);
@@ -429,19 +689,19 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: "Upload " + mainType + " obverse",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "upload-img", type: mainType, side: "obv" },
+            dataset: { action: "view-img", type: mainType, side: "obv", section: _tcSection },
         });
         pair.appendChild(placeholderObv);
     }
-    if (cfg.rev_image) {
+    if (exRev) {
         const imgRev = el("img", {
             className: "coin-thumb rev",
-            src: cfg.rev_image,
+            src: resolveImageUrl(exRev),
             alt: mainType + " reverse",
             loading: "lazy",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "view-img", type: mainType, side: "rev" },
+            dataset: { action: "view-img", type: mainType, side: "rev", section: _tcSection },
         });
         imgRev.onerror = function() { imgRev.src = placeholderCoinSvg(); };
         pair.appendChild(imgRev);
@@ -452,7 +712,7 @@ function buildTypeAccordion(mainType, typeCoins) {
             alt: "Upload " + mainType + " reverse",
             role: "button",
             tabIndex: 0,
-            dataset: { action: "upload-img", type: mainType, side: "rev" },
+            dataset: { action: "view-img", type: mainType, side: "rev", section: _tcSection },
         });
         pair.appendChild(placeholderRev);
     }
@@ -479,11 +739,37 @@ function buildTypeAccordion(mainType, typeCoins) {
         content.appendChild(buildCoinRow(coin));
     }
 
-    // Restore expanded state
-    if (_expandedTypes.has(mainType)) {
+    // Restore expanded state.
+    // GGMJ-244: a type is OPEN unless the user explicitly collapsed it.
+    // `_expandedTypes` alone could not drive this: it starts empty on every
+    // page load, so every type rendered collapsed and its coin rows stayed
+    // hidden inside .type-content { display:none }.
+    //
+    // GGMJ-427: in album/folder view a type group starts CLOSED.
+    // An open type group renders its album grid, and album.js loads that
+    // grid's coin images for every `.type-content.open.album-inline`
+    // container - so an eagerly opened section fired a coin-image request
+    // for every coin of every type before the user had asked for any of
+    // them. The type header click is the only thing that opens a type now.
+    const _isAlbumView = (getCatalogViewMode() === 'album' || getCatalogViewMode() === 'folder');
+    const _typeIsOpen = _isAlbumView
+        ? _albumExpandedTypes.has(mainType)
+        : !_collapsedTypes.has(mainType);
+    if (_typeIsOpen) {
         content.classList.add('open');
         header.setAttribute('aria-expanded', 'true');
         header.querySelector('.section-chevron').style.transform = 'rotate(180deg)';
+        // BUG FIX (2026-09-02): when album mode is active, a re-expanded type must
+        // render its album inline. collapse->re-expand (or any rebuild of the type
+        // accordions via renderSections/expandSection) would otherwise fall back to
+        // the list rows populated above, losing the album view.
+        const _m = getCatalogViewMode();
+        // _tcSection is computed earlier in this function from typeCoins[0].section.
+        // `firstCoinSection` was never defined here — the ReferenceError silently
+        // killed every album re-render (2026-09-22 "no nickels"/tour-step-9 report).
+        if ((_m === 'album' || _m === 'folder') && _tcSection) {
+            renderAlbumType(_tcSection, mainType, content, header);
+        }
     }
 
     // Toggle on click/keyboard
@@ -494,9 +780,16 @@ function buildTypeAccordion(mainType, typeCoins) {
 
         if (open) {
             _expandedTypes.add(mainType);
+            // GGMJ-244: an explicit expand clears any recorded collapse.
+            _collapsedTypes.delete(mainType);
             // If in album mode, render album inline
             const mode = getCatalogViewMode();
             if (mode === 'album' || mode === 'folder') {
+                // GGMJ-427: in album view this click is the ONLY thing that
+                // opens a type group, so remember it - a re-render (country
+                // switch, section toggle, search, filter) must not silently
+                // collapse the type the user just opened.
+                _albumExpandedTypes.add(mainType);
                 // Get the section name from the parent section-card
                 const sectionCard = wrapper.closest('.section-card');
                 const secName = sectionCard?.dataset?.section || '';
@@ -506,6 +799,12 @@ function buildTypeAccordion(mainType, typeCoins) {
             }
         } else {
             _expandedTypes.delete(mainType);
+            // GGMJ-244: remember the explicit collapse so a re-render
+            // (search / filter) does not silently reopen the type.
+            _collapsedTypes.add(mainType);
+            // GGMJ-427: and a collapsed type must not re-open on the next
+            // album re-render either.
+            _albumExpandedTypes.delete(mainType);
         }
     });
     header.addEventListener('keydown', e => {
@@ -533,7 +832,8 @@ function getSlotCount(coinId) {
     }
     var qty = getInventoryTotalQty(coinId) || 0;
     if (qty === 0) return 0;
-    return 1; // Always start with 1 slot
+    var entries = getInventoryEntries(coinId) || [];
+    return Math.max(1, Math.min(entries.length, qty));
 }
 var GRADE_GROUPS = [
     ['Poor to Good', [['P-1','P-1·Poor'],['FA-2','FA-2·Fair'],['AG-3','AG-3·About Good'],['G-4','G-4·Good'],['G-6','G-6·Good']]],
@@ -563,56 +863,101 @@ function buildGradeOptions(selectedGrade) {
  * Each count entry gets its own card with multi-photo strip, compact field grid, and notes.
  * Cards are hidden/shown via tab switching — only one instance visible at a time.
  */
-function buildCoinSlots(coinId) {
+function buildCoinSlots(coinId, activeIdx = 0) {
     var qty = getInventoryTotalQty(coinId) || 0;
     if (qty === 0) return "";
     var slotCount = getSlotCount(coinId);
+
+    // Clamp activeIdx to slotCount range
+    if (activeIdx >= slotCount) {
+        activeIdx = Math.max(0, slotCount - 1);
+    }
+
     var entries = getInventoryEntries(coinId) || [];
     var html = '<div class="coin-entries">';
 
-    // Instance tab row (only if > 1 slot)
-    if (slotCount > 1) {
+    // Instance tab row
+    if (qty > 0) {
         html += '<div class="coin-instance-tabs" role="tablist">';
+        html += '<span class="coin-instance-tabs-label">Data Entries:</span>';
         for (var t = 0; t < slotCount; t++) {
-            var isActive = t === 0 ? ' active' : '';
-            html += '<button class="coin-instance-tab' + isActive + '" role="tab" data-action="switch-instance" data-instance-idx="' + t + '" aria-selected="' + (t === 0 ? 'true' : 'false') + '">Coin ' + (t + 1) + '</button>';
+            var isActive = t === activeIdx ? ' active' : '';
+            html += '<button class="coin-instance-tab' + isActive + '" role="tab" data-action="switch-instance" data-instance-idx="' + t + '" aria-selected="' + (t === activeIdx ? 'true' : 'false') + '">Entry ' + (t + 1) + '</button>';
+        }
+        if (slotCount < qty) {
+            html += '<button class="coin-instance-tab add-tab" role="tab" data-action="add-instance" data-coin-id="' + coinId + '" title="Add details for another coin">+</button>';
         }
         html += '</div>';
     }
 
     for (var i = 0; i < slotCount; i++) {
         var entry = entries[i] || {};
-        var isVisible = i === 0 ? '' : ' style="display:none;"';
-        html += '<div class="coin-entry-card' + (i === 0 ? ' is-active' : '') + '" data-instance-idx="' + i + '"' + isVisible + '>';
-        // Header row
-        html += '<div class="coin-entry-header">';
-        html += '<span class="coin-entry-num">Coin #' + (i + 1) + '</span>';
+        var isVisible = i === activeIdx ? '' : ' style="display:none;"';
+        html += '<div class="coin-entry-card' + (i === activeIdx ? ' is-active' : '') + '" data-instance-idx="' + i + '"' + isVisible + '>';
+        // Header removed (tabs replace it above)
         if (slotCount > 1) {
             html += '<button class="coin-entry-remove" data-action="remove-slot" data-slot-idx="' + i + '">Remove</button>';
         }
-        html += '</div>';
 
         // Body: photo strip + fields side by side
         html += '<div class="coin-entry-body">';
 
-        // Multi-photo strip (3 slots: Obv, Rev, Error)
+        // Dynamic photo strip
         html += '<div class="coin-entry-photo-strip">';
-        var photoLabels = ['Obv', 'Rev', 'Err'];
-        var photoSlots = ['obv', 'rev', 'err'];
-        for (var p = 0; p < 3; p++) {
-            var pSlot = photoSlots[p];
-            var pLabel = photoLabels[p];
-            var existingPhoto = entry['photo_' + pSlot + '_b64'] || entry.personal_photo || '';
-            html += '<div class="coin-entry-photo-slot" data-photo-slot="' + pSlot + '" data-slot-idx="' + i + '">';
-            if (existingPhoto) {
-                html += '<div class="coin-entry-photo-circle has-photo"><img src="' + existingPhoto + '" alt="' + pLabel + '" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + i + '" data-photo-slot="' + pSlot + '"></div>';
-            } else {
-                html += '<div class="coin-entry-photo-circle"><img src="' + placeholderCoinSvg() + '" class="coin-entry-photo-icon" alt="Add photo"></div>';
+        
+        // Parse existing photos
+        var photos = [];
+        var personalPhotoStr = entry.personal_photo || '';
+        if (personalPhotoStr) {
+            // Protect base64 strings from being split by replacing the semicolon
+            var safeStr = personalPhotoStr.replace(/;base64,/g, '___BASE64___');
+            var splitPhotos = safeStr.split(';');
+            photos = splitPhotos.map(function(s) {
+                return s.replace(/___BASE64___/g, ';base64,');
+            }).filter(Boolean);
+        } else {
+            // Legacy fallback
+            ['obv', 'rev', 'err'].forEach(function(k) {
+                if (entry['photo_' + k + '_b64']) {
+                    photos.push(entry['photo_' + k + '_b64']);
+                }
+            });
+        }
+        
+        // Render existing photos
+        for (var p = 0; p < photos.length; p++) {
+            var existingPhoto = photos[p];
+            if (existingPhoto && !existingPhoto.startsWith('data:') && !existingPhoto.startsWith('/')) {
+                if (existingPhoto.startsWith('inv_')) {
+                    existingPhoto = '/data/images/personal/' + existingPhoto;
+                } else {
+                    existingPhoto = '/data/images/types/' + existingPhoto;
+                }
             }
-            html += '<button class="coin-entry-photo-btn" data-action="slot-photo" data-slot-idx="' + i + '" data-photo-slot="' + pSlot + '">' + pLabel + '</button>';
-            html += '<span class="slot-photo-name" data-slot-idx="' + i + '" data-photo-slot="' + pSlot + '" data-photo-b64="' + existingPhoto + '">' + (existingPhoto ? '✓' : '') + '</span>';
+            html += '<div class="coin-entry-photo-slot" data-photo-idx="' + p + '" data-slot-idx="' + i + '" style="position:relative;">';
+            html += '<div class="coin-entry-photo-circle has-photo" style="cursor:pointer;">';
+            html += '<img src="' + existingPhoto + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + i + '" data-photo-idx="' + p + '">';
+            html += '</div>';
+            // Hidden change button to keep existing logic
+            html += '<button style="display:none;" class="coin-entry-photo-btn" data-action="slot-photo" data-slot-idx="' + i + '" data-photo-idx="' + p + '">Change</button>';
+            // Add a small X button in the top right corner of the slot
+            html += '<button type="button" class="coin-entry-photo-remove-corner" data-action="slot-photo-remove" data-slot-idx="' + i + '" data-photo-idx="' + p + '" style="position:absolute; top:0; right:0; background:var(--color-danger); color:white; border:none; border-radius:50%; width:16px; height:16px; font-size:10px; line-height:16px; text-align:center; padding:0; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.5); z-index:11;">✕</button>';
+            html += '<span style="display:none;" class="slot-photo-name" data-slot-idx="' + i + '" data-photo-idx="' + p + '" data-photo-b64="' + photos[p] + '">✓</span>';
             html += '</div>';
         }
+        
+        // Render one empty photo spot at the end if we have less than 5 photos
+        if (photos.length < 5) {
+            html += '<div class="coin-entry-photo-slot" data-photo-idx="' + photos.length + '" data-slot-idx="' + i + '">';
+            html += '<div class="coin-entry-photo-circle empty add-photo" data-action="slot-photo-empty" data-slot-idx="' + i + '" data-photo-idx="' + photos.length + '" style="cursor:pointer;">';
+            html += '<span class="coin-placeholder-icon" style="font-size:24px;font-weight:700;color:var(--color-accent);">+</span>';
+            html += '</div>';
+            // Hidden add button to keep existing logic
+            html += '<button style="display:none;" class="coin-entry-photo-btn" data-action="slot-photo" data-slot-idx="' + i + '" data-photo-idx="' + photos.length + '">Add</button>';
+            html += '<span style="display:none;" class="slot-photo-name" data-slot-idx="' + i + '" data-photo-idx="' + photos.length + '"></span>';
+            html += '</div>';
+        }
+        
         html += '</div>'; // end photo-strip
 
         // Compact 4-column fields grid
@@ -632,13 +977,10 @@ function buildCoinSlots(coinId) {
         html += '</div>';
         html += '</div>'; // end entry-card
     }
-    if (slotCount < qty) {
-        html += '<button class="coin-entry-add" data-action="add-slot">+ Add detail entry (' + slotCount + '/' + qty + ')</button>';
-    }
     html += '</div>';
     return html;
 }
-function saveCoinSlots(coinId, panelEl) {
+function saveCoinSlots(coinId, panelEl, isAutosave = false) {
     var slotCount = getSlotCount(coinId);
     var entries = getInventoryEntries(coinId) || [];
     var promises = [];
@@ -658,31 +1000,235 @@ function saveCoinSlots(coinId, panelEl) {
         var date = card.querySelector('.slot-date') ? card.querySelector('.slot-date').value : '';
         var notes = card.querySelector('.slot-notes') ? card.querySelector('.slot-notes').value.trim() : '';
         var payload = {
-            coin_ref_id: coinId, quantity: 1,
+            coin_ref_id: coinId, quantity: entry.quantity || 1,
             grade: grade, purchase_price: price, current_value: value,
             date_acquired: date, notes: notes
         };
         if (entry.id) payload.id = entry.id;
-        // Collect per-slot photos
-        for (var p = 0; p < 3; p++) {
-            var nameEl = card.querySelector('.slot-photo-name[data-photo-slot="' + photoSlotKeys[p] + '"]');
-            if (nameEl && nameEl.dataset.photoB64) {
-                payload[photoPayloadKeys[p]] = nameEl.dataset.photoB64;
+        // Collect all dynamic photos
+        var photos = [];
+        var nameEls = card.querySelectorAll('.slot-photo-name');
+        nameEls.forEach(function(el) {
+            if (el.dataset.photoB64) {
+                photos.push(el.dataset.photoB64);
             }
-        }
-        // Backwards compat: also set personal_photo to obv if present
-        if (payload.photo_obv_b64 && !payload.personal_photo) {
-            payload.personal_photo = payload.photo_obv_b64;
-        }
+        });
+        payload.personal_photos = photos;
         promises.push(updateInventory(coinId, payload));
     }
     return Promise.all(promises).then(function() {
         return fetchInventory();
-    }).then(function() {
-        window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: coinId } }));
+    }).then(function(newInv) {
+        return import('./state.js').then(function(m) {
+            m.setInventory(newInv);
+            window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: coinId, reason: isAutosave } }));
+            if (panelEl && panelEl.rebuildSlots && isAutosave === 'photo-update') {
+                panelEl.rebuildSlots();
+            }
+        });
     });
 }
 
+// ============================================================
+// Personal Slot Photo Helpers
+// ============================================================
+
+/**
+ * Show a floating choice popover when clicking an empty personal photo slot.
+ * Offers "Upload from Device" and "From Coin Bank".
+ */
+function showPhotoSlotChoice(btnEl, coinId, dp) {
+    // Remove any existing popover
+    var existing = document.querySelector('.photo-slot-choice');
+    if (existing) existing.remove();
+
+    var popover = document.createElement('div');
+    popover.className = 'photo-slot-choice';
+    var rect = btnEl.getBoundingClientRect();
+    popover.style.cssText = 'position:fixed; z-index:11000; background:var(--color-bg-card); border:1px solid var(--color-border); border-radius:var(--radius-md); padding:4px; box-shadow:0 4px 16px rgba(0,0,0,0.5); display:flex; flex-direction:column; gap:2px;';
+    popover.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px';
+    popover.style.top = (rect.bottom + 4) + 'px';
+
+    var slotIdx = parseInt(btnEl.dataset.slotIdx, 10);
+    var photoIdx = parseInt(btnEl.dataset.photoIdx, 10);
+
+    var uploadBtn = document.createElement('button');
+    uploadBtn.textContent = '\uD83D\uDCC1 Upload from Device';
+    uploadBtn.style.cssText = 'padding:8px 16px; text-align:left; border:none; background:transparent; color:var(--color-text-main); border-radius:var(--radius-sm); cursor:pointer; font-size:14px; white-space:nowrap;';
+    uploadBtn.onmouseenter = function() { uploadBtn.style.background = 'var(--color-accord-bg)'; };
+    uploadBtn.onmouseleave = function() { uploadBtn.style.background = 'transparent'; };
+    uploadBtn.onclick = function() {
+        popover.remove();
+        triggerSlotFileUpload(slotIdx, photoIdx, coinId, dp);
+    };
+
+    var bankBtn = document.createElement('button');
+    bankBtn.textContent = '\uD83C\uDFE6 From Coin Bank';
+    bankBtn.style.cssText = 'padding:8px 16px; text-align:left; border:none; background:transparent; color:var(--color-text-main); border-radius:var(--radius-sm); cursor:pointer; font-size:14px; white-space:nowrap;';
+    bankBtn.onmouseenter = function() { bankBtn.style.background = 'var(--color-accord-bg)'; };
+    bankBtn.onmouseleave = function() { bankBtn.style.background = 'transparent'; };
+    bankBtn.onclick = function() {
+        popover.remove();
+        openSlotCoinBankPicker(slotIdx, photoIdx, coinId, dp);
+    };
+
+    popover.appendChild(uploadBtn);
+    popover.appendChild(bankBtn);
+    document.body.appendChild(popover);
+
+    // Close on outside click
+    setTimeout(function() {
+        function closePopover(e) {
+            if (popover && !popover.contains(e.target)) {
+                popover.remove();
+                document.removeEventListener('click', closePopover, true);
+            }
+        }
+        document.addEventListener('click', closePopover, true);
+    }, 0);
+}
+
+let _slotFileInput = null;
+let _slotFileCtx = null;
+function getSlotFileInput() {
+    if (!_slotFileInput) {
+        _slotFileInput = document.createElement('input');
+        _slotFileInput.type = 'file';
+        _slotFileInput.accept = 'image/*';
+        _slotFileInput.style.display = 'none';
+        document.body.appendChild(_slotFileInput);
+        _slotFileInput.addEventListener('change', function(ev) {
+            var file = ev.target.files[0];
+            if (!file || !_slotFileCtx) return;
+            ev.target.value = ''; // Reset for re-uploading same file
+            var slotIdx = _slotFileCtx.slotIdx;
+            var photoIdx = _slotFileCtx.photoIdx;
+            var coinId = _slotFileCtx.coinId;
+            var dp = _slotFileCtx.dp;
+            
+            var reader = new FileReader();
+            reader.onload = function(re) {
+                var img = new Image();
+                img.onload = function() {
+                    var MAX = 300;
+                    var canvas = document.createElement('canvas');
+                    var scale = Math.min(MAX / img.width, MAX / img.height, 1);
+                    canvas.width = Math.round(img.width * scale);
+                    canvas.height = Math.round(img.height * scale);
+                    var ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#1a1a1a';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    var b64 = canvas.toDataURL('image/webp', 0.8);
+                    
+                    var nameSel = '.slot-photo-name[data-slot-idx="' + slotIdx + '"][data-photo-idx="' + photoIdx + '"]';
+                    var nameEl = dp.querySelector(nameSel);
+                    if (nameEl) {
+                        nameEl.textContent = '\u2713';
+                        nameEl.dataset.photoB64 = b64;
+                    }
+                    
+                    // Instantly update the UI so it doesn't show "?" while saving
+                    var emptyCircle = dp.querySelector('.coin-entry-photo-circle[data-slot-idx="' + slotIdx + '"][data-photo-idx="' + photoIdx + '"]');
+                    if (emptyCircle && emptyCircle.classList.contains('empty')) {
+                        emptyCircle.removeAttribute('onclick');
+                        emptyCircle.classList.remove('empty');
+                        emptyCircle.classList.add('has-photo');
+                        emptyCircle.innerHTML = '<img src="' + b64 + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + slotIdx + '" data-photo-idx="' + photoIdx + '">';
+                    } else {
+                        var imgEl = emptyCircle ? emptyCircle.querySelector('img') : null;
+                        if (imgEl) imgEl.src = b64;
+                    }
+                    
+                    saveCoinSlots(coinId, dp, 'photo-update');
+                };
+                img.src = re.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+    return _slotFileInput;
+}
+
+/**
+ * Trigger the hidden file upload button for a personal photo slot.
+ */
+function triggerSlotFileUpload(slotIdx, photoIdx, coinId, dp) {
+    _slotFileCtx = { slotIdx, photoIdx, coinId, dp };
+    getSlotFileInput().click();
+}
+
+/**
+ * Open a simple coin bank picker for personal slot photos.
+ * Fetches bank images for the coin's type and lets the user pick one.
+ */
+function openSlotCoinBankPicker(slotIdx, photoIdx, coinId, dp) {
+    import('./images.js').then(function(imgModule) {
+        if (imgModule.openBankForPersonalSlot) {
+            import('./state.js').then(function(state) {
+                let coin = null;
+                for (const s of state.getSections()) {
+                    const coins = state.getCoinsForSection(s.section);
+                    if (coins) {
+                        coin = coins.find(c => c.id === coinId);
+                        if (coin) break;
+                    }
+                }
+                if (!coin || !coin.coin_type) return;
+                
+                imgModule.openBankForPersonalSlot(coin.coin_type, function(filename) {
+                    var nameSel = '.slot-photo-name[data-slot-idx="' + slotIdx + '"][data-photo-idx="' + photoIdx + '"]';
+                    var nameEl = dp.querySelector(nameSel);
+                    if (nameEl) {
+                        nameEl.textContent = '\u2713';
+                        nameEl.dataset.photoB64 = filename;
+                    }
+                    
+                    var emptyCircle = dp.querySelector('.coin-entry-photo-circle[data-slot-idx="' + slotIdx + '"][data-photo-idx="' + photoIdx + '"]');
+                    if (emptyCircle && emptyCircle.classList.contains('empty')) {
+                        emptyCircle.removeAttribute('onclick');
+                        emptyCircle.classList.remove('empty');
+                        emptyCircle.classList.add('has-photo');
+                        var displayUrl = filename.startsWith('/') ? filename : '/data/images/types/' + filename;
+                        emptyCircle.innerHTML = '<img src="' + displayUrl + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + slotIdx + '" data-photo-idx="' + photoIdx + '">';
+                    }
+                    
+                    saveCoinSlots(coinId, dp, 'photo-update');
+                });
+            });
+        }
+    });
+}
+
+
+
+/**
+ * Set a base64 image onto a personal photo slot and trigger save.
+ */
+export function setSlotPhotoB64(slotIdx, photoIdx, coinId, dp, b64) {
+    var nameSel = '.slot-photo-name[data-slot-idx="' + slotIdx + '"][data-photo-idx="' + photoIdx + '"]';
+    var nameEl = dp.querySelector(nameSel);
+    if (nameEl) {
+        nameEl.textContent = '\u2713';
+        nameEl.dataset.photoB64 = b64;
+    }
+
+    // Update the UI: find the circle and set the image
+    var slotDiv = dp.querySelector('.coin-entry-photo-slot[data-slot-idx="' + slotIdx + '"][data-photo-idx="' + photoIdx + '"]');
+    if (slotDiv) {
+        var circle = slotDiv.querySelector('.coin-entry-photo-circle');
+        if (circle) {
+            circle.classList.remove('empty');
+            circle.classList.remove('add-photo');
+            circle.classList.add('has-photo');
+            circle.removeAttribute('data-action');
+            circle.style.cursor = 'pointer';
+            circle.innerHTML = '<img src="' + b64 + '" alt="Photo" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + slotIdx + '" data-photo-idx="' + photoIdx + '">';
+        }
+    }
+
+    saveCoinSlots(coinId, dp, 'photo-update');
+}
 
 // Coin row builder
 // ============================================================
@@ -702,34 +1248,99 @@ function buildCoinRow(coin) {
     row.appendChild(buildStepper(coin.id, totalQty));
 
     var thumbWrap = el("div", {className: "coin-row-thumb-wrap dual"});
-    var cfg = getTypeConfig(getMainType(coin.coin_type));
-    var obvSrc = coin.obv_image || (cfg ? cfg.obv_image : null);
+    if (isSpecialReverse(coin.coin_type)) {
+        thumbWrap.classList.add("show-rev");
+    }
+    
+    // Section-qualified lookup FIRST (prevents cross-denomination bleed AND
+    // picks up the per-variant config written by image assignment), then bare.
+    var specificCfg = getTypeConfig(coin.coin_type, coin.section);
+    var mainCfg = getTypeConfig(getMainType(coin.coin_type), coin.section);
+    // Respect explicit deletions: if the specific config deleted a side, do NOT fall back to the parent type's image.
+    var specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
+    var specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
+    // GGMJ-205: an explicitly deleted side shows a placeholder — never falls
+    // through to a type image.
+    // GGMJ-282 (BUG-01): evaluate EACH SIDE INDEPENDENTLY.  The old code
+    // combined the two flags into one branch, so deleting the obverse also
+    // blanked the reverse: the surviving side was read from the COIN ONLY
+    // (coin.rev_image, normally null because the type config holds the
+    // image) and the type-level fallback chain was skipped.  A coin whose
+    // type config holds both images then rendered TWO placeholders instead
+    // of one image + one placeholder.
+    var obvSrc = coin._deleted_obv_image
+        ? null
+        : (coin.obv_image || specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null));
+    var revSrc = coin._deleted_rev_image
+        ? null
+        : (coin.rev_image || specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null));
+    if (obvSrc && !obvSrc.includes('?')) obvSrc += '';
+    if (revSrc && !revSrc.includes('?')) revSrc += '';
     if (obvSrc) {
-        var img = el("img", {className: "coin-row-thumb", src: obvSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
+        var img = el("img", {className: "coin-row-thumb", src: resolveImageUrl(obvSrc), alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img.onerror = function() { img.src = placeholderCoinSvg(); img.classList.add("placeholder"); };
         thumbWrap.appendChild(img);
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv"}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "obv", coinId: coin.id, section: coin.section || ''}}));
     }
-    var revSrc = coin.rev_image || (cfg ? cfg.rev_image : null);
     if (revSrc) {
-        var img2 = el("img", {className: "coin-row-thumb", src: revSrc, alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || ''}});
+        var img2 = el("img", {className: "coin-row-thumb", src: resolveImageUrl(revSrc), alt: "", loading: "lazy", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, year: coin.year || '', mintMark: coin.mint_mark || '', section: coin.section || ''}});
         img2.onerror = function() { img2.src = placeholderCoinSvg(); img2.classList.add("placeholder"); };
         thumbWrap.appendChild(img2);
     } else {
-        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev"}}));
+        thumbWrap.appendChild(el("img", {className: "coin-row-thumb placeholder", src: placeholderCoinSvg(), alt: "", role: "button", tabIndex: 0, dataset: {action: "view-img", type: coin.coin_type, side: "rev", coinId: coin.id, section: coin.section || ''}}));
     }
+
     row.appendChild(thumbWrap);
 
     var info = el("div", {className: "coin-row-info"});
     var tl = el("span", {className: "coin-row-title"});
-    var yr = coin.year === 1776 ? "1776-1976" : (coin.year || "\u2014");
-    var mt = coin.mint_mark ? "-" + coin.mint_mark : "";
-    tl.appendChild(document.createTextNode(yr + mt));
+    var yr = coin.year === 1776 ? "1776-1976" : (coin.year === 2026 ? "1776-2026" : (coin.year || "\u2014"));
+    var fm = formatMintMark(coin);
+    var mt = fm ? "-" + fm : "";
+    var isPenny = coin.denomination === '1 Cent' || (coin.coin_type || '').toLowerCase().includes('cent');
+    var labelParts = [];
+    if (isPenny && coin.year === 1982) {
+        var compositionSub = getSubType(coin.coin_type);
+        if (compositionSub === 'Copper' || compositionSub === 'Zinc') {
+            labelParts.push(compositionSub);
+        }
+    }
+    var subType = getSubType(coin.coin_type);
+    if (subType && !isCompositionSub(subType)) {
+        var match = subType.match(/\(([^)]+)\)/);
+        var designName = match ? match[1] : subType;
+        if (designName.includes(' - ')) {
+            var parts = designName.split(' - ');
+            designName = parts[parts.length - 1].trim();
+        }
+        if (coin.year && designName.startsWith(coin.year.toString())) {
+            designName = designName.substring(coin.year.toString().length).trim();
+            designName = designName.replace(/^[-,\s]+/, '');
+        }
+        if (designName && !isCompositionSub(designName) && !labelParts.includes(designName)) {
+            labelParts.push(designName);
+        }
+    }
+    var dateVar = getDateVariety(coin.ref_notes);
+    if (dateVar) {
+        labelParts.push(dateVar);
+    }
+    var dateStr = labelParts.length > 0 ? ` (${labelParts.join(', ')})` : "";
+    tl.appendChild(document.createTextNode(yr + mt + dateStr));
     if (coin.is_key_date) tl.append(" ", el("span", {className: "badge badge-key"}, "\u2b50 Key"));
-    if (coin.is_proof) tl.append(" ", el("span", {className: "badge badge-proof"}, "\uD83D\uDC8E Proof"));
+    if (coin.is_proof) {
+        tl.append(" ", el("span", {className: "badge badge-proof"}, "\uD83D\uDC8E Proof"));
+        var isSilver = coin.metal && coin.metal.toLowerCase().includes('silver');
+        if (isSilver) {
+            tl.append(" ", el("span", {
+                className: "badge badge-silver",
+                style: "background: #e2e8f0; color: #1e293b; font-weight: 700;"
+            }, "Silver"));
+        }
+    }
     if (coin.is_error || isErrorVariety(coin.coin_type, coin.ref_notes)) tl.append(" ", el("span", {className: "badge badge-error"}, "⚠ Error"));
-    if (hasRefNotes) tl.append(" ", el("span", {className: "badge badge-historical"}, "📜 Historical Note"));
+    if (hasRefNotes) tl.append(" ", el("span", {className: "badge badge-historical"}, " Historical Note"));
     info.appendChild(tl);
     var sub = [];
     if (entries.length > 0) { var gr = entries.filter(function(e){return e.grade;}).map(function(e){return e.grade;}); if (gr.length > 0) sub.push(gr.join(", ")); }
@@ -739,15 +1350,34 @@ function buildCoinRow(coin) {
 
     // Detail toggle button
     var detailBtn = el("span", {className: "coin-row-detail-toggle", role: "button", tabIndex: 0, dataset: {action: "toggle-detail"}}, "▼ Details");
+    // Only hide if 0 qty AND no historical notes, otherwise they can't open notes
+    // Show detail toggle always — it's the "more info" chevron indicator
     row.appendChild(detailBtn);
 
+    // Wishlist Heart Icon
     var wlItem = (getWishlist() || []).find(function(w){return w.coin_id===coin.id;});
-    var wl = el("button", {className: "btn-wishlist pill" + (wlItem?" is-wishlist":""), title: (wlItem?"Remove from":"Add to")+" wishlist", dataset: {action: "add-wishlist", coinId: coin.id}}, wlItem?"\u2764":"Wish List");
+    var wl = el("button", {
+        className: "btn-wishlist-icon" + (wlItem ? " is-wishlist" : ""),
+        title: (wlItem ? "Remove from" : "Add to") + " wishlist",
+        dataset: { action: "add-wishlist", coinId: coin.id },
+        style: "background:transparent; border:none; font-size:1.2rem; cursor:pointer; color:" + (wlItem ? "var(--color-danger)" : "var(--color-text-muted)") + "; transition:color 0.2s, transform 0.1s;"
+    }, wlItem ? "♥" : "♡");
+    
+    // Hover effects for the heart
+    wl.onmouseenter = function() {
+        if (!this.classList.contains('is-wishlist')) this.style.color = "var(--color-text-main)";
+        this.style.transform = "scale(1.1)";
+    };
+    wl.onmouseleave = function() {
+        if (!this.classList.contains('is-wishlist')) this.style.color = "var(--color-text-muted)";
+        this.style.transform = "scale(1)";
+    };
     row.appendChild(wl);
+
     wrapper.appendChild(row);
 
     // Expandable detail panel — compact layout with inventory gate
-    var dp = el("div", {className: "coin-detail-panel"});
+    var dp = el("div", {className: "coin-detail-panel", dataset: {coinId: coin.id}});
 
     // Reference notes section (compact, shown by default)
     var refToggle, rd;
@@ -761,22 +1391,6 @@ function buildCoinRow(coin) {
         rd.appendChild(el("div", {className: "coin-detail-ref-body"}, coin.ref_notes));
         dp.appendChild(rd);
     }
-
-    // User-editable notes — always present as an editable textarea
-    var userNotesWrap = el("div", {style: "padding:var(--space-1) var(--space-3);"},
-        el("div", {style: "display:flex;align-items:center;gap:var(--space-2);margin-bottom:2px;"},
-            el("span", {style: "font-weight:600;font-size:var(--font-size-sm);color:var(--color-text-main);"}, "\u270F\uFE0F Your Notes"),
-            el("span", {style: "font-size:var(--font-size-xs);color:var(--color-text-muted);"}, "(autosaves)")
-        ),
-        el("textarea", {
-            className: "user-notes-input",
-            rows: 2,
-            placeholder: "Add your own notes for this coin...",
-            style: "width:100%;background:var(--color-bg-input);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);color:var(--color-text-main);font-size:var(--font-size-sm);resize:vertical;min-height:40px;box-sizing:border-box;",
-            dataset: {coinId: coin.id},
-        }, coin.user_notes || "")
-    );
-    dp.appendChild(userNotesWrap);
 
     // Mintage line (single compact line)
     if (coin.mintage) {
@@ -800,7 +1414,7 @@ function buildCoinRow(coin) {
             className: "shared-notes-input",
             rows: 2,
             placeholder: "Add shared notes for this coin...",
-            style: "width:100%;background:var(--color-bg-input);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);color:var(--color-text-main);font-size:var(--font-size-sm);resize:vertical;min-height:40px;box-sizing:border-box;"
+            style: "width:100%;background:var(--color-bg-body);border:1px solid var(--color-border);border-radius:var(--radius-sm);padding:var(--space-1) var(--space-2);color:var(--color-text-main);font-size:var(--font-size-sm);resize:vertical;min-height:40px;box-sizing:border-box;"
         }, coin.shared_notes || "")
     );
     dp.appendChild(sharedNotesWrap);
@@ -810,19 +1424,22 @@ function buildCoinRow(coin) {
     // Function to rebuild slots content
     function rebuildSlots() {
         var qty = getInventoryTotalQty(coin.id);
+        var activeTab = slotsDiv.querySelector('.coin-instance-tab.active');
+        var activeIdx = activeTab ? parseInt(activeTab.dataset.instanceIdx, 10) : 0;
         slotsDiv.innerHTML = "";
         if (qty > 0) {
-            slotsDiv.innerHTML = buildCoinSlots(coin.id);
+            slotsDiv.innerHTML = buildCoinSlots(coin.id, activeIdx);
         }
     }
 
     // Initial build
     rebuildSlots();
+    dp.rebuildSlots = rebuildSlots;
 
     // Autosave on any input/change within the detail panel
     dp.addEventListener('change', function(e) {
         if (e.target.closest('.coin-entry-card') || e.target.closest('.coin-entries-wrap') || e.target.closest('.coin-entries')) {
-            saveCoinSlots(coin.id, dp);
+            saveCoinSlots(coin.id, dp, true);
         }
     });
     dp.addEventListener('input', function(e) {
@@ -830,19 +1447,7 @@ function buildCoinRow(coin) {
             // Debounce notes autosave
             clearTimeout(dp._notesTimeout);
             dp._notesTimeout = setTimeout(function() {
-                saveCoinSlots(coin.id, dp);
-            }, 800);
-        }
-
-        // User-editable notes autosave
-        if (e.target.closest('.user-notes-input')) {
-            clearTimeout(dp._userNotesTimeout);
-            dp._userNotesTimeout = setTimeout(function() {
-                var ta = dp.querySelector('.user-notes-input');
-                var notes = ta ? ta.value : '';
-                saveCoinNotes(coin.id, notes).catch(function(err) {
-                    console.warn('Failed to save user notes:', err);
-                });
+                saveCoinSlots(coin.id, dp, true);
             }, 800);
         }
     });
@@ -883,6 +1488,8 @@ function buildCoinRow(coin) {
 
     row.addEventListener("click", function(e) {
         if (e.target.closest('[data-action="view-img"]') || e.target.closest("button") || e.target.closest(".stepper") || e.target.closest(".coin-row-thumb-wrap") || e.target.closest(".coin-row-detail-toggle") || e.target.closest('[data-action="toggle-historical"]') || e.target.closest(".coin-slots-wrap")) return;
+        // Do not open on row click if 0 quantity and NO historical note
+        if (getInventoryTotalQty(coin.id) === 0 && !hasRefNotes) return;
         toggleDetail();
     });
 
@@ -923,20 +1530,75 @@ function buildCoinRow(coin) {
         if (rmSlotBtn) {
             e.stopPropagation();
             var rmIdx = parseInt(rmSlotBtn.dataset.slotIdx, 10);
+            var rmEntries = getInventoryEntries(coin.id) || [];
+            var deletedEntry = rmEntries[rmIdx];
+            if (!deletedEntry) return;
+
             var currentSlots = getSlotCount(coin.id);
             var newCount = Math.max(0, currentSlots - 1);
             _slotCounts.set(coin.id, newCount);
-            // Remove the inventory entry for this slot
-            var rmEntries = getInventoryEntries(coin.id) || [];
-            if (rmEntries[rmIdx] && rmEntries[rmIdx].id) {
-                // Delete this specific entry from the backend
-                fetch('/api/inventory/' + rmEntries[rmIdx].id, { method: 'DELETE' })
-                    .then(function() { return fetchInventory(); })
-                    .then(function() {
+
+            var promise = Promise.resolve();
+
+            promise
+                .then(function() {
+                    if (deletedEntry.id) {
+                        return fetch('/api/inventory/' + deletedEntry.id, { method: 'DELETE' });
+                    }
+                })
+                .then(function() { return fetchInventory(); })
+                .then(function(newInv) {
+                    return import('./state.js').then(function(m) {
+                        m.setInventory(newInv);
                         window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId: coin.id } }));
+                        rebuildSlots();
                     });
+                })
+                .catch(function(err) {
+                    console.error("Failed to remove slot details:", err);
+                });
+            return;
+        }
+        
+        // Add new instance tab
+        var addTabBtn = e.target.closest('[data-action="add-instance"]');
+        if (addTabBtn) {
+            e.stopPropagation();
+            var cId = parseInt(addTabBtn.dataset.coinId, 10);
+            var currentCount = getSlotCount(cId);
+            var qty = getInventoryTotalQty(cId) || 0;
+            if (currentCount < qty) {
+                _slotCounts.set(cId, currentCount + 1);
+                var entries = getInventoryEntries(cId) || [];
+                
+                // Decrement the quantity of an existing entry that has quantity > 1
+                var sourceEntry = entries.find(e => (e.quantity || 1) > 1);
+                if (sourceEntry) {
+                    sourceEntry.quantity -= 1;
+                } else if (entries[0]) {
+                    entries[0].quantity = Math.max(1, (entries[0].quantity || 1) - 1);
+                }
+                
+                // Ensure we have an in-memory entry for it
+                if (entries.length < currentCount + 1) {
+                    entries.push({ coin_ref_id: cId, quantity: 1 });
+                }
+                
+                import('./state.js').then(m => {
+                    m.setInventory(m.getInventory());
+                    rebuildSlots();
+                    
+                    // Switch to the newly created tab automatically
+                    setTimeout(() => {
+                        var newTab = dp.querySelector('[data-action="switch-instance"][data-instance-idx="' + currentCount + '"]');
+                        if (newTab) {
+                            newTab.click();
+                            // Save immediately to persist quantities and get a database ID for the new slot
+                            saveCoinSlots(cId, dp, true);
+                        }
+                    }, 50);
+                });
             }
-            rebuildSlots();
             return;
         }
 
@@ -959,104 +1621,68 @@ function buildCoinRow(coin) {
             return;
         }
 
-        // Photo upload button — supports data-photo-slot (obv, rev, err)
+        // Empty photo slot click — show choice popover (Upload or Coin Bank)
+        var emptySlot = e.target.closest('[data-action="slot-photo-empty"]');
+        if (emptySlot) {
+            e.stopPropagation();
+            showPhotoSlotChoice(emptySlot, coin.id, dp);
+            return;
+        }
+
+        // Photo upload button
         var photoBtn = e.target.closest('[data-action="slot-photo"]');
         if (photoBtn) {
             e.stopPropagation();
             var pIdx = parseInt(photoBtn.dataset.slotIdx, 10);
-            var pSlot = photoBtn.dataset.photoSlot || 'obv';
-            var fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = 'image/*';
-            fileInput.addEventListener('change', function(ev) {
-                var file = ev.target.files[0];
-                if (!file) return;
-                var reader = new FileReader();
-                reader.onload = function(re) {
-                    var img = new Image();
-                    img.onload = function() {
-                        // Canvas compression pipeline — max 300x300, keep aspect ratio
-                        var MAX = 300;
-                        var canvas = document.createElement('canvas');
-                        var scale = Math.min(MAX / img.width, MAX / img.height, 1);
-                        canvas.width = Math.round(img.width * scale);
-                        canvas.height = Math.round(img.height * scale);
-                        var ctx = canvas.getContext('2d');
-                        ctx.fillStyle = '#1a1a1a';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height);
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                        var b64 = canvas.toDataURL('image/webp', 0.8);
-                        // Store on the per-slot photo name element
-                        var nameSel = '.slot-photo-name[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"]';
-                        var nameEl = dp.querySelector(nameSel);
-                        if (nameEl) {
-                            nameEl.textContent = '✓';
-                            nameEl.dataset.photoB64 = b64;
-                        }
-                        // Update the thumbnail circle for this specific photo slot
-                        var slotCircle = dp.querySelector('.coin-entry-photo-slot[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"] .coin-entry-photo-circle');
-                        if (slotCircle) {
-                            slotCircle.classList.add('has-photo');
-                            slotCircle.innerHTML = '<img src="' + b64 + '" class="slot-photo-preview" data-action="slot-photo-preview" data-slot-idx="' + pIdx + '" data-photo-slot="' + pSlot + '" alt="' + pSlot + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;cursor:pointer;" title="Click to zoom">';
-                        }
-                        // Change the label button to "Change"
-                        var labelBtn = dp.querySelector('.coin-entry-photo-btn[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"]');
-                        if (labelBtn) labelBtn.textContent = 'Change';
-                        // Add remove button for this slot if not present
-                        var photoSlotEl = dp.querySelector('.coin-entry-photo-slot[data-slot-idx="' + pIdx + '"][data-photo-slot="' + pSlot + '"]');
-                        if (photoSlotEl && !photoSlotEl.querySelector('.coin-entry-photo-remove')) {
-                            var rmBtn = el('button', {type:'button', className:'coin-entry-photo-remove', dataset:{action:'slot-photo-remove','slot-idx':String(pIdx),'photo-slot':pSlot}}, '✕');
-                            photoSlotEl.appendChild(rmBtn);
-                        }
-                        // Auto-save
-                        saveCoinSlots(coin.id, dp);
-                    };
-                    img.src = re.target.result;
-                };
-                reader.readAsDataURL(file);
-            });
-            fileInput.click();
+            var photoIdx = parseInt(photoBtn.dataset.photoIdx, 10);
+            triggerSlotFileUpload(pIdx, photoIdx, coin.id, dp);
             return;
         }
 
-        // Photo preview click — zoom
-        var previewClick = e.target.closest('[data-action="slot-photo-preview"]');
-        if (previewClick) {
+        // Photo preview click — openImageInteractionModal
+        var photoCircle = e.target.closest('.coin-entry-photo-circle.has-photo');
+        if (photoCircle) {
             e.stopPropagation();
-            var zoomOverlay = document.getElementById('coin-zoom-overlay');
-            var zoomImg = document.getElementById('coin-zoom-img');
-            if (zoomOverlay && zoomImg) {
-                zoomImg.src = previewClick.src;
-                zoomOverlay.style.display = 'flex';
-            }
+            var imgEl = photoCircle.querySelector('img');
+            var instanceCard = photoCircle.closest('.coin-entry-card');
+            var instanceIdx = instanceCard ? parseInt(instanceCard.dataset.instanceIdx, 10) : 0;
+            var panel = photoCircle.closest('.coin-detail-panel');
+            var coinId = panel ? parseInt(panel.dataset.coinId, 10) : 0;
+            var entries = getInventoryEntries(coinId) || [];
+            var entry = entries[instanceIdx] || {};
+
+            import('./state.js').then(state => {
+                let coin = null;
+                for (const s of state.getSections()) {
+                    const coins = state.getCoinsForSection(s.section);
+                    if (coins) {
+                        coin = coins.find(c => c.id === coinId);
+                        if (coin) break;
+                    }
+                }
+                var coinType = coin ? coin.coin_type : '';
+                import('./images.js').then(function(m) {
+                    m.openImageInteractionModal(imgEl, coinType, 'personal', true, entry.id, coinId);
+                });
+            });
             return;
         }
 
-        // Photo remove button — supports data-photo-slot
+        // Photo remove button
         var photoRmBtn = e.target.closest('[data-action="slot-photo-remove"]');
         if (photoRmBtn) {
             e.stopPropagation();
             var prIdx = parseInt(photoRmBtn.dataset.slotIdx, 10);
-            var prSlot = photoRmBtn.dataset.photoSlot || 'obv';
-            // Clear the data holder
-            var nameEl2 = dp.querySelector('.slot-photo-name[data-slot-idx="' + prIdx + '"][data-photo-slot="' + prSlot + '"]');
+            var photoIdxRm = parseInt(photoRmBtn.dataset.photoIdx, 10);
+            
+            var nameEl2 = dp.querySelector('.slot-photo-name[data-slot-idx="' + prIdx + '"][data-photo-idx="' + photoIdxRm + '"]');
             if (nameEl2) {
                 nameEl2.textContent = '';
                 delete nameEl2.dataset.photoB64;
+                // Delete from DOM entirely so saveCoinSlots won't see it
+                nameEl2.remove();
             }
-            // Reset the thumbnail circle
-            var slotCircle2 = dp.querySelector('.coin-entry-photo-slot[data-slot-idx="' + prIdx + '"][data-photo-slot="' + prSlot + '"] .coin-entry-photo-circle');
-            if (slotCircle2) {
-                slotCircle2.classList.remove('has-photo');
-                slotCircle2.innerHTML = '<svg class="coin-entry-photo-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
-            }
-            // Reset label button
-            var labelBtn2 = dp.querySelector('.coin-entry-photo-btn[data-slot-idx="' + prIdx + '"][data-photo-slot="' + prSlot + '"]');
-            if (labelBtn2) labelBtn2.textContent = prSlot.charAt(0).toUpperCase() + prSlot.slice(1);
-            // Remove the remove button
-            if (photoRmBtn.parentNode) photoRmBtn.remove();
-            // Clear photo from data model on save
-            saveCoinSlots(coin.id, dp);
+            saveCoinSlots(coin.id, dp, 'photo-update');
             return;
         }
     });
@@ -1083,7 +1709,7 @@ function buildStepper(coinId, qty) {
         dataset: { action: 'stepper-dec', coinId },
     }, '−');
 
-    const val = el('span', { className: 'stepper-value', 'aria-live': 'polite' }, String(qty));
+    const val = el('button', { className: 'stepper-value', type: 'button', 'aria-live': 'polite', 'aria-label': 'Edit quantity', title: 'Click to enter quantity', dataset: { action: 'stepper-edit', coinId }, style: 'background:transparent;border:0;font:inherit;cursor:text;padding:0;' }, String(qty));
     val.style.color = qty > 0 ? 'var(--color-accent)' : '';
 
     const inc = el('button', {
@@ -1098,18 +1724,23 @@ function buildStepper(coinId, qty) {
 
 export function updateStickyOffsets() {
     const root = document.documentElement;
-    const countryHeader = document.querySelector(".country-group-header");
-    const sectionHeader = document.querySelector(".section-header");
-
-    const countryH = countryHeader ? countryHeader.offsetHeight : 56;
-    const sectionH = sectionHeader ? sectionHeader.offsetHeight : 48;
-
-    // With container-scoped scroll, --header-height is 0 (app-header is outside catalog container)
     root.style.setProperty("--header-height", "0px");
-    root.style.setProperty("--country-bar-height", countryH + "px");
-    root.style.setProperty("--section-header-height", sectionH + "px");
-    root.style.setProperty("--section-bar-top", countryH + "px");
-    root.style.setProperty("--type-bar-top", (countryH + sectionH) + "px");
+
+    // Measure and set country header heights on each country group
+    document.querySelectorAll('.country-group').forEach(group => {
+        const header = group.querySelector('.country-group-header');
+        if (header) {
+            group.style.setProperty('--my-country-header-height', header.offsetHeight + 'px');
+        }
+    });
+
+    // Measure and set section header heights on each section card
+    document.querySelectorAll('.section-card').forEach(card => {
+        const header = card.querySelector('.section-header');
+        if (header) {
+            card.style.setProperty('--my-section-header-height', header.offsetHeight + 'px');
+        }
+    });
 }
 
 // ============================================================
@@ -1126,11 +1757,31 @@ let _stickyListenerAttached = false;
  * Get the sticky top position for a given header level.
  */
 function _stickyTopFor(level) {
-    const root = getComputedStyle(document.documentElement);
     switch (level) {
-        case 'country': return parseInt(root.getPropertyValue('--header-height')) || 60;
-        case 'section': return parseInt(root.getPropertyValue('--section-bar-top')) || 116;
-        case 'type':    return parseInt(root.getPropertyValue('--type-bar-top')) || 164;
+        case 'country': return 0;
+        case 'section': {
+            // Read from the first country-group's measured height
+            const cg = document.querySelector('.country-group');
+            if (cg) {
+                const val = getComputedStyle(cg).getPropertyValue('--my-country-header-height');
+                if (val) return parseInt(val) || 56;
+            }
+            return 56;
+        }
+        case 'type': {
+            const cg = document.querySelector('.country-group');
+            const sc = document.querySelector('.section-card');
+            let countryH = 56, sectionH = 40;
+            if (cg) {
+                const v = getComputedStyle(cg).getPropertyValue('--my-country-header-height');
+                if (v) countryH = parseInt(v) || 56;
+            }
+            if (sc) {
+                const v = getComputedStyle(sc).getPropertyValue('--my-section-header-height');
+                if (v) sectionH = parseInt(v) || 40;
+            }
+            return countryH + sectionH;
+        }
     }
     return 0;
 }
@@ -1139,7 +1790,8 @@ function initStickyHeaders() {
     if (_stickyRAF) { cancelAnimationFrame(_stickyRAF); _stickyRAF = null; }
     _stickyItems = [];
 
-    updateStickyOffsets();
+    // Use rAF to ensure browser has painted before measuring heights
+    requestAnimationFrame(() => updateStickyOffsets());
 
     document.querySelectorAll('.country-group-header, .section-header, .type-header').forEach(function (el) {
         var level = 'type';
@@ -1209,9 +1861,11 @@ function _stickyOnScroll() {
 
         if (isNearStuck) {
             el.style.zIndex = level === 'country' ? '150' : level === 'section' ? '110' : '95';
+            el.classList.add('is-stuck');
         } else {
             // Not stuck — use natural z-index
             el.style.zIndex = '';
+            el.classList.remove('is-stuck');
         }
     });
 }
@@ -1223,7 +1877,7 @@ async function handleCatalogClick(e) {
     const imgBtn = target.closest('[data-action="view-img"]');
     if (imgBtn) {
         e.stopPropagation();
-        const { type, side, coinId } = imgBtn.dataset;
+        const { type, side, coinId, section } = imgBtn.dataset;
         // When coinId is present, this is a coin reference image (not inventory item)
         const isCoinRef = !!coinId;
         // Set coin metadata for proper image naming
@@ -1231,12 +1885,12 @@ async function handleCatalogClick(e) {
         import('./images.js').then(m => {
             // Set coin metadata on the images module
             if (m.setCoinMeta) m.setCoinMeta(year ? parseInt(year) : null, mintMark || null);
-            m.openImageInteractionModal(imgBtn, type, side, isCoinRef, coinId, false, null);
+            m.openImageInteractionModal(imgBtn, type, side, false, null, coinId, section || '');
         });
         return;
     }
 
-    // Section header toggle (check FIRST - section header is inside country group header)
+    // Section header toggle
     const sectionHeader = target.closest('[data-action="toggle-section"]');
     if (sectionHeader) {
         e.stopPropagation();
@@ -1244,24 +1898,8 @@ async function handleCatalogClick(e) {
         return;
     }
 
-    // Country group header toggle
-    const countryHeader = target.closest('[data-action="toggle-country"]');
-    if (countryHeader) {
-        e.stopPropagation();
-        const country = countryHeader.dataset.country;
-        const groupId = 'group-' + country.replace(/\s+/g, '-').toLowerCase();
-        const group = document.getElementById(groupId);
-        const content = group?.querySelector('.country-group-content');
-        const chevron = countryHeader.querySelector('.section-chevron');
-        if (content) {
-            const isOpen = content.classList.toggle('open');
-            countryHeader.setAttribute('aria-expanded', String(isOpen));
-            if (chevron) chevron.style.transform = isOpen ? 'rotate(180deg)' : '';
-            if (isOpen) _expandedCountries.add(country);
-            else _expandedCountries.delete(country);
-        }
-        return;
-    }
+    const editBtn = target.closest('[data-action="stepper-edit"]');
+    if (editBtn) { e.stopPropagation(); editStepperQuantity(editBtn); return; }
 
     // Stepper +
     const incBtn = target.closest('[data-action="stepper-inc"]');
@@ -1283,7 +1921,7 @@ async function handleCatalogClick(e) {
     const wlBtn = target.closest('[data-action="add-wishlist"]');
     if (wlBtn) {
         e.stopPropagation();
-        await toggleWishlist(wlBtn.dataset.coinId);
+        await toggleWishlist(parseInt(wlBtn.dataset.coinId, 10));
         return;
     }
 
@@ -1305,61 +1943,92 @@ async function handleCatalogClick(e) {
  * @param {number} coinId
  * @param {number} delta  - +1 or -1.
  */
+let _pendingStepperCoins = new Set();
+
+/** Edit the total without rebuilding the row or disturbing keyboard focus. */
+function editStepperQuantity(button) {
+    const coinId = Number(button.dataset.coinId);
+    if (_pendingStepperCoins.has(coinId)) return;
+    const input = el('input', {
+        type: 'text', inputmode: 'numeric', 'aria-label': 'Quantity',
+        className: 'stepper-input',
+        style: 'width:4ch;min-width:28px;max-width:72px;font:inherit;text-align:center;padding:0;border:0;background:transparent;color:inherit;'
+    });
+    input.value = String(getInventoryTotalQty(coinId));
+    button.hidden = true;
+    button.after(input);
+    let finished = false;
+    const finish = async (cancel = false) => {
+        if (finished) return;
+        finished = true;
+        const raw = input.value.trim();
+        input.remove();
+        button.hidden = false;
+        if (cancel) return;
+        const quantity = Number(raw);
+        if (!/^\d+$/.test(raw) || !Number.isSafeInteger(quantity)) {
+            showToast('Enter a whole number of zero or more.', 'error');
+            return;
+        }
+        await handleStepperChange(coinId, quantity - getInventoryTotalQty(coinId));
+    };
+    input.addEventListener('click', e => e.stopPropagation());
+    input.addEventListener('keydown', e => {
+        e.stopPropagation();
+        if (e.key === 'Enter' || e.key === 'Escape') {
+            e.preventDefault();
+            void finish(e.key === 'Escape');
+            button.focus({ preventScroll: true });
+        }
+    });
+    input.addEventListener('blur', () => { void finish(); });
+    input.focus({ preventScroll: true });
+    input.select();
+}
+
 async function handleStepperChange(coinId, delta) {
-    const entries = getInventoryEntries(coinId) || [];
-    const totalQty = getInventoryTotalQty(coinId);
+    if (_pendingStepperCoins.has(coinId)) return;
+    _pendingStepperCoins.add(coinId);
     
-    // We cannot drop below 0
-    if (delta < 0 && totalQty <= 0) return;
-
-    // Determine WHICH entry to modify.
-    // Prefer modifying a "generic" copy (no grade, no notes, no photo)
-    let targetEntry = entries.find(e => !e.grade && !e.notes && !e.personal_photo);
-    
-    if (delta > 0) {
-        // Increment
-        if (targetEntry) {
-            targetEntry.quantity += 1;
-        } else {
-            // No generic copy found, simulate a new one
-            targetEntry = { coin_ref_id: coinId, quantity: 1 };
-            entries.push(targetEntry);
-        }
-    } else {
-        // Decrement
-        if (!targetEntry) {
-            // No generic copy, just decrement the last entry we have
-            targetEntry = entries[entries.length - 1];
-        }
-        targetEntry.quantity -= 1;
-    }
-
-    const newTotalQty = totalQty + delta;
-    updateStepperDisplay(coinId, newTotalQty);
-
     try {
-        const payload = {
-            id: targetEntry.id, // may be undefined for new entries
-            coin_ref_id: coinId,
-            quantity: targetEntry.quantity,
-            grade: targetEntry.grade || '',
-            purchase_price: targetEntry.purchase_price || 0,
-            current_value: targetEntry.current_value || 0,
-            date_acquired: targetEntry.date_acquired || '',
-            notes: targetEntry.notes || ''
-        };
+        const entries = (getInventoryEntries(coinId) || []).map(entry => ({ ...entry }));
+        const totalQty = getInventoryTotalQty(coinId);
         
-        const result = await updateInventory(coinId, payload);
-        
-        // Let's refetch sections since array updates are complex to do optimistically
-        // (especially dealing with newly created IDs)
-        // Wait, if we just use the cc-inventory-updated event:
+        if (!Number.isSafeInteger(delta) || totalQty + delta < 0 || delta === 0) return;
+        // Prefer unannotated copies; only consume detailed copies if necessary.
+        const generic = entry => !entry.grade && !entry.notes && !entry.personal_photo
+            && !entry.purchase_price && !entry.current_value && !entry.date_acquired;
+        const writes = [];
+        if (delta > 0) {
+            const target = entries.find(generic) || { coin_ref_id: coinId, quantity: 0 };
+            writes.push({ ...target, quantity: target.quantity + delta });
+        } else {
+            let remaining = -delta;
+            const ordered = [...entries.filter(generic), ...entries.filter(e => !generic(e)).reverse()];
+            for (const entry of ordered) {
+                const removed = Math.min(remaining, entry.quantity);
+                if (removed > 0) writes.push({ ...entry, quantity: entry.quantity - removed });
+                remaining -= removed;
+                if (remaining === 0) break;
+            }
+        }
+        updateStepperDisplay(coinId, totalQty + delta);
+        for (const entry of writes) {
+            const result = await updateInventory(coinId, entry);
+            if (!result || result.status === 'error') throw new Error('Inventory update rejected');
+        }
+        // One authoritative refresh after persistence. New entries otherwise
+        // never enter state, so album actions mistakenly see an empty hole.
+        setInventory(await fetchInventory());
         window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { coinId } }));
-        
     } catch (err) {
         showToast(`Failed to save — ${err.message}`, 'error');
-        // Rollback: restore the previous quantity display
+        // Reconcile even a partially completed multi-entry update.
+        try { setInventory(await fetchInventory()); } catch (_) { /* Keep last known state offline. */ }
+        const totalQty = getInventoryTotalQty(coinId);
         updateStepperDisplay(coinId, totalQty);
+    } finally {
+        _pendingStepperCoins.delete(coinId);
     }
 }
 /**
@@ -1385,10 +2054,17 @@ async function toggleWishlist(coinId) {
             setWishlist(freshWl);
         } catch (e) { /* ignore refresh error */ }
 
-        const sel = '[data-action=\"add-wishlist\"][data-coin-id=\"' + coinId + '\"]';
+        const sel = '[data-action="add-wishlist"][data-coin-id="' + coinId + '"]';
         document.querySelectorAll(sel).forEach(btn => {
-            btn.classList.toggle("is-wishlist", !item);
-            btn.title = item ? "Add to wishlist" : "Remove from wishlist";
+            const isNowWishlist = !item;
+            btn.classList.toggle("is-wishlist", isNowWishlist);
+            btn.title = isNowWishlist ? "Remove from wishlist" : "Add to wishlist";
+            if (btn.classList.contains('btn-wishlist-icon')) {
+                btn.textContent = isNowWishlist ? "♥" : "♡";
+                btn.style.color = isNowWishlist ? "var(--color-danger)" : "var(--color-text-muted)";
+            } else {
+                btn.classList.toggle("active", isNowWishlist);
+            }
         });
     } catch (err) {
         showToast("Wishlist error: " + err.message, "error");
@@ -1413,12 +2089,91 @@ function updateStepperDisplay(coinId, qty) {
         });
 }
 
+/**
+ * Repaint the type-level owned-count badges (.type-wrapper .count-badge).
+ *
+ * A type badge counts the coins of that type in that section, so it can be
+ * derived from the rendered rows plus the live inventory state.
+ */
+function repaintTypeBadges(stateMod) {
+    document.querySelectorAll('.type-wrapper').forEach(wrapper => {
+        const header = wrapper.querySelector('.type-header');
+        const badge = header ? header.querySelector('.count-badge') : null;
+        if (!badge) return;
+        const rows = wrapper.querySelectorAll('.coin-row');
+        let ownedCount = 0;
+        rows.forEach(r => {
+            const cid = parseInt(r.dataset.coinId, 10);
+            if (cid && stateMod.getInventoryTotalQty(cid) > 0) ownedCount++;
+        });
+        const total = rows.length;
+        badge.textContent = ownedCount + '/' + total;
+        badge.className = 'count-badge' + (ownedCount === total ? ' complete' : ownedCount > 0 ? ' owned' : '');
+    });
+}
+
+/**
+ * Repaint the section-level and country-level owned-count badges from the
+ * section summary.
+ *
+ * GGMJ-412: these two levels CANNOT be derived from the DOM.
+ *  - The section badge is owned/total for the WHOLE section, but only
+ *    expanded sections have their coin rows in the DOM.
+ *  - The country badge is the sum over every section of that country.
+ * Walking `.coin-row` therefore counted only the expanded section (the
+ * country badge showed 1/45 instead of 1/5676).
+ *
+ * The section summary is the same source the badges are built from at
+ * render time, so repainting from it makes the live badge identical to the
+ * badge a page reload would show.
+ *
+ * @param {Array} sections - Section summaries: {section, total, owned}.
+ */
+function repaintSectionBadges(sections) {
+    if (!Array.isArray(sections) || !sections.length) return;
+    const byName = new Map(sections.map(s => [s.section, s]));
+
+    // Section badges (.section-card .count-badge)
+    document.querySelectorAll('.section-card').forEach(card => {
+        const sec = byName.get(card.dataset.section);
+        if (!sec) return;
+        // The card's own section header — type headers use .type-header, so
+        // .section-header matches only the card's own badge row.
+        const badge = card.querySelector('.section-header .count-badge');
+        if (!badge) return;
+        const pct = sec.total > 0 ? Math.round((sec.owned / sec.total) * 100) : 0;
+        badge.textContent = `${sec.owned}/${sec.total}`;
+        badge.title = `${sec.owned} of ${sec.total} owned (${pct}%)`;
+        badge.className = 'count-badge' + (sec.owned === sec.total ? ' complete' : sec.owned > 0 ? ' owned' : '');
+    });
+
+    // Country badges (.country-group-header .count-badge) — the sum of the
+    // sections that belong to that country, exactly as buildCountryGroup does.
+    document.querySelectorAll('.country-group').forEach(group => {
+        const header = group.querySelector('.country-group-header');
+        const badge = header ? header.querySelector('.count-badge') : null;
+        if (!badge) return;
+        let total = 0, owned = 0;
+        group.querySelectorAll('.section-card').forEach(card => {
+            const sec = byName.get(card.dataset.section);
+            if (!sec) return;
+            total += sec.total || 0;
+            owned += sec.owned || 0;
+        });
+        if (!total) return;
+        const pct = Math.round((owned / total) * 100);
+        badge.textContent = `${owned}/${total}`;
+        badge.title = `${owned} of ${total} owned (${pct}%)`;
+        badge.className = 'count-badge' + (owned === total ? ' complete' : owned > 0 ? ' owned' : '');
+    });
+}
+
 // Listen for updates from the details modal
 // Listen for inventory updates — update stepper displays without rebuilding DOM
 window.addEventListener('cc-inventory-updated', async (e) => {
-    const newInv = await fetchInventory();
+    // If reason is already provided, assume state was updated before dispatching.
     const stateMod = await import('./state.js');
-    stateMod.setInventory(newInv);
+    // Mutation callers refresh authoritative state before dispatching.
     const affectedCoinId = e.detail && e.detail.coinId;
     
     // Update stepper displays for all coin rows
@@ -1431,12 +2186,25 @@ window.addEventListener('cc-inventory-updated', async (e) => {
             valEl.textContent = String(newQty);
             valEl.style.color = newQty > 0 ? 'var(--color-accent)' : '';
         }
+        const detailBtn = row.querySelector('.coin-row-detail-toggle');
+        if (detailBtn) {
+            // Details also contain historical notes at zero quantity. Keep
+            // the control in the row so ownership changes cannot reflow it.
+            detailBtn.style.display = '';
+            // Quantity dropping to zero must NOT collapse the open details
+            // panel — only the Data Entries area is removed (rebuildSlots /
+            // slot-clear logic below handles that when qty becomes 0). The
+            // historical note and the panel's open state stay put.
+        }
     });
 
     // Only rebuild slots if the affected coin's detail panel is open AND
     // the quantity actually changed (not on every autosave). This prevents
     // the textarea focus-steal bug where typing notes triggers a rebuild.
     if (affectedCoinId) {
+        const newQty = stateMod.getInventoryTotalQty(affectedCoinId);
+        updateStepperDisplay(affectedCoinId, newQty);
+
         document.querySelectorAll('.coin-row').forEach(row => {
             const cid = parseInt(row.dataset.coinId, 10);
             if (cid !== affectedCoinId) return;
@@ -1448,25 +2216,74 @@ window.addEventListener('cc-inventory-updated', async (e) => {
             if (!isOpen) return; // Don't touch closed panels
 
             const oldSlotCount = getSlotCount(cid);
-            const newQty = stateMod.getInventoryTotalQty(cid);
             // Clamp slot count to new quantity
             if (oldSlotCount > newQty) {
                 _slotCounts.set(cid, Math.max(0, newQty));
             }
             const newSlotCount = Math.min(oldSlotCount, newQty);
 
-            // Only rebuild if slot count or quantity actually changed
-            if (newSlotCount !== oldSlotCount || (newQty > 0 && dp.dataset.histOpen === 'true')) {
-                const slotsDiv = wrapper.querySelector('.coin-slots-wrap');
-                if (slotsDiv) {
+            // Only rebuild if slot count changed (not on photo updates — those preserve the slot DOM)
+            const slotsDiv = wrapper.querySelector('.coin-slots-wrap');
+            // Skip rebuild when reason is 'photo-update' (photo was already updated in DOM)
+            if (slotsDiv && e.detail.reason !== 'photo-update') {
+                var activeTab = slotsDiv.querySelector('.coin-instance-tab.active');
+                var activeIdx = activeTab ? parseInt(activeTab.dataset.instanceIdx, 10) : 0;
+                if (newQty > 0) {
+                    slotsDiv.innerHTML = buildCoinSlots(cid, activeIdx);
+                } else {
+                    slotsDiv.innerHTML = '';
+                }
+            }
+        });
+
+        // Update details modal slots
+        const modalEl = document.getElementById('modal-coin-detail-' + affectedCoinId);
+        if (modalEl) {
+            const slotsDiv = modalEl.querySelector('.coin-slots-wrap');
+            if (slotsDiv) {
+                const oldSlotCount = getSlotCount(affectedCoinId);
+                if (oldSlotCount > newQty) {
+                    _slotCounts.set(affectedCoinId, Math.max(0, newQty));
+                }
+                const newSlotCount = Math.min(oldSlotCount, newQty);
+
+                // Skip rebuild when reason is 'photo-update' (photo DOM already updated)
+                if (slotsDiv.innerHTML === '' || newQty > newSlotCount || e.detail.reason !== 'photo-update') {
                     if (newQty > 0) {
-                        slotsDiv.innerHTML = buildCoinSlots(cid);
+                        var activeTab = slotsDiv.querySelector('.coin-instance-tab.active');
+                        var activeIdx = activeTab ? parseInt(activeTab.dataset.instanceIdx, 10) : 0;
+                        slotsDiv.innerHTML = buildCoinSlots(affectedCoinId, activeIdx);
                     } else {
                         slotsDiv.innerHTML = '';
                     }
                 }
             }
-        });
+        }
+    }
+
+    // Refresh all owned-counter badges so the DOM reflects the new qty
+    // immediately instead of waiting for a page reload (GGMJ-399 reactivity fix).
+    // GGMJ-412: the section and country badges are NOT derivable from the
+    // DOM (only expanded sections have rows, and the country badge sums
+    // every section of the country), so they are repainted from a freshly
+    // fetched section summary — the same source they are built from at
+    // render time. The type badge is derived from its own rendered rows.
+    repaintTypeBadges(stateMod);
+    // A pure image flip changes no inventory, so the section summary cannot
+    // have changed either — skip the refetch for it.
+    const isImageFlip = e.detail && e.detail.reason === 'flip-image';
+    if (isImageFlip) return;
+    let freshSections = null;
+    try {
+        freshSections = await fetchSections();
+    } catch (err) {
+        console.warn('[catalog] Could not refresh section counts:', err);
+    }
+    if (freshSections && freshSections.length) {
+        // Keep the state in step with the badges so a later re-render
+        // (album view, filter) does not resurrect the stale counts.
+        setSections(freshSections);
+        repaintSectionBadges(freshSections);
     }
 });
 
@@ -1492,20 +2309,7 @@ window.addEventListener('cc-image-updated', async (e) => {
     });
     // Update section/subsection badges with new owned counts
     const stateMod2 = await import('./state.js');
-    document.querySelectorAll('.type-wrapper').forEach(wrapper => {
-        const header = wrapper.querySelector('.type-header');
-        const badge = header ? header.querySelector('.count-badge') : null;
-        if (!badge) return;
-        const rows = wrapper.querySelectorAll('.coin-row');
-        let ownedCount = 0;
-        rows.forEach(r => {
-            const cid = parseInt(r.dataset.coinId, 10);
-            if (cid && stateMod2.getInventoryTotalQty(cid) > 0) ownedCount++;
-        });
-        const total = rows.length;
-        badge.textContent = ownedCount + '/' + total;
-        badge.className = 'count-badge' + (ownedCount === total ? ' complete' : ownedCount > 0 ? ' owned' : '');
-    });
+    repaintTypeBadges(stateMod2);
 });
 
 // ============================================================
@@ -1558,6 +2362,8 @@ export async function setCatalogViewMode(mode) {
     renderSections();
     // After DOM is rebuilt, render album inline for any expanded type sections
     if (mode === 'album' || mode === 'folder') {
+        document.querySelectorAll('.section-content.open').forEach(function(sectionContent) {
+        });
         container.querySelectorAll('.type-content.open').forEach(function(typeContent) {
             var typeWrapper = typeContent.closest('.type-wrapper');
             if (!typeWrapper) return;
@@ -1565,9 +2371,11 @@ export async function setCatalogViewMode(mode) {
             if (!sectionCard) return;
             var secName = sectionCard.dataset.section;
             var header = typeWrapper.querySelector('.type-header');
-            var mainType = header ? header.querySelector('.type-title')?.textContent?.trim() : '';
+            var mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
             if (secName && mainType) {
-                renderAlbumType(secName, mainType, typeContent, header);
+                import('./album.js').then(m => {
+                    if (m.renderAlbumType) m.renderAlbumType(secName, mainType, typeContent, header);
+                });
             }
         });
     }
@@ -1588,8 +2396,8 @@ function initSectionDragAndDrop() {
     document.querySelectorAll('.section-card').forEach(card => {
         const handle = card.querySelector('.drag-handle');
         if (handle) {
-            handle.addEventListener('mousedown', () => card.setAttribute('draggable', 'true'));
-            handle.addEventListener('mouseup', () => card.removeAttribute('draggable'));
+            handle.addEventListener('mouseenter', () => card.setAttribute('draggable', 'true'));
+            handle.addEventListener('mouseleave', () => card.setAttribute('draggable', 'false'));
         }
     });
 }
@@ -1672,4 +2480,358 @@ function applySectionOrder() {
             cards.forEach(card => content.appendChild(card));
         });
     } catch (e) { console.warn('Failed to apply section order:', e); }
+}
+
+export function openCoinDetailModal(coinId) {
+    import('./state.js').then(state => {
+        let coin = null;
+        for (const s of state.getSections()) {
+            const coins = state.getCoinsForSection(s.section);
+            if (coins) {
+                coin = coins.find(c => c.id === coinId);
+                if (coin) break;
+            }
+        }
+        if (!coin) return;
+        
+        // build row to get dp
+        const wrapper = buildCoinRow(coin);
+        const dp = wrapper.querySelector('.coin-detail-panel');
+        if (!dp) return;
+        
+        dp.style.display = 'block';
+        dp.classList.add('open');
+        // force rebuild slots so they show up
+        if (dp.rebuildSlots) {
+            dp.rebuildSlots();
+        } else {
+            const slotsDiv = dp.querySelector('.coin-slots-wrap');
+            if (slotsDiv) {
+                slotsDiv.innerHTML = buildCoinSlots(coinId);
+            }
+        }
+        
+        const modalWrap = el('div', { className: 'modal-coin-detail-wrap' });
+        const totalQty = state.getInventoryTotalQty(coinId);
+
+        const mainType = getMainType(coin.coin_type);
+        const mainCfg = state.getTypeConfig(mainType, coin.section) || {};
+        const specificCfg = state.getTypeConfig(coin.coin_type, coin.section) || {};
+        
+        let currentSide = localStorage.getItem(`cc-flipped-${coinId}`);
+        if (!currentSide) {
+            currentSide = isSpecialReverse(coin.coin_type) ? 'rev' : 'obv';
+        }
+        
+        const getDisplayImgSrc = (side) => {
+            // GGMJ-333: same gate chain as buildCoinRow. A coin-level deletion
+            // blanks that side outright (no fall-through to the type image);
+            // a type-level deletion blocks only that type's image.
+            const specObv = (specificCfg && !specificCfg._deleted_obv_image) ? specificCfg.obv_image : null;
+            const specRev = (specificCfg && !specificCfg._deleted_rev_image) ? specificCfg.rev_image : null;
+            const obv = coin._deleted_obv_image
+                ? null
+                : (coin.obv_image || specObv || (mainCfg && !mainCfg._deleted_obv_image ? mainCfg.obv_image : null));
+            const rev = coin._deleted_rev_image
+                ? null
+                : (coin.rev_image || specRev || (mainCfg && !mainCfg._deleted_rev_image ? mainCfg.rev_image : null));
+            let src = side === 'rev' ? (rev || obv) : (obv || rev);
+            if (src && !src.includes('?')) src += '';
+            return src;
+        };
+        
+        const initialSrc = getDisplayImgSrc(currentSide);
+        const imgContainer = el('div', {
+            className: 'modal-detail-img-container',
+            style: 'width: 48px; height: 48px; border-radius: 50%; overflow: hidden; border: 2px solid var(--color-border); background: var(--color-accord-bg); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: var(--shadow-sm); transition: border-color 0.15s ease;'
+        });
+        const imgEl = el('img', {
+            src: initialSrc || placeholderCoinSvg(),
+            style: 'width: 100%; height: 100%; object-fit: cover;'
+        });
+        imgEl.onerror = () => { imgEl.src = placeholderCoinSvg(); };
+        imgContainer.appendChild(imgEl);
+        
+        imgContainer.onmouseenter = () => { imgContainer.style.borderColor = 'var(--color-accent)'; };
+        imgContainer.onmouseleave = () => { imgContainer.style.borderColor = 'var(--color-border)'; };
+        
+        imgContainer.onclick = () => {
+            let side = localStorage.getItem(`cc-flipped-${coinId}`);
+            if (!side) side = isSpecialReverse(coin.coin_type) ? 'rev' : 'obv';
+            import('./images.js').then(m => {
+                m.openImageInteractionModal(imgEl, coin.coin_type, side, false, null, coinId, coin.section || '');
+            });
+        };
+        
+        const flipBtn = el('button', {
+            className: 'btn-secondary',
+            style: 'padding: 4px 8px; font-size: 0.8rem; height: fit-content; flex-shrink: 0; display: inline-flex; align-items: center; gap: 4px; border-radius: var(--radius-sm); margin-right: var(--space-2);'
+        }, 'Flip ');
+        flipBtn.onclick = () => {
+            let oldSide = localStorage.getItem(`cc-flipped-${coinId}`);
+            if (!oldSide) oldSide = isSpecialReverse(coin.coin_type) ? 'rev' : 'obv';
+            const newSide = oldSide === 'rev' ? 'obv' : 'rev';
+            localStorage.setItem(`cc-flipped-${coinId}`, newSide);
+            imgEl.src = getDisplayImgSrc(newSide) || placeholderCoinSvg();
+            showToast(`Flipped to ${newSide === 'obv' ? 'Obverse' : 'Reverse'}`, 'info');
+            
+            // Dispatch events to refresh the grid/album views
+            window.dispatchEvent(new CustomEvent('cc-album-options-changed'));
+            window.dispatchEvent(new CustomEvent('cc-inventory-updated', { detail: { reason: 'flip-image' } }));
+        };
+        
+        const leftWrap = el('div', {
+            style: 'display: flex; align-items: center; gap: var(--space-2);'
+        },
+            imgContainer,
+            flipBtn,
+            el('span', { style: 'font-weight: 600;' }, 'Total Owned Qty:')
+        );
+        
+        const stepperContainer = el('div', {
+            className: 'modal-stepper-container',
+            style: 'display:flex; align-items:center; justify-content:space-between; margin-bottom:15px; padding:10px; background:var(--color-bg-body); border-radius:var(--radius-md); border:1px solid var(--color-border-light);'
+        },
+            leftWrap,
+            buildStepper(coinId, totalQty)
+        );
+        
+        modalWrap.appendChild(stepperContainer);
+        modalWrap.appendChild(dp);
+        
+        // Attach click handler to modalWrap so modal buttons/steppers work
+        modalWrap.addEventListener('click', handleCatalogClick);
+        
+        // Use standard modal wrapper
+        import('./modals.js').then(modals => {
+            modals.createModal('modal-coin-detail-' + coinId, 'Details: ' + (coin.year||'') + ' ' + coin.coin_type, modalWrap);
+        });
+    });
+}
+
+// ============================================================
+// Publish Section to Public (self-hosted only)
+// ============================================================
+export async function openPublishSectionModal(sectionName) {
+    const modals = await import('./modals.js');
+
+    const bodyWrap = el('div', { style: 'padding: var(--space-2) 0;' });
+    bodyWrap.appendChild(el('p', {}, `Publish images for section: `));
+    bodyWrap.appendChild(el('p', {
+        style: 'font-weight:700; margin: var(--space-1) 0 var(--space-3); color: var(--color-accent);'
+    }, sectionName));
+    bodyWrap.appendChild(el('p', {
+        style: 'font-size: var(--font-size-xs); color: var(--color-text-muted); line-height:1.5;'
+    }, 'This copies the user-tier images for this section into the master defaults, updates the database, and creates an export package ready to deploy to the public app. Master images that already exist are backed up before they are replaced, master images owned by another section are never touched, and every publish is written to a log so it can be undone.'));
+
+    // GGMJ-442: publish preview warns BEFORE anything is overwritten.
+    const previewBox = el('div', {
+        style: 'margin: var(--space-2) 0; padding: var(--space-3); border:1px solid var(--color-border, rgba(128,128,128,0.35)); border-radius: var(--radius-sm); font-size: var(--font-size-xs); line-height:1.6;'
+    });
+    previewBox.appendChild(el('p', {
+        style: 'margin:0; color: var(--color-text-muted);'
+    }, 'Checking what this publish would change...'));
+    bodyWrap.appendChild(previewBox);
+
+    let running = false;
+    const btnPublish = el('button', { className: 'btn-primary' }, 'Publish Section');
+    btnPublish.disabled = true;
+    const btnCancel = el('button', { className: 'btn-secondary', dataset: { action: 'close-modal' } }, 'Cancel');
+    const footer = el('div', { style: 'display:flex; gap: var(--space-2); justify-content:flex-end;' }, btnCancel, btnPublish);
+
+    const modalId = 'modal-publish-section';
+    modals.createModal(modalId, '\u{1F4E4} Publish Section to Public', bodyWrap, footer);
+
+    const resultBox = el('div', { style: 'margin-top: var(--space-3); font-size: var(--font-size-sm); line-height:1.6;' });
+
+    // GGMJ-442: publishPreviewWarning - the preview endpoint reports what the
+    // publish WOULD do, so the user sees the overwrite list before it happens.
+    async function publishPreviewWarning(section) {
+        return await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/publish_preview?section=' + encodeURIComponent(section), true);
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    try { resolve(JSON.parse(xhr.responseText)); }
+                    catch (e) { reject(new Error('Invalid JSON from publish preview: ' + xhr.responseText)); }
+                } else {
+                    let detail = xhr.responseText || ('HTTP ' + xhr.status);
+                    try { detail = JSON.parse(xhr.responseText).error || detail; } catch (e) {}
+                    reject(new Error(detail));
+                }
+            };
+            xhr.onerror = () => reject(new Error('Network error calling /api/publish_preview'));
+            xhr.send();
+        });
+    }
+
+    function renderPreview(preview) {
+        previewBox.innerHTML = '';
+        const s = preview.summary || {};
+        const replace = preview.would_replace || [];
+        const skip = preview.would_skip || [];
+        const create = preview.would_create || [];
+
+        const head = el('p', { style: 'margin:0 0 var(--space-1); font-weight:700;' });
+        head.textContent = `This publish will add ${create.length} master image(s)`
+            + (replace.length ? `, REPLACE ${replace.length} existing master image(s)` : '')
+            + (skip.length ? `, and SKIP ${skip.length} image(s) owned by another section` : '')
+            + '.';
+        previewBox.appendChild(head);
+
+        if (replace.length) {
+            previewBox.appendChild(el('p', {
+                style: 'margin:0 0 var(--space-1); color: var(--color-warning, #b26a00); font-weight:600;'
+            }, `The ${replace.length} image(s) below will be backed up first and can be restored with Undo:`));
+            const ul = el('ul', { style: 'margin:0 0 var(--space-2); padding-left: var(--space-4);' });
+            replace.slice(0, 12).forEach((r) => ul.appendChild(el('li', {}, r.name)));
+            if (replace.length > 12) {
+                ul.appendChild(el('li', {}, `...and ${replace.length - 12} more`));
+            }
+            previewBox.appendChild(ul);
+        }
+
+        if (skip.length) {
+            previewBox.appendChild(el('p', {
+                style: 'margin:0 0 var(--space-1); color: var(--color-info, #1565c0); font-weight:600;'
+            }, 'These will NOT be touched (another section owns them):'));
+            const ul = el('ul', { style: 'margin:0 0 var(--space-2); padding-left: var(--space-4);' });
+            skip.slice(0, 12).forEach((r) => ul.appendChild(el('li', {}, r.name)));
+            if (skip.length > 12) {
+                ul.appendChild(el('li', {}, `...and ${skip.length - 12} more`));
+            }
+            previewBox.appendChild(ul);
+        }
+
+        if (!replace.length && !skip.length) {
+            previewBox.appendChild(el('p', {
+                style: 'margin:0; color: var(--color-text-muted);'
+            }, 'No existing master image would be replaced.'));
+        }
+    }
+
+    try {
+        const preview = await publishPreviewWarning(sectionName);
+        renderPreview(preview);
+    } catch (err) {
+        previewBox.innerHTML = '';
+        previewBox.appendChild(el('p', {
+            style: 'margin:0; color: var(--color-warning, #b26a00);'
+        }, 'Could not check what this publish would change (' + err.message + '). Publishing still backs up every master image it replaces.'));
+    }
+    btnPublish.disabled = false;
+
+    btnPublish.addEventListener('click', async () => {
+        if (running) return;
+        running = true;
+        btnPublish.disabled = true;
+        btnPublish.textContent = 'Publishing\u2026';
+        resultBox.innerHTML = '';
+        bodyWrap.appendChild(resultBox);
+
+        try {
+            // Use XHR directly to bypass the global fetch interceptor in api.js,
+            // which would otherwise route /api/publish_section into the local stub.
+            const result = await new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/publish_section', true);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try { resolve(JSON.parse(xhr.responseText)); }
+                        catch (e) { reject(new Error('Invalid JSON from publish API: ' + xhr.responseText)); }
+                    } else {
+                        let detail = xhr.responseText || ('HTTP ' + xhr.status);
+                        try { detail = JSON.parse(xhr.responseText).error || detail; } catch (e) {}
+                        reject(new Error(detail));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Network error calling /api/publish_section'));
+                xhr.send(JSON.stringify({ section: sectionName }));
+            });
+
+            if (result.status === 'success') {
+                const ok = el('p', { style: 'color: var(--color-success, #2e7d32); font-weight:600;' },
+                    `\u2713 Published \u2014 ${result.images_copied} images copied, ${result.types_updated} types updated.`);
+                resultBox.appendChild(ok);
+
+                // GGMJ-442: report exactly what was replaced / skipped, and make
+                // the publish reversible from here.
+                const replaced = result.files_replaced || 0;
+                const skipped = result.files_skipped || 0;
+                if (replaced) {
+                    resultBox.appendChild(el('p', {
+                        style: 'margin-top: var(--space-2); color: var(--color-warning, #b26a00);'
+                    }, `${replaced} existing master image(s) were replaced. The previous file of each was backed up.`));
+                }
+                if (skipped) {
+                    resultBox.appendChild(el('p', {
+                        style: 'margin-top: var(--space-2); color: var(--color-info, #1565c0);'
+                    }, `${skipped} image(s) were skipped because another section owns them.`));
+                }
+
+                resultBox.appendChild(el('p', { style: 'margin-top: var(--space-2);' }, `Export package: `));
+                resultBox.appendChild(el('code', {
+                    style: 'display:block; background: var(--color-bg-body); padding: var(--space-2); border-radius: var(--radius-sm); margin: var(--space-1) 0; word-break: break-all;'
+                }, result.export_path));
+                resultBox.appendChild(el('p', { style: 'margin-top: var(--space-2); font-size: var(--font-size-xs); color: var(--color-text-muted);' },
+                    'To deploy: run scripts/deploy_published_section.sh with the export path, then push to GitHub.'));
+
+                if (result.publish_id) {
+                    const undoBtn = el('button', { className: 'btn-secondary' }, 'Undo this publish');
+                    undoBtn.addEventListener('click', async () => {
+                        if (!window.confirm('Undo this publish and restore the master images it replaced?')) return;
+                        undoBtn.disabled = true;
+                        undoBtn.textContent = 'Undoing\u2026';
+                        try {
+                            const undone = await new Promise((resolve, reject) => {
+                                const xhr = new XMLHttpRequest();
+                                xhr.open('POST', '/api/publish_undo', true);
+                                xhr.setRequestHeader('Content-Type', 'application/json');
+                                xhr.onload = () => {
+                                    if (xhr.status >= 200 && xhr.status < 300) {
+                                        try { resolve(JSON.parse(xhr.responseText)); }
+                                        catch (e) { reject(new Error('Invalid JSON from publish undo: ' + xhr.responseText)); }
+                                    } else {
+                                        let detail = xhr.responseText || ('HTTP ' + xhr.status);
+                                        try { detail = JSON.parse(xhr.responseText).error || detail; } catch (e) {}
+                                        reject(new Error(detail));
+                                    }
+                                };
+                                xhr.onerror = () => reject(new Error('Network error calling /api/publish_undo'));
+                                xhr.send(JSON.stringify({ publish_id: result.publish_id }));
+                            });
+                            undoBtn.remove();
+                            resultBox.appendChild(el('p', {
+                                style: 'margin-top: var(--space-2); color: var(--color-success, #2e7d32); font-weight:600;'
+                            }, `\u2713 Undone \u2014 ${(undone.restored || []).length} master image(s) restored, ${(undone.removed || []).length} created image(s) removed.`));
+                        } catch (err) {
+                            undoBtn.disabled = false;
+                            undoBtn.textContent = 'Undo this publish';
+                            resultBox.appendChild(el('p', {
+                                style: 'margin-top: var(--space-2); color: var(--color-danger, #c62828);'
+                            }, 'Undo failed: ' + err.message));
+                        }
+                    });
+                    resultBox.appendChild(undoBtn);
+                    resultBox.appendChild(el('p', {
+                        style: 'margin-top: var(--space-1); font-size: var(--font-size-xs); color: var(--color-text-muted);'
+                    }, `Publish id: ${result.publish_id}`));
+                }
+
+                btnPublish.remove();
+                btnCancel.textContent = 'Done';
+            } else {
+                resultBox.appendChild(el('p', { style: 'color: var(--color-warning, #b26a00);' }, result.message || 'Nothing to publish.'));
+                btnPublish.textContent = 'Try Again';
+                btnPublish.disabled = false;
+                running = false;
+            }
+        } catch (err) {
+            resultBox.appendChild(el('p', { style: 'color: var(--color-danger, #c62828);' }, 'Error: ' + err.message));
+            btnPublish.textContent = 'Try Again';
+            btnPublish.disabled = false;
+            running = false;
+        }
+    });
 }

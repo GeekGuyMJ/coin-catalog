@@ -1,3 +1,7 @@
+/api/coins/*
+  Status: 404
+  Cache-Control: no-store
+
 /api/*
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS

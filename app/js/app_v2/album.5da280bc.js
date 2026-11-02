@@ -18,19 +18,21 @@
  * @module album
  */
 
-import {
-    getMainType, getSubType, isCompositionSub, isErrorVariety,
-    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el,
+import { resolveImageUrl,
+    getMainType, getSubType, isCompositionSub, isErrorVariety, getDateVariety,
+    typeYearSpan, coinSortComparator, escHtml, placeholderCoinSvg, el, formatMintMark,
+    formatMintage, isSpecialReverse
 } from './utils.js';
 
 import {
     getSections, getCoinsForSection, setCoinsForSection,
     getTypeConfig, getInventoryTotalQty, getInventoryEntries, setInventory,
+    setTypeConfigs,
 } from './state.js';
 
-import { fetchCoinsForSection, updateInventory, fetchInventory } from './api.js';
+import { fetchCoinsForSection, updateInventory, fetchInventory, fetchTypeConfigs, deleteInventoryEntry } from './api.js';
 import { showToast } from './notifications.js';
-import { openImageInteractionModal } from './images.js';
+import { openImageInteractionModal, bustImageCache } from './images.js';
 
 // --- View state ---
 let _albumSections = new Set();       // sections expanded in album view
@@ -52,53 +54,147 @@ export function clearAlbumCache() {
     _albumLoaded = {};
 }
 
-export function renderAlbumType(sectionName, typeName, contentEl, headerEl) {
-    // Get coins for this section (from cache or state)
-    let coins = _albumLoaded[sectionName] || getCoinsForSection(sectionName);
-    if (!coins) return;
+function filterAlbumCoins(coins) {
+    const includeProofs = localStorage.getItem('cc-album-include-proofs') !== 'false';
+    const includeErrors = localStorage.getItem('cc-album-include-errors') !== 'false';
+    const includeRare = localStorage.getItem('cc-album-include-rare') !== 'false';
 
-    // Find the type wrapper or create inline album in the type content
-    let typeWrapper = contentEl?.closest?.('.type-wrapper');
-    const gridArea = document.getElementById('album-grid-area');
+    return coins.filter(coin => {
+        if (coin.is_key_date) return true; // Key dates always bypass all exclusions!
+        if (!includeProofs && coin.is_proof) return false;
+        if (!includeErrors && (coin.is_error || isErrorVariety(coin.coin_type, coin.ref_notes))) return false;
+        const isSuperRare = coin.mintage && coin.mintage > 0 && coin.mintage < 1000;
+        if (!includeRare && isSuperRare) return false;
+        return true;
+    });
+}
 
-    // Filter coins for this type
-    const typeCoins = coins.filter(c => getMainType(c.coin_type) === typeName);
-    if (!typeCoins.length) return;
+export async function renderAlbumType(sectionName, typeName, container, header) {
+    // Clear cache for this type to force re-render
+    if (_albumLoaded[sectionName]) {
+        delete _albumLoaded[sectionName][typeName];
+    }
+    
+    if (!container) return;
+    container.innerHTML = '<div class="section-loading">Loading album...</div>';
 
-    // Sort by year
-    typeCoins.sort(coinSortComparator);
+    let coins = _albumLoaded[sectionName];
+    if (!coins) {
+        coins = await fetchCoinsForSection(sectionName);
+        _albumLoaded[sectionName] = coins;
+    }
 
-    const cfg = getTypeConfig(typeName) || {};
+    const filtered = filterAlbumCoins(coins);
+    const typeCoins = filtered.filter(c => getMainType(c.coin_type) === typeName);
+    const sorted = [...typeCoins].sort(coinSortComparator);
 
-    // Build the album grid for this type
-    const holesGrid = el('div', { className: 'album-holes-grid' });
-    for (const coin of typeCoins) {
+    container.classList.add('album-grid-container');
+    container.classList.add('album-inline');
+    
+    // Set folder color dynamically
+    const fc = localStorage.getItem('cc-folder-color') || 'green';
+    const isColorblind = localStorage.getItem('cc-colorblind') === '1';
+    const fcMap = isColorblind ? {green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'} : {green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'};
+    const ftMap = isColorblind ? {green:'#7db3d8',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#aaaaaa',purple:'#c9a0d4',gray:'#aaaaaa'} : {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
+    const fcVal = fcMap[fc] || fcMap.green;
+    const ftVal = ftMap[fc] || ftMap.green;
+    container.style.background = 'var(--folder-color)';
+    document.documentElement.style.setProperty('--folder-color', fcVal);
+    document.documentElement.style.setProperty('--folder-header-text', ftVal);
+    document.documentElement.style.setProperty('--folder-label', ftVal);
+
+    const grid = el('div', { className: 'album-holes-grid inline-album-grid' });
+    // Pass the section so colliding type names (e.g. 'Liberty Cap' in multiple
+    // sections) resolve to the correct config and its example OBV/REV images.
+    const cfg = getTypeConfig(typeName, sectionName) || {};
+
+    // Representative per-coin example images: if the type config has no curated
+    // example image, fall back to the first coin of this type that has an uploaded
+    // image (now server-synced across devices). This makes the example holes show a
+    // real coin photo instead of a placeholder when one exists.
+    let _repObv = null, _repRev = null;
+    for (const _c of typeCoins) {
+        // GGMJ-333: a per-coin _deleted flag must gate the representative
+        // fallback too, or the deleted image comes back as the type example.
+        if (!_repObv && _c.obv_image && !_c._deleted_obv_image) _repObv = _c.obv_image;
+        if (!_repRev && _c.rev_image && !_c._deleted_rev_image) _repRev = _c.rev_image;
+        if (_repObv && _repRev) break;
+    }
+    // 2026-09-01 GHOST FIX: after a type-level deletion (_deleted flags), do NOT fall back
+    // to per-coin example images — that made deleted images reappear ("keep coming back").
+    const _exObv = cfg._deleted_obv_image ? null : resolveImageUrl(cfg.obv_image || _repObv);
+    const _exRev = cfg._deleted_rev_image ? null : resolveImageUrl(cfg.rev_image || _repRev);
+
+    // Obv Example
+    const obvHole = el('div', { className: 'album-hole owned example-hole' });
+    const obvSlot = el('div', { className: 'album-hole-slot' });
+    if (_exObv) {
+        obvSlot.appendChild(el('img', { className: 'album-hole-img', src: _exObv, dataset: { action: 'view-img', type: typeName, side: 'obv' } }));
+    } else {
+        obvSlot.appendChild(el('img', { className: 'album-hole-img', src: placeholderCoinSvg(), style: 'cursor:pointer; opacity: 0.5;', dataset: { action: 'view-img', type: typeName, side: 'obv' } }));
+    }
+    obvHole.appendChild(obvSlot);
+    obvHole.appendChild(el('div', { className: 'album-hole-label', style: 'color: #fbbf24;' }, el('div', {}, 'OBV')));
+    grid.appendChild(obvHole);
+
+    // Rev Example
+    const revHole = el('div', { className: 'album-hole owned example-hole' });
+    const revSlot = el('div', { className: 'album-hole-slot' });
+    if (_exRev) {
+        revSlot.appendChild(el('img', { className: 'album-hole-img', src: _exRev, dataset: { action: 'view-img', type: typeName, side: 'rev' } }));
+    } else {
+        revSlot.appendChild(el('img', { className: 'album-hole-img', src: placeholderCoinSvg(), style: 'cursor:pointer; opacity: 0.5;', dataset: { action: 'view-img', type: typeName, side: 'rev' } }));
+    }
+    revHole.appendChild(revSlot);
+    revHole.appendChild(el('div', { className: 'album-hole-label', style: 'color: #fbbf24;' }, el('div', {}, 'REV')));
+    grid.appendChild(revHole);
+
+    for (const coin of sorted) {
         const hole = buildCoinHole(coin, cfg);
-        holesGrid.appendChild(hole);
+        grid.appendChild(hole);
     }
 
-    // If in standalone album mode (gridArea exists), replace the entire grid area
-    if (gridArea && !typeWrapper) {
-        // Build full grid with all types for this section
-        renderAlbumGrid(document.getElementById('catalog-container'), sectionName, coins);
-        return;
-    }
-
-    // Inline mode: replace content in the type-wrapper
-    if (typeWrapper) {
-        let albumContent = typeWrapper.querySelector('.album-inline-content');
-        if (!albumContent) {
-            albumContent = el('div', { className: 'album-inline-content' });
-            typeWrapper.appendChild(albumContent);
-        }
-        albumContent.innerHTML = '';
-        albumContent.appendChild(holesGrid);
-    }
+    container.innerHTML = '';
+    
+    // Filter Bar
+    const filterWrap = el('div', { style: 'padding: 10px 20px;' });
+    const filterInput = el('input', { type: 'text', placeholder: 'Filter by year or mint...', style: 'width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 20px; color: white;' });
+    filterInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        grid.querySelectorAll('.album-hole:not(.example-hole)').forEach(h => {
+            const lbl = h.querySelector('.album-hole-label').textContent.toLowerCase();
+            h.style.display = lbl.includes(term) ? '' : 'none';
+        });
+    });
+    filterWrap.appendChild(filterInput);
+    container.appendChild(filterWrap);
+    
+    // Type Title Bar
+    const titleBar = el('div', { className: 'album-inline-title', style: 'padding: 10px 20px; font-weight: bold; color: #fbbf24; border-left: 3px solid #fbbf24; margin: 10px 20px; font-size: 1.1em;' }, typeName);
+    container.appendChild(titleBar);
+    container.appendChild(grid);
+    
+    grid.addEventListener('click', handleAlbumClick);
+    grid.addEventListener('contextmenu', handleAlbumRightClick);
 }
 
 export async function renderAlbumView(sectionName) {
     const container = document.getElementById('catalog-container');
     if (!container) return;
+
+    // 2026-10-21 (GGMJ-400): the header Album button calls
+    // renderAlbumView(null) to open the album with nothing selected. A null
+    // section name reached fetchCoinsForSection(null) ->
+    // db.coins_reference.where('section').equals(null), which Dexie rejects
+    // with "Invalid key provided" -- the error was rendered as page text and
+    // the album showed 0 holes. With no section selected there is nothing to
+    // load: render the layout and let the user pick a section.
+    if (!sectionName) {
+        _activeSection = null;
+        _albumSections.clear();
+        renderAlbumLayout(container);
+        return;
+    }
 
     // If clicking the same section, toggle collapse
     if (_activeSection === sectionName && _albumSections.has(sectionName)) {
@@ -123,6 +219,7 @@ export async function renderAlbumView(sectionName) {
             coins = await fetchCoinsForSection(sectionName);
             setCoinsForSection(sectionName, coins);
             _albumLoaded[sectionName] = coins;
+            try { (window.__albumCache ||= {})[sectionName] = coins; } catch (_) {}
         } catch (err) {
             const gridArea = container.querySelector('#album-grid-area');
             if (gridArea) gridArea.innerHTML = `<p class="text-muted" style="padding:1rem">
@@ -157,6 +254,15 @@ function renderAlbumLayout(container) {
 
     // --- Sidebar: vertical accordion ---
     const sidebar = el('div', { className: 'album-sidebar' });
+
+    // --- Back to List View Button ---
+    const listBtnWrapper = el('div', { style: 'padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);' });
+    const listBtn = el('button', { className: 'btn-secondary', style: 'width: 100%;' }, ' Switch to List View');
+    listBtn.onclick = () => {
+        import('./catalog.js').then(m => m.setCatalogViewMode('list'));
+    };
+    listBtnWrapper.appendChild(listBtn);
+    sidebar.appendChild(listBtnWrapper);
 
     for (const [country, countrySections] of countryMap) {
         const isExpanded = _expandedCountries.has(country);
@@ -206,7 +312,20 @@ function renderAlbumLayout(container) {
     wrapper.appendChild(sidebar);
 
     // --- Main grid area ---
-    const gridArea = el('div', { className: 'album-grid-area', id: 'album-grid-area' });
+    const gridArea = el('div', { className: 'album-grid-area album-inline', id: 'album-grid-area' });
+    
+    // Set folder color dynamically
+    const fc = localStorage.getItem('cc-folder-color') || 'green';
+    const isColorblind = localStorage.getItem('cc-colorblind') === '1';
+    const fcMap = isColorblind ? {green:'#245c4a',blue:'#1f4a72',red:'#8a3a2a',brown:'#7a5a3a',black:'#1a1a1a',purple:'#5a4a7a',gray:'#4a4a4a'} : {green:'#2d4a2d',blue:'#2d3a4a',red:'#4a2d2d',brown:'#4a3d2d',black:'#1a1a1a',purple:'#3d2d4a',gray:'#3a3a3a'};
+    const ftMap = isColorblind ? {green:'#7db3d8',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#aaaaaa',purple:'#c9a0d4',gray:'#aaaaaa'} : {green:'#c9a227',blue:'#7db3d8',red:'#e8a0a0',brown:'#d4a574',black:'#888888',purple:'#c9a0d4',gray:'#aaaaaa'};
+    const fcVal = fcMap[fc] || fcMap.green;
+    const ftVal = ftMap[fc] || ftMap.green;
+    document.documentElement.style.setProperty('--folder-color', fcVal);
+    document.documentElement.style.setProperty('--folder-header-text', ftVal);
+    document.documentElement.style.setProperty('--folder-label', ftVal);
+    gridArea.style.background = 'var(--folder-color)';
+    
     wrapper.appendChild(gridArea);
 
     container.innerHTML = '';
@@ -230,9 +349,11 @@ function renderAlbumGrid(container, sectionName, coins) {
     const gridArea = container.querySelector('#album-grid-area');
     if (!gridArea) return;
 
+    const filtered = filterAlbumCoins(coins);
+
     // Group coins by main type
     const typeMap = new Map();
-    for (const coin of coins) {
+    for (const coin of filtered) {
         const main = getMainType(coin.coin_type);
         if (!typeMap.has(main)) typeMap.set(main, []);
         typeMap.get(main).push(coin);
@@ -248,7 +369,7 @@ function renderAlbumGrid(container, sectionName, coins) {
     const grid = el('div', { className: 'album-grid' });
 
     for (const [mainType, typeCoins] of sortedTypes) {
-        const cfg = getTypeConfig(mainType) || {};
+        const cfg = getTypeConfig(mainType, sectionName) || {};
         const sorted = [...typeCoins].sort(coinSortComparator);
 
         // Type header row (full width, sticky) — NO completion pill
@@ -256,9 +377,11 @@ function renderAlbumGrid(container, sectionName, coins) {
 
         // Type thumbnail
         const thumbWrap = el('div', { className: 'album-type-thumb' });
-        if (cfg.obv_image) {
+        // Respect _deleted flags on the type config - deleted images must not reappear
+        const typeObv = cfg && !cfg._deleted_obv_image ? cfg.obv_image : null;
+        if (typeObv) {
             const img = el('img', {
-                src: cfg.obv_image,
+                src: resolveImageUrl(typeObv),
                 alt: mainType,
                 loading: 'lazy',
                 dataset: { action: 'view-img', type: mainType, side: 'obv' },
@@ -266,7 +389,7 @@ function renderAlbumGrid(container, sectionName, coins) {
             img.onerror = () => { img.src = placeholderCoinSvg(); };
             thumbWrap.appendChild(img);
         } else {
-            thumbWrap.appendChild(el('div', { className: 'album-type-thumb-placeholder' }, '?'));
+            thumbWrap.appendChild(el('img', { className: 'album-type-thumb-placeholder', src: placeholderCoinSvg(), alt: '?', style: 'cursor:pointer;', dataset: { action: 'view-img', type: mainType, side: 'obv' } }));
         }
         typeHeader.appendChild(thumbWrap);
 
@@ -294,30 +417,60 @@ function renderAlbumGrid(container, sectionName, coins) {
 
     // Single event delegation on the grid
     grid.addEventListener('click', handleAlbumClick);
+    grid.addEventListener('contextmenu', handleAlbumRightClick);
 }
 
 /**
  * Build a single coin hole element.
  */
-function buildCoinHole(coin, typeCfg) {
-    const qty = getInventoryTotalQty(coin.id);
+function buildCoinHole(coin, typeCfg, qtyOverride) {
+    // qtyOverride lets callers force the displayed qty (e.g. right after a write)
+    // so the slot re-renders correctly even if _state.inventory hasn't refreshed yet.
+    const qty = (qtyOverride != null) ? qtyOverride : getInventoryTotalQty(coin.id);
     const isOwned = qty > 0;
 
     const hole = el('div', {
         className: 'album-hole' + (isOwned ? ' owned' : ' missing'),
-        dataset: { coinId: coin.id, coinType: coin.coin_type, section: coin.section },
+        dataset: { coinId: coin.id, coinType: coin.coin_type, section: coin.section,
+                   year: coin.year || '', mintMark: coin.mint_mark || '' },
         title: _coinTooltip(coin, qty),
     });
+
+    // The slot wrapper to contain the slot circle and absolutely positioned badges
+    const slotWrapper = el('div', { className: 'album-hole-slot-wrapper', style: 'position: relative; display: inline-flex; justify-content: center;' });
 
     // The circular slot
     const slot = el('div', { className: 'album-hole-slot' });
 
-    if (isOwned && typeCfg?.obv_image) {
+    const flipState = localStorage.getItem(`cc-flipped-${coin.id}`) || 'obv';
+    const specificCfg = getTypeConfig(coin.coin_type, coin.section);
+    const mainCfg = typeCfg || getTypeConfig(getMainType(coin.coin_type), coin.section) || {};
+    const isSpecial = isSpecialReverse(mainCfg?.coin_type || coin.coin_type);
+    let displaySide = flipState === 'rev' ? 'rev' : 'obv';
+    // If special reverse, the default view is the reverse. Flipping it would show the obverse.
+    if (isSpecial) {
+        displaySide = flipState === 'rev' ? 'obv' : 'rev';
+    }
+    
+    // Prefer the coin's own uploaded image (per-coin), then fall back to the type-config default.
+    // Respect coin-level _deleted flags - deleted images must not reappear (GGMJ-333)
+    const coinObv = coin._deleted_obv_image ? null : coin.obv_image;
+    const coinRev = coin._deleted_rev_image ? null : coin.rev_image;
+    const obvImg = resolveImageUrl(coinObv);
+    const revImg = resolveImageUrl(coinRev);
+    let displayImg = displaySide === 'rev' ? (revImg || obvImg) : (obvImg || revImg);
+    // A re-upload reuses the same filename, so without a UNIQUE bust the
+    // browser serves the previously cached bytes and the album shows the
+    // OLD image until a refresh. See bustImageCache() in images.js.
+    displayImg = bustImageCache(displayImg);
+
+    if (isOwned && displayImg) {
         const img = el('img', {
             className: 'album-hole-img',
-            src: typeCfg.obv_image,
+            src: displayImg,
             alt: `${coin.year} ${coin.coin_type}`,
-            loading: 'lazy',
+            loading: 'lazy'
+            // NOTE: no data-action="view-img" here — clicks on owned holes open detail modal, not image lightbox
         });
         img.onerror = () => { img.src = placeholderCoinSvg(); };
         slot.appendChild(img);
@@ -329,30 +482,68 @@ function buildCoinHole(coin, typeCfg) {
         slot.appendChild(el('div', { className: 'album-hole-empty' }));
     }
 
-    hole.appendChild(slot);
-
-    // Label below the hole — strip redundant year-range/era/composition labels.
-    const label = el('div', { className: 'album-hole-label' });
-    const yearText = coin.year === 1776 ? '1776-1976' : _yearAbbr(coin.year);
-    const mintText = coin.mint_mark ? coin.mint_mark : '';
-    label.textContent = `${yearText}${mintText}`;
-    hole.appendChild(label);
+    slotWrapper.appendChild(slot);
 
     // Badges
-    if (coin.is_key_date) {
-        hole.appendChild(el('span', { className: 'album-hole-badge key' }, '⭐'));
+    const showMultiplier = localStorage.getItem('cc-album-show-multiplier') !== 'false';
+    const showKeyDates = true; // Key dates always show
+    const showErrors = localStorage.getItem('cc-album-show-errors') !== 'false';
+    const showProofs = localStorage.getItem('cc-album-show-proofs') !== 'false';
+    const showRare = localStorage.getItem('cc-album-show-rare') !== 'false';
+
+    if (showKeyDates && coin.is_key_date) {
+        slotWrapper.appendChild(el('span', { className: 'album-hole-badge key', title: 'Key Date' }, '⭐'));
     }
-    if (coin.is_proof) {
-        hole.appendChild(el('span', { className: 'album-hole-badge proof' }, '💎'));
+    if (showProofs && coin.is_proof) {
+        slotWrapper.appendChild(el('span', { className: 'album-hole-badge proof', title: 'Proof' }, ''));
     }
-    if (coin.is_error || isErrorVariety(coin.coin_type, coin.ref_notes)) {
-        hole.appendChild(el('span', { className: 'album-hole-badge error' }, '⚠'));
+    if (showErrors && (coin.is_error || isErrorVariety(coin.coin_type, coin.ref_notes))) {
+        slotWrapper.appendChild(el('span', { className: 'album-hole-badge error', title: 'Error/Variety' }, '⚠'));
+    }
+    const isSuperRare = coin.mintage && coin.mintage > 0 && coin.mintage < 1000;
+    if (showRare && isSuperRare) {
+        slotWrapper.appendChild(el('span', { className: 'album-hole-badge rare', title: `Super Rare (Mintage: ${coin.mintage})` }, ''));
     }
 
     // Quantity badge
-    if (qty > 1) {
-        hole.appendChild(el('span', { className: 'album-hole-qty' }, `×${qty}`));
+    if (showMultiplier && qty > 1) {
+        slotWrapper.appendChild(el('span', { className: 'album-hole-qty' }, `×${qty}`));
     }
+
+    hole.appendChild(slotWrapper);
+
+    // Label below the hole
+    const label = el('div', { className: 'album-hole-label' });
+    // Silver proof label badge — placed in label area so it doesn't overlap the coin
+    const isSilverProof = showProofs && coin.is_proof && coin.metal && coin.metal.toLowerCase().includes('silver');
+    const yearText = (coin.year === 2026 && (coin.coin_type || '').includes('Semiquincentennial')) ? '1776-2026' : (coin.year === 1776 ? '76-76' : _yearAbbr(coin.year));
+    const mintText = formatMintMark(coin);
+    const mintageText = coin.mintage ? ` (${formatMintage(coin.mintage)})` : '';
+    label.textContent = `${yearText}${mintText}${mintageText}`;
+    let subType = getSubType(coin.coin_type);
+    const isPenny = coin.denomination === '1 Cent' || (coin.coin_type || '').toLowerCase().includes('cent');
+    if (isPenny && coin.year !== 1982 && (subType === 'Copper' || subType === 'Zinc')) {
+        subType = '';
+    }
+    const dateVar = getDateVariety(coin.ref_notes);
+    if (dateVar) subType = subType ? `${subType}, ${dateVar}` : dateVar;
+    if (subType) {
+        label.appendChild(el('div', { style: 'font-size: 0.8em; font-style: italic; opacity: 0.9;' }, subType));
+    }
+    // Silver proof indicator below the label text — not overlapping the coin
+    if (isSilverProof) {
+        label.appendChild(el('span', {
+            className: 'album-label-silver-badge',
+            title: 'Silver Proof'
+        }, 'Ag'));
+    }
+    hole.appendChild(label);
+
+    // Dynamic tooltip — re-read qty at hover time so 'Owned/Not in collection' is always current
+    hole.addEventListener('mouseenter', () => {
+        const liveQty = getInventoryTotalQty(coin.id);
+        hole.setAttribute('title', _coinTooltip(coin, liveQty));
+    });
 
     return hole;
 }
@@ -364,123 +555,150 @@ function buildCoinHole(coin, typeCfg) {
 async function handleAlbumClick(e) {
     const target = e.target;
 
-    // Image click → lightbox
+    // Example-hole image click (OBV/REV headers) → lightbox
     const imgBtn = target.closest('[data-action="view-img"]');
     if (imgBtn) {
-        e.stopPropagation();
-        const { type, side } = imgBtn.dataset;
-        openImageInteractionModal(imgBtn, type, side, false);
-        return;
+        // Only open lightbox for example holes (type header images), not coin holes
+        const parentHole = imgBtn.closest('.album-hole');
+        if (!parentHole || parentHole.classList.contains('example-hole')) {
+            e.stopPropagation();
+            const { type, side } = imgBtn.dataset;
+            openImageInteractionModal(imgBtn, type, side, false, null, null, imgBtn.dataset.section || _activeSection || '');
+            return;
+        }
     }
 
-    // Coin hole click → toggle owned/missing (fill with coin image)
+    // Coin hole click → open details (if owned) or add to collection
     const hole = target.closest('.album-hole');
-    if (hole) {
+    if (hole && !hole.classList.contains('example-hole')) {
         e.stopPropagation();
         const coinId = hole.dataset.coinId;
         if (coinId) {
-            await toggleHoleOwnership(parseInt(coinId, 10));
+            await toggleHoleOwnership(parseInt(coinId, 10), hole);
         }
         return;
-    }
-}
-
-/**
- * Update a single coin hole in place without full grid re-render.
- * Works for both inline (inside .type-wrapper) and standalone (#album-grid-area) modes.
- * Locks scroll position during update to prevent viewport jumps.
- *
- * @param {number} coinId - The coin reference ID
- * @param {number} newQty - New quantity (0 or positive)
- */
-export function _ccUpdateHoleInPlace(coinId, newQty) {
-    // Lock scroll position
-    const scrollY = window.scrollY;
-    const catalogContainer = document.getElementById('catalog-container');
-    const catalogTop = catalogContainer ? catalogContainer.getBoundingClientRect().top : 0;
-
-    // Find the hole element (works in both inline and standalone modes)
-    const hole = document.querySelector(`.album-hole[data-coin-id="${coinId}"]`);
-    if (!hole) return;
-
-    const isOwned = newQty > 0;
-    const slot = hole.querySelector('.album-hole-slot');
-    const qtyBadge = hole.querySelector('.album-hole-qty');
-
-    // Update ownership class
-    hole.classList.toggle('owned', isOwned);
-    hole.classList.toggle('missing', !isOwned);
-
-    // Update slot content
-    if (slot) {
-        slot.innerHTML = '';
-        if (isOwned) {
-            // Get the type config for the image
-            const coinType = hole.dataset.coinType;
-            const cfg = getTypeConfig(coinType);
-            if (cfg?.obv_image) {
-                const img = el('img', {
-                    className: 'album-hole-img',
-                    src: cfg.obv_image,
-                    alt: `${hole.querySelector('.album-hole-label')?.textContent || ''}`,
-                    loading: 'lazy',
-                });
-                img.onerror = () => { img.src = placeholderCoinSvg(); };
-                slot.appendChild(img);
-            } else {
-                slot.appendChild(el('div', { className: 'album-hole-filled' }, '●'));
-            }
-        } else {
-            slot.appendChild(el('div', { className: 'album-hole-empty' }));
-        }
-    }
-
-    // Update quantity badge
-    if (newQty > 1) {
-        if (qtyBadge) {
-            qtyBadge.textContent = `×${newQty}`;
-        } else {
-            const newBadge = el('span', { className: 'album-hole-qty' }, `×${newQty}`);
-            hole.appendChild(newBadge);
-        }
-    } else if (qtyBadge) {
-        qtyBadge.remove();
-    }
-
-    // Restore scroll position if shifted
-    if (catalogContainer) {
-        const newTop = catalogContainer.getBoundingClientRect().top;
-        const delta = newTop - catalogTop;
-        if (Math.abs(delta) > 0.5) {
-            window.scrollBy(0, -delta);
-        }
-    } else if (Math.abs(window.scrollY - scrollY) > 0.5) {
-        window.scrollTo(0, scrollY);
     }
 }
 
 /**
  * Toggle a coin's ownership status.
- * If missing → mark as owned (fill hole with coin image).
- * If owned → mark as missing (empty the hole).
  */
-async function toggleHoleOwnership(coinId) {
-    const qty = getInventoryTotalQty(coinId);
-    const newQty = qty > 0 ? 0 : 1;
+async function toggleHoleOwnership(coinId, holeElement) {
+    // Branch on the hole's RENDERED visual state, not a fresh inventory lookup.
+    // A live re-lookup can momentarily disagree with what was drawn (e.g. right
+    // after a write or a cc-inventory-updated re-render), which would send a
+    // filled hole down the "place a coin" path (just highlighting it) instead
+    // of opening the details modal.
+    const isOwnedNow = !!(holeElement && holeElement.classList.contains('owned'));
 
+    if (isOwnedNow) {
+        // Already owned -> open the details modal (qty/grade editable there)
+        if (window.openCoinDetailModal) {
+            window.openCoinDetailModal(coinId);
+        } else {
+            import('./catalog.js').then(m => {
+                if (m.openCoinDetailModal) m.openCoinDetailModal(coinId);
+            });
+        }
+        return;
+    }
+
+    // Empty hole -> place one coin (qty 1)
+    await _setHoleQty(coinId, holeElement, 1);
+}
+
+// Right-click on a filled hole removes one coin.
+async function decrementHole(coinId, holeElement) {
+    const qty = getInventoryTotalQty(coinId);
+    if (qty <= 0) return;
+    await _setHoleQty(coinId, holeElement, qty - 1);
+}
+
+// Place/remove coins for a hole and re-render that single hole in place.
+async function _setHoleQty(coinId, holeElement, newQty) {
+    const section = holeElement.dataset.section;
+    let _newQty = newQty;  // authoritative qty after this op, used for re-render
     try {
-        const result = await updateInventory(coinId, { quantity: newQty });
-        
-        // Refresh local inventory state so getInventoryTotalQty returns correct values
-        try {
-            const fresh = await fetchInventory();
-            setInventory(fresh);
-        } catch { /* non-critical */ }
-        
-        // Update the hole in place (preserves scroll, no full re-render)
-        _ccUpdateHoleInPlace(coinId, newQty);
+        if (newQty <= 0) {
+            // Remove ALL inventory entries so the hole goes empty.
+            // Refresh authoritative inventory after each delete; the next
+            // iteration reads the updated in-memory entries on either platform.
+            let guard = 0;
+            while (guard++ < 50) {
+                const entries = getInventoryEntries(coinId);
+                if (!entries || !entries.length) break;
+                // Delete the exact row, not a coin reference with a colliding ID.
+                await deleteInventoryEntry(entries[0].id);
+                _newQty = 0;
+                const fresh = await fetchInventory();
+                setInventory(fresh);
+            }
+        } else {
+            const entries = getInventoryEntries(coinId);
+            if (!entries || entries.length === 0) {
+                // Place into an empty hole: create one entry with qty = newQty
+                const result = await updateInventory(coinId, { quantity: newQty });
+                if (!result || result.status === 'error') {
+                    throw new Error((result && result.error) || 'Update rejected');
+                }
+            } else {
+                // Decrement by one: reduce the first entry that still has stock
+                const target = entries.find(e => (e.quantity || 0) > 0);
+                if (target) {
+                    const ne = (target.quantity || 0) - 1;
+                    if (ne <= 0) {
+                        // Remove only the depleted inventory row.
+                        await deleteInventoryEntry(target.id);
+                    } else {
+                        const result = await updateInventory(coinId, { id: target.id, quantity: ne });
+                        if (!result || result.status === 'error') {
+                            throw new Error((result && result.error) || 'Update rejected');
+                        }
+                    }
+                }
+            }
+        }
+
+        // Refresh local inventory state. The _state.inventory map and
+        // the derived getInventoryTotalQty()/getInventoryEntries()
+        // helpers must reflect the deletion so the hole's visual state
+        // (owned/missing) and reload-consistency remain correct.
+        // cc-inventory-updated callers still refresh the dashboard view;
+        // this refresh keeps the underlying state consistent without
+        // duplicating the dashboard rebuild.
+        void fetchInventory().then(fresh => setInventory(fresh)).catch(() => {});
+
+        // Re-render just this hole (image + xN badge) so it stays in sync.
+        // Use the authoritative _newQty we just computed so the slot updates
+        // immediately even if _state.inventory refresh timing is off.
+        const coins = _albumLoaded[section] || getCoinsForSection(section) || [];
+        const coin = coins.find(c => c.id === coinId);
+        if (coin) {
+            const cfg = getTypeConfig(getMainType(coin.coin_type), section) || {};
+            const freshHole = buildCoinHole(coin, cfg, _newQty);
+            holeElement.replaceWith(freshHole);
+        } else {
+            const isOwned = getInventoryTotalQty(coinId) > 0;
+            holeElement.className = 'album-hole' + (isOwned ? ' owned' : ' missing');
+        }
     } catch (err) {
         showToast(`Failed to update: ${err.message}`, 'error');
+    }
+}
+
+// ============================================================
+// Right-click handling
+// ============================================================
+
+async function handleAlbumRightClick(e) {
+    const target = e.target;
+    const hole = target.closest('.album-hole');
+    if (hole && !hole.classList.contains('example-hole')) {
+        e.preventDefault();
+        const coinId = hole.dataset.coinId;
+        if (coinId) {
+            await decrementHole(parseInt(coinId, 10), hole);
+        }
     }
 }
 
@@ -508,7 +726,165 @@ function _coinTooltip(coin, qty) {
     if (qty > 0) parts.push(`Owned: ${qty}`);
     else parts.push('Not in collection');
     if (coin.is_key_date) parts.push('⭐ Key Date');
-    if (coin.is_proof) parts.push('💎 Proof');
+    if (coin.is_proof) {
+        const isSilverProof = coin.metal && coin.metal.toLowerCase().includes('silver');
+        parts.push(' Proof' + (isSilverProof ? ' · Ag Silver' : ''));
+    }
     if (coin.is_error) parts.push('⚠ Error/Variety');
     return parts.join(' · ');
 }
+
+// ============================================================
+// Dynamic updates — keep album grid in sync with inventory/image changes
+// ============================================================
+
+
+// 2026-09-01 JUMP FIX: update a single coin's album hole(s) in place instead of re-rendering
+// the whole grid (full re-render shifts layout → the page visibly jumps on every click).
+async function _ccUpdateHoleInPlace(coinId) {
+    if (coinId == null) return false;
+    let updated = false;
+    const coinStr = String(coinId);
+    document.querySelectorAll('.album-hole[data-coin-id="' + coinStr + '"]').forEach(hole => {
+        const typeWrapper = hole.closest('.type-wrapper');
+        const sectionCard = hole.closest('.section-card');
+        const container = hole.closest('.type-content');
+        if (!typeWrapper || !sectionCard || !container) return;
+        const secName = sectionCard.dataset.section;
+        const header = typeWrapper.querySelector('.type-header');
+        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
+        const coins = getCoinsForSection(secName) || [];
+        const coin = coins.find(c => String(c.id) === coinStr);
+        if (!coin) return;
+        const cfg = getTypeConfig(coin.coin_type, secName) || {};
+        const fresh = buildCoinHole(coin, cfg);
+        hole.replaceWith(fresh);
+        updated = true;
+    });
+    return updated;
+}
+
+window.addEventListener('cc-inventory-updated', async (e) => {
+    const changedId = e?.detail?.coinId;
+    // _setHoleQty already fetches and sets inventory (dispatches
+    // this event), so don't refresh again — that double-fires the
+    // dashboard rebuild and causes a visible layout shift.
+    // 2026-10-10 (Matthew): "I don't like the white rectangle that flashes when
+    // a coin is added to the album." The in-place patch below updates the ONE hole
+    // that changed. But this listener then went on to re-render every open inline
+    // album AND the standalone grid -- and each of those does `container.innerHTML
+    // = ''` (renderAlbumType:154, renderAlbumLayout:224, renderAlbumGrid:313) before
+    // rebuilding. So the patch was thrown away one statement later: the DOM was torn
+    // down to nothing (white box) and the <img> re-fetched async.
+    //
+    // When a hole click supplies a coinId, the in-place patch is authoritative --
+    // renderCoinHoles() ran in the same task with the same fresh inventory, so the
+    // hole is already correct. Re-rendering anyway is pure churn.
+    if (changedId != null) {
+        const patched = await _ccUpdateHoleInPlace(changedId);
+        if (patched) return;   // the hole that the user clicked is now correct
+    } else {
+        try { await _ccUpdateHoleInPlace(changedId); } catch (_) { /* non-fatal */ }
+    }
+    const inlinePromises = Array.from(document.querySelectorAll('.type-content.open.album-inline')).map(async (container) => {
+        const typeWrapper = container.closest('.type-wrapper');
+        if (!typeWrapper) return;
+        const sectionCard = typeWrapper.closest('.section-card');
+        if (!sectionCard) return;
+        const secName = sectionCard.dataset.section;
+        const header = typeWrapper.querySelector('.type-header');
+        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
+        if (secName && mainType) {
+            if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
+            await renderAlbumType(secName, mainType, container, header);
+        }
+    });
+    await Promise.all(inlinePromises);
+    const gridArea = document.getElementById('album-grid-area');
+    if (gridArea && _activeSection) {
+        const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
+        if (coins) {
+            const container = gridArea.closest('.album-layout')?.parentElement;
+            if (container) renderAlbumGrid(container, _activeSection, coins);
+        }
+    }
+});
+
+window.addEventListener('cc-image-updated', async () => {
+    // Refresh type configs so new images are picked up
+    try {
+        const updatedConfigs = await fetchTypeConfigs();
+        setTypeConfigs(updatedConfigs);
+    } catch { /* non-critical */ }
+
+    // Re-render visible inline album grids
+    document.querySelectorAll('.type-content.open.album-inline').forEach(async (container) => {
+        const typeWrapper = container.closest('.type-wrapper');
+        if (!typeWrapper) return;
+        const sectionCard = typeWrapper.closest('.section-card');
+        if (!sectionCard) return;
+        const secName = sectionCard.dataset.section;
+        const header = typeWrapper.querySelector('.type-header');
+        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
+        if (secName && mainType) {
+            if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
+            await renderAlbumType(secName, mainType, container, header);
+        }
+    });
+
+    // Standalone album grid
+    const gridArea = document.getElementById('album-grid-area');
+    if (gridArea && _activeSection) {
+        // Clear cache to pick up new images
+        delete _albumLoaded[_activeSection];
+        try {
+            const coins = await fetchCoinsForSection(_activeSection);
+            _albumLoaded[_activeSection] = coins;
+            const container = gridArea.closest('.album-layout')?.parentElement;
+            if (container) renderAlbumGrid(container, _activeSection, coins);
+        } catch { /* non-critical */ }
+    }
+});
+
+// Issue C fix: list-view (and any other view) inventory edits dispatch
+// 'cc-inventory-updated'. Re-render the active album grid so owned/missing
+// holes stay in sync with the list view.
+// Issue B fix: when the folder color changes in Settings, re-apply it to the
+// live album DOM immediately (don't wait for a page refresh).
+window.addEventListener('cc-settings-changed', (e) => {
+    const detail = (e && e.detail) || {};
+    if (detail.key === 'cc-folder-color') {
+        const v = detail.value || localStorage.getItem('cc-folder-color') || 'green';
+        import('./modals.js').then(m => { if (m.applyFolderColor) m.applyFolderColor(v); })
+            .catch(() => {});
+    }
+});
+
+// ============================================================
+// Album-specific image update handler
+// ============================================================
+window.addEventListener('cc-album-options-changed', () => {
+    // Re-render standalone album grid if visible
+    const gridArea = document.getElementById('album-grid-area');
+    if (gridArea && _activeSection) {
+        const coins = _albumLoaded[_activeSection] || getCoinsForSection(_activeSection);
+        if (coins) {
+            const container = gridArea.closest('.album-layout')?.parentElement;
+            if (container) renderAlbumGrid(container, _activeSection, coins);
+        }
+    }
+    // Also re-render inline album grids
+    document.querySelectorAll('.type-content.open.album-inline').forEach(async (container) => {
+        const typeWrapper = container.closest('.type-wrapper');
+        if (!typeWrapper) return;
+        const sectionCard = typeWrapper.closest('.section-card');
+        if (!sectionCard) return;
+        const secName = sectionCard.dataset.section;
+        const header = typeWrapper.querySelector('.type-header');
+        const mainType = header ? (header.dataset.type || header.querySelector('.type-title')?.firstChild?.textContent?.trim() || '') : '';
+        if (secName && mainType) {
+            if (_albumLoaded[secName]) delete _albumLoaded[secName][mainType];
+            await renderAlbumType(secName, mainType, container, header);
+        }
+    });
+});

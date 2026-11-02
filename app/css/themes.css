@@ -30,7 +30,7 @@
     --color-border:       #495057;
     --color-border-light: #343a40;
     --color-accent:       #60a5fa;
-    --color-accent-text:  #ffffff;
+    --color-accent-text:  #06121f;
     --color-header-bg:    #000000;
     --color-header-text:  #f8f9fa;
     --color-accord-bg:    #2b3035;
@@ -59,72 +59,40 @@
    Midnight (deep blue-black)
    ========================================================================= */
 [data-theme="midnight"] {
-    --color-bg-body:      #0d1117;
-    --color-bg-card:      #161b22;
-    --color-text-main:    #c9d1d9;
-    --color-text-muted:   #8b949e;
-    --color-border:       #30363d;
-    --color-border-light: #21262d;
-    --color-accent:       #79b8ff;
-    --color-accent-text:  #ffffff;
-    --color-header-bg:    #010409;
-    --color-header-text:  #c9d1d9;
-    --color-accord-bg:    #21262d;
-    --color-finance-bg:   #1f2428;
+    --color-bg-body:      #070d1a;
+    --color-bg-card:      #0e1626;
+    --color-text-main:    #dfe8f5;
+    --color-text-muted:   #8b9bb5;
+    --color-border:       #2f4260;
+    --color-border-light: #16213a;
+    --color-accent:       #6ea8fe;
+    --color-accent-text:  #061020;
+    --color-header-bg:    #04080f;
+    --color-header-text:  #dfe8f5;
+    --color-accord-bg:    #16223a;
+    --color-finance-bg:   #0b1220;
 }
 
 /* =========================================================================
    Gold
    ========================================================================= */
-[data-theme="gold"] {
-    --color-bg-body:      #1a1608;
-    --color-bg-card:      #28220c;
-    --color-text-main:    #fff8dc;
-    --color-text-muted:   #d4c494;
-    --color-border:       #9a8540;
-    --color-border-light: #4a4020;
-    --color-accent:       #ffd700;
-    --color-accent-text:  #1a1608;
-    --color-header-bg:    #12100a;
-    --color-header-text:  #fff8dc;
-    --color-accord-bg:    #342c12;
-    --color-finance-bg:   #201c0a;
-}
-
-/* =========================================================================
-   Royal Gold
-   ========================================================================= */
-[data-theme="royal"] {
-    --color-bg-body:      #140a14;
-    --color-bg-card:      #1f1320;
-    --color-text-main:    #fff4e0;
-    --color-text-muted:   #c8b6a0;
-    --color-border:       #7d4a8e;
-    --color-border-light: #4a2b5a;
-    --color-accent:       #d4af37;
-    --color-accent-text:  #140a14;
-    --color-header-bg:    #0c050c;
-    --color-header-text:  #fff4e0;
-    --color-accord-bg:    #2a1a2e;
-    --color-finance-bg:   #1a0e1a;
-}
 
 /* =========================================================================
    Copper
    ========================================================================= */
 [data-theme="copper"] {
-    --color-bg-body:      #1f1612;
-    --color-bg-card:      #2e1f18;
-    --color-text-main:    #f4dbce;
-    --color-text-muted:   #c99a83;
-    --color-border:       #a65d3c;
-    --color-border-light: #523528;
-    --color-accent:       #cd7f32;
-    --color-accent-text:  #000000;
-    --color-header-bg:    #140e0b;
-    --color-header-text:  #f4dbce;
-    --color-accord-bg:    #402b21;
-    --color-finance-bg:   #261913;
+    --color-bg-body:      #241a15;
+    --color-bg-card:      #33251d;
+    --color-text-main:    #f8e6da;
+    --color-text-muted:   #dbb49e;
+    --color-border:       #c07048;
+    --color-border-light: #65402e;
+    --color-accent:       #e08a45;
+    --color-accent-text:  #1a0e08;
+    --color-header-bg:    #170f0b;
+    --color-header-text:  #f8e6da;
+    --color-accord-bg:    #4a3226;
+    --color-finance-bg:   #2c1e16;
 }
 
 /* =========================================================================
@@ -203,98 +171,65 @@
    Matrix
    ========================================================================= */
 [data-theme="matrix"] {
-    --color-bg-body:      #0a0f0a;
-    --color-bg-card:      #0f1a0f;
-    --color-text-main:    #7ddc7d;
-    --color-text-muted:   #4a9e4a;
-    --color-border:       #2d5a2d;
-    --color-border-light: #1a3d1a;
-    --color-accent:       #00ff41;
-    --color-accent-text:  #000000;
-    --color-header-bg:    #050a05;
-    --color-header-text:  #00ff41;
-    --color-accord-bg:    #121e12;
-    --color-finance-bg:   #0a100a;
+    --color-bg-body:      #030503;
+    --color-bg-card:      #0a1009;
+    --color-text-main:    #a3d4a5;
+    --color-text-muted:   #5d8a60;
+    --color-border:       #2b552f;
+    --color-border-light: #132216;
+    --color-accent:       #3fc261;
+    --color-accent-text:  #031604;
+    --color-header-bg:    #010201;
+    --color-header-text:  #a3d4a5;
+    --color-accord-bg:    #112011;
+    --color-finance-bg:   #070c07;
 }
 
 /* =========================================================================
-   Cyberpunk — dark dystopian base + glowing neon accents
-   Base: black / deep purple / midnight blue
-   Neon: electric cyan, hot pink, acid green, hazard yellow
+   Cyberpunk
    ========================================================================= */
 [data-theme="cyberpunk"] {
-   --color-bg-body:      #05000a;   /* near-black midnight purple */
-   --color-bg-card:      #0d0018;   /* deep purple card */
-   --color-text-main:    #e0e6ff;   /* glowing off-white */
-   --color-text-muted:   #a07cd0;   /* muted neon violet */
-   --color-border:       #ff00ff;   /* hot pink */
-   --color-border-light: #3a005c;   /* deep purple border */
-   --color-accent:       #00ffff;   /* electric cyan */
-   --color-accent-text:  #000000;
-   --color-header-bg:    #000000;
-   --color-header-text:  #00ffff;
-   --color-accord-bg:    #140026;
-   --color-finance-bg:   #080010;
-   --color-neon-pink:    #ff00ff;
-   --color-neon-cyan:    #00ffff;
-   --color-neon-green:   #39ff14;
-   --color-neon-yellow:  #ffea00;
+    --color-bg-body:      #140d1a;
+    --color-bg-card:      #1d1426;
+    --color-text-main:    #eadcf0;
+    --color-text-muted:   #a98bb5;
+    --color-border:       #a7548f;
+    --color-border-light: #2d1f36;
+    --color-accent:       #b85ca0;
+    --color-accent-text:  #160b1d;
+    --color-header-bg:    #0c0711;
+    --color-header-text:  #eadcf0;
+    --color-accord-bg:    #271a30;
+    --color-finance-bg:   #180f1d;
 }
 
 [data-theme="cyberpunk"] .card {
-   border-color: var(--color-neon-pink) !important;
-   box-shadow: 0 0 12px color-mix(in srgb, var(--color-neon-pink) 60%, transparent),
-               0 0 36px color-mix(in srgb, var(--color-neon-pink) 25%, transparent) !important;
+    border-color: var(--color-neon-pink) !important;
+    box-shadow: 0 0 10px color-mix(in srgb, var(--color-neon-pink) 50%, transparent),
+                0 0 30px color-mix(in srgb, var(--color-neon-pink) 20%, transparent) !important;
 }
 
 [data-theme="cyberpunk"] #app-header {
-   border-bottom-color: var(--color-neon-cyan) !important;
-   box-shadow: 0 2px 24px color-mix(in srgb, var(--color-neon-cyan) 55%, transparent) !important;
-}
-
-[data-theme="cyberpunk"] .btn {
-   box-shadow: 0 0 8px color-mix(in srgb, var(--color-neon-cyan) 50%, transparent) !important;
-}
-
-/* neon text glow for headings and the page title */
-[data-theme="cyberpunk"] h1, [data-theme="cyberpunk"] h2,
-[data-theme="cyberpunk"] h3, [data-theme="cyberpunk"] .page-title {
-   text-shadow: 0 0 10px color-mix(in srgb, var(--color-neon-cyan) 80%, transparent);
-}
-
-[data-theme="cyberpunk"] .table th,
-[data-theme="cyberpunk"] table th {
-   border-color: var(--color-neon-pink) !important;
-   color: var(--color-neon-cyan) !important;
-}
-
-/* input fields read as neon-lit terminals */
-[data-theme="cyberpunk"] input,
-[data-theme="cyberpunk"] select,
-[data-theme="cyberpunk"] textarea {
-   background: #000005 !important;
-   border: 1px solid var(--color-neon-pink) !important;
-   color: var(--color-neon-cyan) !important;
-   box-shadow: 0 0 6px color-mix(in srgb, var(--color-neon-pink) 35%, transparent) !important;
+    border-bottom-color: var(--color-neon-cyan) !important;
+    box-shadow: 0 2px 20px color-mix(in srgb, var(--color-neon-cyan) 40%, transparent) !important;
 }
 
 /* =========================================================================
    Neon
    ========================================================================= */
 [data-theme="neon"] {
-    --color-bg-body:      #0a0d14;
-    --color-bg-card:      #111827;
-    --color-text-main:    #f0f4ff;
-    --color-text-muted:   #94a3b8;
-    --color-border:       rgba(255, 149, 0, 0.67);
-    --color-border-light: #1e2a40;
+    --color-bg-body:      #0a1418;
+    --color-bg-card:      #101f26;
+    --color-text-main:    #dceff4;
+    --color-text-muted:   #83a6ae;
+    --color-border:       rgba(255, 149, 0, 0.5);
+    --color-border-light: #16303a;
     --color-accent:       #ff9500;
-    --color-accent-text:  #000000;
-    --color-header-bg:    #060a10;
-    --color-header-text:  #f0f4ff;
-    --color-accord-bg:    #162032;
-    --color-finance-bg:   #0d1520;
-    --color-neon-blue:    #00b4ff;
+    --color-accent-text:  #1c0f00;
+    --color-header-bg:    #050c0f;
+    --color-header-text:  #dceff4;
+    --color-accord-bg:    #142c35;
+    --color-finance-bg:   #0b171c;
 }
 
 [data-theme="neon"] #app-header {
@@ -307,60 +242,88 @@
   Each slot has its OWN variable namespace so changing one does NOT
   affect the others.
   ========================================================================= */
-[data-theme="custom1"] {
-    --color-bg-body:      var(--custom1-bg-body,      #1a1a2e);
-    --color-bg-card:      var(--custom1-bg-card,      #16213e);
-    --color-text-main:    var(--custom1-text-main,    #e0e0e0);
-    --color-text-muted:   var(--custom1-text-muted,   #a0a0a0);
-    --color-border:       var(--custom1-border,       #0f3460);
-    --color-border-light: var(--custom1-border-light, #0a2a4a);
-    --color-accent:       var(--custom1-accent,       #e94560);
-    --color-accent-text:  var(--custom1-accent-text,  #ffffff);
-    --color-header-bg:    var(--custom1-header-bg,    #0f3460);
-    --color-header-text:  var(--custom1-header-text,  #ffffff);
-    --color-accord-bg:    var(--custom1-accord-bg,    #0f3460);
-    --color-finance-bg:   var(--custom1-finance-bg,   #0a2a4a);
-}
-[data-theme="custom2"] {
-    --color-bg-body:      var(--custom2-bg-body,      #1a1a2e);
-    --color-bg-card:      var(--custom2-bg-card,      #16213e);
-    --color-text-main:    var(--custom2-text-main,    #e0e0e0);
-    --color-text-muted:   var(--custom2-text-muted,   #a0a0a0);
-    --color-border:       var(--custom2-border,       #0f3460);
-    --color-border-light: var(--custom2-border-light, #0a2a4a);
-    --color-accent:       var(--custom2-accent,       #e94560);
-    --color-accent-text:  var(--custom2-accent-text,  #ffffff);
-    --color-header-bg:    var(--custom2-header-bg,    #0f3460);
-    --color-header-text:  var(--custom2-header-text,  #ffffff);
-    --color-accord-bg:    var(--custom2-accord-bg,    #0f3460);
-    --color-finance-bg:   var(--custom2-finance-bg,   #0a2a4a);
-}
-[data-theme="custom3"] {
-    --color-bg-body:      var(--custom3-bg-body,      #1a1a2e);
-    --color-bg-card:      var(--custom3-bg-card,      #16213e);
-    --color-text-main:    var(--custom3-text-main,    #e0e0e0);
-    --color-text-muted:   var(--custom3-text-muted,   #a0a0a0);
-    --color-border:       var(--custom3-border,       #0f3460);
-    --color-border-light: var(--custom3-border-light, #0a2a4a);
-    --color-accent:       var(--custom3-accent,       #e94560);
-    --color-accent-text:  var(--custom3-accent-text,  #ffffff);
-    --color-header-bg:    var(--custom3-header-bg,    #0f3460);
-    --color-header-text:  var(--custom3-header-text,  #ffffff);
-    --color-accord-bg:    var(--custom3-accord-bg,    #0f3460);
-    --color-finance-bg:   var(--custom3-finance-bg,   #0a2a4a);
+
+/* =========================================================================
+   Violet (new)
+   ========================================================================= */
+[data-theme="violet"] {
+    --color-bg-body:      #121020;
+    --color-bg-card:      #1a1730;
+    --color-text-main:    #e6e1f5;
+    --color-text-muted:   #9c92c0;
+    --color-border:       #62599b;
+    --color-border-light: #26203e;
+    --color-accent:       #8f82d9;
+    --color-accent-text:  #120e26;
+    --color-header-bg:    #0b0a15;
+    --color-header-text:  #e6e1f5;
+    --color-accord-bg:    #242042;
+    --color-finance-bg:   #151325;
 }
 
-[data-theme="quick"] {
-    --color-bg-body:      var(--quick-bg-body,      #121212);
-    --color-bg-card:      var(--quick-bg-card,      #1e1e1e);
-    --color-text-main:    var(--quick-text-main,    #f8f9fa);
-    --color-text-muted:   var(--quick-text-muted,   #adb5bd);
-    --color-border:       var(--quick-border,       #495057);
-    --color-border-light: var(--quick-border-light, #343a40);
-    --color-accent:       var(--quick-accent,       #d8a54a);
-    --color-accent-text:  var(--quick-accent-text,  #ffffff);
-    --color-header-bg:    var(--quick-header-bg,    #000000);
-    --color-header-text:  var(--quick-header-text,  #f8f9fa);
-    --color-accord-bg:    var(--quick-accord-bg,    #2b3035);
-    --color-finance-bg:   var(--quick-finance-bg,   #212529);
+/* =========================================================================
+   Sunset (new)
+   ========================================================================= */
+
+
+
+/* =========================================================================
+   Film Noir (new)
+   ========================================================================= */
+[data-theme="noir"] {
+    --color-bg-body:      #0a0a0a;
+    --color-bg-card:      #1a1a1a;
+    --color-text-main:    #ffffff;
+    --color-text-muted:   #b8b8b8;
+    --color-border:       #808080;
+    --color-border-light: #3a3a3a;
+    --color-accent:       #c9c9c9;
+    --color-accent-text:  #0a0a0a;
+    --color-header-bg:    #050505;
+    --color-header-text:  #ffffff;
+    --color-accord-bg:    #262626;
+    --color-finance-bg:   #141414;
+}
+
+[data-theme="custom1"] {
+    --color-bg-body:      var(--custom1-bg-body,      #0e1726);
+    --color-bg-card:      var(--custom1-bg-card,      #16233a);
+    --color-text-main:    var(--custom1-text-main,    #eef3fb);
+    --color-text-muted:   var(--custom1-text-muted,   #9fb0c9);
+    --color-border:       var(--custom1-border,       #2b3f5e);
+    --color-border-light: var(--custom1-border-light, #1c2c45);
+    --color-accent:       var(--custom1-accent,       #d8a54a);
+    --color-accent-text:  var(--custom1-accent-text,  #1a1204);
+    --color-header-bg:    var(--custom1-header-bg,    #0a1220);
+    --color-header-text:  var(--custom1-header-text,  #f2f6fc);
+    --color-accord-bg:    var(--custom1-accord-bg,    #1b2b45);
+    --color-finance-bg:   var(--custom1-finance-bg,   #132035);
+}
+[data-theme="custom2"] {
+    --color-bg-body:      var(--custom2-bg-body,      #f2ece1);
+    --color-bg-card:      var(--custom2-bg-card,      #fffdf9);
+    --color-text-main:    var(--custom2-text-main,    #1e1811);
+    --color-text-muted:   var(--custom2-text-muted,   #5f5343);
+    --color-border:       var(--custom2-border,       #b0a184);
+    --color-border-light: var(--custom2-border-light, #ddd0b8);
+    --color-accent:       var(--custom2-accent,       #8c2f39);
+    --color-accent-text:  var(--custom2-accent-text,  #fff6f2);
+    --color-header-bg:    var(--custom2-header-bg,    #1f1a13);
+    --color-header-text:  var(--custom2-header-text,  #f7f1e6);
+    --color-accord-bg:    var(--custom2-accord-bg,    #e8dfcd);
+    --color-finance-bg:   var(--custom2-finance-bg,   #f8f3e9);
+}
+[data-theme="custom3"] {
+    --color-bg-body:      var(--custom3-bg-body,      #101413);
+    --color-bg-card:      var(--custom3-bg-card,      #1a211f);
+    --color-text-main:    var(--custom3-text-main,    #e9f2ee);
+    --color-text-muted:   var(--custom3-text-muted,   #94a8a0);
+    --color-border:       var(--custom3-border,       #2f4a42);
+    --color-border-light: var(--custom3-border-light, #1e2c28);
+    --color-accent:       var(--custom3-accent,       #4fbfa0);
+    --color-accent-text:  var(--custom3-accent-text,  #05231c);
+    --color-header-bg:    var(--custom3-header-bg,    #0a100e);
+    --color-header-text:  var(--custom3-header-text,  #e3f1ec);
+    --color-accord-bg:    var(--custom3-accord-bg,    #1f2c28);
+    --color-finance-bg:   var(--custom3-finance-bg,   #16211e);
 }

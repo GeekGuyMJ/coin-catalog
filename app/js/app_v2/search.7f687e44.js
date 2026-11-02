@@ -1,7 +1,7 @@
 /**
  * search.js — Coin Catalog v2
  *
- * Search, filter, and sort for the coin catalogue.
+ * Search, filter, and sort for the coin catalog.
  * Provides real-time search across all coin fields, toggleable filter pills,
  * and sort mode switching.
  *
@@ -20,14 +20,33 @@ import {
     getInventoryTotalQty,
     getMinYear, setMinYear,
     getMaxYear, setMaxYear,
+    getWishlist,
 } from './state.js';
 
-import { fetchCoinsForSection } from './api.js';
+import { fetchCoinsForSection, isSearchIndexReady } from './api.js';
 import { renderSections } from './catalog.js';
 import {
-    getMainType, coinSortComparator, escHtml, placeholderCoinSvg,
+    getMainType, getSubType, isCompositionSub, getDateVariety, coinSortComparator, escHtml, placeholderCoinSvg, sortYear,
+    resolveImageUrl,
 } from './utils.js';
 import { showToast } from './notifications.js';
+
+// GGMJ-206: the search input's listener is attached at the END of boot
+// (initSearch), so a query typed while the app was still loading was
+// silently discarded. Capture the keystrokes from the moment the page is
+// alive so initSearch() can replay them.
+//
+// Only real typing counts here. Reading input.value instead would also
+// pick up a value the BROWSER restored (back/forward navigation, session
+// restore) and fire a search nobody asked for.
+let _queryTypedBeforeInit = '';
+let _searchListenerAttached = false;
+document.addEventListener('input', (e) => {
+    const t = e.target;
+    if (t && t.id === 'search-input' && !_searchListenerAttached) {
+        _queryTypedBeforeInit = (t.value || '').trim();
+    }
+}, true);
 
 // ============================================================
 // Filter pill definitions
@@ -38,8 +57,9 @@ const FILTERS = [
     { id: 'hide_proofs',  label: 'Hide Proofs',  getState: () => getFilterHideProofs(),  toggle: () => toggleFilterHideProofs() },
     { id: 'hide_errors',  label: 'Hide Errors',  getState: () => getFilterHideErrors(),  toggle: () => toggleFilterHideErrors() },
     { id: 'key_dates',    label: 'Key Dates',    getState: () => getFilterKeyDatesOnly(), toggle: () => toggleFilterKeyDatesOnly() },
-    { id: 'min_year',     label: 'Min Year',     getState: () => getMinYear(),           setState: (v) => setMinYear(v) },
-    { id: 'max_year',     label: 'Max Year',     getState: () => getMaxYear(),           setState: (v) => setMaxYear(v) },
+    // NOTE: Min/Max Year are deliberately NOT pills. They are number inputs
+    // (#min-year-input / #max-year-input + dual slider) wired in initYearRange();
+    // pill entries for them had no toggle handler and threw on click.
 ];
 
 const SORT_MODES = [
@@ -60,6 +80,15 @@ const SORT_MODES = [
 export function initSearch() {
     const input = document.getElementById('search-input');
     if (!input) return;
+
+    // Check initial search bar visibility
+    try {
+        const vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
+        const cardSearch = document.getElementById('card-search');
+        if (cardSearch && vis['card-search'] === false) {
+            cardSearch.style.display = 'none';
+        }
+    } catch(e) {}
 
     // --- Filter pills ---
     const pillsContainer = document.getElementById('filter-pills');
@@ -104,6 +133,7 @@ export function initSearch() {
 
     // --- Debounced search on input ---
     let debounceTimer = null;
+    _searchListenerAttached = true;
     input.addEventListener('input', () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -130,6 +160,40 @@ export function initSearch() {
             input.blur();
         }
     });
+
+    // --- Year range: wire the min/max number inputs + build a dual-thumb slider ---
+    initYearRange();
+
+    // GGMJ-206: this listener is attached at the END of boot, so a query the
+    // user typed while the app was still loading was silently discarded.
+    // Replay what they actually typed.
+    if (_queryTypedBeforeInit) {
+        setSearchQuery(_queryTypedBeforeInit);
+        triggerSearch();
+    }
+}
+
+/**
+ * Wire the Min/Max year inputs to state and provide a visual dual-thumb slider.
+ * The number inputs were previously un-wired (dead UI) — this fixes that and adds
+ * the slider for faster range selection.
+ */
+function initYearRange() {
+    const minInput = document.getElementById('min-year-input');
+    const maxInput = document.getElementById('max-year-input');
+
+    const applyYears = () => {
+        const mn = minInput && minInput.value !== '' ? parseInt(minInput.value, 10) : null;
+        const mx = maxInput && maxInput.value !== '' ? parseInt(maxInput.value, 10) : null;
+        setMinYear(Number.isFinite(mn) ? mn : null);
+        setMaxYear(Number.isFinite(mx) ? mx : null);
+        triggerSearch();
+    };
+
+    let t = null;
+    const debounced = () => { clearTimeout(t); t = setTimeout(applyYears, 350); };
+    if (minInput) { minInput.addEventListener('input', debounced); minInput.addEventListener('change', applyYears); }
+    if (maxInput) { maxInput.addEventListener('input', debounced); maxInput.addEventListener('change', applyYears); }
 }
 
 // ============================================================
@@ -151,13 +215,19 @@ export async function triggerSearch() {
     const container = document.getElementById('catalog-container');
     if (!container) return;
 
-    // No active search/filters — show full catalogue
+    // No active search/filters — show full catalog
     if (!isActive) {
         renderSections();
         return;
     }
 
-    container.innerHTML = '<div class="section-loading">Searching\u2026</div>';
+    // GGMJ-206: while the browser-side index is still being built a query
+    // would be answered from a partial store, so say what is happening
+    // instead of rendering a misleading "No results".
+    const loadingLabel = isSearchIndexReady()
+        ? 'Searching\u2026'
+        : 'Preparing the catalog index\u2026';
+    container.innerHTML = '<div class="section-loading">' + loadingLabel + '</div>';
 
     try {
         let results;
@@ -189,6 +259,16 @@ export async function triggerSearch() {
             if (getFilterHideProofs())   results = results.filter(c => !c.is_proof);
             if (getFilterHideErrors())   results = results.filter(c => !c.is_error);
             if (getFilterKeyDatesOnly()) results = results.filter(c => c.is_key_date);
+            // Year range filter (client-side; sortYear maps 1776 → 1976 for Bicentennial)
+            if (getMinYear() !== null || getMaxYear() !== null) {
+                const mn = getMinYear(), mx = getMaxYear();
+                results = results.filter(c => {
+                    const y = sortYear(c);
+                    if (mn !== null && y < mn) return false;
+                    if (mx !== null && y > mx) return false;
+                    return true;
+                });
+            }
 
             // Apply sort mode client-side (mirrors backend behavior)
             if (sortMode === 'az') {
@@ -240,9 +320,19 @@ function renderSearchResults(container, results, query) {
         return;
     }
 
+    // Deduplicate by coin ID (backend can return duplicates in certain conditions)
+    const seenIds = new Set();
+    const uniqueCoins = [];
+    for (const coin of results) {
+        if (!seenIds.has(coin.id)) {
+            seenIds.add(coin.id);
+            uniqueCoins.push(coin);
+        }
+    }
+
     // Group results by section
     const secMap = new Map();
-    for (const coin of results) {
+    for (const coin of uniqueCoins) {
         const sec = coin.section || 'Other';
         if (!secMap.has(sec)) secMap.set(sec, []);
         secMap.get(sec).push(coin);
@@ -256,7 +346,7 @@ function renderSearchResults(container, results, query) {
     header.className = 'search-results-header';
     header.innerHTML = ''
         + '<span class="search-results-count">'
-        + results.length + ' result' + (results.length === 1 ? '' : 's')
+        + uniqueCoins.length + ' result' + (uniqueCoins.length === 1 ? '' : 's')
         + (query ? ' for &ldquo;' + escHtml(query) + '&rdquo;' : '')
         + '</span>'
         + '<button class="btn-secondary" id="btn-clear-search" style="font-size:var(--font-size-xs);padding:4px 12px;">\u2715 Clear</button>';
@@ -319,7 +409,8 @@ function renderSearchResults(container, results, query) {
  */
 function buildSearchRow(coin, mainType) {
     const qty = getInventoryTotalQty(coin.id);
-    const cfg = getTypeConfig(getMainType(coin.coin_type)) || {};
+    const specificCfg = getTypeConfig(coin.coin_type);
+    const cfg = specificCfg || {};
 
     const row = document.createElement('div');
     row.className = 'coin-row';
@@ -330,16 +421,20 @@ function buildSearchRow(coin, mainType) {
     // --- Thumbnail ---
     const tw = document.createElement('div');
     tw.className = 'coin-row-thumb-wrap';
-    const imgSrc = cfg.rev_image || cfg.obv_image || null;
+    // GGMJ-333: honour the _deleted flags - a deleted type image must not
+    // reappear in the search results.
+    const cfgRev = cfg._deleted_rev_image ? null : cfg.rev_image;
+    const cfgObv = cfg._deleted_obv_image ? null : cfg.obv_image;
+    const imgSrc = cfgRev || cfgObv || null;
     if (imgSrc) {
         const img = document.createElement('img');
         img.className = 'coin-row-thumb';
-        img.src = imgSrc;
+        img.src = resolveImageUrl(imgSrc);
         img.alt = '';
         img.loading = 'lazy';
         img.dataset.action = 'view-img';
         img.dataset.type = coin.coin_type;
-        img.dataset.side = cfg.rev_image ? 'rev' : 'obv';
+        img.dataset.side = cfgRev ? 'rev' : 'obv';
         img.onerror = function () { this.src = placeholderCoinSvg(); };
         tw.appendChild(img);
     } else {
@@ -362,9 +457,41 @@ function buildSearchRow(coin, mainType) {
     const info = document.createElement('div');
     info.className = 'coin-row-info';
 
-    const yearStr = coin.year === 1776 ? '1776-1976' : (coin.year || '\u2014');
+    const yearStr = coin.year === 1776 ? '1776-1976' : (coin.year === 2026 ? '1776-2026' : (coin.year || '\u2014'));
     const mintStr = coin.mint_mark ? '-' + coin.mint_mark : '';
-    const titleText = mainType + ' ' + yearStr + mintStr;
+    
+    const isPenny = coin.denomination === '1 Cent' || (coin.coin_type || '').toLowerCase().includes('cent');
+    const labelParts = [];
+    if (isPenny && coin.year === 1982) {
+        const subType = getSubType(coin.coin_type);
+        if (subType === 'Copper' || subType === 'Zinc') {
+            labelParts.push(subType);
+        }
+    }
+    
+    const subType = getSubType(coin.coin_type);
+    if (subType && !isCompositionSub(subType)) {
+        const match = subType.match(/\(([^)]+)\)/);
+        let designName = match ? match[1] : subType;
+        if (designName.includes(' - ')) {
+            const parts = designName.split(' - ');
+            designName = parts[parts.length - 1].trim();
+        }
+        if (coin.year && designName.startsWith(coin.year.toString())) {
+            designName = designName.substring(coin.year.toString().length).trim();
+            designName = designName.replace(/^[-,\s]+/, '');
+        }
+        if (designName && !isCompositionSub(designName) && !labelParts.includes(designName)) {
+            labelParts.push(designName);
+        }
+    }
+    
+    const dateVar = getDateVariety(coin.ref_notes);
+    if (dateVar) {
+        labelParts.push(dateVar);
+    }
+    const designStr = labelParts.length > 0 ? ` (${labelParts.join(', ')})` : '';
+    const titleText = mainType + ' ' + yearStr + mintStr + designStr;
 
     const titleLine = document.createElement('span');
     titleLine.className = 'coin-row-title';
@@ -398,10 +525,11 @@ function buildSearchRow(coin, mainType) {
     row.appendChild(stepper);
 
     // --- Wishlist ---
+    const wlItem = (getWishlist() || []).find(w => w.coin_id === coin.id);
     const wl = document.createElement('button');
-    wl.className = 'btn-wishlist';
+    wl.className = 'btn-wishlist' + (wlItem ? ' active is-wishlist' : '');
     wl.textContent = '\ud83c\udfaf';
-    wl.title = 'Add to wishlist';
+    wl.title = wlItem ? 'Remove from wishlist' : 'Add to wishlist';
     wl.dataset.action = 'add-wishlist';
     wl.dataset.coinId = coin.id;
     row.appendChild(wl);

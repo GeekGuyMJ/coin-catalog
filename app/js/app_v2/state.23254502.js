@@ -63,7 +63,7 @@ const _state = {
     /** @type {boolean} If true, show only key date coins. */
     filterKeyDatesOnly: localStorage.getItem('cc-key-dates-only') === 'true',
 
-    /** @type {string} Catalogue sort mode: 'default'|'az'|'value-desc'|'completion' */
+    /** @type {string} Catalog sort mode: 'default'|'az'|'value-desc'|'completion' */
     sortMode: localStorage.getItem('cc-sort') || 'default',
 
     /** @type {number|null} Minimum year filter (inclusive). */
@@ -75,12 +75,6 @@ const _state = {
     /** @type {boolean} True while the initial data load is in progress. */
     loading: true,
 };
-
-// ---- Widget Visibility State ----
-let _widgets = {};
-
-// ---- SubType Visibility State ----
-let _subTypesVisibility = {};
 
 // ============================================================
 // Subscriber system (simple pub/sub)
@@ -104,45 +98,6 @@ export function onChange(key, fn) {
 
 function _notify(key, value) {
     _subscribers.get(key)?.forEach(fn => fn(value));
-    _globalSubscribers.forEach(fn => fn({ path: key, value }));
-}
-
-/** @type {Set<Function>} Global subscribers notified on any state change. */
-const _globalSubscribers = new Set();
-
-/** Subscribe to state changes on any key; callback receives { path, value }. */
-export function subscribeToState(fn) {
-    _globalSubscribers.add(fn);
-    return () => _globalSubscribers.delete(fn);
-}
-
-/** @returns {Object} Widget visibility map keyed by widget name. */
-export function getWidgets()               { return _widgets; }
-
-/** @param {string} key   Widget key.
- *  @param {boolean} checked Visibility state. */
-export function setWidgetState(key, checked) {
-    _widgets[key] = checked;
-    _notify('widgets', _widgets);
-}
-
-/** @returns {Object} SubType visibility map keyed by subtype key. */
-export function getSubTypesVisibility()    { return _subTypesVisibility; }
-
-/** @param {string} subKey SubType key.
- *  @param {boolean} checked Visibility state. */
-export function setSubTypeState(subKey, checked) {
-    _subTypesVisibility[subKey] = checked;
-    _notify('subTypesVisibility', _subTypesVisibility);
-}
-
-/** Reset all widget/subType visibility to defaults (all visible). */
-export function resetGlobalLayoutAndVisibility() {
-    _widgets = {};
-    _subTypesVisibility = {};
-    _notify('widgets', {});
-    _notify('subTypesVisibility', {});
-    _notify('system.reset', null);
 }
 
 // ============================================================
@@ -270,23 +225,10 @@ export function getTypeConfigs()             { return _state.typeConfigs; }
  * @param {string} [section] - Optional section name for qualified lookup
  * @returns {Object|null}
  */
-// Types whose plain config row must NEVER bleed across sections (exist in 2+ sections with
-// different designs). If a section-qualified lookup misses, returning the plain row would show
-// ANOTHER section's image (e.g. Half Dime 'Draped Bust - Heraldic Eagle' header showing the
-// cent's Draped Bust photo). 2026-08-31.
-const _COLLIDING_PLAIN_TYPES = new Set([
-    'Barber', 'Braided Hair', 'Capped Bust', 'Classic Head', 'Draped Bust',
-    'Draped Bust - Heraldic Eagle', 'Draped Bust - Small Eagle', 'Flowing Hair',
-    'Seated Liberty', 'Trade Dollar',
-]);
-
 export function getTypeConfig(coinType, section) {
     if (section) {
         const qualifiedKey = section + ' — ' + coinType;
         if (_state.typeConfigs[qualifiedKey]) return _state.typeConfigs[qualifiedKey];
-        // No section-qualified row: if this is a known cross-section type, do NOT fall back
-        // to the plain key (that belongs to a different section's design).
-        if (_COLLIDING_PLAIN_TYPES.has(coinType)) return null;
     }
     return _state.typeConfigs[coinType] ?? null;
 }
@@ -332,23 +274,35 @@ export function toggleFilterMissingOnly() {
 
 /** @returns {boolean} */
 export function getFilterHideProofs()        { return _state.filterHideProofs; }
-export function toggleFilterHideProofs() {
-    _state.filterHideProofs = !_state.filterHideProofs;
+export function setFilterHideProofs(val) {
+    _state.filterHideProofs = !!val;
+    localStorage.setItem('cc-hide-proofs', val ? 'true' : 'false');
     _notify('filter', null);
+}
+export function toggleFilterHideProofs() {
+    setFilterHideProofs(!_state.filterHideProofs);
 }
 
 /** @returns {boolean} */
 export function getFilterHideErrors()        { return _state.filterHideErrors; }
-export function toggleFilterHideErrors() {
-    _state.filterHideErrors = !_state.filterHideErrors;
+export function setFilterHideErrors(val) {
+    _state.filterHideErrors = !!val;
+    localStorage.setItem('cc-hide-errors', val ? 'true' : 'false');
     _notify('filter', null);
+}
+export function toggleFilterHideErrors() {
+    setFilterHideErrors(!_state.filterHideErrors);
 }
 
 /** @returns {boolean} */
 export function getFilterKeyDatesOnly()      { return _state.filterKeyDatesOnly; }
-export function toggleFilterKeyDatesOnly() {
-    _state.filterKeyDatesOnly = !_state.filterKeyDatesOnly;
+export function setFilterKeyDatesOnly(val) {
+    _state.filterKeyDatesOnly = !!val;
+    localStorage.setItem('cc-key-dates-only', val ? 'true' : 'false');
     _notify('filter', null);
+}
+export function toggleFilterKeyDatesOnly() {
+    setFilterKeyDatesOnly(!_state.filterKeyDatesOnly);
 }
 
 /** @returns {string} */
@@ -427,12 +381,39 @@ export const setPaperCurrency = (v) => { _paperCurrency = v; };
 // ---- Custom Categories State ----
 let _customCategories = [];
 export const getCustomCategories = () => _customCategories;
+
+/**
+ * User-defined dashboard cards (Settings -> Custom Dashboard Card).
+ *
+ * The creator modal has always WRITTEN `cc-custom-cards` but nothing read it,
+ * so a created card saved, toasted success, and never rendered. This accessor
+ * is the one place that knows the key -- renderDashboard() goes through here
+ * rather than touching localStorage directly.
+ *
+ * @returns {Array<Object>} saved card definitions; [] when absent or corrupt.
+ */
+export const getCustomDashboardCards = () => {
+    try {
+        const raw = localStorage.getItem('cc-custom-cards');
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed.filter(c => c && c.title) : [];
+    } catch (e) {
+        console.warn('[state] could not read cc-custom-cards:', e);
+        return [];
+    }
+};
 export const setCustomCategories = (v) => { _customCategories = v; };
 
 // ---- Other Collectables State ----
 let _otherCollectables = [];
 export const getOtherCollectables = () => _otherCollectables;
 export const setOtherCollectables = (v) => { _otherCollectables = v; };
+
+// ---- Portfolio History Log ----
+let _portfolioHistoryLog = [];
+export const getValueHistoryLog = () => _portfolioHistoryLog;
+export const setValueHistoryLog = (v) => { _portfolioHistoryLog = v; _notify('portfolioHistory', v); };
 
 
 // ---- Purge All Inventory ----

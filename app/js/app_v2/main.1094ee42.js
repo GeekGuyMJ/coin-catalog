@@ -1,3 +1,4 @@
+
 /**
  * main.js — Coin Catalog v2
  *
@@ -12,8 +13,6 @@
  */
 
 import { fetchSections, fetchInventory, fetchTypeConfigs, fetchSpotPrices, fetchWishlist } from './api.js';
-import { isSelfHosted } from './env.js';
-import { isPWAInstallAllowed, APP_VERSION } from './env.js';
 import { initDb } from './db.js';
 import {
     setSections, setInventory, setTypeConfigs, setSpotPrices, setLoading, setWishlist,
@@ -22,7 +21,6 @@ import {
 import { renderSections, updateStickyOffsets } from './catalog.js';
 import { renderAlbumView } from './album.js';
 import { initSearch } from './search.js';
-import { initPortfolio, renderDashboard, prewarmPortfolioData } from './portfolio.js';
 import { showToast } from './notifications.js';
 import { openSettingsModal, openHelpModal, openScrapMetalModal, openPaperCurrencyModal, openCollectablesModal, openVisibilityModal, openCustomThemeDesigner } from './modals.js';
 import { openStoriesModal } from './stories.js';
@@ -155,101 +153,57 @@ async function boot() {
     }, 60000); // 60 seconds max for entire boot sequence
 
     try {
-        // V530: Guarantee Dashboard Cards mount FIRST at the top of the viewport (scrollY = 0)
-        // on every deployment (Self-Hosted & Cloudflare) BEFORE the search bar or coin list can render!
-        const searchCardEl = document.getElementById('card-search');
-        const catalogContainerEl = document.getElementById('catalog-container');
-        const isSearchHiddenByUser = (() => {
-            try {
-                const vis = JSON.parse(localStorage.getItem('cc-card-visibility') || '{}');
-                return vis['card-search'] === false;
-            } catch (_) { return false; }
-        })();
-        try {
-            sessionStorage.removeItem('cc-scroll-y');
-            document.documentElement.style.overflowAnchor = 'none';
-            if (document.body) document.body.style.overflowAnchor = 'none';
-            if (searchCardEl) searchCardEl.style.display = 'none';
-            if (catalogContainerEl) catalogContainerEl.style.display = 'none';
-            window.scrollTo(0, 0);
-        } catch (_) {}
-
-        initLayoutToggle();
-
-        // 1. Mount all 15 Dashboard Cards synchronously right now (t = 0ms) using cached/seeded state
-        //    and start async portfolio + spot price refreshes in parallel.
-        try {
-            renderDashboard();
-            prewarmPortfolioData();
-            initPortfolio();
-        } catch (syncDashErr) {
-            console.warn('[boot] synchronous dashboard mount warning:', syncDashErr);
-        }
-        const spotPrebootPromise = fetchSpotPricesBackground(1800);
-
-        // 2. On Self-Hosted, SQLite is the source of truth so do NOT block boot on IndexedDB seeding;
-        //    on Cloudflare (static mode), do NOT block boot on IndexedDB seeding either — the 5,622-coin
-        //    seed exceeds the 15s splash watchdog. Run initDb in background so dashboard renders first.
+        // Initialize the local database (seeds from coins.json if empty) - with timeout!
         console.log('[boot] Seeding database...');
-        if (isSelfHosted) {
-            timeout(initDb(), 45000, 'initDb').catch(e => console.warn('[boot] background initDb note:', e.message));
-        } else {
-            timeout(initDb(), 45000, 'initDb').catch(e => console.warn('[boot] background initDb note:', e.message));
-        }
-        console.log('[boot] Database ready (background seeding started).');
+        await timeout(initDb(), 45000, 'initDb');
+        console.log('[boot] Database ready.');
 
-        // 3. Fetch dashboard state (inventory, typeConfigs, wishlist) and sections in parallel.
+        // Load sections, inventory, type configs, and wishlist in parallel with timeout protection
         console.log('[boot] Fetching data...');
+        console.log('[boot] Starting fetchSections()...');
         const sectionsPromise = timeout(fetchSections(), 30000, 'sections').catch(e => { console.warn('[boot] sections failed:', e.message); return []; });
-        const inventoryPromise = timeout(fetchInventory(), 15000, 'inventory').catch(e => { console.warn('[boot] inventory failed:', e.message); return {}; });
-        const typeConfigsPromise = timeout(fetchTypeConfigs(), 15000, 'typeConfigs').catch(e => { console.warn('[boot] typeConfigs failed:', e.message); return {}; });
-        const wishlistPromise = timeout(fetchWishlist(), 10000, 'wishlist').catch(e => { console.warn('[boot] wishlist failed:', e.message); return []; });
-
-        const [inventory, typeConfigs, wishlist] = await Promise.all([
+        console.log('[boot] Starting fetchInventory()...');
+        const inventoryPromise = timeout(fetchInventory(), 30000, 'inventory').catch(e => { console.warn('[boot] inventory failed:', e.message); return {}; });
+        console.log('[boot] Starting fetchTypeConfigs()...');
+        const typeConfigsPromise = timeout(fetchTypeConfigs(), 20000, 'typeConfigs').catch(e => { console.warn('[boot] typeConfigs failed:', e.message); return {}; });
+        console.log('[boot] Starting fetchWishlist()...');
+        const wishlistPromise = timeout(fetchWishlist(), 15000, 'wishlist').catch(e => { console.warn('[boot] wishlist failed:', e.message); return []; });
+        
+        const [sections, inventory, typeConfigs, wishlist] = await Promise.all([
+            sectionsPromise,
             inventoryPromise,
             typeConfigsPromise,
             wishlistPromise,
         ]);
 
-        setInventory(inventory || {});
-        setTypeConfigs(typeConfigs || {});
-        setWishlist(wishlist || []);
-
-        // Wait briefly (up to 1.8s) for live spot prices & portfolio summary, then ensure Dashboard Cards are painted.
-        await spotPrebootPromise;
-        try {
-            await timeout(initPortfolio(), 2500, 'initPortfolio');
-        } catch (_) {}
-        renderDashboard();
-
-        // 4. Reveal the Dashboard Cards at the very top FIRST (while #card-search and #catalog-container
-        //    are still display:none so the viewport is 100% locked to the top cards!).
-        window.scrollTo(0, 0);
-        setLoading(false);
-        hideSplash();
-
-        // Give the browser one frame to paint the Dashboard Cards at the top of the screen,
-        // then unhide #card-search and #catalog-container underneath without moving scrollY!
-        await new Promise(r => requestAnimationFrame(r));
-        if (searchCardEl) searchCardEl.style.display = isSearchHiddenByUser ? 'none' : '';
-        if (catalogContainerEl) catalogContainerEl.style.display = '';
-        window.scrollTo(0, 0);
-
-        // 2. Now await sectionsPromise and render the Coin Catalog underneath while keeping viewport at top
-        const sections = await sectionsPromise;
+        // If we got any data, use it
+        console.log('[boot] Data received - raw:', { 
+            sections: Array.isArray(sections) ? sections.slice(0,2) : sections,
+            inventory: typeof inventory,
+            inventoryKeys: Object.keys(inventory || {}).length,
+            typeConfigs: typeof typeConfigs,
+            typeConfigsKeys: Object.keys(typeConfigs || {}).length,
+            wishlist: Array.isArray(wishlist) ? wishlist.slice(0,2) : wishlist
+        });
         console.log('[boot] Data received.', { sectionsLength: sections?.length, inventoryLength: Object.keys(inventory || {}).length, typeConfigsKeys: Object.keys(typeConfigs || {}).length });
         if (sections || inventory || typeConfigs) {
             console.log('[main] About to call setSections with:', sections?.length, 'sections');
-            setSections(sections || []);
-            showToast('App loaded successfully! Showing available data.', 'success', 3000);
+        setSections(sections || []);
+        setInventory(inventory || {});
+            setTypeConfigs(typeConfigs || {});
+            setWishlist(wishlist || []);
         } else {
+            // If no data received, show user-friendly message
             showToast('No data received - showing empty state', 'warning', 3000);
         }
 
-        await new Promise(r => requestAnimationFrame(r));
+        // Init dashboard
+        import('./portfolio.js').then(m => m.initPortfolio());
+
+        // Render the catalog
         renderSections();
         initViewToggle();
-        if (window.scrollY > 0) window.scrollTo(0, 0);
+        initLayoutToggle();
 
         // Initialize logo zoom and theme sync
         setupLogoZoomEngine();
@@ -270,10 +224,6 @@ async function boot() {
         console.error('[boot] Load failed:', err);
         showToast(`Failed to load app: ${err.message}. Showing empty state.`, 'error', 8000);
         
-        // Even on error, show the UI so user can see error state
-        if (searchCardEl) searchCardEl.style.display = '';
-        if (catalogContainerEl) catalogContainerEl.style.display = '';
-
         // Establish minimal functionality as fallback
         setSections([]);
         setInventory({});
@@ -401,15 +351,10 @@ async function fetchSpotPricesBackground(capMs) {
 let _installPrompt = null;
 
 window.addEventListener('beforeinstallprompt', e => {
-    if (!isPWAInstallAllowed) {
-        e.preventDefault();
-        _installPrompt = null;
-    } else {
-        e.preventDefault();
-        _installPrompt = e;
-    }
+    e.preventDefault();
+    _installPrompt = e;
     const btn = document.getElementById('btn-install');
-    if (btn) btn.style.display = isPWAInstallAllowed ? 'inline-flex' : 'none';
+    if (btn) btn.style.display = 'inline-flex';
 });
 
 window.addEventListener('appinstalled', () => {
@@ -425,7 +370,7 @@ window.triggerPWAInstall = async () => {
     _installPrompt = null;
     const btn = document.getElementById('btn-install');
     if (btn) btn.style.display = 'none';
-}
+};
 
 // Modal functions are imported from modals.js above
 // Expose to window for HTML onclick handlers (window._btnCall)
