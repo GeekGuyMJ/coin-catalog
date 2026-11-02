@@ -3,3 +3,4 @@
 # This allows the app to handle API failures gracefully (show empty state) rather than parsing HTML
 # Format: source destination status
 /api/*  404
+ 
