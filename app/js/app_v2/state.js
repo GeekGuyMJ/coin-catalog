@@ -16,8 +16,6 @@
 // Internal state store (private to this module)
 // ============================================================
 
-import { deleteInventoryEntry } from "./api.js";
-
 const _state = {
     /** @type {Array<{section:string, total:number, owned:number}>} */
     sections: [],
@@ -417,6 +415,7 @@ export const setOtherCollectables = (v) => { _otherCollectables = v; };
  * Walks every coin key in the inventory map and deletes each entry.
  */
 export async function purgeUserInventoryTables() {
+    const { deleteInventoryEntry } = await import('./api.js');
     const inv = getInventory();
     const ids = [];
     for (const key of Object.keys(inv)) {
