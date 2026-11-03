@@ -153,10 +153,14 @@ async function boot() {
     }, 60000); // 60 seconds max for entire boot sequence
 
     try {
-        // Initialize the local database (seeds from coins.json if empty) - with timeout!
+        // Initialize the local database (seeds from coins.json if empty) - fire-and-forget!
         console.log('[boot] Seeding database...');
-        await timeout(initDb(), 45000, 'initDb');
-        console.log('[boot] Database ready.');
+        // IndexedDB seeding must NOT block boot on self-hosted deployments.
+        // Fire-and-forget: render from whatever state is available, seeding
+        // continues in the background. Without this, boot pauses for the
+        // entire 5,622-coin seed and _bootComplete never transitions on time.
+        initDb().catch(e => console.warn('[boot] background initDb failed:', e.message));
+        console.log('[boot] Database seeding started in background.');
 
         // Load sections, inventory, type configs, and wishlist in parallel with timeout protection
         console.log('[boot] Fetching data...');
