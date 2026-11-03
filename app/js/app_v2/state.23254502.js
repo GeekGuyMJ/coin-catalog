@@ -409,6 +409,7 @@ export const setCustomCategories = (v) => { _customCategories = v; };
  * Walks every coin key in the inventory map and deletes each entry.
  */
 export async function purgeUserInventoryTables() {
+    const { deleteInventoryEntry } = await import('./api.js');
     const inv = getInventory();
     const ids = [];
     for (const key of Object.keys(inv)) {
