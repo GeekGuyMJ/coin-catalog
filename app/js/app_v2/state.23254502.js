@@ -16,8 +16,6 @@
 // Internal state store (private to this module)
 // ============================================================
 
-import { deleteInventoryEntry } from "./api.js";
-
 const _state = {
     /** @type {Array<{section:string, total:number, owned:number}>} */
     sections: [],
